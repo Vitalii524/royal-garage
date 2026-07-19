@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Royal Garage</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="site-header">
+
+    <div class="top-line">
+
+        <div class="brand">
+            <img src="images/royal-garage-logo.png" alt="Royal Garage">
+        </div>
+
+        <nav class="nav">
+            <a href="index.html">Головна</a>
+            <a href="forum.html">Форум</a>
+            <a href="market.html">Авторинок</a>
+            <a href="profile.html">Мій профіль</a>
+        </nav>
+        <div id="authArea" class="auth-area"></div>
+        </div>
+
+    </div>
+
+    <section class="hero">
+
+        <div class="hero-text">
+            <h1>Royal Garage</h1>
+            <p>Автоспільнота для водіїв, форум, авторинок і особистий гараж</p>
+
+            <div class="hero-actions">
+                <a href="forum.html">Перейти на форум</a>
+                <a href="market.html">Переглянути авто</a>
+            </div>
+        </div>
+
+    </section>
+
+    <div class="search-box">
+        <input id="searchInput" type="text" placeholder="Пошук авто, тем або користувачів...">
+        <button onclick="searchSite()">🔍 Знайти</button>
+    </div>
+
+</header>
+
+
+<main class="main-content">
+
+    <section class="panel">
+        <div class="panel-title">
+            <span>💬</span>
+            <h2>Форум водіїв</h2>
+        </div>
+
+        <div id="topicsList">
+
+            <div class="topic-card">
+                <h3>Peugeot 308 1.6 THP</h3>
+                <p>Проблеми, ремонт, досвід власників</p>
+            </div>
+
+            <div class="topic-card">
+                <h3>BMW E46</h3>
+                <p>Тюнінг та обслуговування</p>
+            </div>
+
+            <div class="topic-card">
+                <h3>Подорожі на авто</h3>
+                <p>Маршрути, поради, допомога</p>
+            </div>
+
+        </div>
+
+        <button class="gold-btn" onclick="openTopicForm()">Створити тему</button>
+    </section>
+
+
+    <section class="panel">
+        <div class="panel-title">
+            <span>🚘</span>
+            <h2>Авторинок</h2>
+        </div>
+
+        <div id="carsList">
+
+            <div class="car-card">
+                <h3>BMW 320D</h3>
+                <p>2015 рік • 220000 км • 12000$</p>
+            </div>
+
+            <div class="car-card">
+                <h3>Peugeot 308</h3>
+                <p>2008 рік • 280000 км • 5000$</p>
+            </div>
+
+        </div>
+
+        <button class="gold-btn" onclick="openCarForm()">Додати оголошення</button>
+    </section>
+
+</main>
+
+
+<section class="brands">
+
+    <h2>Популярні марки</h2>
+
+    <div class="brand-grid">
+        <button onclick="quickSearch('BMW')">BMW</button>
+        <button onclick="quickSearch('Audi')">Audi</button>
+        <button onclick="quickSearch('Mercedes')">Mercedes</button>
+        <button onclick="quickSearch('Peugeot')">Peugeot</button>
+        <button onclick="quickSearch('Toyota')">Toyota</button>
+        <button onclick="quickSearch('Volkswagen')">Volkswagen</button>
+    </div>
+
+</section>
+
+
+<section class="features">
+
+    <div class="feature">
+        <span>🛡️</span>
+        <h3>Надійність</h3>
+        <p>Перевірені користувачі та реальні відгуки</p>
+    </div>
+
+    <div class="feature">
+        <span>👑</span>
+        <h3>Преміум сервіс</h3>
+        <p>VIP-оголошення, реклама та просування</p>
+    </div>
+
+    <div class="feature">
+        <span>⭐</span>
+        <h3>Спільнота</h3>
+        <p>Форум, поради та досвід водіїв</p>
+    </div>
+
+    <div class="feature">
+        <span>🏅</span>
+        <h3>Безпека</h3>
+        <p>Захист акаунтів та особистих даних</p>
+    </div>
+
+</section>
+
+
+<footer class="footer">
+
+    <div>
+        <h3>Royal Garage</h3>
+        <p>Автоспільнота України</p>
+        <p>Створено командою Royal Auto Atelier</p>
+    </div>
+
+    <div>
+        <h3>Навігація</h3>
+        <a href="index.html">Головна</a>
+        <a href="forum.html">Форум</a>
+        <a href="market.html">Авторинок</a>
+        <a href="profile.html">Мій профіль</a>
+    </div>
+
+</footer>
+
+
+<div id="modal" class="modal">
+    <div class="modal-content">
+
+        <span class="close" onclick="closeModal()">×</span>
+
+        <div id="modalBody"></div>
+
+    </div>
+</div>
+
+
+<script src="js/script.js"></script>
+<script src="js/auth.js"></script>
+</body>
+</html>

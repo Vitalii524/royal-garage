@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мій гараж | Royal Garage</title>
+
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+
+<header class="site-header">
+
+    <div class="top-line">
+
+        <div class="brand">
+            <a href="index.html">
+                <img
+                    src="images/royal-garage-logo.png"
+                    alt="Royal Garage">
+            </a>
+        </div>
+
+        <nav class="nav">
+            <a href="index.html">Головна</a>
+            <a href="forum.html">Форум</a>
+            <a href="market.html">Авторинок</a>
+            <a href="profile.html">Мій гараж</a>
+        </nav>
+
+    </div>
+
+</header>
+
+
+<main class="garage-page">
+
+    <section class="garage-hero">
+
+        <div>
+            <p class="section-label">Особистий кабінет</p>
+
+            <h1>Мій гараж</h1>
+
+            <p>
+                Додавай автомобілі, веди історію обслуговування
+                та підтверджуй догляд фотографіями й чеками.
+            </p>
+        </div>
+
+        <button class="gold-btn" id="openCarButton">
+            Додати автомобіль
+        </button>
+
+    </section>
+
+
+    <section class="garage-layout">
+
+        <aside class="garage-sidebar">
+
+            <h2>Мої автомобілі</h2>
+
+            <div id="garageCarsList" class="garage-cars-list">
+
+                <p class="empty-message" id="noCarsMessage">
+                    Автомобілів ще немає.
+                </p>
+
+            </div>
+
+        </aside>
+
+
+        <section class="service-panel">
+
+            <div id="selectedCarEmpty" class="empty-state">
+
+                <span>🚗</span>
+
+                <h2>Вибери автомобіль</h2>
+
+                <p>
+                    Спочатку додай автомобіль або вибери його
+                    зі списку ліворуч.
+                </p>
+
+            </div>
+
+
+            <div id="selectedCarContent" class="hidden">
+
+                <div class="car-photo-container">
+
+                    <img
+                        id="selectedCarPhoto"
+                        class="car-main-photo hidden"
+                        alt="Фото автомобіля">
+                
+                    <div
+                        id="carPhotoPlaceholder"
+                        class="car-photo-placeholder">
+                        📷 Фото автомобіля ще не додано
+                    </div>
+                    <label class="change-car-photo-button">
+                        Додати фото автомобіля
+                    
+                        <input
+                            type="file"
+                            id="updateCarPhoto"
+                            accept="image/jpeg,image/png,image/webp"
+                            multiple
+                            hidden
+                        >
+                    </label>
+                    
+                    <div
+                        id="carPhotoGallery"
+                        class="car-photo-gallery">
+                    </div>
+                
+                </div>
+
+                <div class="selected-car-header">
+
+                    <div>
+                        <p class="section-label">Обраний автомобіль</p>
+
+                        <h2 id="selectedCarName"></h2>
+
+                        <p id="selectedCarInfo"></p>
+                    </div>
+
+                    <button
+                        class="gold-btn"
+                        id="openServiceButton">
+                        Додати запис
+                    </button>
+
+                    <button
+                        type="button"
+                        id="deleteCarButton"
+                        class="delete-car-button">
+                        Видалити автомобіль
+                    </button>
+
+                </div>
+
+
+                <div class="service-summary">
+
+                    <div>
+                        <strong id="serviceCount">0</strong>
+                        <span>записів</span>
+                    </div>
+
+                    <div>
+                        <strong id="totalServiceCost">0 грн</strong>
+                        <span>витрачено</span>
+                    </div>
+
+                    <div>
+                        <strong id="currentMileage">—</strong>
+                        <span>поточний пробіг</span>
+                    </div>
+
+                </div>
+
+                   
+                <div id="serviceHistory" class="service-history">
+
+                    <p class="empty-message" id="noServiceMessage">
+                        Історія обслуговування поки порожня.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </section>
+
+</main>
+
+
+<!-- Вікно додавання автомобіля -->
+
+<div class="modal" id="carModal">
+
+    <div class="modal-content">
+
+        <button class="modal-close" data-close-modal>
+            ×
+        </button>
+
+        <h2>Додати автомобіль</h2>
+
+        <form id="carForm">
+
+            <label>
+                Марка і модель
+                <input
+                    type="text"
+                    id="carName"
+                    placeholder="Наприклад: Peugeot 308"
+                    required>
+            </label>
+
+            <label>
+                Рік випуску
+                <input
+                    type="number"
+                    id="carYear"
+                    min="1900"
+                    max="2100"
+                    placeholder="2008"
+                    required>
+            </label>
+
+            <label>
+                Поточний пробіг, км
+                <input
+                    type="number"
+                    id="carMileage"
+                    min="0"
+                    placeholder="280000"
+                    required>
+            </label>
+
+            <label>
+                Двигун
+                <input
+                    type="text"
+                    id="carEngine"
+                    placeholder="1.6 бензин турбо">
+            </label>
+            
+                <label>
+                    VIN
+                    <input
+                        type="text"
+                        id="carVin"
+                        maxlength="17"
+                        placeholder="Наприклад: VF3*************"
+                        required>
+                </label>
+                <label>
+                    Державний номер
+                    <input
+                        type="text"
+                        id="carPlate"
+                        placeholder="BC1234AA">
+                </label>
+
+                <label class="form-field">
+                    <span>Фото автомобіля</span>
+                
+                    <input
+                        type="file"
+                        id="carPhoto"
+                        accept="image/jpeg,image/png,image/webp"
+                    >
+                </label>
+                
+                <button type="submit" class="gold-btn">
+                    Зберегти автомобіль
+                </button>
+
+        </form>
+    <button
+        type="button"
+        id="deleteCarButton"
+        class="delete-car-button">
+        Видалити автомобіль
+    </button>
+    </div>
+
+</div>
+
+
+<!-- Вікно додавання обслуговування -->
+
+<div class="modal" id="serviceModal">
+
+    <div class="modal-content">
+
+        <button class="modal-close" data-close-modal>
+            ×
+        </button>
+
+        <h2>Новий запис обслуговування</h2>
+
+        <form id="serviceForm">
+
+            <label>
+                Назва роботи
+                <input
+                    type="text"
+                    id="serviceTitle"
+                    placeholder="Наприклад: заміна масла"
+                    required>
+            </label>
+
+            <label>
+                Дата
+                <input
+                    type="date"
+                    id="serviceDate"
+                    required>
+            </label>
+
+            <label>
+                Пробіг на момент роботи, км
+                <input
+                    type="number"
+                    id="serviceMileage"
+                    min="0"
+                    required>
+            </label>
+
+            <label>
+                Вартість, грн
+                <input
+                    type="number"
+                    id="serviceCost"
+                    min="0"
+                    value="0">
+            </label>
+
+            <label>
+                СТО або майстер
+                <input
+                    type="text"
+                    id="serviceStation"
+                    placeholder="Назва СТО або ім’я майстра">
+            </label>
+
+            <label>
+                Опис робіт
+                <textarea
+                    id="serviceDescription"
+                    rows="4"
+                    placeholder="Що саме було зроблено?">
+                </textarea>
+            </label>
+
+            <label>
+                Фото чека або ремонту
+            
+                <input
+                    type="file"
+                    id="servicePhotos"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple>
+            </label>
+
+            <label class="visibility-option">
+                <input
+                    type="checkbox"
+                    id="servicePublic"
+                    checked>
+
+                Публічний запис
+            </label>
+
+            <button class="gold-btn" type="submit">
+                Додати в історію
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+<div id="photoViewer" class="photo-viewer">
+
+    <button
+        type="button"
+        id="closePhotoViewer"
+        class="photo-viewer-close">
+        ×
+    </button>
+
+    <button
+    type="button"
+    id="previousCarPhoto"
+    class="photo-viewer-arrow photo-viewer-arrow-left"
+    aria-label="Попереднє фото">
+    ❮
+</button>
+    
+    <img
+        id="photoViewerImage"
+        alt="Фото автомобіля">
+
+        <button
+    type="button"
+    id="nextCarPhoto"
+    class="photo-viewer-arrow photo-viewer-arrow-right"
+    aria-label="Наступне фото">
+    ❯
+</button>
+
+</div>
+
+
+<script src="js/profile.js"></script>
+
+</body>
+</html>
