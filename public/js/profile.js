@@ -42,6 +42,7 @@ const serviceForm = document.getElementById("serviceForm");
 const openCarButton = document.getElementById("openCarButton");
 const openServiceButton = document.getElementById("openServiceButton");
 const deleteCarButton = document.getElementById("deleteCarButton");
+const editCarButton = document.getElementById("editCarButton");
 const selectedCarPhoto = document.getElementById("selectedCarPhoto");
 const carPhotoPlaceholder = document.getElementById("carPhotoPlaceholder");
 const photoViewer = document.getElementById("photoViewer");
@@ -56,6 +57,7 @@ const updateCarPhoto = document.getElementById("updateCarPhoto");
 const carPhotoGallery =  document.getElementById("carPhotoGallery");
 let cars = loadCars();
 let selectedCarId = cars[0]?.id ?? null;
+let editingCarId = null;
 let editingServiceId = null;
 
 // Видаляємо дублікати автомобілів по VIN
@@ -897,6 +899,43 @@ function deleteService(serviceId) {
 /* ===== ВІДКРИТТЯ ФОРМ ===== */
 
 openCarButton.addEventListener("click", () => {
+    editingCarId = null;
+    carForm.reset();
+    openModal(carModal);
+});
+
+editCarButton.addEventListener("click", () => {
+    const car = cars.find(
+        (item) => item.id === selectedCarId
+    );
+
+    if (!car) {
+        alert("Автомобіль не вибраний.");
+        return;
+    }
+
+    editingCarId = car.id;
+
+    document.getElementById("carName").value =
+        car.name || "";
+
+    document.getElementById("carYear").value =
+        car.year || "";
+
+    document.getElementById("carMileage").value =
+        car.mileage || 0;
+
+    document.getElementById("carEngine").value =
+        car.engine || "";
+
+    document.getElementById("carVin").value =
+        car.vin || "";
+
+    document.getElementById("carPlate").value =
+        car.plate || "";
+
+    document.getElementById("carPhoto").value = "";
+
     openModal(carModal);
 });
 
@@ -1032,47 +1071,91 @@ if (photoFile) {
     }
 }
 
-const newCar = {
-    id: createId(),
-    ownerId: currentUser.id,
-    name,
-    year,
-    mileage,
-    engine,
-    vin: document
-        .getElementById("carVin")
-        .value
-        .trim()
-        .toUpperCase(),
-    plate: document
-        .getElementById("carPlate")
-        .value
-        .trim()
-        .toUpperCase(),
-    photo,
-    createdAt: new Date().toISOString(),
-    services: []
-};
-    
-    const exists = newCar.vin && cars.some(
-        (car) =>
-            (car.vin || "").trim().toUpperCase() === newCar.vin
+const vin = document
+    .getElementById("carVin")
+    .value
+    .trim()
+    .toUpperCase();
+
+const plate = document
+    .getElementById("carPlate")
+    .value
+    .trim()
+    .toUpperCase();
+
+const exists = vin && cars.some(
+    (car) =>
+        car.id !== editingCarId &&
+        (car.vin || "").trim().toUpperCase() === vin
+);
+
+if (exists) {
+    alert("Автомобіль з таким VIN вже є.");
+    return;
+}
+
+if (editingCarId) {
+    const car = cars.find(
+        (item) => item.id === editingCarId
     );
-    
-    if (exists) {
-        alert("Автомобіль з таким VIN вже є.");
+
+    if (!car) {
+        alert("Автомобіль не знайдений.");
         return;
     }
-    
+
+    car.name = name;
+    car.year = year;
+    car.mileage = mileage;
+    car.engine = engine;
+    car.vin = vin;
+    car.plate = plate;
+
+    if (photoFile) {
+        car.photo = photo;
+
+        if (
+            Array.isArray(car.photos) &&
+            car.photos.length > 0
+        ) {
+            const photoIndex =
+                Number.isInteger(car.activePhotoIndex)
+                    ? car.activePhotoIndex
+                    : 0;
+
+            car.photos[photoIndex] = photo;
+        }
+    }
+
+    selectedCarId = car.id;
+} else {
+    const newCar = {
+        id: createId(),
+        ownerId: currentUser.id,
+        name,
+        year,
+        mileage,
+        engine,
+        vin,
+        plate,
+        photo,
+        photos: photo ? [photo] : [],
+        activePhotoIndex: 0,
+        createdAt: new Date().toISOString(),
+        services: []
+    };
+
     cars.push(newCar);
-    
     selectedCarId = newCar.id;
-    
-    saveCars();
-    renderPage();
-    
-    carForm.reset();
-    closeModal(carModal);
+}
+
+saveCars();
+renderPage();
+
+editingCarId = null;
+carForm.reset();
+closeModal(carModal);
+
 });
 
 

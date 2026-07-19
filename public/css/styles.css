@@ -1133,3 +1133,48 @@ body {
 .main-car-photo-button:hover {
     transform: translateX(-50%) scale(1.08);
 }
+
+.edit-car-button {
+    padding: 12px 20px;
+    border: 1px solid #d7b35a;
+    border-radius: 10px;
+    background: transparent;
+    color: #f2d27a;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.edit-car-button:hover {
+    background: #d7b35a;
+    color: #10182c;
+}
+
+.delete-car-button {
+    margin-top: 10px;
+}
+
+.edit-service-button {
+    padding: 10px 16px;
+    border: 1px solid #d7b35a;
+    border-radius: 8px;
+    background: transparent;
+    color: #f2d27a;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.edit-service-button:hover {
+    background: #d7b35a;
+    color: #10182c;
+}
+
+.delete-service-button {
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.delete-service-button:hover {
+    background: #b94a55;
+    border-color: #b94a55;
+    color: #ffffff;
+}
