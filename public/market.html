@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Royal Garage</title>
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 
 
@@ -40,51 +40,211 @@
 
 
 
-<main>
+<main class="market-page">
+    <section class="market-hero">
+        <div>
+            <p class="market-label">ROYAL GARAGE MARKET</p>
+            <h1>Авторинок</h1>
+            <p>
+                Купуй і продавай автомобілі серед учасників спільноти.
+            </p>
+        </div>
 
+        <button
+            type="button"
+            id="openListingButton"
+            class="gold-btn"
+        >
+            Додати оголошення
+        </button>
+    </section>
 
+    <section class="market-toolbar">
+        <input
+            type="search"
+            id="marketSearch"
+            placeholder="Пошук за маркою або моделлю"
+        >
 
+        <select id="marketSort">
+            <option value="newest">Спочатку нові</option>
+            <option value="price-low">Від дешевих</option>
+            <option value="price-high">Від дорогих</option>
+        </select>
+    </section>
 
-
-
-<section class="market">
-
-<h2>🚘 Авторинок</h2>
-
-
-<div class="car">
-
-<h3>Продам авто</h3>
-
-<p>
-Фото автомобіля, опис, ціна
-</p>
-
-<button>
-Додати оголошення
-</button>
-
-</div>
-
-
-
-<div class="car">
-
-<h3>Пошук авто</h3>
-
-<p>
-Знайди машину від власника
-</p>
-
-</div>
-
-
-</section>
-
-
+    <section
+        id="marketListings"
+        class="market-listings"
+    >
+        <p class="empty-market">
+            Оголошень поки немає.
+        </p>
+    </section>
 </main>
 
+<div id="listingModal" class="modal">
+    <div class="modal-content market-modal-content">
+        <button
+            type="button"
+            id="closeListingModal"
+            class="close-modal"
+        >
+            ×
+        </button>
 
+        <h2>Нове оголошення</h2>
+
+        <form id="listingForm">
+            <label>
+                Автомобіль із мого гаража
+                <select id="listingCar" required>
+
+                    <div
+                    id="selectedCarPreview"
+                    class="selected-car-preview"
+                    hidden
+                >
+                    <img
+                        id="selectedCarPhoto"
+                        src=""
+                        alt="Фото автомобіля"
+                    >
+                
+                    <div>
+                        <h3 id="selectedCarName"></h3>
+                        <p id="selectedCarDetails"></p>
+                        <p id="selectedCarVin"></p>
+                    </div>
+                </div>
+
+                    <option value="">
+                        Обери автомобіль
+                    </option>
+                </select>
+            </label>
+            
+            <div class="listing-specs">
+                <label>
+                    Пробіг, км
+                    <input
+                        type="number"
+                        id="listingMileage"
+                        min="0"
+                        step="1"
+                        required
+                    >
+                </label>
+
+                <label id="powerValueField" hidden>
+                    <span id="powerValueLabel">
+                        Об’єм двигуна, л
+                    </span>
+                
+                    <input
+                        type="number"
+                        id="listingPowerValue"
+                        min="0"
+                        step="0.1"
+                    >
+                </label>
+
+                <label>
+                    Тип пального
+                    <select id="listingFuel" required>
+                        <option value="">Обери пальне</option>
+                        <option value="Бензин">Бензин</option>
+                        <option value="Дизель">Дизель</option>
+                        <option value="Газ/бензин">Газ/бензин</option>
+                        <option value="Гібрид">Гібрид</option>
+                        <option value="Електро">Електро</option>
+                    </select>
+                </label>
+            
+                <label>
+                    Коробка передач
+                    <select id="listingTransmission" required>
+                        <option value="">Обери коробку</option>
+                        <option value="Механіка">Механіка</option>
+                        <option value="Автомат">Автомат</option>
+                        <option value="Робот">Робот</option>
+                        <option value="Варіатор">Варіатор</option>
+                    </select>
+                </label>
+            
+                <label>
+                    Тип кузова
+                    <select id="listingBody" required>
+                        <option value="">Обери кузов</option>
+                        <option value="Седан">Седан</option>
+                        <option value="Хетчбек">Хетчбек</option>
+                        <option value="Універсал">Універсал</option>
+                        <option value="Кросовер">Кросовер</option>
+                        <option value="Позашляховик">Позашляховик</option>
+                        <option value="Купе">Купе</option>
+                        <option value="Мінівен">Мінівен</option>
+                    </select>
+                </label>
+            
+                <label>
+                    Привід
+                    <select id="listingDrive" required>
+                        <option value="">Обери привід</option>
+                        <option value="Передній">Передній</option>
+                        <option value="Задній">Задній</option>
+                        <option value="Повний">Повний</option>
+                    </select>
+                </label>
+            </div>
+
+            <label>
+                Ціна, $
+                <input
+                    type="number"
+                    id="listingPrice"
+                    min="0"
+                    step="1"
+                    required
+                >
+            </label>
+            
+            <p id="pricePreview" class="price-preview">
+                Еквівалент у гривнях: 0 грн
+            </p>
+
+            <label>
+                Місто
+                <input
+                    type="text"
+                    id="listingCity"
+                    required
+                >
+            </label>
+
+            <label>
+                Номер телефону
+                <input
+                    type="tel"
+                    id="listingPhone"
+                    required
+                >
+            </label>
+
+            <label>
+                Опис
+                <textarea
+                    id="listingDescription"
+                    rows="5"
+                    required
+                ></textarea>
+            </label>
+
+            <button type="submit" class="gold-btn">
+                Опублікувати оголошення
+            </button>
+        </form>
+    </div>
+</div>
 
 
 <footer>
@@ -93,6 +253,8 @@ Royal Garage © 2026
 
 </footer>
 
+<script src="js/auth.js"></script>
+<script src="js/market.js"></script>
 
 </body>
 
