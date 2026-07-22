@@ -928,6 +928,18 @@ editCarButton.addEventListener("click", () => {
     document.getElementById("carEngine").value =
         car.engine || "";
 
+        document.getElementById("carFuel").value =
+    car.fuel || "";
+
+document.getElementById("carTransmission").value =
+    car.transmission || "";
+
+document.getElementById("carBody").value =
+    car.body || "";
+
+document.getElementById("carDrive").value =
+    car.drive || "";
+
     document.getElementById("carVin").value =
         car.vin || "";
 
@@ -1052,6 +1064,20 @@ carForm.addEventListener("submit", async (event) => {
         .value
         .trim();
 
+        const fuel =
+    document.getElementById("carFuel").value;
+
+const transmission =
+    document.getElementById("carTransmission").value;
+
+const body =
+    document.getElementById("carBody").value;
+
+const drive =
+    document.getElementById("carDrive").value;
+
+
+
     if (!name || !year || mileage < 0) {
         alert("Перевір дані автомобіля.");
         return;
@@ -1108,6 +1134,10 @@ if (editingCarId) {
     car.year = year;
     car.mileage = mileage;
     car.engine = engine;
+    car.fuel = fuel;
+    car.transmission = transmission;
+    car.body = body;
+    car.drive = drive;
     car.vin = vin;
     car.plate = plate;
 
@@ -1136,6 +1166,10 @@ if (editingCarId) {
         year,
         mileage,
         engine,
+        fuel,
+        transmission,
+        body,
+        drive,
         vin,
         plate,
         photo,

@@ -36,13 +36,27 @@ if (!listing) {
             <p>Воно могло бути видалене.</p>
         </div>
     `;
-} else {
+}
+
+    else 
+    
+           {
+
+         
     const photos =
         Array.isArray(listing.photos)
             ? listing.photos
             : [];
 
-    const mainPhoto = photos[0] || "";
+            const mainPhotoIndex =
+            Number.isInteger(listing.activePhotoIndex)
+                ? listing.activePhotoIndex
+                : 0;
+        
+        const mainPhoto =
+            photos[mainPhotoIndex] ||
+            photos[0] ||
+            "";
 
     listingDetails.innerHTML = `
         <section class="listing-card listing-gallery">
@@ -82,13 +96,78 @@ if (!listing) {
         <section class="listing-card">
             <h2>Основні параметри</h2>
 
-            <div class="listing-parameters">
-                <p><strong>Пробіг:</strong> ${Number(listing.mileage).toLocaleString("uk-UA")} км</p>
-                <p><strong>Пальне:</strong> ${listing.fuel}</p>
-                <p><strong>Коробка:</strong> ${listing.transmission}</p>
-                <p><strong>Кузов:</strong> ${listing.body}</p>
-                <p><strong>Привід:</strong> ${listing.drive}</p>
-            </div>
+            <<div class="listing-parameters">
+            <p>
+                <strong>Рік випуску:</strong>
+                ${listing.year || "Не вказано"}
+            </p>
+        
+            <p>
+                <strong>Пробіг:</strong>
+                ${Number(listing.mileage || 0).toLocaleString("uk-UA")} км
+            </p>
+        
+            <p>
+                <strong>Пальне:</strong>
+                ${listing.fuel || "Не вказано"}
+            </p>
+        
+            <p>
+                <strong>Коробка:</strong>
+                ${listing.transmission || "Не вказано"}
+            </p>
+        
+            <p>
+                <strong>Кузов:</strong>
+                ${listing.body || "Не вказано"}
+            </p>
+        
+            <p>
+                <strong>Привід:</strong>
+                ${listing.drive || "Не вказано"}
+            </p>
+        
+            <p>
+                <strong>
+                    ${
+                        listing.powerType === "battery"
+                            ? "Ємність батареї:"
+                            : "Об’єм двигуна:"
+                    }
+                </strong>
+        
+                ${
+                    listing.powerValue
+                        ? `${listing.powerValue} ${
+                            listing.powerType === "battery"
+                                ? "кВт·год"
+                                : "л"
+                        }`
+                        : listing.engine || "Не вказано"
+                }
+            </p>
+        
+            <p>
+                <strong>VIN-код:</strong>
+                <span id="listingVinValue">
+                    ${listing.vin || "Не вказано"}
+                </span>
+        
+                ${
+                    listing.vin
+                        ? `
+                            <button
+                                type="button"
+                                id="copyVinButton"
+                                class="copy-vin-button"
+                            >
+                                Копіювати VIN
+                            </button>
+                        `
+                        : ""
+                }
+            </p>
+        </div>
         </section>
 
         <section class="listing-card">
@@ -121,4 +200,39 @@ if (!listing) {
             </button>
         </section>
     `;
+
+    const copyVinButton =
+    document.getElementById("copyVinButton");
+
+if (copyVinButton) {
+    copyVinButton.addEventListener(
+        "click",
+        async () => {
+            try {
+                await navigator.clipboard.writeText(
+                    listing.vin
+                );
+
+                copyVinButton.textContent =
+                    "Скопійовано ✓";
+
+                setTimeout(() => {
+                    copyVinButton.textContent =
+                        "Копіювати VIN";
+                }, 1500);
+            } catch (error) {
+                console.error(
+                    "Не вдалося скопіювати VIN:",
+                    error
+                );
+
+                alert(
+                    "Не вдалося скопіювати VIN."
+                );
+            }
+        }
+    );
+}
+
+
 }

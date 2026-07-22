@@ -103,12 +103,39 @@
             <label>
                 Автомобіль із мого гаража
             
-                <select id="listingCar" required>
+                <select id="listingCar">
                     <option value="">
                         Оберіть автомобіль
                     </option>
                 </select>
             </label>
+
+            <label>
+                Назва автомобіля
+                <input
+                    type="text"
+                    id="listingName"
+                    placeholder="Наприклад: Peugeot 308"
+                    required
+                >
+            </label>
+            
+            <label class="listing-photo-field">
+                Додати фотографії з галереї
+            
+                <input
+                    type="file"
+                    id="listingPhotos"
+                    name="listingPhotos"
+                    accept="image/*"
+                    multiple
+                >
+            </label>
+            
+            <div
+                id="listingPhotosPreview"
+                class="listing-photos-preview"
+            ></div>
 
                     <div
                     id="selectedCarPreview"
@@ -148,16 +175,18 @@
 
                 <label>
                     Рік випуску
+                
                     <input
                         type="number"
                         id="listingYear"
                         min="1886"
                         max="2100"
-                        readonly
+                        step="1"
+                        placeholder="Наприклад: 2008"
+                        required
                     >
-                </label>
+                </label>              
 
-                <label>
                     VIN-код
                     <input
                         type="text"

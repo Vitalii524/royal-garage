@@ -34,6 +34,21 @@ const CARS_STORAGE_KEY =
 const MARKET_STORAGE_KEY =
     "royalGarageMarketListings";
 
+const listingYear =
+    document.getElementById("listingYear");
+
+const listingVin =
+    document.getElementById("listingVin");
+
+    const listingName =
+    document.getElementById("listingName");
+
+const listingPhotos =
+    document.getElementById("listingPhotos");
+
+const listingPhotosPreview =
+    document.getElementById("listingPhotosPreview");
+
 let cars = JSON.parse(
     localStorage.getItem(CARS_STORAGE_KEY)
 ) || [];
@@ -61,13 +76,6 @@ function fillCarSelect() {
 }
 
 openListingButton.addEventListener("click", () => {
-    if (cars.length === 0) {
-        alert(
-            "Спочатку додай автомобіль у свій гараж."
-        );
-        return;
-    }
-
     fillCarSelect();
     listingModal.style.display = "flex";
 });
@@ -102,9 +110,6 @@ const selectedCarVin =
 const listingMileage =
     document.getElementById("listingMileage");
 
-const listingVin =
-    document.getElementById("listingVin");
-
 listingCar.addEventListener("change", () => {
     const car = cars.find(
         (item) => item.id === listingCar.value
@@ -117,7 +122,7 @@ listingCar.addEventListener("change", () => {
 
     listingVin.value = car.vin || "";
     listingMileage.value = car.mileage || 0;
-
+    listingYear.value = car.year || "";
     listingFuel.value = car.fuel || "";
     listingTransmission.value = car.transmission || "";
     listingBody.value = car.body || "";
@@ -303,13 +308,21 @@ function renderListings() {
             (car) => car.id === listing.carId
         );
 
-        const photos = Array.isArray(listingCar?.photos)
-            ? listingCar.photos
-            : listingCar?.photo
-                ? [listingCar.photo]
-                : [];
+        const photos = Array.isArray(listing.photos)
+        ? listing.photos
+        : listing.photo
+            ? [listing.photo]
+            : [];
+    
+            const mainPhotoIndex =
+            Number.isInteger(listing.activePhotoIndex)
+                ? listing.activePhotoIndex
+                : 0;
         
-        const photo = photos[0] || "";
+        const photo =
+            photos[mainPhotoIndex] ||
+            photos[0] ||
+            "";
 
         card.innerHTML = `
             ${
@@ -365,35 +378,161 @@ function renderListings() {
     });
 }
 
-listingForm.addEventListener("submit", (event) => {
+function compressPhoto(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = () => {
+            const image = new Image();
+
+            image.onload = () => {
+                const maxSize = 1000;
+
+                let width = image.width;
+                let height = image.height;
+
+                if (width > height && width > maxSize) {
+                    height = Math.round(
+                        height * maxSize / width
+                    );
+                    width = maxSize;
+                } else if (height > maxSize) {
+                    width = Math.round(
+                        width * maxSize / height
+                    );
+                    height = maxSize;
+                }
+
+                const canvas =
+                    document.createElement("canvas");
+
+                canvas.width = width;
+                canvas.height = height;
+
+                const context =
+                    canvas.getContext("2d");
+
+                if (!context) {
+                    reject(
+                        new Error(
+                            "Не вдалося обробити фото."
+                        )
+                    );
+                    return;
+                }
+
+                context.drawImage(
+                    image,
+                    0,
+                    0,
+                    width,
+                    height
+                );
+
+                resolve(
+                    canvas.toDataURL(
+                        "image/jpeg",
+                        0.7
+                    )
+                );
+            };
+
+            image.onerror = () => {
+                reject(
+                    new Error(
+                        `Не вдалося відкрити фото: ${file.name}`
+                    )
+                );
+            };
+
+            image.src = reader.result;
+        };
+
+        reader.onerror = () => {
+            reject(
+                new Error(
+                    `Не вдалося прочитати файл: ${file.name}`
+                )
+            );
+        };
+
+        reader.readAsDataURL(file);
+    });
+}
+
+function readPhotosAsDataUrls(fileList) {
+    const files = Array.from(fileList || []);
+
+    return Promise.all(
+        files.map((file) => compressPhoto(file))
+    );
+}
+
+listingForm.addEventListener("submit",async (event) => {
     event.preventDefault();
 
     const car = cars.find(
         (item) => item.id === listingCar.value
     );
 
-    if (!car) {
-        alert("Обери автомобіль.");
-        return;
-    }
 
+ const name =
+    listingName.value.trim() || car?.name || "";
+
+const year =
+    Number(listingYear.value) ||
+    Number(car?.year) ||
+    0;
+
+const vin =
+    listingVin.value.trim().toUpperCase() ||
+    car?.vin ||
+    "";
+
+if (!name) {
+    alert("Введи назву автомобіля.");
+    return;
+}
+
+if (!year) {
+    alert("Вкажи рік випуску.");
+    return;
+}
     const priceUsd = Number(listingPrice.value);
     const priceUah = usdRate
         ? Math.round(priceUsd * usdRate)
         : null;
 
+        const uploadedPhotos =
+    await readPhotosAsDataUrls(listingPhotos.files);
+
+const garagePhotos =
+    Array.isArray(car?.photos)
+        ? car.photos
+        : [];
+
+const photos =
+    uploadedPhotos.length > 0
+        ? uploadedPhotos
+        : garagePhotos;
+
     const newListing = {
         id: Date.now().toString(),
         ownerId: currentUser.id,
-        carId: car.id,
-
-        name: car.name,
-        year: car.year,
-        vin: car.vin || "",
-        engine: car.engine || "",
+        carId: car?.id || null,
+        
+        name: name,
+        year: year,
+        vin: vin,
+        photos: photos,
+        activePhotoIndex:
+    uploadedPhotos.length > 0
+        ? 0
+        : Number.isInteger(car?.activePhotoIndex)
+            ? car.activePhotoIndex
+            : 0,
+        engine: car?.engine || "",
         mileage: Number(listingMileage.value),
-
-       carld: car.id,
 
         fuel: listingFuel.value,
 
