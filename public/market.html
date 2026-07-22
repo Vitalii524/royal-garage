@@ -85,20 +85,30 @@
 
 <div id="listingModal" class="modal">
     <div class="modal-content market-modal-content">
-        <button
-            type="button"
-            id="closeListingModal"
-            class="close-modal"
-        >
-            ×
-        </button>
-
-        <h2>Нове оголошення</h2>
+        
+        <div class="market-modal-header">
+            <h2>Нове оголошення</h2>
+        
+            <button
+                type="button"
+                id="closeListingModal"
+                class="market-modal-close"
+                aria-label="Закрити"
+            >
+                ×
+            </button>
+        </div>
 
         <form id="listingForm">
             <label>
                 Автомобіль із мого гаража
+            
                 <select id="listingCar" required>
+                    <option value="">
+                        Оберіть автомобіль
+                    </option>
+                </select>
+            </label>
 
                     <div
                     id="selectedCarPreview"
@@ -132,6 +142,29 @@
                         id="listingMileage"
                         min="0"
                         step="1"
+                        required
+                    >
+                </label>
+
+                <label>
+                    Рік випуску
+                    <input
+                        type="number"
+                        id="listingYear"
+                        min="1886"
+                        max="2100"
+                        readonly
+                    >
+                </label>
+
+                <label>
+                    VIN-код
+                    <input
+                        type="text"
+                        id="listingVin"
+                        minlength="17"
+                        maxlength="17"
+                        placeholder="Наприклад: VF3XXXXXXXXXXXXXX"
                         required
                     >
                 </label>

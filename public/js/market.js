@@ -99,8 +99,11 @@ const selectedCarDetails =
 const selectedCarVin =
     document.getElementById("selectedCarVin");
 
-    const listingMileage =
+const listingMileage =
     document.getElementById("listingMileage");
+
+const listingVin =
+    document.getElementById("listingVin");
 
 listingCar.addEventListener("change", () => {
     const car = cars.find(
@@ -112,7 +115,15 @@ listingCar.addEventListener("change", () => {
         return;
     }
 
+    listingVin.value = car.vin || "";
     listingMileage.value = car.mileage || 0;
+
+    listingFuel.value = car.fuel || "";
+    listingTransmission.value = car.transmission || "";
+    listingBody.value = car.body || "";
+    listingDrive.value = car.drive || "";
+
+listingFuel.dispatchEvent(new Event("change"));
 
     selectedCarName.textContent = car.name;
 
@@ -266,6 +277,94 @@ listingCar.addEventListener(
     updatePowerValueField
 );
 
+function renderListings() {
+    marketListings.innerHTML = "";
+
+    if (listings.length === 0) {
+        marketListings.innerHTML = `
+            <p class="empty-market">
+                Оголошень поки немає.
+            </p>
+        `;
+        return;
+    }
+
+    const sortedListings = [...listings].sort(
+        (a, b) =>
+            new Date(b.createdAt) -
+            new Date(a.createdAt)
+    );
+
+    sortedListings.forEach((listing) => {
+        const card = document.createElement("article");
+        card.className = "market-card";
+
+        const listingCar = cars.find(
+            (car) => car.id === listing.carId
+        );
+
+        const photos = Array.isArray(listingCar?.photos)
+            ? listingCar.photos
+            : listingCar?.photo
+                ? [listingCar.photo]
+                : [];
+        
+        const photo = photos[0] || "";
+
+        card.innerHTML = `
+            ${
+                photo
+                    ? `<img
+                        class="market-card-photo"
+                        src="${photo}"
+                        alt="${listing.name}"
+                    >`
+                    : `<div class="market-card-no-photo">
+                        🚗
+                    </div>`
+            }
+
+            <div class="market-card-content">
+                <h2>
+                    ${listing.name} (${listing.year})
+                </h2>
+
+                <p class="market-card-price">
+                    ${listing.priceUsd.toLocaleString("uk-UA")} $
+                    ${
+                        listing.priceUah
+                            ? `≈ ${listing.priceUah.toLocaleString("uk-UA")} грн`
+                            : ""
+                    }
+                </p>
+
+                <p>
+                    ${listing.mileage.toLocaleString("uk-UA")} км •
+                    ${listing.fuel} •
+                    ${listing.transmission}
+                </p>
+
+                <p>
+                    ${listing.body} • ${listing.drive}
+                </p>
+
+                <p>📍 ${listing.city}</p>
+
+                <p class="market-card-description">
+                    ${listing.description}
+                </p>
+            </div>
+        `;
+
+        card.addEventListener("click", () => {
+            window.location.href =
+                `listing.html?id=${encodeURIComponent(listing.id)}`;
+        });
+
+        marketListings.appendChild(card);
+    });
+}
+
 listingForm.addEventListener("submit", (event) => {
     event.preventDefault();
 
@@ -294,11 +393,7 @@ listingForm.addEventListener("submit", (event) => {
         engine: car.engine || "",
         mileage: Number(listingMileage.value),
 
-        photos: Array.isArray(car.photos)
-            ? car.photos
-            : car.photo
-                ? [car.photo]
-                : [],
+       carld: car.id,
 
         fuel: listingFuel.value,
 
@@ -352,6 +447,17 @@ listingForm.addEventListener("submit", (event) => {
     );
 
     alert("Оголошення успішно опубліковано.");
-});
+
+
+listingModal.style.display = "none";
+listingForm.reset();
+selectedCarPreview.hidden = true;
+powerValueField.hidden = true;
+updatePricePreview();
+renderListings();
+
+    });
 
 fillCarSelect();
+
+renderListings();
