@@ -40,7 +40,7 @@ const listingYear =
 const listingVin =
     document.getElementById("listingVin");
 
-    const listingName =
+const listingName =
     document.getElementById("listingName");
 
 const listingPhotos =
@@ -285,7 +285,21 @@ listingCar.addEventListener(
 function renderListings() {
     marketListings.innerHTML = "";
 
-    if (listings.length === 0) {
+    const searchQuery =
+    marketSearch.value.trim().toLowerCase();
+
+const filteredListings = listings.filter((listing) => {
+    const searchableText = `
+        ${listing.name || ""}
+        ${listing.year || ""}
+        ${listing.city || ""}
+        ${listing.vin || ""}
+    `.toLowerCase();
+
+    return searchableText.includes(searchQuery);
+});
+
+if (filteredListings.length === 0) {
         marketListings.innerHTML = `
             <p class="empty-market">
                 Оголошень поки немає.
@@ -294,11 +308,27 @@ function renderListings() {
         return;
     }
 
-    const sortedListings = [...listings].sort(
+    const sortedListings = [...filteredListings];
+
+if (marketSort.value === "price-low") {
+    sortedListings.sort(
+        (a, b) =>
+            Number(a.priceUsd) -
+            Number(b.priceUsd)
+    );
+} else if (marketSort.value === "price-high") {
+    sortedListings.sort(
+        (a, b) =>
+            Number(b.priceUsd) -
+            Number(a.priceUsd)
+    );
+} else {
+    sortedListings.sort(
         (a, b) =>
             new Date(b.createdAt) -
             new Date(a.createdAt)
     );
+}
 
     sortedListings.forEach((listing) => {
         const card = document.createElement("article");
@@ -377,6 +407,14 @@ function renderListings() {
         marketListings.appendChild(card);
     });
 }
+
+marketSearch.addEventListener("input", () => {
+    renderListings();
+});
+
+marketSort.addEventListener("change", () => {
+    renderListings();
+});
 
 function compressPhoto(file) {
     return new Promise((resolve, reject) => {

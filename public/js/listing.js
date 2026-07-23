@@ -91,6 +91,17 @@ if (!listing) {
             </p>
 
             <p>📍 ${listing.city}</p>
+
+            <p>
+            Опубліковано:
+            ${
+                listing.createdAt
+                    ? new Date(listing.createdAt)
+                        .toLocaleDateString("uk-UA")
+                    : "Дата не вказана"
+            }
+        </p>
+
         </section>
 
         <section class="listing-card">
@@ -106,7 +117,7 @@ if (!listing) {
                 <strong>Пробіг:</strong>
                 ${Number(listing.mileage || 0).toLocaleString("uk-UA")} км
             </p>
-        
+
             <p>
                 <strong>Пальне:</strong>
                 ${listing.fuel || "Не вказано"}
@@ -200,6 +211,29 @@ if (!listing) {
             </button>
         </section>
     `;
+
+    const showPhoneButton =
+    document.getElementById("showPhoneButton");
+
+showPhoneButton.addEventListener("click", () => {
+    showPhoneButton.textContent =
+        listing.phone || "Номер не вказано";
+});
+
+const openChatButton =
+    document.getElementById("openChatButton");
+
+    openChatButton.addEventListener("click", () => {
+        const currentUser = getCurrentUser();
+    
+        if (!currentUser) {
+            alert("Спочатку увійдіть у свій профіль.");
+            return;
+        }
+    
+        window.location.href =
+            `chat.html?listingId=${encodeURIComponent(listing.id)}`;
+    });
 
     const copyVinButton =
     document.getElementById("copyVinButton");

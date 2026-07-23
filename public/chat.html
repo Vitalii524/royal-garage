@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Чат | Royal Garage</title>
+
+    <link
+        rel="stylesheet"
+        href="css/styles.css"
+    >
+</head>
+
+<body>
+    <header>
+        <div class="logo">🚗 Royal Garage</div>
+
+        <nav>
+            <a href="index.html">Головна</a>
+            <a href="forum.html">Форум</a>
+            <a href="market.html">Авторинок</a>
+            <a href="profile.html">Мій профіль</a>
+        </nav>
+    </header>
+
+    <main class="chat-page">
+        <a id="backToListing" href="market.html" class="listing-back-link">
+            ← Назад до оголошення
+        </a>
+        <section class="chat-card">
+            <h1 id="chatTitle">Чат із продавцем</h1>
+
+            <div id="chatMessages" class="chat-messages">
+                <p>Завантаження повідомлень...</p>
+            </div>
+
+            <form id="chatForm" class="chat-form">
+                <textarea
+                    id="chatMessageInput"
+                    placeholder="Напишіть повідомлення..."
+                    required
+                ></textarea>
+
+                <button type="submit">
+                    Надіслати
+                </button>
+            </form>
+        </section>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script src="js/chat.js"></script>
+</body>
+</html>

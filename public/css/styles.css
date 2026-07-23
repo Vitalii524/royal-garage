@@ -1508,3 +1508,155 @@ body {
     background: #173b68;
     color: #ffffff;
 }
+
+.chat-page {
+    width: min(850px, 92%);
+    margin: 30px auto;
+}
+
+.chat-card {
+    padding: 24px;
+    border: 1px solid rgba(240, 201, 107, 0.35);
+    border-radius: 16px;
+    background: rgba(8, 34, 74, 0.95);
+}
+
+.chat-messages {
+    height: 420px;
+    padding: 16px;
+    margin: 20px 0;
+    overflow-y: auto;
+    border-radius: 12px;
+    background: rgba(3, 18, 42, 0.75);
+}
+
+.chat-message {
+    width: fit-content;
+    max-width: 75%;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    border-radius: 14px;
+}
+
+.chat-message p {
+    margin: 0 0 5px;
+}
+
+.chat-message small {
+    opacity: 0.7;
+}
+
+.chat-message-own {
+    margin-left: auto;
+    background: #d8b35b;
+    color: #06152b;
+}
+
+.chat-message-other {
+    margin-right: auto;
+    background: #174b86;
+}
+
+.chat-form {
+    display: flex;
+    gap: 12px;
+}
+
+.chat-form textarea {
+    flex: 1;
+    min-height: 70px;
+    padding: 12px;
+    resize: vertical;
+    border-radius: 10px;
+}
+
+.chat-form button {
+    padding: 12px 22px;
+    border: 0;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+@media (max-width: 650px) {
+    .chat-form {
+        flex-direction: column;
+    }
+
+    .chat-message {
+        max-width: 90%;
+    }
+}
+/* ===== МОЇ ЧАТИ ===== */
+
+#myChatsList {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.my-chat-card {
+    display: block;
+    text-decoration: none;
+    color: #222;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 16px 18px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.08);
+    transition: .25s;
+    border: 1px solid #ececec;
+}
+
+.my-chat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(0,0,0,.14);
+}
+
+.chat-card-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.chat-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #f2f2f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    flex-shrink: 0;
+}
+
+.chat-main {
+    flex: 1;
+    overflow: hidden;
+}
+
+.chat-title {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.chat-last-message {
+    color: #666;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-time {
+    font-size: 13px;
+    color: #999;
+    white-space: nowrap;
+}
+
+.chat-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}

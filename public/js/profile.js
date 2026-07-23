@@ -49,6 +49,7 @@ const photoViewer = document.getElementById("photoViewer");
 const photoViewerImage = document.getElementById("photoViewerImage");
 const previousCarPhoto = document.getElementById("previousCarPhoto");
 const nextCarPhoto = document.getElementById("nextCarPhoto");
+const myChatsList = document.getElementById("myChatsList");
 
 let photoViewerIndex = 0;
 
@@ -1490,3 +1491,147 @@ deleteCarButton.addEventListener("click", () => {
 
     alert("Автомобіль видалено.");
 });
+
+function renderMyChats() {
+    if (!myChatsList) {
+        return;
+    }
+
+    const currentUser = JSON.parse(
+        localStorage.getItem("royalGarageCurrentUser")
+    );
+
+    if (!currentUser) {
+        myChatsList.innerHTML = `
+            <p>Увійдіть у профіль, щоб побачити чати.</p>
+        `;
+        return;
+    }
+
+    let messages = [];
+    let listings = [];
+
+    try {
+        messages =
+            JSON.parse(
+                localStorage.getItem("royalGarageMessages")
+            ) || [];
+
+        listings =
+            JSON.parse(
+                localStorage.getItem(
+                    "royalGarageMarketListings"
+                )
+            ) || [];
+    } catch (error) {
+        console.error("Помилка завантаження чатів:", error);
+    }
+
+    const conversations = new Map();
+
+    messages
+        .filter((message) => {
+            return (
+                String(message.senderId) ===
+                    String(currentUser.id) ||
+                String(message.receiverId) ===
+                    String(currentUser.id)
+            );
+        })
+        .forEach((message) => {
+            const otherUserId =
+                String(message.senderId) ===
+                String(currentUser.id)
+                    ? message.receiverId
+                    : message.senderId;
+
+            const key =
+                `${message.listingId}_${otherUserId}`;
+
+            const previous = conversations.get(key);
+
+            if (
+                !previous ||
+                new Date(message.createdAt) >
+                    new Date(previous.message.createdAt)
+            ) {
+                conversations.set(key, {
+                    message,
+                    otherUserId
+                });
+            }
+        });
+
+    if (conversations.size === 0) {
+        myChatsList.innerHTML = `
+            <p>Чатів поки немає.</p>
+        `;
+        return;
+    }
+
+    myChatsList.innerHTML = "";
+
+    [...conversations.values()]
+        .sort(
+            (a, b) =>
+                new Date(b.message.createdAt) -
+                new Date(a.message.createdAt)
+        )
+        .forEach(({ message, otherUserId }) => {
+            const listing = listings.find(
+                (item) =>
+                    String(item.id) ===
+                    String(message.listingId)
+            );
+
+            const chatLink =
+                document.createElement("a");
+
+            chatLink.className = "my-chat-card";
+
+            chatLink.href =
+                `chat.html?listingId=${
+                    encodeURIComponent(message.listingId)
+                }&withUserId=${
+                    encodeURIComponent(otherUserId)
+                }`;
+
+            const title =
+                listing
+                    ? `${listing.name} (${listing.year})`
+                    : "Оголошення";
+
+                                const photo =
+                listing?.photos?.[0] ||
+                listing?.photo ||
+                "";
+
+                    chatLink.innerHTML = `
+                    <div class="chat-card-header">
+                    <div class="chat-avatar">
+                    ${
+                        photo
+                            ? `<img src="${photo}" alt="${title}">`
+                            : "🚗"
+                    }
+                    </div>
+                
+                        <div class="chat-main">
+                            <div class="chat-title">${title}</div>
+                
+                            <div class="chat-last-message">
+                                ${message.text}
+                            </div>
+                        </div>
+                
+                        <div class="chat-time">
+                            ${new Date(message.createdAt).toLocaleDateString("uk-UA")}
+                        </div>
+                    </div>
+                `;
+
+            myChatsList.appendChild(chatLink);
+        });
+}
+
+renderMyChats();
