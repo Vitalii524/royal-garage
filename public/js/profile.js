@@ -37,6 +37,10 @@ const totalServiceCost = document.getElementById("totalServiceCost");
 const currentMileage = document.getElementById("currentMileage");
 const carModal = document.getElementById("carModal");
 const serviceModal = document.getElementById("serviceModal");
+const historyModal = document.getElementById("historyModal");
+const openHistoryButton = document.getElementById("openHistoryButton");
+const chatsModal = document.getElementById("chatsModal");
+const openChatsButton = document.getElementById("openChatsButton");
 const carForm = document.getElementById("carForm");
 const serviceForm = document.getElementById("serviceForm");
 const openCarButton = document.getElementById("openCarButton");
@@ -968,9 +972,28 @@ openServiceButton.addEventListener("click", () => {
     document.getElementById("serviceDate").value =
         new Date().toISOString().slice(0, 10);
 
-    openModal(serviceModal);
+        closeModal(historyModal);
+        openModal(serviceModal);
 });
 
+openHistoryButton.addEventListener("click", () => {
+    const car = cars.find(
+        (item) => item.id === selectedCarId
+    );
+
+    if (!car) {
+        alert("Спочатку вибери автомобіль.");
+        return;
+    }
+
+    renderSelectedCar();
+    openModal(historyModal);
+});
+
+openChatsButton.addEventListener("click", () => {
+    renderMyChats();
+    openModal(chatsModal);
+});
 
 /* ===== ЗАКРИТТЯ ВІКОН ===== */
 
@@ -989,58 +1012,6 @@ document.querySelectorAll(".modal").forEach((modal) => {
         }
     });
 });
-/*===========*/
-
-function compressImage(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-
-        reader.onerror = () => {
-            reject(new Error("Не вдалося прочитати фото."));
-        };
-
-        reader.onload = () => {
-            const image = new Image();
-
-            image.onerror = () => {
-                reject(new Error("Неправильний формат фото."));
-            };
-
-            image.onload = () => {
-                const maxSize = 1200;
-                let width = image.width;
-                let height = image.height;
-
-                if (width > maxSize || height > maxSize) {
-                    const scale = Math.min(
-                        maxSize / width,
-                        maxSize / height
-                    );
-
-                    width = Math.round(width * scale);
-                    height = Math.round(height * scale);
-                }
-
-                const canvas = document.createElement("canvas");
-
-                canvas.width = width;
-                canvas.height = height;
-
-                const context = canvas.getContext("2d");
-
-                context.drawImage(image, 0, 0, width, height);
-
-                resolve(
-                    canvas.toDataURL("image/jpeg", 0.78)
-                );
-            };
-
-            image.src = reader.result;
-        };
-
-        reader.readAsDataURL(file);
-    });
-}
 
 /* ===== ДОДАВАННЯ АВТО ===== */
 
@@ -1466,31 +1437,6 @@ updateCarPhoto.addEventListener("change", async () => {
 });
 
 renderPage();
-deleteCarButton.addEventListener("click", () => {
-
-    if (!selectedCar) {
-        alert("Автомобіль не вибраний.");
-        return;
-    }
-
-    if (!confirm("Видалити цей автомобіль?")) {
-        return;
-    }
-
-    let cars = getCars();
-
-    cars = cars.filter(car => car.id !== selectedCar.id);
-
-    saveCars(cars);
-
-    selectedCar = null;
-
-    renderCars();
-
-    renderSelectedCar();
-
-    alert("Автомобіль видалено.");
-});
 
 function renderMyChats() {
     if (!myChatsList) {

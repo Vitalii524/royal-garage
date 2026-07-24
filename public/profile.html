@@ -174,27 +174,27 @@
 
                 </div>
 
-                   
-                <div id="serviceHistory" class="service-history">
+                <div class="profile-action-buttons">
 
-                    <p class="empty-message" id="noServiceMessage">
-                        Історія обслуговування поки порожня.
-                    </p>
-
+                    <button
+                        type="button"
+                        id="openHistoryButton"
+                        class="gold-btn">
+                        Історія обслуговування
+                    </button>
+                
+                    <button
+                        type="button"
+                        id="openChatsButton"
+                        class="gold-btn">
+                        Мої чати
+                    </button>
+                
                 </div>
-
             </div>
 
         </section>
 
-    </section>
-
-    <section class="profile-chats">
-        <h2>Мої чати</h2>
-    
-        <div id="myChatsList" class="my-chats-list">
-            <p>Завантаження чатів...</p>
-        </div>
     </section>
 
 </main>
@@ -334,12 +334,7 @@
                 </button>
 
         </form>
-    <button
-        type="button"
-        id="deleteCarButton"
-        class="delete-car-button">
-        Видалити автомобіль
-    </button>
+  
     </div>
 
 </div>
@@ -435,6 +430,60 @@
             </button>
 
         </form>
+
+    </div>
+
+</div>
+
+<!-- Вікно історії обслуговування -->
+
+<div class="modal" id="historyModal">
+
+    <div class="modal-content history-modal-content">
+
+        <button
+            type="button"
+            class="modal-close"
+            data-close-modal>
+            ×
+        </button>
+
+        <h2>Історія обслуговування</h2>
+
+        <div
+            id="serviceHistory"
+            class="service-history">
+
+            <p
+                class="empty-message"
+                id="noServiceMessage">
+                Історія обслуговування поки порожня.
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Вікно моїх чатів -->
+
+<div class="modal" id="chatsModal">
+
+    <div class="modal-content chats-modal-content">
+
+        <button
+            type="button"
+            class="modal-close"
+            data-close-modal>
+            ×
+        </button>
+
+        <h2>Мої чати</h2>
+
+        <div id="myChatsList" class="my-chats-list">
+            <p>Завантаження чатів...</p>
+        </div>
 
     </div>
 
