@@ -1,0 +1,798 @@
+"use strict";
+
+/* ===== ЕЛЕМЕНТИ СТОРІНКИ ===== */
+
+const openTopicButton =
+    document.getElementById("openTopicButton");
+
+const topicModal =
+    document.getElementById("topicModal");
+
+const topicForm =
+    document.getElementById("topicForm");
+
+const topicTitle =
+    document.getElementById("topicTitle");
+
+const topicCategory =
+    document.getElementById("topicCategory");
+
+const topicText =
+    document.getElementById("topicText");
+
+const forumSearch =
+    document.getElementById("forumSearch");
+
+const forumCategoryFilter =
+    document.getElementById("forumCategoryFilter");
+
+const forumTopics =
+    document.getElementById("forumTopics");
+
+const FORUM_STORAGE_KEY =
+    "royalGarageForumTopics";
+
+
+/* ===== ПОТОЧНИЙ КОРИСТУВАЧ ===== */
+
+function loadCurrentUser() {
+    if (typeof getCurrentUser === "function") {
+        return getCurrentUser();
+    }
+
+    try {
+        return JSON.parse(
+            localStorage.getItem(
+                "royalGarageCurrentUser"
+            )
+        );
+    } catch (error) {
+        console.error(
+            "Не вдалося прочитати користувача:",
+            error
+        );
+
+        return null;
+    }
+}
+
+function getCurrentForumUser() {
+    return loadCurrentUser();
+}
+
+
+/* ===== ЗАВАНТАЖЕННЯ ТЕМ ===== */
+
+function loadForumTopics() {
+    try {
+        const savedTopics =
+            localStorage.getItem(
+                FORUM_STORAGE_KEY
+            );
+
+        const parsedTopics =
+            savedTopics
+                ? JSON.parse(savedTopics)
+                : [];
+
+        if (!Array.isArray(parsedTopics)) {
+            return [];
+        }
+
+        return parsedTopics.map((topic) => ({
+            ...topic,
+
+            replies: Array.isArray(topic.replies)
+                ? topic.replies
+                : []
+        }));
+    } catch (error) {
+        console.error(
+            "Не вдалося завантажити теми:",
+            error
+        );
+
+        return [];
+    }
+}
+
+function saveForumTopics() {
+    localStorage.setItem(
+        FORUM_STORAGE_KEY,
+        JSON.stringify(topics)
+    );
+}
+
+let topics = loadForumTopics();
+
+
+/* ===== ДОПОМІЖНІ ФУНКЦІЇ ===== */
+
+function createForumId() {
+    if (
+        typeof crypto !== "undefined" &&
+        typeof crypto.randomUUID === "function"
+    ) {
+        return crypto.randomUUID();
+    }
+
+    return `${Date.now()}-${Math.random()
+        .toString(16)
+        .slice(2)}`;
+}
+
+function escapeForumHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+function formatForumDate(value) {
+    if (!value) {
+        return "Дата не вказана";
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return "Дата не вказана";
+    }
+
+    return new Intl.DateTimeFormat(
+        "uk-UA",
+        {
+            dateStyle: "medium",
+            timeStyle: "short"
+        }
+    ).format(date);
+}
+
+function getUserName(user) {
+    return (
+        user?.name ||
+        user?.email ||
+        "Користувач"
+    );
+}
+
+function openForumModal(modal) {
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.add("modal-open");
+}
+
+function closeForumModal(modal) {
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.remove("modal-open");
+}
+
+
+/* ===== МОДАЛЬНЕ ВІКНО ТЕМИ ===== */
+
+const topicViewModal =
+    document.createElement("div");
+
+topicViewModal.id = "topicViewModal";
+topicViewModal.className = "modal";
+
+topicViewModal.innerHTML = `
+    <div class="modal-content">
+
+        <button
+            type="button"
+            class="modal-close"
+            id="closeTopicViewModal"
+            aria-label="Закрити">
+            ×
+        </button>
+
+        <div id="topicViewBody"></div>
+
+    </div>
+`;
+
+document.body.appendChild(topicViewModal);
+
+const topicViewBody =
+    document.getElementById("topicViewBody");
+
+const closeTopicViewModal =
+    document.getElementById(
+        "closeTopicViewModal"
+    );
+
+
+/* ===== ВІДОБРАЖЕННЯ СПИСКУ ТЕМ ===== */
+
+function renderForumTopics() {
+    const searchQuery =
+        forumSearch.value
+            .trim()
+            .toLowerCase();
+
+    const selectedCategory =
+        forumCategoryFilter.value;
+
+    const filteredTopics = topics
+        .filter((topic) => {
+            const searchableText = `
+                ${topic.title || ""}
+                ${topic.text || ""}
+                ${topic.authorName || ""}
+                ${topic.category || ""}
+            `.toLowerCase();
+
+            const matchesSearch =
+                searchableText.includes(
+                    searchQuery
+                );
+
+            const matchesCategory =
+                selectedCategory === "all" ||
+                topic.category === selectedCategory;
+
+            return (
+                matchesSearch &&
+                matchesCategory
+            );
+        })
+        .sort(
+            (first, second) =>
+                new Date(second.createdAt) -
+                new Date(first.createdAt)
+        );
+
+    forumTopics.innerHTML = "";
+
+    if (filteredTopics.length === 0) {
+        forumTopics.innerHTML = `
+            <p class="empty-message">
+                Тем за цим запитом немає.
+            </p>
+        `;
+
+        return;
+    }
+
+    const currentUser =
+        getCurrentForumUser();
+
+    filteredTopics.forEach((topic) => {
+        const card =
+            document.createElement("article");
+
+        card.className =
+            "forum-topic-card";
+
+        const repliesCount =
+            Array.isArray(topic.replies)
+                ? topic.replies.length
+                : 0;
+
+        const isOwner =
+            currentUser &&
+            String(currentUser.id) ===
+                String(topic.authorId);
+
+        card.innerHTML = `
+            <div class="forum-topic-header">
+
+                <h2 class="forum-topic-title">
+                    ${escapeForumHtml(topic.title)}
+                </h2>
+
+                <span class="forum-topic-category">
+                    ${escapeForumHtml(
+                        topic.category
+                    )}
+                </span>
+
+            </div>
+
+            <p class="forum-topic-text">
+                ${escapeForumHtml(topic.text)}
+            </p>
+
+            <div class="forum-topic-meta">
+
+                <span>
+                    👤
+                    ${escapeForumHtml(
+                        topic.authorName
+                    )}
+                </span>
+
+                <span>
+                    🕒
+                    ${formatForumDate(
+                        topic.createdAt
+                    )}
+                </span>
+
+                <span>
+                    💬
+                    ${repliesCount}
+                    ${
+                        repliesCount === 1
+                            ? "відповідь"
+                            : "відповідей"
+                    }
+                </span>
+
+            </div>
+
+            <div class="forum-topic-actions">
+
+                <button
+                    type="button"
+                    class="forum-topic-button"
+                    data-action="open"
+                    data-topic-id="${topic.id}">
+                    Відкрити тему
+                </button>
+
+                ${
+                    isOwner
+                        ? `
+                            <button
+                                type="button"
+                                class="forum-topic-button"
+                                data-action="delete"
+                                data-topic-id="${topic.id}">
+                                Видалити тему
+                            </button>
+                        `
+                        : ""
+                }
+
+            </div>
+        `;
+
+        forumTopics.appendChild(card);
+    });
+}
+
+
+/* ===== ВІДКРИТТЯ ОКРЕМОЇ ТЕМИ ===== */
+
+function openTopicView(topicId) {
+    const topic = topics.find(
+        (item) =>
+            String(item.id) ===
+            String(topicId)
+    );
+
+    if (!topic) {
+        alert("Тему не знайдено.");
+        return;
+    }
+
+    const currentUser =
+        getCurrentForumUser();
+
+    const replies = Array.isArray(topic.replies)
+        ? topic.replies
+        : [];
+
+    topicViewBody.innerHTML = `
+        <p class="forum-label">
+            ${escapeForumHtml(topic.category)}
+        </p>
+
+        <h2>
+            ${escapeForumHtml(topic.title)}
+        </h2>
+
+        <div class="forum-topic-meta">
+
+            <span>
+                👤
+                ${escapeForumHtml(
+                    topic.authorName
+                )}
+            </span>
+
+            <span>
+                🕒
+                ${formatForumDate(
+                    topic.createdAt
+                )}
+            </span>
+
+        </div>
+
+        <p class="forum-topic-text">
+            ${escapeForumHtml(topic.text)}
+        </p>
+
+        <hr>
+
+        <h3>
+            Відповіді (${replies.length})
+        </h3>
+
+        <div id="topicRepliesList">
+            ${
+                replies.length === 0
+                    ? `
+                        <p class="empty-message">
+                            Відповідей поки немає.
+                        </p>
+                    `
+                    : replies
+                        .map(
+                            (reply) => `
+                                <article
+                                    class="forum-topic-card">
+
+                                    <p class="forum-topic-text">
+                                        ${escapeForumHtml(
+                                            reply.text
+                                        )}
+                                    </p>
+
+                                    <div
+                                        class="forum-topic-meta">
+
+                                        <span>
+                                            👤
+                                            ${escapeForumHtml(
+                                                reply.authorName
+                                            )}
+                                        </span>
+
+                                        <span>
+                                            🕒
+                                            ${formatForumDate(
+                                                reply.createdAt
+                                            )}
+                                        </span>
+
+                                    </div>
+
+                                </article>
+                            `
+                        )
+                        .join("")
+            }
+        </div>
+
+        ${
+            currentUser
+                ? `
+                    <form id="replyForm">
+
+                        <label>
+                            Твоя відповідь
+
+                            <textarea
+                                id="replyText"
+                                rows="4"
+                                maxlength="1500"
+                                placeholder="Напиши відповідь..."
+                                required>
+                            </textarea>
+                        </label>
+
+                        <button
+                            type="submit"
+                            class="gold-btn">
+                            Відповісти
+                        </button>
+
+                    </form>
+                `
+                : `
+                    <p class="empty-message">
+                        Увійди в акаунт, щоб відповісти.
+                    </p>
+                `
+        }
+    `;
+
+    const replyForm =
+        document.getElementById("replyForm");
+
+    if (replyForm) {
+        replyForm.addEventListener(
+            "submit",
+            (event) => {
+                event.preventDefault();
+
+                addTopicReply(topic.id);
+            }
+        );
+    }
+
+    openForumModal(topicViewModal);
+}
+
+
+/* ===== ДОДАВАННЯ ВІДПОВІДІ ===== */
+
+function addTopicReply(topicId) {
+    const currentUser =
+        getCurrentForumUser();
+
+    if (!currentUser?.id) {
+        alert(
+            "Увійди в акаунт, щоб відповісти."
+        );
+
+        return;
+    }
+
+    const replyInput =
+        document.getElementById("replyText");
+
+    const text =
+        replyInput.value.trim();
+
+    if (!text) {
+        alert("Напиши текст відповіді.");
+        return;
+    }
+
+    const topic = topics.find(
+        (item) =>
+            String(item.id) ===
+            String(topicId)
+    );
+
+    if (!topic) {
+        alert("Тему не знайдено.");
+        return;
+    }
+
+    if (!Array.isArray(topic.replies)) {
+        topic.replies = [];
+    }
+
+    topic.replies.push({
+        id: createForumId(),
+
+        authorId: currentUser.id,
+
+        authorName:
+            getUserName(currentUser),
+
+        text,
+
+        createdAt:
+            new Date().toISOString()
+    });
+
+    saveForumTopics();
+    renderForumTopics();
+    openTopicView(topic.id);
+}
+
+
+/* ===== СТВОРЕННЯ ТЕМИ ===== */
+
+openTopicButton.addEventListener(
+    "click",
+    () => {
+        const currentUser =
+            getCurrentForumUser();
+
+        if (!currentUser?.id) {
+            alert(
+                "Увійди в акаунт, щоб створити тему."
+            );
+
+            return;
+        }
+
+        topicForm.reset();
+        openForumModal(topicModal);
+    }
+);
+
+topicForm.addEventListener(
+    "submit",
+    (event) => {
+        event.preventDefault();
+
+        const currentUser =
+            getCurrentForumUser();
+
+        if (!currentUser?.id) {
+            alert(
+                "Увійди в акаунт, щоб створити тему."
+            );
+
+            return;
+        }
+
+        const title =
+            topicTitle.value.trim();
+
+        const category =
+            topicCategory.value;
+
+        const text =
+            topicText.value.trim();
+
+        if (!title || !category || !text) {
+            alert("Заповни всі поля.");
+            return;
+        }
+
+        const newTopic = {
+            id: createForumId(),
+
+            authorId: currentUser.id,
+
+            authorName:
+                getUserName(currentUser),
+
+            title,
+            category,
+            text,
+
+            createdAt:
+                new Date().toISOString(),
+
+            replies: []
+        };
+
+        topics.push(newTopic);
+
+        saveForumTopics();
+        renderForumTopics();
+
+        topicForm.reset();
+        closeForumModal(topicModal);
+
+        openTopicView(newTopic.id);
+    }
+);
+
+
+/* ===== ВИДАЛЕННЯ ТЕМИ ===== */
+
+function deleteForumTopic(topicId) {
+    const currentUser =
+        getCurrentForumUser();
+
+    const topic = topics.find(
+        (item) =>
+            String(item.id) ===
+            String(topicId)
+    );
+
+    if (!topic) {
+        return;
+    }
+
+    if (
+        !currentUser ||
+        String(currentUser.id) !==
+            String(topic.authorId)
+    ) {
+        alert(
+            "Видалити тему може лише її автор."
+        );
+
+        return;
+    }
+
+    const confirmed = confirm(
+        `Видалити тему "${topic.title}"?`
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    topics = topics.filter(
+        (item) =>
+            String(item.id) !==
+            String(topicId)
+    );
+
+    saveForumTopics();
+    renderForumTopics();
+}
+
+
+/* ===== КНОПКИ В СПИСКУ ТЕМ ===== */
+
+forumTopics.addEventListener(
+    "click",
+    (event) => {
+        const button = event.target.closest(
+            "[data-action][data-topic-id]"
+        );
+
+        if (!button) {
+            return;
+        }
+
+        const topicId =
+            button.dataset.topicId;
+
+        if (button.dataset.action === "open") {
+            openTopicView(topicId);
+        }
+
+        if (button.dataset.action === "delete") {
+            deleteForumTopic(topicId);
+        }
+    }
+);
+
+
+/* ===== ПОШУК І ФІЛЬТР ===== */
+
+forumSearch.addEventListener(
+    "input",
+    renderForumTopics
+);
+
+forumCategoryFilter.addEventListener(
+    "change",
+    renderForumTopics
+);
+
+
+/* ===== ЗАКРИТТЯ МОДАЛЬНИХ ВІКОН ===== */
+
+document
+    .querySelectorAll("[data-close-modal]")
+    .forEach((button) => {
+        button.addEventListener(
+            "click",
+            () => {
+                closeForumModal(
+                    button.closest(".modal")
+                );
+            }
+        );
+    });
+
+closeTopicViewModal.addEventListener(
+    "click",
+    () => {
+        closeForumModal(topicViewModal);
+    }
+);
+
+document
+    .querySelectorAll(".modal")
+    .forEach((modal) => {
+        modal.addEventListener(
+            "click",
+            (event) => {
+                if (event.target === modal) {
+                    closeForumModal(modal);
+                }
+            }
+        );
+    });
+
+document.addEventListener(
+    "keydown",
+    (event) => {
+        if (event.key !== "Escape") {
+            return;
+        }
+
+        closeForumModal(topicModal);
+        closeForumModal(topicViewModal);
+    }
+);
+
+
+/* ===== ЗАПУСК ===== */
+
+renderForumTopics();

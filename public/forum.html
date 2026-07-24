@@ -1,95 +1,250 @@
-<<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="uk">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Royal Garage</title>
 
-    <link rel="stylesheet" href="css/styles.css">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Форум | Royal Garage</title>
+
+    <link
+        rel="stylesheet"
+        href="css/styles.css"
+    >
 </head>
-
 
 <body>
 
-<header>
+<header class="site-header">
 
-    <div class="logo">
-        🚗 Royal Garage
+    <div class="top-line">
+
+        <div class="brand">
+            <a href="index.html">
+                <img
+                    src="images/royal-garage-logo.png"
+                    alt="Royal Garage"
+                >
+            </a>
+        </div>
+
+        <nav class="nav">
+            <a href="index.html">Головна</a>
+            <a href="forum.html">Форум</a>
+            <a href="market.html">Авторинок</a>
+            <a href="profile.html">Мій профіль</a>
+        </nav>
+
+        <div
+            id="authArea"
+            class="auth-area">
+        </div>
+
     </div>
-
-
-    <nav>
-        <a href="index.html">Головна</a>
-        <a href="forum.html">Форум</a>
-        <a href="market.html">Авторинок</a>
-        <a href="profil.html">Мій профіль</a>
-    </nav>
-
-
-    <div class="search">
-        <input 
-        type="text" 
-        placeholder="Пошук авто або теми...">
-
-        <button>🔍 Знайти</button>
-    </div>
-
 
 </header>
 
 
+<main class="forum-page">
 
-<main>
+    <section class="forum-hero">
 
+        <div>
+            <p class="forum-label">
+                ROYAL GARAGE COMMUNITY
+            </p>
 
-<section class="forum">
+            <h1>Форум водіїв</h1>
 
-<h2>💬 Форум водіїв</h2>
+            <p>
+                Обговорюй автомобілі, ремонт,
+                обслуговування, подорожі та ділись
+                власним досвідом.
+            </p>
+        </div>
 
+        <button
+            type="button"
+            id="openTopicButton"
+            class="gold-btn">
+            Створити тему
+        </button>
 
-<div class="topic">
-<h3>Peugeot 308 1.6 THP</h3>
-<p>Проблеми, ремонт, досвід власників</p>
-</div>
-
-
-<div class="topic">
-<h3>BMW E46</h3>
-<p>Тюнінг та обслуговування</p>
-</div>
-
-
-<div class="topic">
-<h3>Подорожі на авто</h3>
-<p>Маршрути, поради, допомога</p>
-</div>
-
-
-<button>
-Створити тему
-</button>
+    </section>
 
 
-</section>
+    <section class="forum-toolbar">
+
+        <input
+            type="search"
+            id="forumSearch"
+            placeholder="Пошук за назвою або текстом теми"
+        >
+
+        <select id="forumCategoryFilter">
+
+            <option value="all">
+                Усі категорії
+            </option>
+
+            <option value="Ремонт">
+                Ремонт
+            </option>
+
+            <option value="Обслуговування">
+                Обслуговування
+            </option>
+
+            <option value="Тюнінг">
+                Тюнінг
+            </option>
+
+            <option value="Подорожі">
+                Подорожі
+            </option>
+
+            <option value="Загальне">
+                Загальне
+            </option>
+
+        </select>
+
+    </section>
 
 
+    <section
+        id="forumTopics"
+        class="forum-topics">
 
+        <p
+            id="emptyForumMessage"
+            class="empty-message">
+            Тем поки немає.
+        </p>
 
-
-
+    </section>
 
 </main>
 
 
+<!-- Вікно створення теми -->
+
+<div
+    id="topicModal"
+    class="modal">
+
+    <div class="modal-content">
+
+        <button
+            type="button"
+            class="modal-close"
+            data-close-modal
+            aria-label="Закрити">
+            ×
+        </button>
+
+        <h2>Створити тему</h2>
+
+        <form id="topicForm">
+
+            <label>
+                Назва теми
+
+                <input
+                    type="text"
+                    id="topicTitle"
+                    maxlength="100"
+                    placeholder="Наприклад: Peugeot 308 — проблема з двигуном"
+                    required
+                >
+            </label>
+
+            <label>
+                Категорія
+
+                <select
+                    id="topicCategory"
+                    required>
+
+                    <option value="">
+                        Обери категорію
+                    </option>
+
+                    <option value="Ремонт">
+                        Ремонт
+                    </option>
+
+                    <option value="Обслуговування">
+                        Обслуговування
+                    </option>
+
+                    <option value="Тюнінг">
+                        Тюнінг
+                    </option>
+
+                    <option value="Подорожі">
+                        Подорожі
+                    </option>
+
+                    <option value="Загальне">
+                        Загальне
+                    </option>
+
+                </select>
+            </label>
+
+            <label>
+                Опис теми
+
+                <textarea
+                    id="topicText"
+                    rows="6"
+                    maxlength="2000"
+                    placeholder="Опиши запитання або поділись досвідом..."
+                    required>
+                </textarea>
+            </label>
+
+            <button
+                type="submit"
+                class="gold-btn">
+                Опублікувати тему
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
 
 
-<footer>
+<footer class="footer">
 
-Royal Garage © 2026
+    <div>
+        <h3>Royal Garage</h3>
+
+        <p>Автоспільнота України</p>
+        <p>Royal Garage © 2026</p>
+    </div>
+
+    <div>
+        <h3>Навігація</h3>
+
+        <a href="index.html">Головна</a>
+        <a href="forum.html">Форум</a>
+        <a href="market.html">Авторинок</a>
+        <a href="profile.html">Мій профіль</a>
+    </div>
 
 </footer>
 
+
+<script src="js/auth.js"></script>
+<script src="js/forum.js"></script>
 
 </body>
 

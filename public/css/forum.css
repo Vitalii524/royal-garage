@@ -1,0 +1,293 @@
+/* ===== СТОРІНКА ФОРУМУ ===== */
+
+.forum-page {
+    width: min(1180px, calc(100% - 32px));
+    margin: 40px auto 60px;
+}
+
+/* ===== ВЕРХНІЙ БЛОК ФОРУМУ ===== */
+
+.forum-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 28px;
+    padding: 32px;
+    background: linear-gradient(
+        120deg,
+        rgba(6, 27, 53, 0.98),
+        rgba(3, 8, 20, 0.96)
+    );
+    border: 1px solid rgba(214, 160, 58, 0.3);
+    border-radius: 18px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.28);
+}
+
+.forum-label {
+    margin: 0 0 8px;
+    color: var(--gold);
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 1.8px;
+}
+
+.forum-hero h1 {
+    margin: 0 0 12px;
+    color: var(--gold-light);
+    font-size: clamp(34px, 5vw, 50px);
+}
+
+.forum-hero p {
+    max-width: 700px;
+    margin-bottom: 0;
+    color: var(--muted);
+    line-height: 1.6;
+}
+
+.forum-hero .gold-btn {
+    flex-shrink: 0;
+}
+
+/* ===== ПОШУК І ФІЛЬТР ===== */
+
+.forum-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 240px;
+    gap: 14px;
+    margin: 24px 0;
+}
+
+.forum-toolbar input,
+.forum-toolbar select {
+    width: 100%;
+    min-width: 0;
+    padding: 14px 16px;
+    color: var(--white);
+    background: rgba(6, 27, 53, 0.95);
+    border: 1px solid rgba(214, 160, 58, 0.35);
+    border-radius: 10px;
+    font: inherit;
+    outline: none;
+}
+
+.forum-toolbar input::placeholder {
+    color: rgba(255, 255, 255, 0.52);
+}
+
+.forum-toolbar input:focus,
+.forum-toolbar select:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(214, 160, 58, 0.12);
+}
+
+.forum-toolbar select option {
+    color: var(--white);
+    background: #061b35;
+}
+
+/* ===== СПИСОК ТЕМ ===== */
+
+.forum-topics {
+    display: grid;
+    gap: 16px;
+    min-height: 230px;
+    padding: 24px;
+    background: rgba(6, 27, 53, 0.72);
+    border: 1px solid rgba(214, 160, 58, 0.22);
+    border-radius: 18px;
+}
+
+.forum-topics > .empty-message {
+    align-self: center;
+    margin: 0;
+    padding: 50px 20px;
+    text-align: center;
+}
+
+/* ===== КАРТКА ТЕМИ ===== */
+
+.forum-topic-card {
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid rgba(214, 160, 58, 0.2);
+    border-radius: 13px;
+    transition:
+        transform 0.2s ease,
+        border-color 0.2s ease,
+        background 0.2s ease;
+}
+
+.forum-topic-card:hover {
+    background: rgba(214, 160, 58, 0.07);
+    border-color: rgba(214, 160, 58, 0.65);
+    transform: translateY(-2px);
+}
+
+.forum-topic-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+}
+
+.forum-topic-title {
+    margin: 0;
+    color: var(--gold-light);
+    font-size: 21px;
+    line-height: 1.3;
+}
+
+.forum-topic-category {
+    flex-shrink: 0;
+    padding: 6px 11px;
+    color: var(--gold-light);
+    background: rgba(214, 160, 58, 0.12);
+    border: 1px solid rgba(214, 160, 58, 0.25);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.forum-topic-text {
+    margin: 14px 0;
+    color: var(--muted);
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+}
+
+.forum-topic-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    color: rgba(255, 255, 255, 0.58);
+    font-size: 13px;
+}
+
+.forum-topic-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.forum-topic-button {
+    padding: 9px 14px;
+    color: var(--gold-light);
+    background: transparent;
+    border: 1px solid rgba(214, 160, 58, 0.45);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.forum-topic-button:hover {
+    color: #061b35;
+    background: var(--gold);
+}
+
+/* ===== ФОРМА СТВОРЕННЯ ТЕМИ ===== */
+
+#topicModal .modal-content {
+    max-width: 600px;
+}
+
+#topicForm select {
+    width: 100%;
+    padding: 14px;
+    color: var(--white);
+    background: #020712;
+    border: 1px solid #123a68;
+    border-radius: 8px;
+    font: inherit;
+}
+
+#topicForm select option {
+    color: var(--white);
+    background: #061b35;
+}
+
+#topicForm textarea {
+    min-height: 150px;
+}
+
+/* ===== МОБІЛЬНА ВЕРСІЯ ===== */
+
+@media (max-width: 750px) {
+    .forum-page {
+        width: min(100% - 24px, 1180px);
+        margin-top: 24px;
+    }
+
+    .forum-hero {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 24px 20px;
+    }
+
+    .forum-hero h1 {
+        font-size: 36px;
+    }
+
+    .forum-hero .gold-btn {
+        width: 100%;
+    }
+
+    .forum-toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .forum-topics {
+        padding: 16px;
+    }
+
+    .forum-topic-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .forum-topic-category {
+        width: fit-content;
+    }
+}
+
+@media (max-width: 480px) {
+    .forum-page {
+        width: calc(100% - 20px);
+    }
+
+    .forum-hero {
+        padding: 20px 16px;
+        border-radius: 14px;
+    }
+
+    .forum-hero h1 {
+        font-size: 31px;
+    }
+
+    .forum-toolbar input,
+    .forum-toolbar select {
+        padding: 13px;
+    }
+
+    .forum-topics {
+        gap: 12px;
+        padding: 12px;
+        border-radius: 14px;
+    }
+
+    .forum-topic-card {
+        padding: 16px;
+    }
+
+    .forum-topic-title {
+        font-size: 18px;
+    }
+
+    .forum-topic-actions {
+        flex-direction: column;
+    }
+
+    .forum-topic-button {
+        width: 100%;
+    }
+}
