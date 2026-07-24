@@ -1,0 +1,257 @@
+/* ===== ГОЛОВНА СТОРІНКА ===== */
+
+.hero {
+    display: flex;
+    align-items: center;
+    min-height: 260px;
+    margin-top: 25px;
+    padding: 45px;
+    background:
+        linear-gradient(
+            90deg,
+            rgba(3, 8, 20, 0.95),
+            rgba(6, 27, 53, 0.75)
+        ),
+        radial-gradient(
+            circle at right,
+            rgba(214, 160, 58, 0.22),
+            transparent 35%
+        );
+    border: 1px solid rgba(214, 160, 58, 0.25);
+    border-radius: 18px;
+    box-shadow: 0 0 35px rgba(0, 0, 0, 0.35);
+}
+
+.hero h1 {
+    margin: 0 0 10px;
+    color: var(--gold-light);
+    font-size: 52px;
+    letter-spacing: 2px;
+}
+
+.hero p {
+    max-width: 600px;
+    color: var(--muted);
+    font-size: 18px;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.hero-actions a {
+    padding: 14px 22px;
+    color: #061b35;
+    background: linear-gradient(
+        180deg,
+        var(--gold-light),
+        var(--gold)
+    );
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+/* ===== ПОШУК ===== */
+
+.search-box {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    padding: 10px;
+    background: #061b35;
+    border: 1px solid rgba(214, 160, 58, 0.25);
+    border-radius: 12px;
+}
+
+.search-box input {
+    flex: 1;
+    padding: 16px;
+    color: var(--white);
+    background: #020712;
+    border: 1px solid #123a68;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+.search-box button {
+    padding: 14px 24px;
+    color: #160f04;
+    background: linear-gradient(
+        180deg,
+        var(--gold-light),
+        var(--gold)
+    );
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+/* ===== ОСНОВНИЙ ВМІСТ ===== */
+
+.main-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+    max-width: 1200px;
+    margin: 35px auto;
+    padding: 0 20px;
+}
+
+.panel {
+    padding: 25px;
+    background: linear-gradient(
+        180deg,
+        rgba(7, 31, 61, 0.95),
+        rgba(3, 13, 27, 0.95)
+    );
+    border: 1px solid rgba(214, 160, 58, 0.25);
+    border-radius: 14px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.35);
+}
+
+.panel-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.panel-title span {
+    font-size: 32px;
+}
+
+.panel h2,
+.brands h2 {
+    margin: 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--gold);
+}
+
+.topic-card,
+.car-card {
+    margin: 18px 0;
+    padding: 18px;
+    background: var(--card);
+    border: 1px solid rgba(214, 160, 58, 0.18);
+    border-radius: 12px;
+    transition: 0.25s;
+}
+
+.topic-card:hover,
+.car-card:hover {
+    border-color: var(--gold);
+    transform: translateY(-3px);
+}
+
+.topic-card h3,
+.car-card h3 {
+    margin: 0 0 8px;
+}
+
+.topic-card p,
+.car-card p {
+    margin: 0;
+    color: var(--muted);
+}
+
+/* ===== МАРКИ АВТО ===== */
+
+.brands {
+    max-width: 1200px;
+    margin: 0 auto 35px;
+    padding: 25px 20px;
+}
+
+.brand-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.brand-grid button {
+    padding: 16px;
+    color: var(--white);
+    background: #061b35;
+    border: 1px solid rgba(214, 160, 58, 0.25);
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.brand-grid button:hover {
+    color: #061b35;
+    background: var(--gold);
+}
+
+/* ===== ПЕРЕВАГИ ===== */
+
+.features {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    max-width: 1200px;
+    margin: 0 auto 40px;
+    padding: 25px 20px;
+    background: linear-gradient(
+        180deg,
+        #061b35,
+        #041020
+    );
+    border: 1px solid rgba(214, 160, 58, 0.25);
+    border-radius: 14px;
+}
+
+.feature {
+    padding: 15px;
+    text-align: center;
+}
+
+.feature span {
+    font-size: 36px;
+}
+
+.feature h3 {
+    color: var(--gold-light);
+}
+
+.feature p {
+    color: var(--muted);
+}
+
+/* ===== МОБІЛЬНА ВЕРСІЯ ===== */
+
+@media (max-width: 900px) {
+    .hero {
+        min-height: auto;
+        padding: 30px 20px;
+    }
+
+    .hero h1 {
+        font-size: 38px;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+    }
+
+    .search-box {
+        flex-direction: column;
+    }
+
+    .main-content {
+        grid-template-columns: 1fr;
+    }
+
+    .brand-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .features {
+        grid-template-columns: 1fr;
+    }
+}

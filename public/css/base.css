@@ -1,0 +1,172 @@
+:root {
+    --dark: #030814;
+    --navy: #061b35;
+    --navy2: #08284d;
+    --gold: #d6a03a;
+    --gold-light: #f0bd55;
+    --white: #f7f0e6;
+    --muted: #b8b8b8;
+    --card: rgba(255, 255, 255, 0.045);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Georgia, "Times New Roman", serif;
+    background: radial-gradient(
+        circle at top,
+        #08284d 0%,
+        #030814 60%
+    );
+    color: var(--white);
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ===== ШАПКА САЙТУ ===== */
+
+.site-header {
+    max-width: 1200px;
+    margin: auto;
+    padding: 25px 20px 20px;
+}
+
+.top-line {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+}
+
+.brand img {
+    width: 180px;
+    height: auto;
+}
+
+.nav {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px;
+    background: linear-gradient(
+        180deg,
+        #0a2b55,
+        #061b35
+    );
+    border: 1px solid rgba(214, 160, 58, 0.3);
+    border-radius: 12px;
+}
+
+.nav a {
+    padding: 12px 16px;
+    color: var(--white);
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 8px;
+    transition: 0.25s;
+}
+
+.nav a:hover {
+    color: #061b35;
+    background: var(--gold);
+}
+
+.auth-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.auth-buttons button {
+    padding: 12px 14px;
+    color: var(--gold-light);
+    background: transparent;
+    border: 1px solid rgba(214, 160, 58, 0.5);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.auth-buttons button:hover {
+    color: #061b35;
+    background: var(--gold);
+}
+
+/* ===== СПІЛЬНА ЗОЛОТА КНОПКА ===== */
+
+.gold-btn {
+    padding: 14px 24px;
+    color: #160f04;
+    background: linear-gradient(
+        180deg,
+        var(--gold-light),
+        var(--gold)
+    );
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+/* ===== ПІДВАЛ САЙТУ ===== */
+
+.footer {
+    display: flex;
+    justify-content: center;
+    gap: 120px;
+    padding: 35px 20px;
+    background: #030814;
+    border-top: 1px solid rgba(214, 160, 58, 0.3);
+}
+
+.footer h3 {
+    color: var(--gold);
+}
+
+.footer a {
+    display: block;
+    margin: 8px 0;
+    color: var(--muted);
+    text-decoration: none;
+}
+
+.footer a:hover {
+    color: var(--gold-light);
+}
+
+/* ===== МОБІЛЬНА ВЕРСІЯ ===== */
+
+@media (max-width: 900px) {
+    .top-line {
+        flex-direction: column;
+    }
+
+    .brand img {
+        width: 160px;
+    }
+
+    .nav {
+        flex-wrap: wrap;
+    }
+
+    .nav a {
+        width: 45%;
+        text-align: center;
+    }
+
+    .auth-buttons {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .footer {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+}

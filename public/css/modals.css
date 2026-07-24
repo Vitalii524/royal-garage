@@ -1,0 +1,118 @@
+/* ===== СПІЛЬНІ МОДАЛЬНІ ВІКНА ===== */
+
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.75);
+}
+
+.modal-open {
+    display: flex;
+}
+
+.modal-content {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    padding: 25px;
+    overflow: auto;
+    background: #061b35;
+    border: 1px solid rgba(214, 160, 58, 0.4);
+    border-radius: 14px;
+}
+
+.modal-content h2 {
+    color: var(--gold-light);
+}
+
+/* ===== ПОЛЯ ФОРМИ ===== */
+
+.modal-content input,
+.modal-content textarea {
+    width: 100%;
+    margin: 8px 0;
+    padding: 14px;
+    color: var(--white);
+    background: #020712;
+    border: 1px solid #123a68;
+    border-radius: 8px;
+}
+
+.modal-content textarea {
+    resize: vertical;
+}
+
+.modal-content form {
+    display: grid;
+    gap: 13px;
+}
+
+.modal-content label {
+    display: grid;
+    gap: 7px;
+    color: var(--muted);
+}
+
+.modal-content button {
+    width: 100%;
+    margin-top: 10px;
+}
+
+/* ===== ЗАКРИТТЯ МОДАЛЬНОГО ВІКНА ===== */
+
+.close {
+    position: absolute;
+    top: 12px;
+    right: 18px;
+    color: var(--gold-light);
+    font-size: 28px;
+    cursor: pointer;
+}
+
+.modal-content .modal-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    left: auto;
+    z-index: 20;
+
+    display: grid;
+    place-items: center;
+
+    width: 42px;
+    height: 42px;
+    margin: 0;
+    padding: 0;
+
+    color: var(--gold-light);
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+
+    font-size: 30px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.modal-content .modal-close:hover {
+    background: rgba(214, 160, 58, 0.15);
+}
+
+/* ===== НАЛАШТУВАННЯ ВИДИМОСТІ ===== */
+
+.visibility-option {
+    display: flex !important;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+}
+
+.visibility-option input {
+    width: auto;
+    margin: 0;
+}

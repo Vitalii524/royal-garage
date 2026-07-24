@@ -1,0 +1,175 @@
+/* ===== РЕЄСТРАЦІЯ ТА ВХІД ===== */
+
+.auth-area {
+    display: flex;
+    gap: 10px;
+}
+
+.auth-header-button {
+    padding: 11px 15px;
+    color: var(--gold-light);
+    background: transparent;
+    border: 1px solid rgba(214, 160, 58, 0.5);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.auth-register-button,
+.auth-header-button:hover {
+    color: #061b35;
+    background: var(--gold);
+}
+
+/* ===== АВТОРИЗОВАНИЙ КОРИСТУВАЧ ===== */
+
+.logged-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logged-user a {
+    color: var(--gold-light);
+    text-decoration: none;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.logout-button {
+    padding: 10px 13px;
+    color: #ffcccc;
+    background: transparent;
+    border: 1px solid rgba(255, 120, 120, 0.4);
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.logout-button:hover {
+    color: #ffffff;
+    background: #a62828;
+}
+
+/* ===== МОДАЛЬНЕ ВІКНО ВХОДУ ===== */
+
+.auth-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.78);
+}
+
+.auth-modal-open {
+    display: flex;
+}
+
+.auth-window {
+    position: relative;
+    width: 100%;
+    max-width: 440px;
+    padding: 28px;
+    background: linear-gradient(
+        180deg,
+        #08284d,
+        #030814
+    );
+    border: 1px solid rgba(214, 160, 58, 0.45);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+}
+
+/* ===== ХРЕСТИК ===== */
+
+.auth-close {
+    position: absolute;
+    top: 8px;
+    right: 14px;
+    width: auto;
+    margin: 0;
+    padding: 0;
+    color: var(--gold-light);
+    background: transparent;
+    border: none;
+    font-size: 30px;
+    cursor: pointer;
+}
+
+/* ===== ВКЛАДКИ ВХОДУ І РЕЄСТРАЦІЇ ===== */
+
+.auth-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 22px;
+}
+
+.auth-tab {
+    padding: 12px;
+    color: var(--white);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(214, 160, 58, 0.2);
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.auth-tab.active {
+    color: #061b35;
+    background: var(--gold);
+}
+
+/* ===== ФОРМА ===== */
+
+.auth-form {
+    display: grid;
+    gap: 14px;
+}
+
+.auth-form h2 {
+    margin: 0 0 5px;
+    color: var(--gold-light);
+}
+
+.auth-form label {
+    display: grid;
+    gap: 7px;
+    color: var(--muted);
+}
+
+.auth-form input {
+    width: 100%;
+    padding: 14px;
+    color: var(--white);
+    background: #020712;
+    border: 1px solid #123a68;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+.auth-error {
+    min-height: 20px;
+    margin: 0;
+    color: #ffaaaa;
+    font-size: 14px;
+}
+
+/* ===== МОБІЛЬНА ВЕРСІЯ ===== */
+
+@media (max-width: 900px) {
+    .auth-area {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .logged-user {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .auth-window {
+        padding: 24px 18px;
+    }
+}
