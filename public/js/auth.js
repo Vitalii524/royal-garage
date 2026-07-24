@@ -17,7 +17,21 @@ function saveUsers(users) {
 
 function getCurrentUser() {
     try {
-        return JSON.parse(localStorage.getItem(SESSION_KEY));
+        const user = JSON.parse(
+            localStorage.getItem(SESSION_KEY)
+        );
+
+        if (!user) {
+            return null;
+        }
+
+        return {
+            ...user,
+            accountType:
+                user.accountType || "user",
+            role:
+                user.role || "user"
+        };
     } catch {
         return null;
     }
@@ -260,9 +274,14 @@ function registerUser(event) {
         id: crypto.randomUUID
             ? crypto.randomUUID()
             : String(Date.now()),
+    
         name,
         email,
         password,
+    
+        accountType: "user",
+        role: "user",
+    
         createdAt: new Date().toISOString()
     };
 
@@ -272,7 +291,9 @@ function registerUser(event) {
     saveCurrentUser({
         id: newUser.id,
         name: newUser.name,
-        email: newUser.email
+        email: newUser.email,
+        accountType: newUser.accountType,
+        role: newUser.role
     });
 
     document.getElementById("registerForm").reset();
@@ -317,7 +338,11 @@ function loginUser(event) {
     saveCurrentUser({
         id: user.id,
         name: user.name,
-        email: user.email
+        email: user.email,
+        accountType:
+            user.accountType || "user",
+        role:
+            user.role || "user"
     });
 
     document.getElementById("loginForm").reset();

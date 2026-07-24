@@ -316,3 +316,104 @@ document.addEventListener(
     "DOMContentLoaded",
     renderHomeMarketListings
 );
+
+/* ===== ОСТАННІ ТЕМИ ФОРУМУ НА ГОЛОВНІЙ ===== */
+
+function renderHomeForumTopics() {
+    const container =
+        document.getElementById("homeForumTopics");
+
+    if (!container) {
+        return;
+    }
+
+    let topics = [];
+
+    try {
+        topics = JSON.parse(
+            localStorage.getItem(
+                "royalGarageForumTopics"
+            )
+        ) || [];
+    } catch (error) {
+        console.error(
+            "Помилка завантаження тем форуму:",
+            error
+        );
+    }
+
+    const newestTopics = [...topics]
+        .sort(
+            (first, second) =>
+                new Date(second.createdAt || 0) -
+                new Date(first.createdAt || 0)
+        )
+        .slice(0, 3);
+
+    if (newestTopics.length === 0) {
+        container.innerHTML = `
+            <p class="empty-message">
+                Тем поки немає.
+            </p>
+        `;
+
+        return;
+    }
+
+    container.innerHTML = "";
+
+    newestTopics.forEach((topic) => {
+        const card =
+            document.createElement("div");
+
+        card.className = "topic-card";
+        card.tabIndex = 0;
+        card.setAttribute("role", "link");
+
+        const repliesCount =
+            Array.isArray(topic.replies)
+                ? topic.replies.length
+                : 0;
+
+        card.innerHTML = `
+            <h3>
+                ${escapeHomeHtml(topic.title)}
+            </h3>
+
+            <p>
+                ${escapeHomeHtml(topic.category)}
+                • ${repliesCount} відповідей
+            </p>
+
+            <p>
+                ${escapeHomeHtml(
+                    topic.text.length > 100
+                        ? `${topic.text.slice(0, 100)}…`
+                        : topic.text
+                )}
+            </p>
+        `;
+
+        const openForum = () => {
+            window.location.href = "forum.html";
+        };
+
+        card.addEventListener("click", openForum);
+
+        card.addEventListener("keydown", (event) => {
+            if (
+                event.key === "Enter" ||
+                event.key === " "
+            ) {
+                openForum();
+            }
+        });
+
+        container.appendChild(card);
+    });
+}
+
+document.addEventListener(
+    "DOMContentLoaded",
+    renderHomeForumTopics
+);
