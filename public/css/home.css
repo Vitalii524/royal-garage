@@ -255,3 +255,232 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* ===== ОСТАННІ ОГОЛОШЕННЯ НА ГОЛОВНІЙ ===== */
+
+.home-market-listings {
+    display: grid;
+    gap: 12px;
+    margin: 18px 0;
+}
+
+.home-market-card {
+    display: grid;
+    grid-template-columns: 125px 1fr;
+    gap: 14px;
+    align-items: center;
+    margin: 0;
+    padding: 10px;
+    color: var(--white);
+    text-decoration: none;
+    overflow: hidden;
+}
+
+.home-market-photo,
+.home-market-no-photo {
+    width: 125px;
+    height: 95px;
+    border-radius: 9px;
+}
+
+.home-market-photo {
+    display: block;
+    object-fit: cover;
+}
+
+.home-market-no-photo {
+    display: grid;
+    place-items: center;
+    background: #061b35;
+    font-size: 34px;
+}
+
+.home-market-card-content {
+    min-width: 0;
+}
+
+.home-market-card-content h3 {
+    margin: 0 0 7px;
+    color: var(--gold-light);
+    font-size: 17px;
+}
+
+.home-market-card-content p {
+    margin: 4px 0;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.home-market-card-content .home-market-price {
+    color: var(--gold-light);
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.home-panel-link {
+    display: block;
+    width: fit-content;
+    margin-top: 18px;
+    text-align: center;
+    text-decoration: none;
+}
+
+/* ===== МОБІЛЬНІ КАРТКИ ОГОЛОШЕНЬ ===== */
+
+@media (max-width: 600px) {
+    .home-market-card {
+        grid-template-columns: 95px 1fr;
+        gap: 10px;
+    }
+
+    .home-market-photo,
+    .home-market-no-photo {
+        width: 95px;
+        height: 78px;
+    }
+
+    .home-market-card-content h3 {
+        font-size: 15px;
+    }
+
+    .home-market-card-content p {
+        font-size: 13px;
+    }
+
+    .home-panel-link {
+        width: 100%;
+    }
+}
+
+/* ===== ГОЛОВНА СТОРІНКА НА ТЕЛЕФОНІ ===== */
+
+@media (max-width: 600px) {
+    .hero {
+        margin-top: 16px;
+        padding: 26px 18px;
+        border-radius: 14px;
+    }
+
+    .hero h1 {
+        font-size: 34px;
+        line-height: 1.1;
+        letter-spacing: 1px;
+    }
+
+    .hero p {
+        font-size: 16px;
+        line-height: 1.5;
+    }
+
+    .hero-actions {
+        width: 100%;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .hero-actions a {
+        display: block;
+        width: 100%;
+        padding: 13px 12px;
+        text-align: center;
+    }
+
+    .search-box {
+        gap: 10px;
+        margin-top: 14px;
+        padding: 8px;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 13px;
+        font-size: 16px;
+    }
+
+    .search-box button {
+        width: 100%;
+        padding: 13px;
+    }
+
+    .search-box {
+        width: 100%;
+        max-width: 650px;
+    }
+
+    @media (max-width: 600px) {
+        .hero-text {
+            width: 100%;
+        }
+    
+        .search-box {
+            max-width: 100%;
+        }
+    }
+
+    .main-content {
+        gap: 18px;
+        margin: 22px auto;
+        padding: 0 14px;
+    }
+
+    .panel {
+        padding: 18px 14px;
+        border-radius: 12px;
+    }
+
+    .panel-title span {
+        font-size: 27px;
+    }
+
+    .panel h2,
+    .brands h2 {
+        font-size: 22px;
+    }
+
+    .topic-card,
+    .car-card {
+        padding: 13px;
+    }
+
+    .brands {
+        margin-bottom: 20px;
+        padding: 18px 14px;
+    }
+
+    .brand-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+    }
+
+    .brand-grid button {
+        padding: 13px 8px;
+        font-size: 13px;
+    }
+
+    .features {
+        gap: 8px;
+        margin: 0 14px 25px;
+        padding: 14px;
+    }
+
+    .feature {
+        padding: 12px;
+        border-bottom: 1px solid rgba(214, 160, 58, 0.15);
+    }
+
+    .feature:last-child {
+        border-bottom: none;
+    }
+
+    .feature span {
+        font-size: 30px;
+    }
+
+    .feature h3 {
+        margin: 8px 0;
+    }
+
+    .feature p {
+        margin-bottom: 0;
+    }
+}

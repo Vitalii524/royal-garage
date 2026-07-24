@@ -22,8 +22,12 @@
             <a href="market.html">Авторинок</a>
             <a href="profile.html">Мій профіль</a>
         </nav>
+       
         <div id="authArea" class="auth-area"></div>
-        </div>
+
+    </div>
+    
+    <section class="hero">
 
     </div>
 
@@ -37,14 +41,21 @@
                 <a href="forum.html">Перейти на форум</a>
                 <a href="market.html">Переглянути авто</a>
             </div>
+            <div class="search-box">
+                <input
+                    id="searchInput"
+                    type="text"
+                    placeholder="Пошук авто, тем або користувачів..."
+                >
+            
+                <button type="button" onclick="searchSite()">
+                    🔍 Знайти
+                </button>
+            </div>
+
         </div>
 
     </section>
-
-    <div class="search-box">
-        <input id="searchInput" type="text" placeholder="Пошук авто, тем або користувачів...">
-        <button onclick="searchSite()">🔍 Знайти</button>
-    </div>
 
 </header>
 
@@ -83,26 +94,28 @@
     <section class="panel">
         <div class="panel-title">
             <span>🚘</span>
-            <h2>Авторинок</h2>
-        </div>
-
-        <div id="carsList">
-
-            <div class="car-card">
-                <h3>BMW 320D</h3>
-                <p>2015 рік • 220000 км • 12000$</p>
-            </div>
-
-            <div class="car-card">
-                <h3>Peugeot 308</h3>
-                <p>2008 рік • 280000 км • 5000$</p>
-            </div>
-
-        </div>
-
-        <button class="gold-btn" onclick="openCarForm()">Додати оголошення</button>
-    </section>
-
+            <section class="panel">
+                <div class="panel-title">
+                    <span>🚘</span>
+                    <h2>Нові оголошення</h2>
+                </div>
+            
+                <div
+                    id="homeMarketListings"
+                    class="home-market-listings"
+                >
+                    <p class="empty-message">
+                        Завантаження оголошень...
+                    </p>
+                </div>
+            
+                <a
+                    href="market.html"
+                    class="gold-btn home-panel-link"
+                >
+                    Перейти в авторинок
+                </a>
+            </section>
 </main>
 
 

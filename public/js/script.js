@@ -167,3 +167,152 @@ function quickSearch(text) {
     document.getElementById("searchInput").value = text;
     searchSite();
 }
+
+/* ===== ОСТАННІ ОГОЛОШЕННЯ НА ГОЛОВНІЙ ===== */
+
+const HOME_MARKET_STORAGE_KEY =
+    "royalGarageMarketListings";
+
+function escapeHomeHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+function formatHomeNumber(value) {
+    return new Intl.NumberFormat("uk-UA").format(
+        Number(value) || 0
+    );
+}
+
+function renderHomeMarketListings() {
+    const container =
+        document.getElementById("homeMarketListings");
+
+    if (!container) {
+        return;
+    }
+
+    let listings = [];
+
+    try {
+        listings = JSON.parse(
+            localStorage.getItem(
+                HOME_MARKET_STORAGE_KEY
+            )
+        ) || [];
+    } catch (error) {
+        console.error(
+            "Помилка завантаження оголошень:",
+            error
+        );
+    }
+
+    const newestListings = [...listings]
+        .sort(
+            (first, second) =>
+                new Date(second.createdAt) -
+                new Date(first.createdAt)
+        )
+        .slice(0, 3);
+
+    if (newestListings.length === 0) {
+        container.innerHTML = `
+            <p class="empty-message">
+                Оголошень поки немає.
+            </p>
+        `;
+
+        return;
+    }
+
+    container.innerHTML = "";
+
+    newestListings.forEach((listing) => {
+        const photos = Array.isArray(listing.photos)
+            ? listing.photos
+            : listing.photo
+                ? [listing.photo]
+                : [];
+
+        const activePhotoIndex =
+            Number.isInteger(listing.activePhotoIndex)
+                ? listing.activePhotoIndex
+                : 0;
+
+        const photo =
+            photos[activePhotoIndex] ||
+            photos[0] ||
+            "";
+
+        const card = document.createElement("a");
+
+        card.className =
+            "home-market-card car-card";
+
+        card.href =
+            `listing.html?id=${
+                encodeURIComponent(listing.id)
+            }`;
+
+        card.innerHTML = `
+            ${
+                photo
+                    ? `
+                        <img
+                            class="home-market-photo"
+                            src="${photo}"
+                            alt="${escapeHomeHtml(
+                                listing.name
+                            )}"
+                        >
+                    `
+                    : `
+                        <div class="home-market-no-photo">
+                            🚗
+                        </div>
+                    `
+            }
+
+            <div class="home-market-card-content">
+                <h3>
+                    ${escapeHomeHtml(listing.name)}
+                    (${escapeHomeHtml(listing.year)})
+                </h3>
+
+                <p class="home-market-price">
+                    ${formatHomeNumber(
+                        listing.priceUsd
+                    )} $
+                </p>
+
+                <p>
+                    ${formatHomeNumber(
+                        listing.mileage
+                    )} км
+                    •
+                    ${escapeHomeHtml(
+                        listing.fuel || "Пальне не вказано"
+                    )}
+                </p>
+
+                <p>
+                    📍
+                    ${escapeHomeHtml(
+                        listing.city || "Місто не вказано"
+                    )}
+                </p>
+            </div>
+        `;
+
+        container.appendChild(card);
+    });
+}
+
+document.addEventListener(
+    "DOMContentLoaded",
+    renderHomeMarketListings
+);
