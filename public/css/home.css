@@ -820,4 +820,49 @@
         box-sizing: border-box;
         text-align: center;
     }
+
+    .atelier-modal-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .atelier-modal-logo {
+        width: 95px;
+        height: 95px;
+        margin: 0 auto;
+    }
+
+}
+
+.atelier-modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 22px;
+}
+
+.atelier-modal-logo {
+    display: block;
+    width: 110px;
+    height: 110px;
+    object-fit: contain;
+    border-radius: 14px;
+}
+
+.atelier-card-logo {
+    display: block;
+    width: 105px;
+    height: 105px;
+    margin: 0 auto 16px;
+    object-fit: contain;
+    border-radius: 14px;
+}
+
+@media (max-width: 600px) {
+    .atelier-card-logo {
+        width: 85px;
+        height: 85px;
+        margin-bottom: 12px;
+    }
 }

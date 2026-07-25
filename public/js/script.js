@@ -492,13 +492,21 @@ function openAtelierModal() {
             </div>
 
             <div class="atelier-modal-actions">
-                <a
-                    class="gold-btn atelier-contact-button"
-                    href="mailto:royalautoatelier@gmail.com"
-                >
-                    Зв’язатися з ательє
-                </a>
-            </div>
+
+            <a
+                class="gold-btn atelier-contact-button"
+                href="mailto:royalautoatelier@gmail.com"
+            >
+                Зв’язатися з ательє
+            </a>
+        
+            <img
+                class="atelier-modal-logo"
+                src="images/royal-auto-atelier-logo.webp"
+                alt="Royal Auto Atelier"
+            >
+        
+        </div>
 
         </section>
     `;
