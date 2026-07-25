@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Royal Garage</title>
+
     <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
 
 <header class="site-header">
@@ -13,7 +16,10 @@
     <div class="top-line">
 
         <div class="brand">
-            <img src="images/royal-garage-logo.png" alt="Royal Garage">
+            <img
+                src="images/royal-garage-logo.png"
+                alt="Royal Garage"
+            >
         </div>
 
         <nav class="nav">
@@ -22,40 +28,86 @@
             <a href="market.html">Авторинок</a>
             <a href="profile.html">Мій профіль</a>
         </nav>
-       
+
         <div id="authArea" class="auth-area"></div>
 
     </div>
-    
-    <section class="hero">
+
+
+    <div class="home-layout">
+
+        <section class="hero">
+
+            <div class="hero-text">
+
+                <h1>Royal Garage</h1>
+
+                <p>
+                    Автоспільнота для водіїв, форум,
+                    авторинок і особистий гараж
+                </p>
+
+                <div class="hero-actions">
+
+                    <a href="forum.html">
+                        Перейти на форум
+                    </a>
+
+                    <a href="market.html">
+                        Переглянути авто
+                    </a>
+
+                </div>
+
+
+                <div class="search-box">
+
+                    <input
+                        id="searchInput"
+                        type="text"
+                        placeholder="Пошук авто, тем або користувачів..."
+                    >
+
+                    <button
+                        type="button"
+                        onclick="searchSite()"
+                    >
+                        🔍 Знайти
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <aside class="atelier-card">
+
+            <p class="atelier-label">
+                ROYAL AUTO ATELIER
+            </p>
+
+            <h2>
+                Авторські роботи для автомобіля
+            </h2>
+
+            <p>
+                Перетяжка салону, реставрація деталей,
+                індивідуальні вироби та ручна робота.
+            </p>
+
+            <button
+                type="button"
+                class="atelier-open-button"
+                onclick="openAtelierModal()"
+            >
+                Переглянути ательє
+            </button>
+
+        </aside>
 
     </div>
-
-    <section class="hero">
-
-        <div class="hero-text">
-            <h1>Royal Garage</h1>
-            <p>Автоспільнота для водіїв, форум, авторинок і особистий гараж</p>
-
-            <div class="hero-actions">
-                <a href="forum.html">Перейти на форум</a>
-                <a href="market.html">Переглянути авто</a>
-            </div>
-            <div class="search-box">
-                <input
-                    id="searchInput"
-                    type="text"
-                    placeholder="Пошук авто, тем або користувачів..."
-                >
-            
-                <button type="button" onclick="searchSite()">
-                    🔍 Знайти
-                </button>
-            </div>
-
-        </div>
-
-    </section>
 
 </header>
 
@@ -63,19 +115,24 @@
 <main class="main-content">
 
     <section class="panel">
+
         <div class="panel-title">
             <span>💬</span>
             <h2>Форум водіїв</h2>
         </div>
+
         <div id="homeForumTopics">
+
             <p class="empty-message">
                 Завантаження тем форуму...
             </p>
+
         </div>
 
         <a
             href="forum.html"
-            class="gold-btn home-panel-link">
+            class="gold-btn home-panel-link"
+        >
             Перейти на форум
         </a>
 
@@ -83,30 +140,32 @@
 
 
     <section class="panel">
+
         <div class="panel-title">
             <span>🚘</span>
-            <section class="panel">
-                <div class="panel-title">
-                    <span>🚘</span>
-                    <h2>Нові оголошення</h2>
-                </div>
-            
-                <div
-                    id="homeMarketListings"
-                    class="home-market-listings"
-                >
-                    <p class="empty-message">
-                        Завантаження оголошень...
-                    </p>
-                </div>
-            
-                <a
-                    href="market.html"
-                    class="gold-btn home-panel-link"
-                >
-                    Перейти в авторинок
-                </a>
-            </section>
+            <h2>Нові оголошення</h2>
+        </div>
+
+        <div
+            id="homeMarketListings"
+            class="home-market-listings"
+        >
+
+            <p class="empty-message">
+                Завантаження оголошень...
+            </p>
+
+        </div>
+
+        <a
+            href="market.html"
+            class="gold-btn home-panel-link"
+        >
+            Перейти в авторинок
+        </a>
+
+    </section>
+
 </main>
 
 
@@ -115,12 +174,31 @@
     <h2>Популярні марки</h2>
 
     <div class="brand-grid">
-        <button onclick="quickSearch('BMW')">BMW</button>
-        <button onclick="quickSearch('Audi')">Audi</button>
-        <button onclick="quickSearch('Mercedes')">Mercedes</button>
-        <button onclick="quickSearch('Peugeot')">Peugeot</button>
-        <button onclick="quickSearch('Toyota')">Toyota</button>
-        <button onclick="quickSearch('Volkswagen')">Volkswagen</button>
+
+        <button onclick="quickSearch('BMW')">
+            BMW
+        </button>
+
+        <button onclick="quickSearch('Audi')">
+            Audi
+        </button>
+
+        <button onclick="quickSearch('Mercedes')">
+            Mercedes
+        </button>
+
+        <button onclick="quickSearch('Peugeot')">
+            Peugeot
+        </button>
+
+        <button onclick="quickSearch('Toyota')">
+            Toyota
+        </button>
+
+        <button onclick="quickSearch('Volkswagen')">
+            Volkswagen
+        </button>
+
     </div>
 
 </section>
@@ -129,27 +207,54 @@
 <section class="features">
 
     <div class="feature">
+
         <span>🛡️</span>
+
         <h3>Надійність</h3>
-        <p>Перевірені користувачі та реальні відгуки</p>
+
+        <p>
+            Перевірені користувачі та реальні відгуки
+        </p>
+
     </div>
 
+
     <div class="feature">
+
         <span>👑</span>
+
         <h3>Преміум сервіс</h3>
-        <p>VIP-оголошення, реклама та просування</p>
+
+        <p>
+            VIP-оголошення, реклама та просування
+        </p>
+
     </div>
 
+
     <div class="feature">
+
         <span>⭐</span>
+
         <h3>Спільнота</h3>
-        <p>Форум, поради та досвід водіїв</p>
+
+        <p>
+            Форум, поради та досвід водіїв
+        </p>
+
     </div>
 
+
     <div class="feature">
+
         <span>🏅</span>
+
         <h3>Безпека</h3>
-        <p>Захист акаунтів та особистих даних</p>
+
+        <p>
+            Захист акаунтів та особистих даних
+        </p>
+
     </div>
 
 </section>
@@ -158,34 +263,52 @@
 <footer class="footer">
 
     <div>
+
         <h3>Royal Garage</h3>
+
         <p>Автоспільнота України</p>
-        <p>Створено командою Royal Auto Atelier</p>
+
+        <p>
+            Створено командою Royal Auto Atelier
+        </p>
+
     </div>
 
+
     <div>
+
         <h3>Навігація</h3>
+
         <a href="index.html">Головна</a>
         <a href="forum.html">Форум</a>
         <a href="market.html">Авторинок</a>
         <a href="profile.html">Мій профіль</a>
+
     </div>
 
 </footer>
 
 
 <div id="modal" class="modal">
+
     <div class="modal-content">
 
-        <span class="close" onclick="closeModal()">×</span>
+        <span
+            class="close"
+            onclick="closeModal()"
+        >
+            ×
+        </span>
 
         <div id="modalBody"></div>
 
     </div>
+
 </div>
 
 
 <script src="js/script.js"></script>
 <script src="js/auth.js"></script>
+
 </body>
 </html>

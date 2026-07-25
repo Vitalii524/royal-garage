@@ -484,3 +484,240 @@
         margin-bottom: 0;
     }
 }
+
+.atelier-card {
+    width: 340px;
+    padding: 28px;
+    border: 1px solid rgba(212, 165, 74, 0.55);
+    border-radius: 22px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(9, 35, 78, 0.96),
+            rgba(4, 22, 53, 0.96)
+        );
+
+    box-shadow:
+        0 18px 45px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+    color: #ffffff;
+}
+
+.atelier-label {
+    margin-bottom: 12px;
+    color: #e4b85e;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+.atelier-card h2 {
+    margin-bottom: 14px;
+    color: #f4d58d;
+    font-size: 28px;
+    line-height: 1.2;
+}
+
+.atelier-card p {
+    margin-bottom: 22px;
+    color: #d9e3f0;
+    line-height: 1.6;
+}
+
+.atelier-open-button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #f2cc78, #d99a2b);
+    color: #10254b;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.25s ease;
+}
+
+.atelier-open-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(217, 154, 43, 0.35);
+}
+
+@media (max-width: 900px) {
+    .atelier-card {
+        width: 100%;
+        margin-top: 24px;
+    }
+}
+
+.home-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 24px;
+    align-items: stretch;
+    margin-top: 16px;
+}
+
+.home-layout .hero {
+    margin-top: 0;
+    min-width: 0;
+}
+
+.home-layout .atelier-card {
+    width: auto;
+    box-sizing: border-box;
+}
+
+/* ===== ГОЛОВНИЙ БЛОК І ROYAL AUTO ATELIER ===== */
+
+.home-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 24px;
+    align-items: stretch;
+
+    max-width: 1200px;
+    margin: 25px auto 0;
+    padding: 0 20px;
+}
+
+.home-layout .hero {
+    min-width: 0;
+    margin-top: 0;
+}
+
+.hero-text {
+    width: 100%;
+}
+
+
+/* ===== ROYAL AUTO ATELIER ===== */
+
+.atelier-card {
+    width: 100%;
+    box-sizing: border-box;
+
+    padding: 28px;
+
+    border: 1px solid rgba(212, 165, 74, 0.55);
+    border-radius: 22px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(9, 35, 78, 0.96),
+            rgba(4, 22, 53, 0.96)
+        );
+
+    box-shadow:
+        0 18px 45px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+    color: #ffffff;
+}
+
+.atelier-label {
+    margin: 0 0 12px;
+
+    color: #e4b85e;
+
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+.atelier-card h2 {
+    margin: 0 0 14px;
+
+    color: #f4d58d;
+
+    font-size: 28px;
+    line-height: 1.2;
+}
+
+.atelier-card p {
+    margin-bottom: 22px;
+
+    color: #d9e3f0;
+
+    line-height: 1.6;
+}
+
+.atelier-open-button {
+    padding: 12px 20px;
+
+    border: none;
+    border-radius: 10px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #f2cc78,
+            #d99a2b
+        );
+
+    color: #10254b;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition: 0.25s ease;
+}
+
+.atelier-open-button:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 8px 20px rgba(217, 154, 43, 0.35);
+}
+
+
+/* ===== ПЛАНШЕТ І ТЕЛЕФОН ===== */
+
+@media (max-width: 900px) {
+
+    .home-layout {
+        grid-template-columns: 1fr;
+        gap: 18px;
+
+        margin-top: 16px;
+        padding: 0 14px;
+    }
+
+    .home-layout .atelier-card {
+        width: 100%;
+        margin-top: 0;
+    }
+
+}
+
+
+@media (max-width: 600px) {
+
+    .home-layout {
+        padding: 0 14px;
+    }
+
+    .hero-text {
+        width: 100%;
+    }
+
+    .search-box {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .atelier-card {
+        padding: 22px 18px;
+        border-radius: 16px;
+    }
+
+    .atelier-card h2 {
+        font-size: 24px;
+    }
+
+    .atelier-open-button {
+        width: 100%;
+    }
+
+}
