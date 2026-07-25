@@ -417,3 +417,91 @@ document.addEventListener(
     "DOMContentLoaded",
     renderHomeForumTopics
 );
+
+/* ===== МОДАЛЬНЕ ВІКНО ROYAL AUTO ATELIER ===== */
+
+function openAtelierModal() {
+    const modal = document.getElementById("modal");
+    const modalBody = document.getElementById("modalBody");
+
+    if (!modal || !modalBody) {
+        console.error("Модальне вікно не знайдено");
+        return;
+    }
+
+    modalBody.innerHTML = `
+        <section class="atelier-modal">
+
+            <p class="atelier-modal-label">
+                ROYAL AUTO ATELIER
+            </p>
+
+            <h2>Послуги для вашого автомобіля</h2>
+
+            <p class="atelier-modal-intro">
+                Індивідуальні роботи з салоном, деталями
+                та декоративними елементами автомобіля.
+            </p>
+
+            <div class="atelier-services">
+
+                <article class="atelier-service">
+                    <span class="atelier-service-icon">🪡</span>
+
+                    <h3>Перетяжка салону</h3>
+
+                    <p>
+                        Сидіння, дверні карти, стеля,
+                        кермо та інші елементи інтер’єру.
+                    </p>
+                </article>
+
+                <article class="atelier-service">
+                    <span class="atelier-service-icon">🛠️</span>
+
+                    <h3>Реставрація деталей</h3>
+
+                    <p>
+                        Відновлення декоративних елементів,
+                        пластику та зношених поверхонь.
+                    </p>
+                </article>
+
+                <article class="atelier-service">
+                    <span class="atelier-service-icon">👑</span>
+
+                    <h3>Індивідуальний дизайн</h3>
+
+                    <p>
+                        Підбір матеріалів, кольорів,
+                        швів та авторського оформлення.
+                    </p>
+                </article>
+
+                <article class="atelier-service">
+                    <span class="atelier-service-icon">✋</span>
+
+                    <h3>Ручна робота</h3>
+
+                    <p>
+                        Ексклюзивні вироби та оздоблення,
+                        створені спеціально під автомобіль.
+                    </p>
+                </article>
+
+            </div>
+
+            <div class="atelier-modal-actions">
+                <a
+                    class="gold-btn atelier-contact-button"
+                    href="mailto:royalautoatelier@gmail.com"
+                >
+                    Зв’язатися з ательє
+                </a>
+            </div>
+
+        </section>
+    `;
+
+    modal.style.display = "flex";
+}

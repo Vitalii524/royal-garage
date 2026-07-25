@@ -721,3 +721,103 @@
     }
 
 }
+
+/* ===== МОДАЛЬНЕ ВІКНО ROYAL AUTO ATELIER ===== */
+
+.atelier-modal {
+    color: var(--white);
+}
+
+.atelier-modal-label {
+    margin: 0 0 10px;
+    color: var(--gold-light);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+.atelier-modal h2 {
+    margin: 0 0 12px;
+    color: var(--gold-light);
+    font-size: 30px;
+    line-height: 1.2;
+}
+
+.atelier-modal-intro {
+    margin: 0 0 22px;
+    color: var(--muted);
+    line-height: 1.6;
+}
+
+.atelier-services {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.atelier-service {
+    padding: 18px;
+    background: rgba(6, 27, 53, 0.78);
+    border: 1px solid rgba(214, 160, 58, 0.25);
+    border-radius: 14px;
+}
+
+.atelier-service-icon {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 28px;
+}
+
+.atelier-service h3 {
+    margin: 0 0 8px;
+    color: var(--gold-light);
+    font-size: 18px;
+}
+
+.atelier-service p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.atelier-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 22px;
+}
+
+.atelier-contact-button {
+    display: inline-block;
+    padding: 12px 20px;
+    color: #10254b;
+    background: linear-gradient(
+        135deg,
+        #f2cc78,
+        #d99a2b
+    );
+    border-radius: 10px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+/* ===== ROYAL AUTO НА ТЕЛЕФОНІ ===== */
+
+@media (max-width: 600px) {
+    .atelier-modal h2 {
+        font-size: 24px;
+    }
+
+    .atelier-services {
+        grid-template-columns: 1fr;
+    }
+
+    .atelier-modal-actions {
+        justify-content: stretch;
+    }
+
+    .atelier-contact-button {
+        width: 100%;
+        box-sizing: border-box;
+        text-align: center;
+    }
+}
