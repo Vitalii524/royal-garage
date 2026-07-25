@@ -490,15 +490,80 @@ function openAtelierModal() {
                 </article>
 
             </div>
+            <div class="atelier-contact-section">
 
-            <div class="atelier-modal-actions">
+            <h3 class="atelier-contact-title">
+                Наші контакти
+            </h3>
+            <div class="atelier-social-links">
 
             <a
-                class="gold-btn atelier-contact-button"
-                href="mailto:royalautoatelier@gmail.com"
+                class="atelier-social-card tiktok"
+                href="https://www.tiktok.com/@royalauto73"
+                target="_blank"
+                rel="noopener noreferrer"
             >
-                Зв’язатися з ательє
+                <i class="fa-brands fa-tiktok"></i>
+        
+                <span>
+                    <strong>TikTok</strong>
+                    <small>@royalauto73</small>
+                </span>
             </a>
+        
+            <a
+                class="atelier-social-card instagram"
+                href="https://www.instagram.com/royalauto0077"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                <i class="fa-brands fa-instagram"></i>
+        
+                <span>
+                    <strong>Instagram</strong>
+                    <small>@royalauto0077</small>
+                </span>
+            </a>
+        
+            <a
+                class="atelier-social-card telegram"
+                href="https://t.me/Vitalik25675"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                <i class="fa-brands fa-telegram"></i>
+        
+                <span>
+                    <strong>Telegram</strong>
+                    <small>@Vitalik25675</small>
+                </span>
+            </a>
+        
+            <a
+                class="atelier-social-card viber"
+                href="viber://chat?number=%2B380632384348"
+            >
+                <i class="fa-brands fa-viber"></i>
+        
+                <span>
+                    <strong>Viber</strong>
+                    <small>+380 63 238 43 48</small>
+                </span>
+            </a>
+        
+            <a
+                class="atelier-social-card viber"
+                href="viber://chat?number=%2B380631974788"
+            >
+                <i class="fa-brands fa-viber"></i>
+        
+                <span>
+                    <strong>Viber</strong>
+                    <small>+380 63 197 47 88</small>
+                </span>
+            </a>
+        
+        </div>
         
             <img
                 class="atelier-modal-logo"
