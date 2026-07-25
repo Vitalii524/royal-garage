@@ -63,11 +63,12 @@ if (!listing) {
             ${
                 mainPhoto
                     ? `
-                        <img
-                            class="listing-main-photo"
-                            src="${mainPhoto}"
-                            alt="${listing.name}"
-                        >
+                    <img
+                    id="listingMainPhoto"
+                    class="listing-main-photo"
+                    src="${mainPhoto}"
+                    alt="${listing.name}"
+                >
                     `
                     : `
                         <div class="listing-no-photo">
@@ -107,7 +108,7 @@ if (!listing) {
         <section class="listing-card">
             <h2>Основні параметри</h2>
 
-            <<div class="listing-parameters">
+            <div class="listing-parameters">
             <p>
                 <strong>Рік випуску:</strong>
                 ${listing.year || "Не вказано"}
@@ -268,5 +269,127 @@ if (copyVinButton) {
     );
 }
 
+/* ===== ПОВНОЕКРАННИЙ ПЕРЕГЛЯД ФОТО ===== */
+
+const listingMainPhoto =
+    document.getElementById("listingMainPhoto");
+
+const photoViewer =
+    document.getElementById("photoViewer");
+
+const photoViewerImage =
+    document.getElementById("photoViewerImage");
+
+const closePhotoViewerButton =
+    document.getElementById("closePhotoViewer");
+
+
+function openPhotoViewer() {
+    if (
+        !listingMainPhoto ||
+        !photoViewer ||
+        !photoViewerImage
+    ) {
+        return;
+    }
+
+    photoViewerImage.src =
+        listingMainPhoto.src;
+
+    photoViewerImage.alt =
+        listingMainPhoto.alt;
+
+    photoViewer.classList.add("is-open");
+
+    photoViewer.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+
+    document.body.classList.add(
+        "photo-viewer-open"
+    );
+}
+
+
+function closePhotoViewer() {
+    if (!photoViewer) {
+        return;
+    }
+
+    photoViewer.classList.remove("is-open");
+
+    photoViewer.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+
+    document.body.classList.remove(
+        "photo-viewer-open"
+    );
+}
+
+
+if (listingMainPhoto) {
+    listingMainPhoto.addEventListener(
+        "click",
+        openPhotoViewer
+    );
+
+    listingMainPhoto.tabIndex = 0;
+
+    listingMainPhoto.setAttribute(
+        "role",
+        "button"
+    );
+
+    listingMainPhoto.setAttribute(
+        "aria-label",
+        "Відкрити фото на весь екран"
+    );
+
+    listingMainPhoto.addEventListener(
+        "keydown",
+        (event) => {
+            if (
+                event.key === "Enter" ||
+                event.key === " "
+            ) {
+                event.preventDefault();
+                openPhotoViewer();
+            }
+        }
+    );
+}
+
+
+if (closePhotoViewerButton) {
+    closePhotoViewerButton.addEventListener(
+        "click",
+        closePhotoViewer
+    );
+}
+
+
+if (photoViewer) {
+    photoViewer.addEventListener(
+        "click",
+        (event) => {
+            if (event.target === photoViewer) {
+                closePhotoViewer();
+            }
+        }
+    );
+}
+
+
+document.addEventListener(
+    "keydown",
+    (event) => {
+        if (event.key === "Escape") {
+            closePhotoViewer();
+        }
+    }
+);
 
 }

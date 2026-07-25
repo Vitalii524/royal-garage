@@ -89,3 +89,98 @@
         margin-right: 0;
     }
 }
+
+/* ===== ПОВНОЕКРАННИЙ ПЕРЕГЛЯД ФОТО ===== */
+
+.listing-main-photo {
+    cursor: zoom-in;
+}
+
+.listing-main-photo:focus-visible {
+    outline: 3px solid #f0c96b;
+    outline-offset: 4px;
+}
+
+.photo-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+
+    padding: 24px;
+
+    background: rgba(0, 0, 0, 0.94);
+    backdrop-filter: blur(5px);
+}
+
+.photo-viewer.is-open {
+    display: flex;
+}
+
+.photo-viewer-image {
+    display: block;
+
+    max-width: 96vw;
+    max-height: 92vh;
+
+    object-fit: contain;
+
+    border-radius: 10px;
+
+    box-shadow:
+        0 18px 60px rgba(0, 0, 0, 0.55);
+}
+
+.photo-viewer-close {
+    position: fixed;
+    top: 18px;
+    right: 22px;
+    z-index: 10000;
+
+    width: 46px;
+    height: 46px;
+
+    color: #ffffff;
+    background: rgba(8, 34, 74, 0.92);
+
+    border: 1px solid rgba(240, 201, 107, 0.65);
+    border-radius: 50%;
+
+    cursor: pointer;
+
+    font-size: 32px;
+    line-height: 1;
+}
+
+.photo-viewer-close:hover {
+    color: #07182e;
+    background: #f0c96b;
+}
+
+body.photo-viewer-open {
+    overflow: hidden;
+}
+
+/* ===== ФОТО НА ТЕЛЕФОНІ ===== */
+
+@media (max-width: 650px) {
+    .photo-viewer {
+        padding: 12px;
+    }
+
+    .photo-viewer-image {
+        max-width: 100%;
+        max-height: 88vh;
+    }
+
+    .photo-viewer-close {
+        top: 12px;
+        right: 12px;
+
+        width: 42px;
+        height: 42px;
+    }
+}
