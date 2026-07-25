@@ -75,28 +75,45 @@
 
     <!-- ===== ПОВНОЕКРАННИЙ ПЕРЕГЛЯД ФОТО ===== -->
 
-<div
-id="photoViewer"
-class="photo-viewer"
-aria-hidden="true"
+    <div
+    id="photoViewer"
+    class="photo-viewer"
+    aria-hidden="true"
 >
-<button
-    type="button"
-    id="closePhotoViewer"
-    class="photo-viewer-close"
-    aria-label="Закрити фото"
->
-    ×
-</button>
+    <button
+        type="button"
+        id="closePhotoViewer"
+        class="photo-viewer-close"
+        aria-label="Закрити фото"
+    >
+        ×
+    </button>
 
-<img
-    id="photoViewerImage"
-    class="photo-viewer-image"
-    src=""
-    alt=""
->
+    <button
+        type="button"
+        id="previousViewerPhoto"
+        class="photo-viewer-arrow photo-viewer-arrow-left"
+        aria-label="Попереднє фото"
+    >
+        ‹
+    </button>
+
+    <img
+        id="photoViewerImage"
+        class="photo-viewer-image"
+        src=""
+        alt=""
+    >
+
+    <button
+        type="button"
+        id="nextViewerPhoto"
+        class="photo-viewer-arrow photo-viewer-arrow-right"
+        aria-label="Наступне фото"
+    >
+        ›
+    </button>
 </div>
-
     <script src="js/auth.js"></script>
     <script src="js/listing.js"></script>
 </body>

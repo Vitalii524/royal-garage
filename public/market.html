@@ -123,7 +123,10 @@
             </label>
             
             <label class="listing-photo-field">
-                Додати фотографії з галереї
+                Додати фотографії
+                <span class="listing-photo-hint">
+                    До 20 фото. Натисни на фото, щоб зробити його головним.
+                </span>
             
                 <input
                     type="file"
@@ -134,34 +137,34 @@
                 >
             </label>
             
+            <div class="listing-photos-info">
+                <span id="listingPhotosCounter">
+                    Вибрано: 0 / 20
+                </span>
+            </div>
+            
             <div
                 id="listingPhotosPreview"
                 class="listing-photos-preview"
             ></div>
-
-                    <div
-                    id="selectedCarPreview"
-                    class="selected-car-preview"
-                    hidden
+            
+            <div
+                id="selectedCarPreview"
+                class="selected-car-preview"
+                hidden
+            >
+                <img
+                    id="selectedCarPhoto"
+                    src=""
+                    alt="Фото автомобіля"
                 >
-                    <img
-                        id="selectedCarPhoto"
-                        src=""
-                        alt="Фото автомобіля"
-                    >
-                
-                    <div>
-                        <h3 id="selectedCarName"></h3>
-                        <p id="selectedCarDetails"></p>
-                        <p id="selectedCarVin"></p>
-                    </div>
+            
+                <div>
+                    <h3 id="selectedCarName"></h3>
+                    <p id="selectedCarDetails"></p>
+                    <p id="selectedCarVin"></p>
                 </div>
-
-                    <option value="">
-                        Обери автомобіль
-                    </option>
-                </select>
-            </label>
+            </div>
             
             <div class="listing-specs">
                 <label>
@@ -174,10 +177,9 @@
                         required
                     >
                 </label>
-
+            
                 <label>
                     Рік випуску
-                
                     <input
                         type="number"
                         id="listingYear"
@@ -187,8 +189,9 @@
                         placeholder="Наприклад: 2008"
                         required
                     >
-                </label>              
-
+                </label>
+            
+                <label>
                     VIN-код
                     <input
                         type="text"
@@ -199,6 +202,8 @@
                         required
                     >
                 </label>
+            
+           
 
                 <label id="powerValueField" hidden>
                     <span id="powerValueLabel">

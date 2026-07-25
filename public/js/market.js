@@ -49,6 +49,14 @@ const listingPhotos =
 const listingPhotosPreview =
     document.getElementById("listingPhotosPreview");
 
+const listingPhotosCounter =
+    document.getElementById("listingPhotosCounter");
+
+const MAX_LISTING_PHOTOS = 20;
+
+let selectedPhotoFiles = [];
+let selectedMainPhotoIndex = 0;
+
 let cars = JSON.parse(
     localStorage.getItem(CARS_STORAGE_KEY)
 ) || [];
@@ -83,12 +91,16 @@ openListingButton.addEventListener("click", () => {
 closeListingModal.addEventListener("click", () => {
     listingModal.style.display = "none";
     listingForm.reset();
+    resetSelectedPhotos();
+selectedCarPreview.hidden = true;
 });
 
 listingModal.addEventListener("click", (event) => {
     if (event.target === listingModal) {
         listingModal.style.display = "none";
         listingForm.reset();
+        resetSelectedPhotos();
+selectedCarPreview.hidden = true;
     }
 });
 
@@ -416,6 +428,167 @@ marketSort.addEventListener("change", () => {
     renderListings();
 });
 
+/* ===== ФОТО ОГОЛОШЕННЯ ===== */
+
+function updatePhotosCounter() {
+    listingPhotosCounter.textContent =
+        `Вибрано: ${selectedPhotoFiles.length} / ${MAX_LISTING_PHOTOS}`;
+}
+
+
+function resetSelectedPhotos() {
+    selectedPhotoFiles = [];
+    selectedMainPhotoIndex = 0;
+
+    listingPhotos.value = "";
+    listingPhotosPreview.innerHTML = "";
+
+    updatePhotosCounter();
+}
+
+
+function renderSelectedPhotos() {
+    listingPhotosPreview.innerHTML = "";
+
+    selectedPhotoFiles.forEach((file, index) => {
+        const previewCard =
+            document.createElement("div");
+
+        previewCard.className =
+            "listing-photo-preview-card";
+
+        if (index === selectedMainPhotoIndex) {
+            previewCard.classList.add("is-main");
+        }
+
+        const image =
+            document.createElement("img");
+
+        image.src = URL.createObjectURL(file);
+        image.alt = `Фото ${index + 1}`;
+
+        image.addEventListener(
+            "load",
+            () => {
+                URL.revokeObjectURL(image.src);
+            },
+            { once: true }
+        );
+
+        const mainBadge =
+            document.createElement("span");
+
+        mainBadge.className =
+            "listing-photo-main-badge";
+
+        mainBadge.textContent =
+            index === selectedMainPhotoIndex
+                ? "Головне фото"
+                : `Фото ${index + 1}`;
+
+        const removeButton =
+            document.createElement("button");
+
+        removeButton.type = "button";
+        removeButton.className =
+            "listing-photo-remove";
+
+        removeButton.textContent = "×";
+
+        removeButton.setAttribute(
+            "aria-label",
+            `Видалити фото ${index + 1}`
+        );
+
+        previewCard.addEventListener(
+            "click",
+            () => {
+                selectedMainPhotoIndex = index;
+                renderSelectedPhotos();
+            }
+        );
+
+        removeButton.addEventListener(
+            "click",
+            (event) => {
+                event.stopPropagation();
+
+                selectedPhotoFiles.splice(index, 1);
+
+                if (
+                    selectedMainPhotoIndex >=
+                    selectedPhotoFiles.length
+                ) {
+                    selectedMainPhotoIndex =
+                        Math.max(
+                            0,
+                            selectedPhotoFiles.length - 1
+                        );
+                } else if (
+                    index < selectedMainPhotoIndex
+                ) {
+                    selectedMainPhotoIndex -= 1;
+                }
+
+                renderSelectedPhotos();
+            }
+        );
+
+        previewCard.append(
+            image,
+            mainBadge,
+            removeButton
+        );
+
+        listingPhotosPreview.appendChild(
+            previewCard
+        );
+    });
+
+    updatePhotosCounter();
+}
+
+
+listingPhotos.addEventListener(
+    "change",
+    () => {
+        const newFiles =
+            Array.from(listingPhotos.files || [])
+                .filter((file) =>
+                    file.type.startsWith("image/")
+                );
+
+        const freePlaces =
+            MAX_LISTING_PHOTOS -
+            selectedPhotoFiles.length;
+
+        if (freePlaces <= 0) {
+            alert(
+                `Можна додати максимум ${MAX_LISTING_PHOTOS} фото.`
+            );
+
+            listingPhotos.value = "";
+            return;
+        }
+
+        if (newFiles.length > freePlaces) {
+            alert(
+                `Можна додати ще лише ${freePlaces} фото.`
+            );
+        }
+
+        selectedPhotoFiles.push(
+            ...newFiles.slice(0, freePlaces)
+        );
+
+        listingPhotos.value = "";
+
+        renderSelectedPhotos();
+    }
+);
+
+updatePhotosCounter();
+
 function compressPhoto(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -541,8 +714,38 @@ if (!year) {
         ? Math.round(priceUsd * usdRate)
         : null;
 
-        const uploadedPhotos =
-    await readPhotosAsDataUrls(listingPhotos.files);
+        if (selectedPhotoFiles.length === 0) {
+            const garageHasPhotos =
+                Array.isArray(car?.photos) &&
+                car.photos.length > 0;
+        
+            if (!garageHasPhotos) {
+                alert(
+                    "Додай хоча б одну фотографію автомобіля."
+                );
+                return;
+            }
+        }
+        
+        let uploadedPhotos = [];
+        
+        try {
+            uploadedPhotos =
+                await readPhotosAsDataUrls(
+                    selectedPhotoFiles
+                );
+        } catch (error) {
+            console.error(
+                "Не вдалося обробити фотографії:",
+                error
+            );
+        
+            alert(
+                "Не вдалося обробити одну з фотографій."
+            );
+        
+            return;
+        }
 
 const garagePhotos =
     Array.isArray(car?.photos)
@@ -563,9 +766,9 @@ const photos =
         year: year,
         vin: vin,
         photos: photos,
-        activePhotoIndex:
+     activePhotoIndex:
     uploadedPhotos.length > 0
-        ? 0
+        ? selectedMainPhotoIndex
         : Number.isInteger(car?.activePhotoIndex)
             ? car.activePhotoIndex
             : 0,
@@ -618,16 +821,33 @@ const photos =
 
     listings.push(newListing);
 
-    localStorage.setItem(
-        MARKET_STORAGE_KEY,
-        JSON.stringify(listings)
-    );
+    try {
+        localStorage.setItem(
+            MARKET_STORAGE_KEY,
+            JSON.stringify(listings)
+        );
+    } catch (error) {
+        console.error(
+            "Не вдалося зберегти оголошення:",
+            error
+        );
+    
+        listings.pop();
+    
+        alert(
+            "Фотографії займають забагато місця. " +
+            "Спробуй додати менше фото."
+        );
+    
+        return;
+    }
 
     alert("Оголошення успішно опубліковано.");
 
 
 listingModal.style.display = "none";
 listingForm.reset();
+resetSelectedPhotos();
 selectedCarPreview.hidden = true;
 powerValueField.hidden = true;
 updatePricePreview();

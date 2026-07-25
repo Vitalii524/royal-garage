@@ -11,6 +11,15 @@ const backToListing = document.getElementById("backToListing");
 const currentUser = getCurrentUser();
 const urlParams = new URLSearchParams(window.location.search);
 const listingId = urlParams.get("listingId");
+const chatBackLink =
+    document.getElementById("chatBackLink");
+
+if (chatBackLink) {
+    chatBackLink.href =
+        listingId
+            ? `listing.html?id=${encodeURIComponent(listingId)}`
+            : "market.html";
+}
 
 function readStorage(key) {
     try {
@@ -47,8 +56,10 @@ if (!currentUser) {
     chatTitle.textContent =
         `Чат щодо ${listing.name} (${listing.year})`;
         
-        backToListing.href =
-        `listing.html?id=${encodeURIComponent(listing.id)}`;
+        if (backToListingLink) {
+            backToListingLink.href =
+                `listing.html?id=${listingId}`;
+        }
     function renderMessages() {
         const messages =
             readStorage(MESSAGES_STORAGE_KEY);
