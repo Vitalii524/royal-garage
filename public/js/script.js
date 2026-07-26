@@ -445,49 +445,76 @@ function openAtelierModal() {
 
             <div class="atelier-services">
 
-                <article class="atelier-service">
-                    <span class="atelier-service-icon">🪡</span>
+            <a
+            href="upholstery.html"
+            class="atelier-service atelier-service-link"
+        >
+            <span class="atelier-service-icon">🪡</span>
+        
+            <h3>Перетяжка салону</h3>
+        
+            <p>
+                Сидіння, дверні карти, стеля,
+                кермо та інші елементи інтер’єру.
+            </p>
+        </a>
 
-                    <h3>Перетяжка салону</h3>
+        <a
+        href="cleaning.html"
+        class="atelier-service atelier-service-link"
+    >
+        <span class="atelier-service-icon">
+            🧼
+        </span>
+    
+        <h3>
+            Хімчистка салону
+        </h3>
+    
+        <p>
+            Глибоке очищення сидінь,
+            підлоги, стелі, дверних карт
+            та інших елементів салону.
+        </p>
+    </a>
 
-                    <p>
-                        Сидіння, дверні карти, стеля,
-                        кермо та інші елементи інтер’єру.
-                    </p>
-                </article>
+    <a
+    href="design.html"
+    class="atelier-service atelier-service-link"
+>
+    <span class="atelier-service-icon">
+        👑
+    </span>
 
-                <article class="atelier-service">
-                    <span class="atelier-service-icon">🛠️</span>
+    <h3>
+        Індивідуальний дизайн
+    </h3>
 
-                    <h3>Реставрація деталей</h3>
+    <p>
+        Підбір матеріалів, кольорів,
+        швів та авторського оформлення
+        спеціально під ваш автомобіль.
+    </p>
+</a>
 
-                    <p>
-                        Відновлення декоративних елементів,
-                        пластику та зношених поверхонь.
-                    </p>
-                </article>
-
-                <article class="atelier-service">
-                    <span class="atelier-service-icon">👑</span>
-
-                    <h3>Індивідуальний дизайн</h3>
-
-                    <p>
-                        Підбір матеріалів, кольорів,
-                        швів та авторського оформлення.
-                    </p>
-                </article>
-
-                <article class="atelier-service">
-                    <span class="atelier-service-icon">✋</span>
-
-                    <h3>Ручна робота</h3>
-
-                    <p>
-                        Ексклюзивні вироби та оздоблення,
-                        створені спеціально під автомобіль.
-                    </p>
-                </article>
+                <a
+                href="handmade.html"
+                class="atelier-service atelier-service-link"
+            >
+                <span class="atelier-service-icon">
+                    ✋
+                </span>
+            
+                <h3>
+                    Ручна робота
+                </h3>
+            
+                <p>
+                    Ексклюзивні вироби, декоративні
+                    елементи та авторське оформлення
+                    для автомобіля.
+                </p>
+            </a>
 
             </div>
             <div class="atelier-contact-section">
