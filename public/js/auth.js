@@ -93,14 +93,33 @@ function createAuthModal() {
                 </label>
 
                 <label>
-                    Пароль
-                    <input
-                        type="password"
-                        id="loginPassword"
-                        autocomplete="current-password"
-                        required>
-                </label>
-
+                Пароль
+              
+                <div class="password-field">
+                  <input
+                    type="password"
+                    id="loginPassword"
+                    autocomplete="current-password"
+                    required
+                  >
+              
+                  <button
+                    type="button"
+                    class="toggle-password"
+                    data-target="loginPassword"
+                    aria-label="Показати пароль"
+                  >
+                    👁
+                  </button>
+                </div>
+              </label>
+              <button
+  type="button"
+  class="forgot-password-btn"
+  id="forgotPasswordButton"
+>
+  Забули пароль?
+</button>
                 <p class="auth-error" id="loginError"></p>
 
                 <button class="gold-btn" type="submit">
@@ -131,24 +150,50 @@ function createAuthModal() {
                 </label>
 
                 <label>
-                    Пароль
-                    <input
-                        type="password"
-                        id="registerPassword"
-                        minlength="6"
-                        autocomplete="new-password"
-                        required>
-                </label>
+                Пароль
+              
+                <div class="password-field">
+                  <input
+                    type="password"
+                    id="registerPassword"
+                    minlength="6"
+                    autocomplete="new-password"
+                    required
+                  >
+              
+                  <button
+                    type="button"
+                    class="toggle-password"
+                    data-target="registerPassword"
+                    aria-label="Показати пароль"
+                  >
+                    👁
+                  </button>
+                </div>
+              </label>
 
-                <label>
-                    Повтори пароль
-                    <input
-                        type="password"
-                        id="registerPasswordRepeat"
-                        minlength="6"
-                        autocomplete="new-password"
-                        required>
-                </label>
+              <label>
+              Повтори пароль
+            
+              <div class="password-field">
+                <input
+                  type="password"
+                  id="registerPasswordRepeat"
+                  minlength="6"
+                  autocomplete="new-password"
+                  required
+                >
+            
+                <button
+                  type="button"
+                  class="toggle-password"
+                  data-target="registerPasswordRepeat"
+                  aria-label="Показати пароль"
+                >
+                  👁
+                </button>
+              </div>
+            </label>
 
                 <p class="auth-error" id="registerError"></p>
 
@@ -161,7 +206,40 @@ function createAuthModal() {
 
     document.body.appendChild(modal);
 
+    const forgotPasswordButton = document.getElementById("forgotPasswordButton");
+
+if (forgotPasswordButton) {
+  forgotPasswordButton.addEventListener("click", () => {
+    const email = prompt("Введіть email, який ви використовували під час реєстрації:");
+
+    if (!email) return;
+
+    alert(
+      "Запит на відновлення пароля прийнято. Пізніше сюди підключимо надсилання листа."
+    );
+  });
+}
+
+    document.querySelectorAll(".toggle-password").forEach((button) => {
+        button.addEventListener("click", () => {
+          const inputId = button.dataset.target;
+          const passwordInput = document.getElementById(inputId);
+      
+          if (!passwordInput) return;
+      
+          const passwordIsHidden = passwordInput.type === "password";
+      
+          passwordInput.type = passwordIsHidden ? "text" : "password";
+          button.textContent = passwordIsHidden ? "🙈" : "👁";
+          button.setAttribute(
+            "aria-label",
+            passwordIsHidden ? "Приховати пароль" : "Показати пароль"
+          );
+        });
+      });
+
     document
+    
         .getElementById("closeAuthModal")
         .addEventListener("click", closeAuthModal);
 
