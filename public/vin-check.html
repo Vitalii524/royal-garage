@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Перевірка VIN | Royal Garage</title>
+
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <header class="site-header">
+        <a href="index.html" class="logo">
+            Royal Garage
+        </a>
+    </header>
+
+    <main class="vin-check-page">
+        <section class="vin-check-card">
+            <h1>Перевірка автомобіля за VIN</h1>
+
+            <p>
+                VIN-код:
+                <strong id="vinValue">—</strong>
+            </p>
+
+            <div id="vinStatus">
+                Виконується перевірка...
+            </div>
+
+            <div id="vinResult"></div>
+
+            <a
+                href="javascript:history.back()"
+                class="secondary-button"
+            >
+                Назад до оголошення
+            </a>
+        </section>
+    </main>
+
+    <script src="js/vin-check.js"></script>
+</body>
+</html>

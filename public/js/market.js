@@ -757,6 +757,9 @@ const photos =
         ? uploadedPhotos
         : garagePhotos;
 
+
+        console.log ("car.services:", car?.services);
+        console.log ("car:", car)
     const newListing = {
         id: Date.now().toString(),
         ownerId: currentUser.id,
@@ -797,6 +800,13 @@ const photos =
         drive: document
             .getElementById("listingDrive")
             .value,
+
+            services:
+    (car?.services || [])
+        .filter(service => service.isPublic)
+        .map(service => ({
+            ...service
+        })),
 
         priceUsd,
         priceUah,

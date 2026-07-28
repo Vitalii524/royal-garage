@@ -994,6 +994,73 @@ openChatsButton.addEventListener("click", () => {
     renderMyChats();
     openModal(chatsModal);
 });
+const params = new URLSearchParams(window.location.search);
+const section = params.get("section");
+const listingId = params.get("listingId");
+
+if (section === "service" && listingId) {
+    let marketListings = [];
+
+    try {
+        marketListings =
+            JSON.parse(
+                localStorage.getItem(
+                    "royalGarageMarketListings"
+                )
+            ) || [];
+    } catch (error) {
+        console.error(
+            "Не вдалося завантажити оголошення:",
+            error
+        );
+    }
+
+    const openedListing = marketListings.find(
+        item =>
+            String(item.id) === String(listingId)
+    );
+
+    const listingVin =
+        (openedListing?.vin || "")
+            .trim()
+            .toUpperCase();
+
+    const matchingCar = cars.find(
+        car =>
+            (car.vin || "")
+                .trim()
+                .toUpperCase() === listingVin
+    );
+
+    if (matchingCar) {
+        selectedCarId = matchingCar.id;
+    
+        renderPage();
+        openModal(historyModal);
+    
+        window.history.replaceState(
+            {},
+            document.title,
+            "profile.html"
+        );
+    } else {
+        console.error(
+            "Автомобіль оголошення не знайдений у гаражі.",
+            {
+                listingId,
+                listingVin,
+                openedListing,
+                cars
+            }
+        );
+
+        alert(
+            listingVin
+                ? `Автомобіль з VIN ${listingVin} не знайдений у гаражі.`
+                : "В оголошенні не збережений VIN автомобіля."
+        );
+    }
+}
 
 /* ===== ЗАКРИТТЯ ВІКОН ===== */
 

@@ -349,6 +349,23 @@ if (!listing) {
             >
                 Написати продавцю
             </button>
+
+            <button
+            type="button"
+            id="serviceHistoryButton"
+            class="secondary-button"
+        >
+            Подивитися історію обслуговування
+        </button>
+
+        <button
+    type="button"
+    id="checkVinButton"
+    class="secondary-button"
+>
+    Перевірити автомобіль за VIN
+</button>
+
         </section>
     `;
 
@@ -405,6 +422,37 @@ if (!listing) {
     }
 
 
+ /* ===== КНОПКА ІСТОРІЇ ===== */
+
+ const serviceHistoryButton =
+ document.getElementById("serviceHistoryButton");
+
+if (serviceHistoryButton) {
+ serviceHistoryButton.addEventListener("click", () => {
+     window.location.href =
+         `profile.html?section=service&listingId=${encodeURIComponent(
+             listing.id
+         )}`;
+ });
+}
+
+
+const checkVinButton =
+    document.getElementById("checkVinButton");
+
+if (checkVinButton) {
+    checkVinButton.addEventListener("click", () => {
+        if (!listing.vin) {
+            alert("VIN-код цього автомобіля не вказаний.");
+            return;
+        }
+
+        window.location.href =
+            `vin-check.html?vin=${encodeURIComponent(
+                listing.vin
+            )}`;
+    });
+}
     /* ===== КОПІЮВАННЯ VIN ===== */
 
     const copyVinButton =

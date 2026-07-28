@@ -1174,6 +1174,7 @@
   }
   
   .toggle-password {
+    color: #d6a03a;
     position: absolute;
     top: 50%;
     right: 12px;
