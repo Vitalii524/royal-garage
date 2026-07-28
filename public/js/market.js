@@ -757,9 +757,6 @@ const photos =
         ? uploadedPhotos
         : garagePhotos;
 
-
-        console.log ("car.services:", car?.services);
-        console.log ("car:", car)
     const newListing = {
         id: Date.now().toString(),
         ownerId: currentUser.id,
