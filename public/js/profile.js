@@ -3454,3 +3454,21 @@ if (
         "profile.html"
     );
 }
+
+const openChatsButton =
+    document.getElementById(
+        "openChatsButton"
+    );
+
+if (openChatsButton) {
+    openChatsButton.addEventListener(
+        "click",
+        () => {
+            renderMyChats();
+
+            openModal(
+                elements.chatsModal
+            );
+        }
+    );
+}
