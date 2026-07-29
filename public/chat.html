@@ -9,7 +9,13 @@
     >
 
     <title>Чат | Royal Garage</title>
-    <link rel="icon" type="image/png" href="images/favicon.png">
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="images/favicon.png"
+    >
+
     <link
         rel="stylesheet"
         href="css/styles.css"
@@ -29,39 +35,113 @@
     </header>
 
     <main class="chat-page">
-
         <div class="chat-top-bar">
             <a
-            id="chatBackLink"
-            href="#"
-            class="chat-back-link"
-        >
-            ← Назад
-        </a>
+                id="chatBackLink"
+                href="market.html"
+                class="chat-back-link"
+            >
+                ← Назад
+            </a>
+
             <strong>Чат із продавцем</strong>
         </div>
 
-       
         <section class="chat-card">
-            <h1 id="chatTitle">Чат із продавцем</h1>
+            <h1 id="chatTitle">
+                Чат із продавцем
+            </h1>
 
-            <div id="chatMessages" class="chat-messages">
+            <div
+                id="chatMessages"
+                class="chat-messages"
+            >
                 <p>Завантаження повідомлень...</p>
             </div>
 
-            <form id="chatForm" class="chat-form">
-                <textarea
-                    id="chatMessageInput"
-                    placeholder="Напишіть повідомлення..."
-                    required
-                ></textarea>
+            <form
+                id="chatForm"
+                class="chat-form"
+            >
+                <div
+                    id="chatAttachmentPreview"
+                    class="chat-attachment-preview"
+                    hidden
+                >
+                    <div
+                        id="chatAttachmentContent"
+                        class="chat-attachment-content"
+                    ></div>
 
-                <button type="submit">
-                    Надіслати
-                </button>
+                    <button
+                        id="removeChatAttachment"
+                        class="chat-remove-attachment"
+                        type="button"
+                        aria-label="Видалити вкладення"
+                    >
+                        ×
+                    </button>
+                </div>
+
+                <div class="chat-form-controls">
+                    <label
+                        for="chatAttachmentInput"
+                        class="chat-attachment-button"
+                        title="Додати фото або відео"
+                    >
+                        📎
+                    </label>
+
+                    <input
+                        id="chatAttachmentInput"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+                        hidden
+                    >
+
+                    <textarea
+                        id="chatMessageInput"
+                        placeholder="Напишіть повідомлення..."
+                        rows="1"
+                    ></textarea>
+
+                    <button
+                        id="chatSubmitButton"
+                        type="submit"
+                    >
+                        Надіслати
+                    </button>
+                </div>
+
+                <p
+                    id="chatFileError"
+                    class="chat-file-error"
+                    hidden
+                ></p>
             </form>
         </section>
     </main>
+
+    <div
+        id="chatImageViewer"
+        class="chat-image-viewer"
+        hidden
+    >
+        <button
+            id="closeChatImageViewer"
+            class="chat-image-viewer-close"
+            type="button"
+            aria-label="Закрити"
+        >
+            ×
+        </button>
+
+        <img
+            id="chatImageViewerPhoto"
+            src=""
+            alt="Фото з чату"
+        >
+    </div>
 
     <script src="js/auth.js"></script>
     <script src="js/chat.js"></script>

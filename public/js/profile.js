@@ -1,142 +1,347 @@
 "use strict";
 
-/* ===== ПЕРЕВІРКА ВХОДУ ===== */
+/* =========================
+   ROYAL GARAGE — PROFILE.JS
+   ========================= */
 
 document.documentElement.style.visibility = "hidden";
+
+const CURRENT_USER_KEY =
+    "royalGarageCurrentUser";
+
+const MESSAGES_KEY =
+    "royalGarageMessages";
+
+const LISTINGS_KEY =
+    "royalGarageMarketListings";
 
 let currentUser = null;
 
 try {
     currentUser = JSON.parse(
-        localStorage.getItem("royalGarageCurrentUser")
+        localStorage.getItem(
+            CURRENT_USER_KEY
+        )
     );
 } catch (error) {
-    console.error("Помилка читання користувача:", error);
+    console.error(
+        "Помилка читання користувача:",
+        error
+    );
 }
 
-if (!currentUser || !currentUser.id) {
-    window.location.replace("index.html");
-} else {
-    document.documentElement.style.visibility = "visible";
+if (!currentUser?.id) {
+    window.location.replace(
+        "index.html"
+    );
+
+    throw new Error(
+        "Користувач не авторизований."
+    );
 }
 
+document.documentElement.style.visibility =
+    "visible";
 
-/* ===== ОКРЕМИЙ ГАРАЖ ДЛЯ КОЖНОГО КОРИСТУВАЧА ===== */
+const STORAGE_KEY =
+    `royalGarageCars_${currentUser.id}`;
 
-const STORAGE_KEY = `royalGarageCars_${currentUser.id}`;
-const garageCarsList = document.getElementById("garageCarsList");
-const noCarsMessage = document.getElementById("noCarsMessage");
-const selectedCarEmpty = document.getElementById("selectedCarEmpty");
-const selectedCarContent = document.getElementById("selectedCarContent");
-const selectedCarName = document.getElementById("selectedCarName");
-const selectedCarInfo = document.getElementById("selectedCarInfo");
-const serviceHistory = document.getElementById("serviceHistory");
-const noServiceMessage = document.getElementById("noServiceMessage");
-const serviceCount = document.getElementById("serviceCount");
-const totalServiceCost = document.getElementById("totalServiceCost");
-const currentMileage = document.getElementById("currentMileage");
-const carModal = document.getElementById("carModal");
-const serviceModal = document.getElementById("serviceModal");
-const historyModal = document.getElementById("historyModal");
-const openHistoryButton = document.getElementById("openHistoryButton");
-const chatsModal = document.getElementById("chatsModal");
-const openChatsButton = document.getElementById("openChatsButton");
-const carForm = document.getElementById("carForm");
-const serviceForm = document.getElementById("serviceForm");
-const openCarButton = document.getElementById("openCarButton");
-const openServiceButton = document.getElementById("openServiceButton");
-const deleteCarButton = document.getElementById("deleteCarButton");
-const editCarButton = document.getElementById("editCarButton");
-const selectedCarPhoto = document.getElementById("selectedCarPhoto");
-const carPhotoPlaceholder = document.getElementById("carPhotoPlaceholder");
-const photoViewer = document.getElementById("photoViewer");
-const photoViewerImage = document.getElementById("photoViewerImage");
-const previousCarPhoto = document.getElementById("previousCarPhoto");
-const nextCarPhoto = document.getElementById("nextCarPhoto");
-const myChatsList = document.getElementById("myChatsList");
+const elements = {
+    garageCarsList:
+        document.getElementById(
+            "garageCarsList"
+        ),
 
-let photoViewerIndex = 0;
+    noCarsMessage:
+        document.getElementById(
+            "noCarsMessage"
+        ),
 
-const closePhotoViewer = document.getElementById("closePhotoViewer");
-const updateCarPhoto = document.getElementById("updateCarPhoto");
-const carPhotoGallery =  document.getElementById("carPhotoGallery");
+    selectedCarEmpty:
+        document.getElementById(
+            "selectedCarEmpty"
+        ),
+
+    selectedCarContent:
+        document.getElementById(
+            "selectedCarContent"
+        ),
+
+    selectedCarName:
+        document.getElementById(
+            "selectedCarName"
+        ),
+
+    selectedCarInfo:
+        document.getElementById(
+            "selectedCarInfo"
+        ),
+
+    selectedCarPhoto:
+        document.getElementById(
+            "selectedCarPhoto"
+        ),
+
+    carPhotoPlaceholder:
+        document.getElementById(
+            "carPhotoPlaceholder"
+        ),
+
+    carPhotoGallery:
+        document.getElementById(
+            "carPhotoGallery"
+        ),
+
+    serviceHistory:
+        document.getElementById(
+            "serviceHistory"
+        ),
+
+    noServiceMessage:
+        document.getElementById(
+            "noServiceMessage"
+        ),
+
+    serviceCount:
+        document.getElementById(
+            "serviceCount"
+        ),
+
+    totalServiceCost:
+        document.getElementById(
+            "totalServiceCost"
+        ),
+
+    currentMileage:
+        document.getElementById(
+            "currentMileage"
+        ),
+
+    carModal:
+        document.getElementById(
+            "carModal"
+        ),
+
+    serviceModal:
+        document.getElementById(
+            "serviceModal"
+        ),
+
+    historyModal:
+        document.getElementById(
+            "historyModal"
+        ),
+
+    chatsModal:
+        document.getElementById(
+            "chatsModal"
+        ),
+
+    carForm:
+        document.getElementById(
+            "carForm"
+        ),
+
+    serviceForm:
+        document.getElementById(
+            "serviceForm"
+        ),
+
+    openCarButton:
+        document.getElementById(
+            "openCarButton"
+        ),
+
+    editCarButton:
+        document.getElementById(
+            "editCarButton"
+        ),
+
+    deleteCarButton:
+        document.getElementById(
+            "deleteCarButton"
+        ),
+
+    openServiceButton:
+        document.getElementById(
+            "openServiceButton"
+        ),
+
+    openHistoryButton:
+        document.getElementById(
+            "openHistoryButton"
+        ),
+
+    openChatsButton:
+        document.getElementById(
+            "openChatsButton"
+        ),
+
+    myChatsList:
+        document.getElementById(
+            "myChatsList"
+        ),
+
+    updateCarPhoto:
+        document.getElementById(
+            "updateCarPhoto"
+        ),
+
+    photoViewer:
+        document.getElementById(
+            "photoViewer"
+        ),
+
+    photoViewerImage:
+        document.getElementById(
+            "photoViewerImage"
+        ),
+
+    closePhotoViewer:
+        document.getElementById(
+            "closePhotoViewer"
+        ),
+
+    previousCarPhoto:
+        document.getElementById(
+            "previousCarPhoto"
+        ),
+
+    nextCarPhoto:
+        document.getElementById(
+            "nextCarPhoto"
+        )
+};
+
 let cars = loadCars();
-let selectedCarId = cars[0]?.id ?? null;
+
+let selectedCarId =
+    cars[0]?.id ?? null;
+
 let editingCarId = null;
 let editingServiceId = null;
 
-// Видаляємо дублікати автомобілів по VIN
-cars = cars.filter((car, index, self) => index === self.findIndex(c => c.vin === car.vin));
+let viewerPhotos = [];
+let viewerIndex = 0;
 
-saveCars(cars);
 
-selectedCarId = cars[0]?.id ?? null;
+/* =========================
+   ДОПОМІЖНІ ФУНКЦІЇ
+   ========================= */
 
-function compressImage(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-
-        reader.onerror = () => {
-            reject(new Error("Не вдалося прочитати фото."));
-        };
-
-        reader.onload = () => {
-            const image = new Image();
-
-            image.onerror = () => {
-                reject(new Error("Неправильний формат фото."));
-            };
-
-            image.onload = () => {
-                const maxSize = 1200;
-                let width = image.width;
-                let height = image.height;
-
-                if (width > maxSize || height > maxSize) {
-                    const scale = Math.min(
-                        maxSize / width,
-                        maxSize / height
-                    );
-
-                    width = Math.round(width * scale);
-                    height = Math.round(height * scale);
-                }
-
-                const canvas = document.createElement("canvas");
-
-                canvas.width = width;
-                canvas.height = height;
-
-                const context = canvas.getContext("2d");
-
-                context.drawImage(image, 0, 0, width, height);
-
-                resolve(
-                    canvas.toDataURL("image/jpeg", 0.78)
-                );
-            };
-
-            image.src = reader.result;
-        };
-
-        reader.readAsDataURL(file);
-    });
-}
-
-/* ===== ЗБЕРЕЖЕННЯ ===== */
-
-function loadCars() {
+function readJson(
+    key,
+    fallback = []
+) {
     try {
-        const savedCars = localStorage.getItem(STORAGE_KEY);
-        return savedCars ? JSON.parse(savedCars) : [];
+        const value =
+            localStorage.getItem(key);
+
+        return value
+            ? JSON.parse(value)
+            : fallback;
     } catch (error) {
-        console.error("Не вдалося завантажити авто:", error);
-        return [];
+        console.error(
+            `Помилка читання ${key}:`,
+            error
+        );
+
+        return fallback;
     }
 }
 
+function loadCars() {
+    const loadedCars =
+        readJson(
+            STORAGE_KEY,
+            []
+        );
+
+    if (!Array.isArray(loadedCars)) {
+        return [];
+    }
+
+    const uniqueCars = [];
+    const usedVinNumbers =
+        new Set();
+
+    loadedCars.forEach((car) => {
+        if (!car?.id) {
+            return;
+        }
+
+        const normalizedVin =
+            normalizeVin(car.vin);
+
+        if (
+            normalizedVin &&
+            usedVinNumbers.has(
+                normalizedVin
+            )
+        ) {
+            return;
+        }
+
+        if (normalizedVin) {
+            usedVinNumbers.add(
+                normalizedVin
+            );
+        }
+
+        if (
+            !Array.isArray(
+                car.services
+            )
+        ) {
+            car.services = [];
+        }
+
+        if (
+            !Array.isArray(
+                car.photos
+            )
+        ) {
+            car.photos =
+                car.photo
+                    ? [car.photo]
+                    : [];
+        }
+
+        if (
+            !Number.isInteger(
+                car.activePhotoIndex
+            )
+        ) {
+            car.activePhotoIndex = 0;
+        }
+
+        uniqueCars.push(car);
+    });
+
+    return uniqueCars;
+}
+
 function saveCars() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cars));
+    try {
+        localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify(cars)
+        );
+
+        return true;
+    } catch (error) {
+        console.error(
+            "Не вдалося зберегти гараж:",
+            error
+        );
+
+        alert(
+            "У браузері недостатньо місця. " +
+            "Спробуй видалити частину фотографій."
+        );
+
+        return false;
+    }
 }
 
 function createId() {
@@ -144,25 +349,43 @@ function createId() {
         return crypto.randomUUID();
     }
 
-    return `${Date.now()}-${Math.random()
-        .toString(16)
-        .slice(2)}`;
+    return (
+        Date.now().toString() +
+        "-" +
+        Math.random()
+            .toString(36)
+            .slice(2, 10)
+    );
 }
 
-
-/* ===== ДОПОМІЖНІ ФУНКЦІЇ ===== */
-
 function escapeHtml(value) {
-    return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+    return String(value ?? "")
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
 }
 
 function formatNumber(value) {
-    return new Intl.NumberFormat("uk-UA").format(
+    return new Intl.NumberFormat(
+        "uk-UA"
+    ).format(
         Number(value) || 0
     );
 }
@@ -172,1479 +395,3062 @@ function formatDate(value) {
         return "Дата не вказана";
     }
 
-    return new Intl.DateTimeFormat("uk-UA").format(
-        new Date(`${value}T00:00:00`)
-    );
+    const date =
+        new Date(
+            `${value}T00:00:00`
+        );
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+        return "Дата не вказана";
+    }
+
+    return new Intl.DateTimeFormat(
+        "uk-UA"
+    ).format(date);
+}
+
+function normalizeVin(value) {
+    return String(value || "")
+        .trim()
+        .toUpperCase();
 }
 
 function openModal(modal) {
-    modal.classList.add("modal-open");
+    modal?.classList.add(
+        "modal-open"
+    );
 }
 
 function closeModal(modal) {
-    modal.classList.remove("modal-open");
+    modal?.classList.remove(
+        "modal-open"
+    );
 }
 
-
-/* ===== ВІДОБРАЖЕННЯ АВТО ===== */
-
-function renderCars() {
-    garageCarsList
-        .querySelectorAll(".garage-car-button")
-        .forEach((element) => element.remove());
-
-    noCarsMessage.hidden = cars.length > 0;
-
-    cars.forEach((car) => {
-        const button = document.createElement("button");
-
-        button.type = "button";
-        button.className = "garage-car-button";
-
-        if (car.id === selectedCarId) {
-            button.classList.add("active");
-        }
-
-        button.innerHTML = `
-            <strong>${escapeHtml(car.name)}</strong>
-
-            <span>
-                ${escapeHtml(car.year)} рік ·
-                ${formatNumber(car.mileage)} км
-            </span>
-        `;
-
-        button.addEventListener("click", () => {
-            selectedCarId = car.id;
-            renderPage();
-        });
-
-        garageCarsList.appendChild(button);
-    });
+function getSelectedCar() {
+    return cars.find(
+        (car) =>
+            String(car.id) ===
+            String(selectedCarId)
+    );
 }
-
-
-/* ===== ВІДОБРАЖЕННЯ ОБРАНОГО АВТО ===== */
 
 function getCarPhotos(car) {
-    if (!Array.isArray(car.photos)) {
-        car.photos = car.photo
-            ? [car.photo]
-            : [];
+    if (
+        !Array.isArray(
+            car.photos
+        )
+    ) {
+        car.photos =
+            car.photo
+                ? [car.photo]
+                : [];
     }
 
     return car.photos;
 }
 
-function renderCarGallery(car) {
-    const photos = getCarPhotos(car);
+function getServicePhotos(
+    service
+) {
+    if (
+        !Array.isArray(
+            service.photos
+        )
+    ) {
+        service.photos = [];
+    }
 
-    carPhotoGallery.innerHTML = "";
+    return service.photos;
+}
 
-    if (photos.length === 0) {
-        selectedCarPhoto.removeAttribute("src");
-        selectedCarPhoto.classList.add("hidden");
-        carPhotoPlaceholder.classList.remove("hidden");
+function setFieldValue(
+    id,
+    value
+) {
+    const field =
+        document.getElementById(id);
+
+    if (field) {
+        field.value =
+            value ?? "";
+    }
+}
+
+function compressImage(file) {
+    return new Promise(
+        (resolve, reject) => {
+            if (
+                !file ||
+                !file.type.startsWith(
+                    "image/"
+                )
+            ) {
+                reject(
+                    new Error(
+                        "Оберіть правильний файл зображення."
+                    )
+                );
+
+                return;
+            }
+
+            const reader =
+                new FileReader();
+
+            reader.onerror = () => {
+                reject(
+                    new Error(
+                        "Не вдалося прочитати фото."
+                    )
+                );
+            };
+
+            reader.onload = () => {
+                const image =
+                    new Image();
+
+                image.onerror = () => {
+                    reject(
+                        new Error(
+                            "Неправильний формат фото."
+                        )
+                    );
+                };
+
+                image.onload = () => {
+                    const maxSize =
+                        1200;
+
+                    let width =
+                        image.naturalWidth;
+
+                    let height =
+                        image.naturalHeight;
+
+                    const scale =
+                        Math.min(
+                            1,
+                            maxSize / width,
+                            maxSize / height
+                        );
+
+                    width =
+                        Math.round(
+                            width * scale
+                        );
+
+                    height =
+                        Math.round(
+                            height * scale
+                        );
+
+                    const canvas =
+                        document.createElement(
+                            "canvas"
+                        );
+
+                    canvas.width =
+                        width;
+
+                    canvas.height =
+                        height;
+
+                    const context =
+                        canvas.getContext(
+                            "2d"
+                        );
+
+                    if (!context) {
+                        reject(
+                            new Error(
+                                "Браузер не підтримує обробку фото."
+                            )
+                        );
+
+                        return;
+                    }
+
+                    context.drawImage(
+                        image,
+                        0,
+                        0,
+                        width,
+                        height
+                    );
+
+                    resolve(
+                        canvas.toDataURL(
+                            "image/jpeg",
+                            0.78
+                        )
+                    );
+                };
+
+                image.src =
+                    reader.result;
+            };
+
+            reader.readAsDataURL(
+                file
+            );
+        }
+    );
+}
+
+
+/* =========================
+   ПЕРЕГЛЯДАЧ ФОТО
+   ========================= */
+
+function showPhotoInViewer(
+    index
+) {
+    if (
+        viewerPhotos.length === 0 ||
+        !elements.photoViewerImage
+    ) {
+        return;
+    }
+
+    viewerIndex =
+        (
+            index +
+            viewerPhotos.length
+        ) %
+        viewerPhotos.length;
+
+    elements.photoViewerImage.src =
+        viewerPhotos[
+            viewerIndex
+        ];
+
+    const onlyOne =
+        viewerPhotos.length <= 1;
+
+    if (
+        elements.previousCarPhoto
+    ) {
+        elements.previousCarPhoto.hidden =
+            onlyOne;
+    }
+
+    if (
+        elements.nextCarPhoto
+    ) {
+        elements.nextCarPhoto.hidden =
+            onlyOne;
+    }
+}
+
+function openPhotoViewer(
+    photos,
+    startIndex = 0
+) {
+    if (
+        !elements.photoViewer ||
+        !Array.isArray(photos) ||
+        photos.length === 0
+    ) {
+        return;
+    }
+
+    viewerPhotos = [...photos];
+
+    showPhotoInViewer(
+        startIndex
+    );
+
+    elements.photoViewer
+        .classList.add("open");
+}
+
+function closeViewer() {
+    elements.photoViewer
+        ?.classList.remove(
+            "open"
+        );
+
+    if (
+        elements.photoViewerImage
+    ) {
+        elements.photoViewerImage.src =
+            "";
+    }
+
+    viewerPhotos = [];
+    viewerIndex = 0;
+}
+
+
+/* =========================
+   ВІДОБРАЖЕННЯ АВТО
+   ========================= */
+
+function renderCars() {
+    if (
+        !elements.garageCarsList
+    ) {
+        return;
+    }
+
+    elements.garageCarsList
+        .querySelectorAll(
+            ".garage-car-button"
+        )
+        .forEach(
+            (element) => {
+                element.remove();
+            }
+        );
+
+    if (
+        elements.noCarsMessage
+    ) {
+        elements.noCarsMessage.hidden =
+            cars.length > 0;
+    }
+
+    cars.forEach((car) => {
+        const button =
+            document.createElement(
+                "button"
+            );
+
+        button.type =
+            "button";
+
+        button.className =
+            "garage-car-button";
+
+        if (
+            String(car.id) ===
+            String(
+                selectedCarId
+            )
+        ) {
+            button.classList.add(
+                "active"
+            );
+        }
+
+        button.innerHTML = `
+            <strong>
+                ${escapeHtml(
+                    car.name
+                )}
+            </strong>
+
+            <span>
+                ${escapeHtml(
+                    car.year
+                )} рік ·
+
+                ${formatNumber(
+                    car.mileage
+                )} км
+            </span>
+        `;
+
+        button.addEventListener(
+            "click",
+            () => {
+                selectedCarId =
+                    car.id;
+
+                renderPage();
+            }
+        );
+
+        elements.garageCarsList
+            .appendChild(
+                button
+            );
+    });
+}
+
+function renderCarGallery(
+    car
+) {
+    if (
+        !elements.carPhotoGallery ||
+        !elements.selectedCarPhoto ||
+        !elements.carPhotoPlaceholder
+    ) {
+        return;
+    }
+
+    const photos =
+        getCarPhotos(car);
+
+    elements.carPhotoGallery
+        .innerHTML = "";
+
+    if (
+        photos.length === 0
+    ) {
+        elements.selectedCarPhoto
+            .removeAttribute(
+                "src"
+            );
+
+        elements.selectedCarPhoto
+            .classList.add(
+                "hidden"
+            );
+
+        elements.carPhotoPlaceholder
+            .classList.remove(
+                "hidden"
+            );
+
         return;
     }
 
     if (
-        !Number.isInteger(car.activePhotoIndex) ||
-        car.activePhotoIndex >= photos.length
+        car.activePhotoIndex < 0 ||
+        car.activePhotoIndex >=
+            photos.length
     ) {
         car.activePhotoIndex = 0;
     }
 
     const activePhoto =
-        photos[car.activePhotoIndex];
+        photos[
+            car.activePhotoIndex
+        ];
 
-    selectedCarPhoto.src = activePhoto;
-    selectedCarPhoto.classList.remove("hidden");
-    carPhotoPlaceholder.classList.add("hidden");
+    car.photo =
+        activePhoto;
 
-    selectedCarPhoto.onclick = () => {
-        photoViewerIndex = car.activePhotoIndex;
-    
-        showCarPhotoInViewer(photoViewerIndex);
-    
-        photoViewer.classList.add("open");
-    };
+    elements.selectedCarPhoto.src =
+        activePhoto;
 
-    photos.forEach((photo, index) => {
-        const thumbnailButton =
-            document.createElement("button");
-
-        thumbnailButton.type = "button";
-        thumbnailButton.className =
-            "car-photo-thumbnail-button";
-
-        if (index === car.activePhotoIndex) {
-            thumbnailButton.classList.add("active");
-        }
-
-        const thumbnail =
-            document.createElement("img");
-
-        thumbnail.src = photo;
-        thumbnail.alt =
-            `Фото автомобіля ${index + 1}`;
-
-        thumbnailButton.appendChild(thumbnail);
-
-        thumbnailButton.addEventListener(
-            "click",
-            () => {
-                car.activePhotoIndex = index;
-
-                saveCars();
-                renderSelectedCar();
-            }
+    elements.selectedCarPhoto
+        .classList.remove(
+            "hidden"
         );
 
-        const photoItem = document.createElement("div");
-photoItem.className = "car-photo-thumbnail-item";
+    elements.carPhotoPlaceholder
+        .classList.add(
+            "hidden"
+        );
 
-const deletePhotoButton = document.createElement("button");
-deletePhotoButton.type = "button";
-deletePhotoButton.className = "delete-car-photo-button";
-deletePhotoButton.textContent = "🗑️";
-deletePhotoButton.title = "Видалити фото";
-deletePhotoButton.setAttribute(
-    "aria-label",
-    "Видалити фото"
-);
+    elements.selectedCarPhoto.onclick =
+        () => {
+            openPhotoViewer(
+                photos,
+                car.activePhotoIndex
+            );
+        };
 
-const replacePhotoInput = document.createElement("input");
-replacePhotoInput.type = "file";
-replacePhotoInput.accept = "image/jpeg,image/png,image/webp";
-replacePhotoInput.hidden = true;
+    photos.forEach(
+        (photo, index) => {
+            const photoItem =
+                document.createElement(
+                    "div"
+                );
 
-const replacePhotoButton = document.createElement("button");
-replacePhotoButton.type = "button";
-replacePhotoButton.className = "replace-car-photo-button";
-replacePhotoButton.textContent = "🔄";
-replacePhotoButton.title = "Замінити фото";
-replacePhotoButton.setAttribute(
-    "aria-label",
-    "Замінити фото"
-);
+            photoItem.className =
+                "car-photo-thumbnail-item";
 
-replacePhotoButton.addEventListener("click", (event) => {
-    event.stopPropagation();
-    replacePhotoInput.click();
-});
+            const thumbnailButton =
+                document.createElement(
+                    "button"
+                );
 
-const mainPhotoButton = document.createElement("button");
-mainPhotoButton.type = "button";
-mainPhotoButton.className = "main-car-photo-button";
-mainPhotoButton.textContent =
-    car.activePhotoIndex === index ? "★" : "☆";
-mainPhotoButton.title = "Зробити головним фото";
-mainPhotoButton.setAttribute(
-    "aria-label",
-    "Зробити головним фото"
-);
+            thumbnailButton.type =
+                "button";
 
-mainPhotoButton.addEventListener("click", (event) => {
-    event.stopPropagation();
+            thumbnailButton.className =
+                "car-photo-thumbnail-button";
 
-    car.activePhotoIndex = index;
-    car.photo = photos[index];
+            if (
+                index ===
+                car.activePhotoIndex
+            ) {
+                thumbnailButton
+                    .classList.add(
+                        "active"
+                    );
+            }
 
-    saveCars();
-    renderSelectedCar();
-});
+            const thumbnail =
+                document.createElement(
+                    "img"
+                );
 
-replacePhotoInput.addEventListener("change", async () => {
-    const file = replacePhotoInput.files?.[0];
+            thumbnail.src =
+                photo;
 
-    if (!file) {
+            thumbnail.alt =
+                `Фото автомобіля ${
+                    index + 1
+                }`;
+
+            thumbnailButton
+                .appendChild(
+                    thumbnail
+                );
+
+            thumbnailButton
+                .addEventListener(
+                    "click",
+                    () => {
+                        car.activePhotoIndex =
+                            index;
+
+                        car.photo =
+                            photos[index];
+
+                        saveCars();
+                        renderSelectedCar();
+                    }
+                );
+
+            const mainButton =
+                document.createElement(
+                    "button"
+                );
+
+            mainButton.type =
+                "button";
+
+            mainButton.className =
+                "main-car-photo-button";
+
+            mainButton.textContent =
+                index ===
+                car.activePhotoIndex
+                    ? "★"
+                    : "☆";
+
+            mainButton.title =
+                "Зробити головним фото";
+
+            mainButton.addEventListener(
+                "click",
+                (event) => {
+                    event.stopPropagation();
+
+                    car.activePhotoIndex =
+                        index;
+
+                    car.photo =
+                        photos[index];
+
+                    saveCars();
+                    renderSelectedCar();
+                }
+            );
+
+            const replaceInput =
+                document.createElement(
+                    "input"
+                );
+
+            replaceInput.type =
+                "file";
+
+            replaceInput.accept =
+                "image/jpeg,image/png,image/webp";
+
+            replaceInput.hidden =
+                true;
+
+            const replaceButton =
+                document.createElement(
+                    "button"
+                );
+
+            replaceButton.type =
+                "button";
+
+            replaceButton.className =
+                "replace-car-photo-button";
+
+            replaceButton.textContent =
+                "🔄";
+
+            replaceButton.title =
+                "Замінити фото";
+
+            replaceButton.addEventListener(
+                "click",
+                (event) => {
+                    event.stopPropagation();
+
+                    replaceInput.click();
+                }
+            );
+
+            replaceInput.addEventListener(
+                "change",
+                async () => {
+                    const file =
+                        replaceInput
+                            .files?.[0];
+
+                    if (!file) {
+                        return;
+                    }
+
+                    try {
+                        photos[index] =
+                            await compressImage(
+                                file
+                            );
+
+                        car.photos =
+                            photos;
+
+                        car.photo =
+                            photos[
+                                car.activePhotoIndex
+                            ] ||
+                            photos[0] ||
+                            "";
+
+                        saveCars();
+                        renderSelectedCar();
+                    } catch (error) {
+                        alert(
+                            error.message
+                        );
+                    }
+
+                    replaceInput.value =
+                        "";
+                }
+            );
+
+            const deleteButton =
+                document.createElement(
+                    "button"
+                );
+
+            deleteButton.type =
+                "button";
+
+            deleteButton.className =
+                "delete-car-photo-button";
+
+            deleteButton.textContent =
+                "🗑️";
+
+            deleteButton.title =
+                "Видалити фото";
+
+            deleteButton.addEventListener(
+                "click",
+                (event) => {
+                    event.stopPropagation();
+
+                    const confirmed =
+                        confirm(
+                            "Видалити це фото автомобіля?"
+                        );
+
+                    if (
+                        !confirmed
+                    ) {
+                        return;
+                    }
+
+                    photos.splice(
+                        index,
+                        1
+                    );
+
+                    if (
+                        car.activePhotoIndex >=
+                        photos.length
+                    ) {
+                        car.activePhotoIndex =
+                            Math.max(
+                                0,
+                                photos.length -
+                                    1
+                            );
+                    } else if (
+                        index <
+                        car.activePhotoIndex
+                    ) {
+                        car.activePhotoIndex -=
+                            1;
+                    }
+
+                    car.photos =
+                        photos;
+
+                    car.photo =
+                        photos[
+                            car.activePhotoIndex
+                        ] ||
+                        photos[0] ||
+                        "";
+
+                    saveCars();
+                    renderSelectedCar();
+                }
+            );
+
+            photoItem.append(
+                thumbnailButton,
+                replaceInput,
+                mainButton,
+                replaceButton,
+                deleteButton
+            );
+
+            elements.carPhotoGallery
+                .appendChild(
+                    photoItem
+                );
+        }
+    );
+}
+
+
+/* =========================
+   ЗАПИСИ ОБСЛУГОВУВАННЯ
+   ========================= */
+
+function findService(
+    car,
+    serviceId
+) {
+    return car.services.find(
+        (service) =>
+            String(
+                service.id
+            ) ===
+            String(
+                serviceId
+            )
+    );
+}
+
+function deleteService(
+    serviceId
+) {
+    const car =
+        getSelectedCar();
+
+    if (!car) {
         return;
     }
 
-    try {
-        const newPhoto = await compressImage(file);
-
-        photos[index] = newPhoto;
-        car.photos = photos;
-        car.photo = photos[0] || "";
-
-        saveCars();
-        renderSelectedCar();
-    } catch (error) {
-        alert("Не вдалося замінити фото.");
-    }
-});
-
-deletePhotoButton.addEventListener("click", (event) => {
-    event.stopPropagation();
-
-    const confirmed = confirm(
-        "Видалити це фото автомобіля?"
-    );
+    const confirmed =
+        confirm(
+            "Видалити цей запис обслуговування?"
+        );
 
     if (!confirmed) {
         return;
     }
 
-    photos.splice(index, 1);
-
-    car.photos = photos;
-    car.photo = photos[0] || "";
-
-    if (photos.length === 0) {
-        car.activePhotoIndex = 0;
-    } else if (car.activePhotoIndex >= photos.length) {
-        car.activePhotoIndex = photos.length - 1;
-    } else if (index < car.activePhotoIndex) {
-        car.activePhotoIndex -= 1;
-    }
+    car.services =
+        car.services.filter(
+            (service) =>
+                String(
+                    service.id
+                ) !==
+                String(
+                    serviceId
+                )
+        );
 
     saveCars();
-    renderSelectedCar();
-});
-
-photoItem.appendChild(thumbnailButton);
-photoItem.appendChild(replacePhotoInput);
-photoItem.appendChild(mainPhotoButton);
-photoItem.appendChild(replacePhotoButton);
-photoItem.appendChild(deletePhotoButton);
-
-carPhotoGallery.appendChild(photoItem);
-    });
+    renderPage();
 }
 
-function renderSelectedCar() {
-    const car = cars.find(
-        (item) => item.id === selectedCarId
-    );
+function deleteServicePhoto(
+    serviceId,
+    photoIndex
+) {
+    const car =
+        getSelectedCar();
 
     if (!car) {
-        selectedCarEmpty.classList.remove("hidden");
-        selectedCarContent.classList.add("hidden");
         return;
     }
 
-    selectedCarEmpty.classList.add("hidden");
-    selectedCarContent.classList.remove("hidden");
+    const service =
+        findService(
+            car,
+            serviceId
+        );
 
-    selectedCarName.textContent = car.name;
+    if (!service) {
+        return;
+    }
 
-    selectedCarInfo.textContent =
-    `${car.year} рік • ${formatNumber(car.mileage)} км • ${car.engine}
-    
-    VIN: ${car.vin || "-"}
-    
-    Номер: ${car.plate || "-"}`;
+    const photos =
+        getServicePhotos(
+            service
+        );
 
-    renderCarGallery(car);
+    const confirmed =
+        confirm(
+            "Видалити цю фотографію?"
+        );
 
-    const services = Array.isArray(car.services)
-        ? [...car.services]
-        : [];
+    if (!confirmed) {
+        return;
+    }
 
-    services.sort((first, second) =>
-        second.date.localeCompare(first.date)
+    photos.splice(
+        photoIndex,
+        1
     );
 
-    serviceCount.textContent = String(services.length);
+    service.photos =
+        photos;
 
-    const totalCost = services.reduce(
-        (total, service) =>
-            total + Number(service.cost || 0),
-        0
+    saveCars();
+    renderPage();
+}
+
+async function replaceServicePhoto(
+    serviceId,
+    photoIndex,
+    file
+) {
+    const car =
+        getSelectedCar();
+
+    if (!car || !file) {
+        return;
+    }
+
+    const service =
+        findService(
+            car,
+            serviceId
+        );
+
+    if (!service) {
+        return;
+    }
+
+    try {
+        const photos =
+            getServicePhotos(
+                service
+            );
+
+        photos[photoIndex] =
+            await compressImage(
+                file
+            );
+
+        service.photos =
+            photos;
+
+        saveCars();
+        renderPage();
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function addServicePhotos(
+    serviceId,
+    fileList
+) {
+    const car =
+        getSelectedCar();
+
+    if (!car) {
+        return;
+    }
+
+    const service =
+        findService(
+            car,
+            serviceId
+        );
+
+    if (!service) {
+        return;
+    }
+
+    const files =
+        Array.from(
+            fileList || []
+        );
+
+    if (
+        files.length === 0
+    ) {
+        return;
+    }
+
+    const oldPhotos =
+        getServicePhotos(
+            service
+        );
+
+    if (
+        oldPhotos.length +
+            files.length >
+        3
+    ) {
+        alert(
+            "До одного запису можна додати максимум 3 фото."
+        );
+
+        return;
+    }
+
+    try {
+        const newPhotos =
+            await Promise.all(
+                files.map(
+                    (file) =>
+                        compressImage(
+                            file
+                        )
+                )
+            );
+
+        service.photos = [
+            ...oldPhotos,
+            ...newPhotos
+        ];
+
+        saveCars();
+        renderPage();
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+function openServiceEditor(
+    service
+) {
+    editingServiceId =
+        service.id;
+
+    setFieldValue(
+        "serviceTitle",
+        service.title
     );
 
-    totalServiceCost.textContent =
-        `${formatNumber(totalCost)} грн`;
+    setFieldValue(
+        "serviceDate",
+        service.date
+    );
 
-    currentMileage.textContent =
-        `${formatNumber(car.mileage)} км`;
+    setFieldValue(
+        "serviceMileage",
+        service.mileage
+    );
 
-    serviceHistory
-        .querySelectorAll(".service-card")
-        .forEach((element) => element.remove());
+    setFieldValue(
+        "serviceCost",
+        service.cost
+    );
 
-    noServiceMessage.hidden = services.length > 0;
+    setFieldValue(
+        "serviceStation",
+        service.station
+    );
 
-    services.forEach((service) => {
-        const card = document.createElement("article");
+    setFieldValue(
+        "serviceDescription",
+        service.description
+    );
 
-        card.className = "service-card";
+    const publicCheckbox =
+        document.getElementById(
+            "servicePublic"
+        );
 
-        card.innerHTML = `
-            <div class="service-card-top">
+    if (publicCheckbox) {
+        publicCheckbox.checked =
+            Boolean(
+                service.isPublic
+            );
+    }
 
-                <div>
-                    <p class="service-date">
-                        ${formatDate(service.date)}
+    const servicePhotos =
+        document.getElementById(
+            "servicePhotos"
+        );
+
+    if (servicePhotos) {
+        servicePhotos.value =
+            "";
+    }
+
+    openModal(
+        elements.serviceModal
+    );
+}
+
+function renderServiceCard(
+    service
+) {
+    const card =
+        document.createElement(
+            "article"
+        );
+
+    card.className =
+        "service-card";
+
+    card.innerHTML = `
+        <div class="service-card-top">
+
+            <div>
+                <p class="service-date">
+                    ${formatDate(
+                        service.date
+                    )}
+                </p>
+
+                <h3>
+                    ${escapeHtml(
+                        service.title
+                    )}
+                </h3>
+            </div>
+
+            <span class="service-visibility">
+                ${
+                    service.isPublic
+                        ? "Публічний"
+                        : "Приватний"
+                }
+            </span>
+
+        </div>
+
+        <div class="service-details">
+
+            <span>
+                Пробіг:
+
+                <strong>
+                    ${formatNumber(
+                        service.mileage
+                    )} км
+                </strong>
+            </span>
+
+            <span>
+                Вартість:
+
+                <strong>
+                    ${formatNumber(
+                        service.cost
+                    )} грн
+                </strong>
+            </span>
+
+        </div>
+
+        ${
+            service.station
+                ? `
+                    <p>
+                        <strong>
+                            СТО:
+                        </strong>
+
+                        ${escapeHtml(
+                            service.station
+                        )}
                     </p>
+                `
+                : ""
+        }
 
-                    <h3>
-                        ${escapeHtml(service.title)}
-                    </h3>
-                </div>
+        ${
+            service.description
+                ? `
+                    <p>
+                        ${escapeHtml(
+                            service.description
+                        )}
+                    </p>
+                `
+                : ""
+        }
 
-                <span class="service-visibility">
-                    ${
-                        service.isPublic
-                            ? "Публічний"
-                            : "Приватний"
-                    }
-                </span>
+        <div class="service-card-actions">
 
-            </div>
-
-            <div class="service-details">
-
-                <span>
-                    Пробіг:
-                    <strong>
-                        ${formatNumber(service.mileage)} км
-                    </strong>
-                </span>
-
-                <span>
-                    Вартість:
-                    <strong>
-                        ${formatNumber(service.cost)} грн
-                    </strong>
-                </span>
-
-            </div>
-
-            ${
-                service.station
-                    ? `
-                        <p>
-                            <strong>СТО:</strong>
-                            ${escapeHtml(service.station)}
-                        </p>
-                    `
-                    : ""
-            }
-
-            ${
-                service.description
-                    ? `
-                        <p>
-                            ${escapeHtml(
-                                service.description
-                            )}
-                        </p>
-                    `
-                    : ""
-            }
-
-            <div class="service-card-actions">
             <button
                 class="edit-service-button"
                 type="button"
-                data-service-id="${service.id}">
+            >
                 Редагувати запис
             </button>
-        
+
             <button
                 class="delete-service-button"
                 type="button"
-                data-service-id="${service.id}">
+            >
                 Видалити запис
             </button>
+
         </div>
-        `;
+    `;
 
-        card
-            .querySelector(".delete-service-button")
-            .addEventListener("click", () => {
-                deleteService(service.id);
-            });
-
-            card
-    .querySelector(".edit-service-button")
-    .addEventListener("click", () => {
-        editingServiceId = service.id;
-
-        document.getElementById("serviceTitle").value =
-            service.title || "";
-
-        document.getElementById("serviceDate").value =
-            service.date || "";
-
-        document.getElementById("serviceMileage").value =
-            service.mileage || "";
-
-        document.getElementById("serviceCost").value =
-            service.cost || "";
-
-        document.getElementById("serviceStation").value =
-            service.station || "";
-
-        document.getElementById("serviceDescription").value =
-            service.description || "";
-
-        document.getElementById("servicePublic").checked =
-            Boolean(service.isPublic);
-
-        openModal(serviceModal);
-    });
-            async function addServicePhotos(serviceId, fileList) {
-                const car = cars.find(
-                    (item) => item.id === selectedCarId
+    card
+        .querySelector(
+            ".edit-service-button"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+                openServiceEditor(
+                    service
                 );
-            
-                if (!car) {
-                    return;
-                }
-            
-                const service = car.services.find(
-                    (item) => item.id === serviceId
+            }
+        );
+
+    card
+        .querySelector(
+            ".delete-service-button"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+                deleteService(
+                    service.id
                 );
-            
-                if (!service) {
-                    return;
-                }
-            
-                const files = Array.from(fileList || []);
-            
-                if (files.length === 0) {
-                    return;
-                }
-            
-                const oldPhotos = Array.isArray(service.photos)
-                    ? service.photos
-                    : [];
-            
-                if (oldPhotos.length + files.length > 3) {
-                    alert("До одного запису можна додати максимум 3 фото.");
-                    return;
-                }
-            
-                try {
-                    const newPhotos = await Promise.all(
-                        files.map((file) => compressImage(file))
+            }
+        );
+
+    const photos =
+        getServicePhotos(
+            service
+        );
+
+    if (
+        photos.length > 0
+    ) {
+        const gallery =
+            document.createElement(
+                "div"
+            );
+
+        gallery.className =
+            "service-photo-gallery";
+
+        photos.forEach(
+            (
+                photo,
+                photoIndex
+            ) => {
+                const photoItem =
+                    document.createElement(
+                        "div"
                     );
-            
-                    service.photos = [
-                        ...oldPhotos,
-                        ...newPhotos
-                    ];
-            
-                    saveCars();
-                    renderPage();
-                } catch (error) {
-                    alert("Не вдалося додати фотографію.");
-                }
+
+                photoItem.className =
+                    "service-photo-item";
+
+                const image =
+                    document.createElement(
+                        "img"
+                    );
+
+                image.src =
+                    photo;
+
+                image.alt =
+                    "Фото до запису";
+
+                image.className =
+                    "service-photo";
+
+                image.addEventListener(
+                    "click",
+                    () => {
+                        openPhotoViewer(
+                            photos,
+                            photoIndex
+                        );
+                    }
+                );
+
+                const replaceInput =
+                    document.createElement(
+                        "input"
+                    );
+
+                replaceInput.type =
+                    "file";
+
+                replaceInput.accept =
+                    "image/jpeg,image/png,image/webp";
+
+                replaceInput.hidden =
+                    true;
+
+                const replaceButton =
+                    document.createElement(
+                        "button"
+                    );
+
+                replaceButton.type =
+                    "button";
+
+                replaceButton.className =
+                    "replace-service-photo-button";
+
+                replaceButton.textContent =
+                    "Замінити фото";
+
+                replaceButton
+                    .addEventListener(
+                        "click",
+                        () => {
+                            replaceInput
+                                .click();
+                        }
+                    );
+
+                replaceInput
+                    .addEventListener(
+                        "change",
+                        async () => {
+                            const file =
+                                replaceInput
+                                    .files?.[0];
+
+                            if (file) {
+                                await replaceServicePhoto(
+                                    service.id,
+                                    photoIndex,
+                                    file
+                                );
+                            }
+
+                            replaceInput.value =
+                                "";
+                        }
+                    );
+
+                const deleteButton =
+                    document.createElement(
+                        "button"
+                    );
+
+                deleteButton.type =
+                    "button";
+
+                deleteButton.className =
+                    "delete-service-photo-button";
+
+                deleteButton.textContent =
+                    "Видалити фото";
+
+                deleteButton
+                    .addEventListener(
+                        "click",
+                        () => {
+                            deleteServicePhoto(
+                                service.id,
+                                photoIndex
+                            );
+                        }
+                    );
+
+                photoItem.append(
+                    image,
+                    replaceButton,
+                    deleteButton,
+                    replaceInput
+                );
+
+                gallery.appendChild(
+                    photoItem
+                );
             }
-            
-            async function replaceServicePhoto(
-                serviceId,
-                photoIndex,
-                file
-            ) {
-                const car = cars.find(
-                    (item) => item.id === selectedCarId
-                );
-            
-                if (!car || !file) {
-                    return;
-                }
-            
-                const service = car.services.find(
-                    (item) => item.id === serviceId
-                );
-            
-                if (!service || !Array.isArray(service.photos)) {
-                    return;
-                }
-            
-                try {
-                    const newPhoto = await compressImage(file);
-            
-                    service.photos[photoIndex] = newPhoto;
-            
-                    saveCars();
-                    renderPage();
-                } catch (error) {
-                    alert("Не вдалося замінити фотографію.");
-                }
-            }
-            function deleteServicePhoto(serviceId, photoIndex) {
-                const car = cars.find(
-                    (item) => item.id === selectedCarId
-                );
-            
-                if (!car) {
-                    return;
-                }
-            
-                const service = car.services.find(
-                    (item) => item.id === serviceId
-                );
-            
-                if (!service || !Array.isArray(service.photos)) {
-                    return;
-                }
-            
-                const confirmed = confirm(
-                    "Видалити цю фотографію?"
-                );
-            
-                if (!confirmed) {
-                    return;
-                }
-            
-                service.photos.splice(photoIndex, 1);
-            
-                saveCars();
-                renderPage();
-            }
+        );
 
-            if (Array.isArray(service.photos) && service.photos.length > 0) {
-                const gallery = document.createElement("div");
-                gallery.className = "service-photo-gallery";
-            
-                service.photos.forEach((photo, photoIndex) => {
-                    const photoItem = document.createElement("div");
-                    photoItem.className = "service-photo-item";
-            
-                    const image = document.createElement("img");
-                    image.src = photo;
-                    image.alt = "Фото до запису";
-                    image.className = "service-photo";
-            
-                    image.addEventListener("click", () => {
-                        photoViewerPhotos = [...service.photos];
-                        photoViewerIndex = photoIndex;
-                    
-                        showPhotoInViewer(photoViewerIndex);
-                        photoViewer.classList.add("open");
-                    });
-            
-                    const deletePhotoButton = document.createElement("button");
-                    deletePhotoButton.type = "button";
-                    deletePhotoButton.className = "delete-service-photo-button";
-                    deletePhotoButton.textContent = "Видалити фото";
-            
-                    deletePhotoButton.addEventListener("click", () => {
-                        deleteServicePhoto(service.id, photoIndex);
-                    });
-
-                    const replacePhotoInput =
-    document.createElement("input");
-
-replacePhotoInput.type = "file";
-replacePhotoInput.accept =
-    "image/jpeg,image/png,image/webp";
-replacePhotoInput.hidden = true;
-
-const replacePhotoButton =
-    document.createElement("button");
-
-replacePhotoButton.type = "button";
-replacePhotoButton.className =
-    "replace-service-photo-button";
-
-replacePhotoButton.textContent = "Замінити фото";
-
-replacePhotoButton.addEventListener("click", () => {
-    replacePhotoInput.click();
-});
-
-replacePhotoInput.addEventListener(
-    "change",
-    async () => {
-        const file = replacePhotoInput.files[0];
-
-        if (file) {
-            await replaceServicePhoto(
-                service.id,
-                photoIndex,
-                file
-            );
-        }
+        card.appendChild(
+            gallery
+        );
     }
-);
-                    photoItem.appendChild(image);
-                    photoItem.appendChild(replacePhotoButton);
-                    photoItem.appendChild(deletePhotoButton);
-                    photoItem.appendChild(replacePhotoInput);
 
-gallery.appendChild(photoItem);
-                });
-            
-                card.appendChild(gallery);
-            }
-
-            const photoCount = Array.isArray(service.photos)
-    ? service.photos.length
-    : 0;
-
-if (photoCount < 3) {
-    const addPhotoInput =
-        document.createElement("input");
-
-    addPhotoInput.type = "file";
-    addPhotoInput.accept =
-        "image/jpeg,image/png,image/webp";
-    addPhotoInput.multiple = true;
-    addPhotoInput.hidden = true;
-
-    const addPhotoButton =
-        document.createElement("button");
-
-    addPhotoButton.type = "button";
-    addPhotoButton.className =
-        "add-service-photo-button";
-
-    addPhotoButton.textContent =
-        photoCount === 0
-            ? "Додати фото"
-            : "Додати ще фото";
-
-    addPhotoButton.addEventListener("click", () => {
-        addPhotoInput.click();
-    });
-
-    addPhotoInput.addEventListener(
-        "change",
-        async () => {
-            await addServicePhotos(
-                service.id,
-                addPhotoInput.files
+    if (
+        photos.length < 3
+    ) {
+        const addInput =
+            document.createElement(
+                "input"
             );
+
+        addInput.type =
+            "file";
+
+        addInput.accept =
+            "image/jpeg,image/png,image/webp";
+
+        addInput.multiple =
+            true;
+
+        addInput.hidden =
+            true;
+
+        const addButton =
+            document.createElement(
+                "button"
+            );
+
+        addButton.type =
+            "button";
+
+        addButton.className =
+            "add-service-photo-button";
+
+        addButton.textContent =
+            photos.length === 0
+                ? "Додати фото"
+                : "Додати ще фото";
+
+        addButton.addEventListener(
+            "click",
+            () => {
+                addInput.click();
+            }
+        );
+
+        addInput.addEventListener(
+            "change",
+            async () => {
+                await addServicePhotos(
+                    service.id,
+                    addInput.files
+                );
+
+                addInput.value =
+                    "";
+            }
+        );
+
+        card.append(
+            addButton,
+            addInput
+        );
+    }
+
+    return card;
+}
+
+function renderSelectedCar() {
+    const car =
+        getSelectedCar();
+
+    if (!car) {
+        elements.selectedCarEmpty
+            ?.classList.remove(
+                "hidden"
+            );
+
+        elements.selectedCarContent
+            ?.classList.add(
+                "hidden"
+            );
+
+        if (
+            elements.serviceHistory
+        ) {
+            elements.serviceHistory
+                .querySelectorAll(
+                    ".service-card"
+                )
+                .forEach(
+                    (element) => {
+                        element.remove();
+                    }
+                );
         }
+
+        return;
+    }
+
+    elements.selectedCarEmpty
+        ?.classList.add(
+            "hidden"
+        );
+
+    elements.selectedCarContent
+        ?.classList.remove(
+            "hidden"
+        );
+
+    if (
+        elements.selectedCarName
+    ) {
+        elements.selectedCarName
+            .textContent =
+                car.name ||
+                "Автомобіль";
+    }
+
+    if (
+        elements.selectedCarInfo
+    ) {
+        const details = [
+            car.year
+                ? `${car.year} рік`
+                : null,
+
+            `${formatNumber(
+                car.mileage
+            )} км`,
+
+            car.engine ||
+                null,
+
+            car.fuel ||
+                null,
+
+            car.transmission ||
+                null
+        ].filter(Boolean);
+
+        elements.selectedCarInfo
+            .textContent =
+                `${details.join(" • ")}
+
+VIN: ${car.vin || "-"}
+
+Номер: ${car.plate || "-"}`;
+    }
+
+    renderCarGallery(car);
+
+    const services =
+        Array.isArray(
+            car.services
+        )
+            ? [...car.services]
+            : [];
+
+    services.sort(
+        (
+            first,
+            second
+        ) =>
+            String(
+                second.date || ""
+            ).localeCompare(
+                String(
+                    first.date || ""
+                )
+            )
     );
 
-    card.appendChild(addPhotoButton);
-    card.appendChild(addPhotoInput);
-}
-
-        serviceHistory.appendChild(card);
-    });
-
-    if (car.photo) {
-        selectedCarPhoto.src = car.photo;
-        selectedCarPhoto.classList.remove("hidden");
-        carPhotoPlaceholder.classList.add("hidden");
-    } else {
-        selectedCarPhoto.removeAttribute("src");
-        selectedCarPhoto.classList.add("hidden");
-        carPhotoPlaceholder.classList.remove("hidden");
+    if (
+        elements.serviceCount
+    ) {
+        elements.serviceCount
+            .textContent =
+                String(
+                    services.length
+                );
     }
 
+    const totalCost =
+        services.reduce(
+            (
+                total,
+                service
+            ) =>
+                total +
+                Number(
+                    service.cost || 0
+                ),
+            0
+        );
+
+    if (
+        elements.totalServiceCost
+    ) {
+        elements.totalServiceCost
+            .textContent =
+                `${formatNumber(
+                    totalCost
+                )} грн`;
+    }
+
+    if (
+        elements.currentMileage
+    ) {
+        elements.currentMileage
+            .textContent =
+                `${formatNumber(
+                    car.mileage
+                )} км`;
+    }
+
+    if (
+        !elements.serviceHistory
+    ) {
+        return;
+    }
+
+    elements.serviceHistory
+        .querySelectorAll(
+            ".service-card"
+        )
+        .forEach(
+            (element) => {
+                element.remove();
+            }
+        );
+
+    if (
+        elements.noServiceMessage
+    ) {
+        elements.noServiceMessage.hidden =
+            services.length > 0;
+    }
+
+    services.forEach(
+        (service) => {
+            elements.serviceHistory
+                .appendChild(
+                    renderServiceCard(
+                        service
+                    )
+                );
+        }
+    );
 }
-
-
 
 function renderPage() {
     renderCars();
     renderSelectedCar();
-}
-
-
-/* ===== ВИДАЛЕННЯ ЗАПИСУ ===== */
-
-function deleteServicePhoto(serviceId, photoIndex) {
-    const car = cars.find(
-        (item) => item.id === selectedCarId
-    );
-
-    if (!car) {
-        return;
-    }
-
-    const service = car.services.find(
-        (item) => item.id === serviceId
-    );
-
-    if (!service || !Array.isArray(service.photos)) {
-        return;
-    }
-
-    const confirmed = confirm(
-        "Видалити цю фотографію?"
-    );
-
-    if (!confirmed) {
-        return;
-    }
-
-    service.photos.splice(photoIndex, 1);
-
-    saveCars();
-    renderPage();
-}
-
-function deleteService(serviceId) {
-    const car = cars.find(
-        (item) => item.id === selectedCarId
-    );
-
-    if (!car) {
-        return;
-    }
-
-    const confirmed = confirm(
-        "Видалити цей запис обслуговування?"
-    );
-
-    if (!confirmed) {
-        return;
-    }
-
-    car.services = car.services.filter(
-        (service) => service.id !== serviceId
-    );
-
-    saveCars();
-    renderPage();
-}
-
-
-/* ===== ВІДКРИТТЯ ФОРМ ===== */
-
-openCarButton.addEventListener("click", () => {
-    editingCarId = null;
-    carForm.reset();
-    openModal(carModal);
-});
-
-editCarButton.addEventListener("click", () => {
-    const car = cars.find(
-        (item) => item.id === selectedCarId
-    );
-
-    if (!car) {
-        alert("Автомобіль не вибраний.");
-        return;
-    }
-
-    editingCarId = car.id;
-
-    document.getElementById("carName").value =
-        car.name || "";
-
-    document.getElementById("carYear").value =
-        car.year || "";
-
-    document.getElementById("carMileage").value =
-        car.mileage || 0;
-
-    document.getElementById("carEngine").value =
-        car.engine || "";
-
-        document.getElementById("carFuel").value =
-    car.fuel || "";
-
-document.getElementById("carTransmission").value =
-    car.transmission || "";
-
-document.getElementById("carBody").value =
-    car.body || "";
-
-document.getElementById("carDrive").value =
-    car.drive || "";
-
-    document.getElementById("carVin").value =
-        car.vin || "";
-
-    document.getElementById("carPlate").value =
-        car.plate || "";
-
-    document.getElementById("carPhoto").value = "";
-
-    openModal(carModal);
-});
-
-openServiceButton.addEventListener("click", () => {
-    const car = cars.find(
-        (item) => item.id === selectedCarId
-    );
-
-    if (!car) {
-        alert("Спочатку додай автомобіль.");
-        return;
-    }
-
-    document.getElementById("serviceMileage").value =
-        car.mileage;
-
-    document.getElementById("serviceDate").value =
-        new Date().toISOString().slice(0, 10);
-
-        closeModal(historyModal);
-        openModal(serviceModal);
-});
-
-openHistoryButton.addEventListener("click", () => {
-    const car = cars.find(
-        (item) => item.id === selectedCarId
-    );
-
-    if (!car) {
-        alert("Спочатку вибери автомобіль.");
-        return;
-    }
-
-    renderSelectedCar();
-    openModal(historyModal);
-});
-
-openChatsButton.addEventListener("click", () => {
     renderMyChats();
-    openModal(chatsModal);
-});
-const params = new URLSearchParams(window.location.search);
-const section = params.get("section");
-const listingId = params.get("listingId");
+}
 
-if (section === "service" && listingId) {
-    let marketListings = [];
 
-    try {
-        marketListings =
-            JSON.parse(
-                localStorage.getItem(
-                    "royalGarageMarketListings"
-                )
-            ) || [];
-    } catch (error) {
-        console.error(
-            "Не вдалося завантажити оголошення:",
-            error
-        );
-    }
+/* =========================
+   ФОРМА АВТО
+   ========================= */
 
-    const openedListing = marketListings.find(
-        item =>
-            String(item.id) === String(listingId)
+function resetCarForm() {
+    editingCarId = null;
+
+    elements.carForm
+        ?.reset();
+}
+
+function openCarEditor(car) {
+    editingCarId =
+        car.id;
+
+    setFieldValue(
+        "carName",
+        car.name
     );
 
-    const listingVin =
-        (openedListing?.vin || "")
+    setFieldValue(
+        "carYear",
+        car.year
+    );
+
+    setFieldValue(
+        "carMileage",
+        car.mileage
+    );
+
+    setFieldValue(
+        "carEngine",
+        car.engine
+    );
+
+    setFieldValue(
+        "carFuel",
+        car.fuel
+    );
+
+    setFieldValue(
+        "carTransmission",
+        car.transmission
+    );
+
+    setFieldValue(
+        "carBody",
+        car.body
+    );
+
+    setFieldValue(
+        "carDrive",
+        car.drive
+    );
+
+    setFieldValue(
+        "carVin",
+        car.vin
+    );
+
+    setFieldValue(
+        "carPlate",
+        car.plate
+    );
+
+    setFieldValue(
+        "carPhoto",
+        ""
+    );
+
+    openModal(
+        elements.carModal
+    );
+}
+
+async function handleCarSubmit(
+    event
+) {
+    event.preventDefault();
+
+    const name =
+        document
+            .getElementById(
+                "carName"
+            )
+            ?.value
+            .trim() || "";
+
+    const year =
+        Number(
+            document
+                .getElementById(
+                    "carYear"
+                )
+                ?.value
+        );
+
+    const mileage =
+        Number(
+            document
+                .getElementById(
+                    "carMileage"
+                )
+                ?.value
+        );
+
+    const engine =
+        document
+            .getElementById(
+                "carEngine"
+            )
+            ?.value
+            .trim() || "";
+
+    const fuel =
+        document
+            .getElementById(
+                "carFuel"
+            )
+            ?.value || "";
+
+    const transmission =
+        document
+            .getElementById(
+                "carTransmission"
+            )
+            ?.value || "";
+
+    const body =
+        document
+            .getElementById(
+                "carBody"
+            )
+            ?.value || "";
+
+    const drive =
+        document
+            .getElementById(
+                "carDrive"
+            )
+            ?.value || "";
+
+    const vin =
+        normalizeVin(
+            document
+                .getElementById(
+                    "carVin"
+                )
+                ?.value
+        );
+
+    const plate =
+        String(
+            document
+                .getElementById(
+                    "carPlate"
+                )
+                ?.value || ""
+        )
             .trim()
             .toUpperCase();
 
-    const matchingCar = cars.find(
-        car =>
-            (car.vin || "")
-                .trim()
-                .toUpperCase() === listingVin
-    );
-
-    if (matchingCar) {
-        selectedCarId = matchingCar.id;
-    
-        renderPage();
-        openModal(historyModal);
-    
-        window.history.replaceState(
-            {},
-            document.title,
-            "profile.html"
-        );
-    } else {
-        console.error(
-            "Автомобіль оголошення не знайдений у гаражі.",
-            {
-                listingId,
-                listingVin,
-                openedListing,
-                cars
-            }
+    const photoInput =
+        document.getElementById(
+            "carPhoto"
         );
 
-        alert(
-            listingVin
-                ? `Автомобіль з VIN ${listingVin} не знайдений у гаражі.`
-                : "В оголошенні не збережений VIN автомобіля."
-        );
-    }
-}
-
-/* ===== ЗАКРИТТЯ ВІКОН ===== */
-
-document
-    .querySelectorAll("[data-close-modal]")
-    .forEach((button) => {
-        button.addEventListener("click", () => {
-            closeModal(button.closest(".modal"));
-        });
-    });
-
-document.querySelectorAll(".modal").forEach((modal) => {
-    modal.addEventListener("click", (event) => {
-        if (event.target === modal) {
-            closeModal(modal);
-        }
-    });
-});
-
-/* ===== ДОДАВАННЯ АВТО ===== */
-
-carForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    const name = document
-        .getElementById("carName")
-        .value
-        .trim();
-
-    const year = Number(
-        document.getElementById("carYear").value
-    );
-
-    const mileage = Number(
-        document.getElementById("carMileage").value
-    );
-
-    const engine = document
-        .getElementById("carEngine")
-        .value
-        .trim();
-
-        const fuel =
-    document.getElementById("carFuel").value;
-
-const transmission =
-    document.getElementById("carTransmission").value;
-
-const body =
-    document.getElementById("carBody").value;
-
-const drive =
-    document.getElementById("carDrive").value;
-
-
-
-    if (!name || !year || mileage < 0) {
-        alert("Перевір дані автомобіля.");
-        return;
-    }
-    
     const photoFile =
-    document.getElementById("carPhoto").files[0];
+        photoInput
+            ?.files?.[0];
 
-let photo = "";
+    if (
+        !name ||
+        !year ||
+        year < 1886 ||
+        mileage < 0
+    ) {
+        alert(
+            "Перевір назву, рік і пробіг автомобіля."
+        );
 
-if (photoFile) {
-    try {
-        photo = await compressImage(photoFile);
-    } catch (error) {
-        alert(error.message);
-        return;
-    }
-}
-
-const vin = document
-    .getElementById("carVin")
-    .value
-    .trim()
-    .toUpperCase();
-
-const plate = document
-    .getElementById("carPlate")
-    .value
-    .trim()
-    .toUpperCase();
-
-const exists = vin && cars.some(
-    (car) =>
-        car.id !== editingCarId &&
-        (car.vin || "").trim().toUpperCase() === vin
-);
-
-if (exists) {
-    alert("Автомобіль з таким VIN вже є.");
-    return;
-}
-
-if (editingCarId) {
-    const car = cars.find(
-        (item) => item.id === editingCarId
-    );
-
-    if (!car) {
-        alert("Автомобіль не знайдений.");
         return;
     }
 
-    car.name = name;
-    car.year = year;
-    car.mileage = mileage;
-    car.engine = engine;
-    car.fuel = fuel;
-    car.transmission = transmission;
-    car.body = body;
-    car.drive = drive;
-    car.vin = vin;
-    car.plate = plate;
+    const duplicateVin =
+        vin &&
+        cars.some(
+            (car) =>
+                String(
+                    car.id
+                ) !==
+                    String(
+                        editingCarId
+                    ) &&
+                normalizeVin(
+                    car.vin
+                ) === vin
+        );
+
+    if (duplicateVin) {
+        alert(
+            "Автомобіль з таким VIN вже є."
+        );
+
+        return;
+    }
+
+    let compressedPhoto =
+        "";
 
     if (photoFile) {
-        car.photo = photo;
+        try {
+            compressedPhoto =
+                await compressImage(
+                    photoFile
+                );
+        } catch (error) {
+            alert(
+                error.message
+            );
+
+            return;
+        }
+    }
+
+    if (editingCarId) {
+        const car =
+            cars.find(
+                (item) =>
+                    String(
+                        item.id
+                    ) ===
+                    String(
+                        editingCarId
+                    )
+            );
+
+        if (!car) {
+            alert(
+                "Автомобіль не знайдений."
+            );
+
+            return;
+        }
+
+        Object.assign(
+            car,
+            {
+                name,
+                year,
+                mileage,
+                engine,
+                fuel,
+                transmission,
+                body,
+                drive,
+                vin,
+                plate
+            }
+        );
 
         if (
-            Array.isArray(car.photos) &&
-            car.photos.length > 0
+            compressedPhoto
         ) {
-            const photoIndex =
-                Number.isInteger(car.activePhotoIndex)
-                    ? car.activePhotoIndex
-                    : 0;
-
-            car.photos[photoIndex] = photo;
-        }
-    }
-
-    selectedCarId = car.id;
-} else {
-    const newCar = {
-        id: createId(),
-        ownerId: currentUser.id,
-        name,
-        year,
-        mileage,
-        engine,
-        fuel,
-        transmission,
-        body,
-        drive,
-        vin,
-        plate,
-        photo,
-        photos: photo ? [photo] : [],
-        activePhotoIndex: 0,
-        createdAt: new Date().toISOString(),
-        services: []
-    };
-
-    cars.push(newCar);
-    selectedCarId = newCar.id;
-}
-
-saveCars();
-renderPage();
-
-editingCarId = null;
-carForm.reset();
-closeModal(carModal);
-
-});
-
-
-/* ===== ДОДАВАННЯ ОБСЛУГОВУВАННЯ ===== */
-
-serviceForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    const car = cars.find(
-        (item) => item.id === selectedCarId
-    );
-
-    if (!car) {
-        alert("Автомобіль не знайдено.");
-        return;
-    }
-
-    const servicePhotoInput =
-    document.getElementById("servicePhotos");
-
-const photoFiles = Array.from(
-    servicePhotoInput?.files || []
-);
-
-if (photoFiles.length > 3) {
-    alert("Можна додати не більше 3 фотографій до одного запису.");
-    return;
-}
-
-let photos = [];
-
-try {
-    photos = await Promise.all(
-        photoFiles.map((file) => compressImage(file))
-    );
-
-} catch (error) {
-    alert("Не вдалося обробити фотографії.");
-    return;
-}
-
-    const mileage = Number(
-        document.getElementById("serviceMileage").value
-    );
-
-    const newService = {
-        id: createId(),
-
-        title: document
-            .getElementById("serviceTitle")
-            .value
-            .trim(),
-
-        date: document.getElementById(
-            "serviceDate"
-        ).value,
-
-        mileage,
-
-        cost: Number(
-            document.getElementById(
-                "serviceCost"
-            ).value
-        ),
-
-        station: document
-            .getElementById("serviceStation")
-            .value
-            .trim(),
-
-        description: document
-            .getElementById("serviceDescription")
-            .value
-            .trim(),
-
-            photos,
-
-        isPublic:
-            document.getElementById(
-                "servicePublic"
-            ).checked
-    };
-
-    if (!newService.title || !newService.date) {
-        alert("Вкажи назву роботи та дату.");
-        return;
-    }
-
-    if (editingServiceId) {
-        const serviceIndex = car.services.findIndex(
-            (item) => item.id === editingServiceId
-        );
-    
-        if (serviceIndex !== -1) {
-            const oldService = car.services[serviceIndex];
-            const oldPhotos = Array.isArray(oldService.photos)
-                ? oldService.photos
-                : [];
-    
-            car.services[serviceIndex] = {
-                ...oldService,
-                ...newService,
-    
-                id: oldService.id,
-                createdAt: oldService.createdAt,
-    
-                photos:
-                    photos.length > 0
-                        ? [...oldPhotos, ...photos].slice(0, 3)
-                        : oldPhotos
-            };
-        }
-    
-        editingServiceId = null;
-    } else {
-        car.services.push(newService);
-    }
-
-    if (mileage > car.mileage) {
-        car.mileage = mileage;
-    }
-
-    saveCars();
-    renderPage();
-
-    serviceForm.reset();
-    closeModal(serviceModal);
-});
-
-
-/* ===== ЗАПУСК ===== */
-
-deleteCarButton.addEventListener("click", () => {
-    const car = cars.find(
-        (item) => item.id === selectedCarId);
-
-    if (!car) {
-        alert("Спочатку вибери автомобіль.");
-        return;
-    }
-
-    const confirmed = confirm(
-        `Видалити автомобіль "${car.name}" разом з усією історією обслуговування?`);
-
-    if (!confirmed) {
-        return;
-    }
-
-    cars = cars.filter(
-        (item) => item.id !== selectedCarId);
-
-    selectedCarId = cars[0]?.id ?? null;
-    saveCars();
-    renderPage();
-    alert("Автомобіль видалено з гаража.");
-});
-
-/*===== Додавання фото авто =====*/
-let photoViewerPhotos = [];
-
-function showPhotoInViewer(index) {
-    if (photoViewerPhotos.length === 0) {
-        return;
-    }
-
-    photoViewerIndex =
-        (index + photoViewerPhotos.length) %
-        photoViewerPhotos.length;
-
-    photoViewerImage.src =
-        photoViewerPhotos[photoViewerIndex];
-
-    const onlyOnePhoto =
-        photoViewerPhotos.length <= 1;
-
-    previousCarPhoto.hidden = onlyOnePhoto;
-    nextCarPhoto.hidden = onlyOnePhoto;
-}
-
-previousCarPhoto.addEventListener("click", (event) => {
-    event.stopPropagation();
-    showPhotoInViewer(photoViewerIndex - 1);
-});
-
-nextCarPhoto.addEventListener("click", (event) => {
-    event.stopPropagation();
-    showPhotoInViewer(photoViewerIndex + 1);
-});
-
-selectedCarPhoto.addEventListener("click", () => {
-    const car = cars.find(
-        (item) => item.id === selectedCarId
-    );
-
-    if (!car) {
-        return;
-    }
-
-    photoViewerPhotos = getCarPhotos(car);
-
-    if (photoViewerPhotos.length === 0) {
-        return;
-    }
-
-    photoViewerIndex = Number.isInteger(car.activePhotoIndex)
-        ? car.activePhotoIndex
-        : 0;
-
-    showPhotoInViewer(photoViewerIndex);
-    photoViewer.classList.add("open");
-});
-closePhotoViewer.addEventListener("click", () => {
-    photoViewer.classList.remove("open");
-});
-
-photoViewer.addEventListener("click", (event) => {
-    if (event.target === photoViewer) {
-        photoViewer.classList.remove("open");
-    }
-});
-
-document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-        photoViewer.classList.remove("open");
-    }
-});
-
-updateCarPhoto.addEventListener("change", async () => {
-    const files = Array.from(updateCarPhoto.files || []);
-
-    if (files.length === 0) {
-        return;
-    }
-
-    const car = cars.find(
-        (item) => item.id === selectedCarId
-    );
-
-    if (!car) {
-        alert("Автомобіль не знайдено.");
-        updateCarPhoto.value = "";
-        return;
-    }
-
-    const currentPhotos = getCarPhotos(car);
-
-    if (currentPhotos.length + files.length > 6) {
-        alert("Можна додати максимум 6 фото автомобіля.");
-        updateCarPhoto.value = "";
-        return;
-    }
-
-    try {
-        const newPhotos = await Promise.all(
-            files.map((file) => compressImage(file))
-        );
-
-        car.photos = [
-            ...currentPhotos,
-            ...newPhotos
-        ];
-
-        car.photo = car.photos[0];
-        car.activePhotoIndex = currentPhotos.length;
-
-        saveCars();
-        renderPage();
-    } catch (error) {
-        alert("Не вдалося додати фотографію.");
-    }
-
-    updateCarPhoto.value = "";
-});
-
-renderPage();
-
-function renderMyChats() {
-    if (!myChatsList) {
-        return;
-    }
-
-    const currentUser = JSON.parse(
-        localStorage.getItem("royalGarageCurrentUser")
-    );
-
-    if (!currentUser) {
-        myChatsList.innerHTML = `
-            <p>Увійдіть у профіль, щоб побачити чати.</p>
-        `;
-        return;
-    }
-
-    let messages = [];
-    let listings = [];
-
-    try {
-        messages =
-            JSON.parse(
-                localStorage.getItem("royalGarageMessages")
-            ) || [];
-
-        listings =
-            JSON.parse(
-                localStorage.getItem(
-                    "royalGarageMarketListings"
-                )
-            ) || [];
-    } catch (error) {
-        console.error("Помилка завантаження чатів:", error);
-    }
-
-    const conversations = new Map();
-
-    messages
-        .filter((message) => {
-            return (
-                String(message.senderId) ===
-                    String(currentUser.id) ||
-                String(message.receiverId) ===
-                    String(currentUser.id)
-            );
-        })
-        .forEach((message) => {
-            const otherUserId =
-                String(message.senderId) ===
-                String(currentUser.id)
-                    ? message.receiverId
-                    : message.senderId;
-
-            const key =
-                `${message.listingId}_${otherUserId}`;
-
-            const previous = conversations.get(key);
+            const photos =
+                getCarPhotos(
+                    car
+                );
 
             if (
-                !previous ||
-                new Date(message.createdAt) >
-                    new Date(previous.message.createdAt)
+                photos.length === 0
             ) {
-                conversations.set(key, {
-                    message,
-                    otherUserId
-                });
-            }
-        });
+                photos.push(
+                    compressedPhoto
+                );
 
-    if (conversations.size === 0) {
-        myChatsList.innerHTML = `
-            <p>Чатів поки немає.</p>
-        `;
+                car.activePhotoIndex =
+                    0;
+            } else {
+                photos[
+                    car.activePhotoIndex
+                ] =
+                    compressedPhoto;
+            }
+
+            car.photos =
+                photos;
+
+            car.photo =
+                photos[
+                    car.activePhotoIndex
+                ];
+        }
+
+        selectedCarId =
+            car.id;
+    } else {
+        const newCar = {
+            id: createId(),
+
+            ownerId:
+                currentUser.id,
+
+            name,
+            year,
+            mileage,
+            engine,
+            fuel,
+            transmission,
+            body,
+            drive,
+            vin,
+            plate,
+
+            photo:
+                compressedPhoto,
+
+            photos:
+                compressedPhoto
+                    ? [
+                        compressedPhoto
+                    ]
+                    : [],
+
+            activePhotoIndex:
+                0,
+
+            createdAt:
+                new Date()
+                    .toISOString(),
+
+            services:
+                []
+        };
+
+        cars.push(
+            newCar
+        );
+
+        selectedCarId =
+            newCar.id;
+    }
+
+    if (!saveCars()) {
         return;
     }
 
-    myChatsList.innerHTML = "";
+    resetCarForm();
 
-    [...conversations.values()]
-        .sort(
-            (a, b) =>
-                new Date(b.message.createdAt) -
-                new Date(a.message.createdAt)
-        )
-        .forEach(({ message, otherUserId }) => {
-            const listing = listings.find(
-                (item) =>
-                    String(item.id) ===
-                    String(message.listingId)
+    closeModal(
+        elements.carModal
+    );
+
+    renderPage();
+}
+
+
+/* =========================
+   ФОРМА ОБСЛУГОВУВАННЯ
+   ========================= */
+
+function resetServiceForm() {
+    editingServiceId =
+        null;
+
+    elements.serviceForm
+        ?.reset();
+}
+
+async function handleServiceSubmit(
+    event
+) {
+    event.preventDefault();
+
+    const car =
+        getSelectedCar();
+
+    if (!car) {
+        alert(
+            "Автомобіль не знайдено."
+        );
+
+        return;
+    }
+
+    const title =
+        document
+            .getElementById(
+                "serviceTitle"
+            )
+            ?.value
+            .trim() || "";
+
+    const date =
+        document
+            .getElementById(
+                "serviceDate"
+            )
+            ?.value || "";
+
+    const mileage =
+        Number(
+            document
+                .getElementById(
+                    "serviceMileage"
+                )
+                ?.value
+        );
+
+    const cost =
+        Number(
+            document
+                .getElementById(
+                    "serviceCost"
+                )
+                ?.value
+        );
+
+    const station =
+        document
+            .getElementById(
+                "serviceStation"
+            )
+            ?.value
+            .trim() || "";
+
+    const description =
+        document
+            .getElementById(
+                "serviceDescription"
+            )
+            ?.value
+            .trim() || "";
+
+    const isPublic =
+        Boolean(
+            document
+                .getElementById(
+                    "servicePublic"
+                )
+                ?.checked
+        );
+
+    const photoInput =
+        document.getElementById(
+            "servicePhotos"
+        );
+
+    const photoFiles =
+        Array.from(
+            photoInput
+                ?.files || []
+        );
+
+    if (
+        !title ||
+        !date
+    ) {
+        alert(
+            "Вкажи назву роботи та дату."
+        );
+
+        return;
+    }
+
+    if (
+        mileage < 0 ||
+        cost < 0
+    ) {
+        alert(
+            "Пробіг і вартість не можуть бути від’ємними."
+        );
+
+        return;
+    }
+
+    let oldService =
+        null;
+
+    let oldPhotos =
+        [];
+
+    if (
+        editingServiceId
+    ) {
+        oldService =
+            findService(
+                car,
+                editingServiceId
             );
 
-            const chatLink =
-                document.createElement("a");
+        oldPhotos =
+            oldService
+                ? getServicePhotos(
+                    oldService
+                )
+                : [];
+    }
 
-            chatLink.className = "my-chat-card";
+    if (
+        oldPhotos.length +
+            photoFiles.length >
+        3
+    ) {
+        alert(
+            "До одного запису можна додати максимум 3 фото."
+        );
 
-            chatLink.href =
-                `chat.html?listingId=${
-                    encodeURIComponent(message.listingId)
-                }&withUserId=${
-                    encodeURIComponent(otherUserId)
-                }`;
+        return;
+    }
 
-            const title =
-                listing
-                    ? `${listing.name} (${listing.year})`
-                    : "Оголошення";
+    let newPhotos =
+        [];
 
-                                const photo =
-                listing?.photos?.[0] ||
-                listing?.photo ||
-                "";
+    try {
+        newPhotos =
+            await Promise.all(
+                photoFiles.map(
+                    (file) =>
+                        compressImage(
+                            file
+                        )
+                )
+            );
+    } catch (error) {
+        alert(
+            error.message
+        );
 
-                    chatLink.innerHTML = `
-                    <div class="chat-card-header">
-                    <div class="chat-avatar">
-                    ${
-                        photo
-                            ? `<img src="${photo}" alt="${title}">`
-                            : "🚗"
-                    }
-                    </div>
-                
-                        <div class="chat-main">
-                            <div class="chat-title">${title}</div>
-                
-                            <div class="chat-last-message">
-                                ${message.text}
+        return;
+    }
+
+    if (
+        editingServiceId &&
+        oldService
+    ) {
+        Object.assign(
+            oldService,
+            {
+                title,
+                date,
+                mileage,
+                cost,
+                station,
+                description,
+                isPublic,
+
+                photos: [
+                    ...oldPhotos,
+                    ...newPhotos
+                ]
+            }
+        );
+    } else {
+        car.services.push({
+            id: createId(),
+
+            title,
+            date,
+            mileage,
+            cost,
+            station,
+            description,
+            isPublic,
+
+            photos:
+                newPhotos,
+
+            createdAt:
+                new Date()
+                    .toISOString()
+        });
+    }
+
+    if (
+        mileage >
+        Number(
+            car.mileage
+        )
+    ) {
+        car.mileage =
+            mileage;
+    }
+
+    if (!saveCars()) {
+        return;
+    }
+
+    resetServiceForm();
+
+    closeModal(
+        elements.serviceModal
+    );
+
+    renderPage();
+}
+
+
+/* =========================
+   МОЇ ЧАТИ
+   ========================= */
+
+function getLastMessageText(
+    message
+) {
+    const text =
+        String(
+            message.text || ""
+        ).trim();
+
+    if (text) {
+        return text;
+    }
+
+    if (
+        message.attachment
+            ?.type ===
+        "image"
+    ) {
+        return "📷 Фото";
+    }
+
+    if (
+        message.attachment
+            ?.type ===
+        "video"
+    ) {
+        return "🎥 Відео";
+    }
+
+    return "Нове повідомлення";
+}
+
+function renderMyChats() {
+    if (
+        !elements.myChatsList
+    ) {
+        return;
+    }
+
+    const messages =
+        readJson(
+            MESSAGES_KEY,
+            []
+        );
+
+    const listings =
+        readJson(
+            LISTINGS_KEY,
+            []
+        );
+
+    const currentUserId =
+        String(
+            currentUser.id
+        );
+
+    const totalUnread =
+        messages.filter(
+            (message) =>
+                String(
+                    message.receiverId
+                ) ===
+                    currentUserId &&
+                !message.readAt
+        ).length;
+
+    if (
+        elements.openChatsButton
+    ) {
+        elements.openChatsButton
+            .innerHTML =
+                totalUnread > 0
+                    ? `
+                        Мої чати
+
+                        <span
+                            class="chats-button-badge"
+                        >
+                            ${
+                                totalUnread >
+                                99
+                                    ? "99+"
+                                    : totalUnread
+                            }
+                        </span>
+                    `
+                    : "Мої чати";
+    }
+
+    const conversations =
+        new Map();
+
+    messages
+        .filter(
+            (message) =>
+                String(
+                    message.senderId
+                ) ===
+                    currentUserId ||
+                String(
+                    message.receiverId
+                ) ===
+                    currentUserId
+        )
+        .forEach(
+            (message) => {
+                const otherUserId =
+                    String(
+                        message.senderId
+                    ) ===
+                        currentUserId
+                        ? String(
+                            message.receiverId
+                        )
+                        : String(
+                            message.senderId
+                        );
+
+                const key =
+                    `${
+                        message.listingId
+                    }_${
+                        otherUserId
+                    }`;
+
+                const previous =
+                    conversations.get(
+                        key
+                    );
+
+                if (
+                    !previous ||
+                    new Date(
+                        message.createdAt
+                    ) >
+                        new Date(
+                            previous
+                                .message
+                                .createdAt
+                        )
+                ) {
+                    conversations.set(
+                        key,
+                        {
+                            message,
+                            otherUserId
+                        }
+                    );
+                }
+            }
+        );
+
+    if (
+        conversations.size ===
+        0
+    ) {
+        elements.myChatsList
+            .innerHTML = `
+                <p>
+                    Чатів поки немає.
+                </p>
+            `;
+
+        return;
+    }
+
+    elements.myChatsList
+        .innerHTML = "";
+
+    [
+        ...conversations.values()
+    ]
+        .sort(
+            (
+                first,
+                second
+            ) =>
+                new Date(
+                    second
+                        .message
+                        .createdAt
+                ) -
+                new Date(
+                    first
+                        .message
+                        .createdAt
+                )
+        )
+        .forEach(
+            ({
+                message,
+                otherUserId
+            }) => {
+                const listing =
+                    listings.find(
+                        (item) =>
+                            String(
+                                item.id
+                            ) ===
+                            String(
+                                message
+                                    .listingId
+                            )
+                    );
+
+                const unreadCount =
+                    messages.filter(
+                        (
+                            chatMessage
+                        ) =>
+                            String(
+                                chatMessage
+                                    .listingId
+                            ) ===
+                                String(
+                                    message
+                                        .listingId
+                                ) &&
+                            String(
+                                chatMessage
+                                    .senderId
+                            ) ===
+                                String(
+                                    otherUserId
+                                ) &&
+                            String(
+                                chatMessage
+                                    .receiverId
+                            ) ===
+                                currentUserId &&
+                            !chatMessage
+                                .readAt
+                    ).length;
+
+                const title =
+                    listing
+                        ? `${
+                            listing.name
+                        } (${
+                            listing.year
+                        })`
+                        : "Оголошення";
+
+                const photo =
+                    listing
+                        ?.photos
+                        ?.[0] ||
+                    listing
+                        ?.photo ||
+                    "";
+
+                const messageDate =
+                    new Date(
+                        message.createdAt
+                    );
+
+                const formattedDate =
+                    Number.isNaN(
+                        messageDate
+                            .getTime()
+                    )
+                        ? ""
+                        : messageDate
+                            .toLocaleString(
+                                "uk-UA",
+                                {
+                                    day:
+                                        "2-digit",
+
+                                    month:
+                                        "2-digit",
+
+                                    hour:
+                                        "2-digit",
+
+                                    minute:
+                                        "2-digit"
+                                }
+                            );
+
+                const chatLink =
+                    document.createElement(
+                        "a"
+                    );
+
+                chatLink.className =
+                    "my-chat-card";
+
+                chatLink.href =
+                    `chat.html?listingId=${
+                        encodeURIComponent(
+                            message
+                                .listingId
+                        )
+                    }&withUserId=${
+                        encodeURIComponent(
+                            otherUserId
+                        )
+                    }`;
+
+                chatLink.innerHTML = `
+                    <div
+                        class="chat-card-header"
+                    >
+
+                        <div
+                            class="chat-avatar"
+                        >
+                            ${
+                                photo
+                                    ? `
+                                        <img
+                                            src="${photo}"
+                                            alt="${escapeHtml(
+                                                title
+                                            )}"
+                                        >
+                                    `
+                                    : "🚗"
+                            }
+                        </div>
+
+                        <div
+                            class="chat-main"
+                        >
+
+                            <div
+                                class="chat-title"
+                            >
+                                ${escapeHtml(
+                                    title
+                                )}
                             </div>
+
+                            <div
+                                class="chat-last-message"
+                            >
+                                ${escapeHtml(
+                                    getLastMessageText(
+                                        message
+                                    )
+                                )}
+                            </div>
+
                         </div>
-                
-                        <div class="chat-time">
-                            ${new Date(message.createdAt).toLocaleDateString("uk-UA")}
+
+                        <div
+                            class="chat-card-side"
+                        >
+
+                            <div
+                                class="chat-time"
+                            >
+                                ${formattedDate}
+                            </div>
+
+                            ${
+                                unreadCount > 0
+                                    ? `
+                                        <span
+                                            class="chat-unread-badge"
+                                        >
+                                            ${
+                                                unreadCount >
+                                                99
+                                                    ? "99+"
+                                                    : unreadCount
+                                            }
+                                        </span>
+                                    `
+                                    : ""
+                            }
+
                         </div>
+
                     </div>
                 `;
 
-            myChatsList.appendChild(chatLink);
-        });
+                elements.myChatsList
+                    .appendChild(
+                        chatLink
+                    );
+            }
+        );
 }
 
-renderMyChats();
+
+/* =========================
+   ВІДКРИТТЯ ІСТОРІЇ
+   З ОГОЛОШЕННЯ
+   ========================= */
+
+function openServiceHistoryFromUrl() {
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    const section =
+        params.get(
+            "section"
+        );
+
+    const listingId =
+        params.get(
+            "listingId"
+        );
+
+    if (
+        section !==
+            "service" ||
+        !listingId
+    ) {
+        return;
+    }
+
+    const listings =
+        readJson(
+            LISTINGS_KEY,
+            []
+        );
+
+    const listing =
+        listings.find(
+            (item) =>
+                String(
+                    item.id
+                ) ===
+                String(
+                    listingId
+                )
+        );
+
+    const listingVin =
+        normalizeVin(
+            listing?.vin
+        );
+
+    if (!listingVin) {
+        alert(
+            "В оголошенні не збережений VIN автомобіля."
+        );
+
+        return;
+    }
+
+    const matchingCar =
+        cars.find(
+            (car) =>
+                normalizeVin(
+                    car.vin
+                ) ===
+                listingVin
+        );
+
+    if (!matchingCar) {
+        alert(
+            `Автомобіль з VIN ${
+                listingVin
+            } не знайдений у гаражі.`
+        );
+
+        return;
+    }
+
+    selectedCarId =
+        matchingCar.id;
+
+    renderPage();
+
+    openModal(
+        elements.historyModal
+    );
+
+    window.history.replaceState(
+        {},
+        document.title,
+        "profile.html"
+    );
+}
+
+
+/* =========================
+   ОБРОБНИКИ ПОДІЙ
+   ========================= */
+
+elements.openCarButton
+    ?.addEventListener(
+        "click",
+        () => {
+            resetCarForm();
+
+            openModal(
+                elements.carModal
+            );
+        }
+    );
+
+elements.editCarButton
+    ?.addEventListener(
+        "click",
+        () => {
+            const car =
+                getSelectedCar();
+
+            if (!car) {
+                alert(
+                    "Автомобіль не вибраний."
+                );
+
+                return;
+            }
+
+            openCarEditor(car);
+        }
+    );
+
+elements.deleteCarButton
+    ?.addEventListener(
+        "click",
+        () => {
+            const car =
+                getSelectedCar();
+
+            if (!car) {
+                alert(
+                    "Спочатку вибери автомобіль."
+                );
+
+                return;
+            }
+
+            const confirmed =
+                confirm(
+                    `Видалити автомобіль "${
+                        car.name
+                    }" разом з усією історією?`
+                );
+
+            if (!confirmed) {
+                return;
+            }
+
+            cars =
+                cars.filter(
+                    (item) =>
+                        String(
+                            item.id
+                        ) !==
+                        String(
+                            car.id
+                        )
+                );
+
+            selectedCarId =
+                cars[0]?.id ??
+                null;
+
+            saveCars();
+            renderPage();
+
+            alert(
+                "Автомобіль видалено з гаража."
+            );
+        }
+    );
+
+elements.openServiceButton
+    ?.addEventListener(
+        "click",
+        () => {
+            const car =
+                getSelectedCar();
+
+            if (!car) {
+                alert(
+                    "Спочатку додай автомобіль."
+                );
+
+                return;
+            }
+
+            resetServiceForm();
+
+            setFieldValue(
+                "serviceMileage",
+                car.mileage
+            );
+
+            setFieldValue(
+                "serviceDate",
+                new Date()
+                    .toISOString()
+                    .slice(
+                        0,
+                        10
+                    )
+            );
+
+            closeModal(
+                elements.historyModal
+            );
+
+            openModal(
+                elements.serviceModal
+            );
+        }
+    );
+
+elements.openHistoryButton
+    ?.addEventListener(
+        "click",
+        () => {
+            if (
+                !getSelectedCar()
+            ) {
+                alert(
+                    "Спочатку вибери автомобіль."
+                );
+
+                return;
+            }
+
+            renderSelectedCar();
+
+            openModal(
+                elements.historyModal
+            );
+        }
+    );
+
+elements.openChatsButton
+    ?.addEventListener(
+        "click",
+        () => {
+            renderMyChats();
+
+            openModal(
+                elements.chatsModal
+            );
+        }
+    );
+
+elements.carForm
+    ?.addEventListener(
+        "submit",
+        handleCarSubmit
+    );
+
+elements.serviceForm
+    ?.addEventListener(
+        "submit",
+        handleServiceSubmit
+    );
+
+elements.updateCarPhoto
+    ?.addEventListener(
+        "change",
+        async () => {
+            const files =
+                Array.from(
+                    elements
+                        .updateCarPhoto
+                        .files || []
+                );
+
+            if (
+                files.length === 0
+            ) {
+                return;
+            }
+
+            const car =
+                getSelectedCar();
+
+            if (!car) {
+                alert(
+                    "Автомобіль не знайдено."
+                );
+
+                elements
+                    .updateCarPhoto
+                    .value = "";
+
+                return;
+            }
+
+            const currentPhotos =
+                getCarPhotos(
+                    car
+                );
+
+            if (
+                currentPhotos.length +
+                    files.length >
+                6
+            ) {
+                alert(
+                    "Можна додати максимум 6 фото автомобіля."
+                );
+
+                elements
+                    .updateCarPhoto
+                    .value = "";
+
+                return;
+            }
+
+            try {
+                const newPhotos =
+                    await Promise.all(
+                        files.map(
+                            (file) =>
+                                compressImage(
+                                    file
+                                )
+                        )
+                    );
+
+                car.photos = [
+                    ...currentPhotos,
+                    ...newPhotos
+                ];
+
+                if (
+                    currentPhotos.length ===
+                    0
+                ) {
+                    car.activePhotoIndex =
+                        0;
+                } else {
+                    car.activePhotoIndex =
+                        currentPhotos.length;
+                }
+
+                car.photo =
+                    car.photos[
+                        car.activePhotoIndex
+                    ];
+
+                saveCars();
+                renderPage();
+            } catch (error) {
+                alert(
+                    error.message
+                );
+            }
+
+            elements
+                .updateCarPhoto
+                .value = "";
+        }
+    );
+
+elements.previousCarPhoto
+    ?.addEventListener(
+        "click",
+        (event) => {
+            event.stopPropagation();
+
+            showPhotoInViewer(
+                viewerIndex - 1
+            );
+        }
+    );
+
+elements.nextCarPhoto
+    ?.addEventListener(
+        "click",
+        (event) => {
+            event.stopPropagation();
+
+            showPhotoInViewer(
+                viewerIndex + 1
+            );
+        }
+    );
+
+elements.closePhotoViewer
+    ?.addEventListener(
+        "click",
+        closeViewer
+    );
+
+elements.photoViewer
+    ?.addEventListener(
+        "click",
+        (event) => {
+            if (
+                event.target ===
+                elements.photoViewer
+            ) {
+                closeViewer();
+            }
+        }
+    );
+
+document
+    .querySelectorAll(
+        "[data-close-modal]"
+    )
+    .forEach(
+        (button) => {
+            button.addEventListener(
+                "click",
+                () => {
+                    closeModal(
+                        button.closest(
+                            ".modal"
+                        )
+                    );
+                }
+            );
+        }
+    );
+
+document
+    .querySelectorAll(
+        ".modal"
+    )
+    .forEach(
+        (modal) => {
+            modal.addEventListener(
+                "click",
+                (event) => {
+                    if (
+                        event.target ===
+                        modal
+                    ) {
+                        closeModal(
+                            modal
+                        );
+                    }
+                }
+            );
+        }
+    );
+
+document.addEventListener(
+    "keydown",
+    (event) => {
+        if (
+            event.key ===
+            "Escape"
+        ) {
+            closeViewer();
+
+            document
+                .querySelectorAll(
+                    ".modal.modal-open"
+                )
+                .forEach(
+                    (modal) => {
+                        closeModal(
+                            modal
+                        );
+                    }
+                );
+        }
+    }
+);
+
+window.addEventListener(
+    "storage",
+    (event) => {
+        if (
+            event.key ===
+            MESSAGES_KEY
+        ) {
+            renderMyChats();
+        }
+    }
+);
+
+document.addEventListener(
+    "visibilitychange",
+    () => {
+        if (
+            !document.hidden
+        ) {
+            renderMyChats();
+        }
+    }
+);
+
+
+/* =========================
+   ЗАПУСК
+   ========================= */
+
+saveCars();
+renderPage();
+openServiceHistoryFromUrl();
+
+const profileParams =
+    new URLSearchParams(
+        window.location.search
+    );
+
+if (
+    profileParams.get("section") ===
+    "chats"
+) {
+    renderMyChats();
+
+    openModal(
+        elements.chatsModal
+    );
+
+    window.history.replaceState(
+        {},
+        document.title,
+        "profile.html"
+    );
+}

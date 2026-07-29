@@ -6,11 +6,15 @@ const MARKET_STORAGE_KEY =
 
 
 const listingDetails =
-    document.getElementById("listingDetails");
+    document.getElementById(
+        "listingDetails"
+    );
 
 
 const urlParams =
-    new URLSearchParams(window.location.search);
+    new URLSearchParams(
+        window.location.search
+    );
 
 
 const listingId =
@@ -19,6 +23,8 @@ const listingId =
 
 let listings = [];
 
+
+/* ===== ЗАВАНТАЖЕННЯ ОГОЛОШЕНЬ ===== */
 
 try {
     listings =
@@ -32,26 +38,45 @@ try {
         "Не вдалося завантажити оголошення:",
         error
     );
+
+    listings = [];
 }
 
 
 const listing =
     listings.find(
-        (item) => item.id === listingId
+        (item) =>
+            String(item.id) ===
+            String(listingId)
     );
 
 
-if (!listing) {
-    listingDetails.innerHTML = `
-        <div class="listing-card">
-            <h1>Оголошення не знайдено</h1>
+/* ===== ОГОЛОШЕННЯ НЕ ЗНАЙДЕНО ===== */
 
-            <p>
-                Воно могло бути видалене.
-            </p>
-        </div>
-    `;
+if (!listing) {
+    if (listingDetails) {
+        listingDetails.innerHTML = `
+            <div class="listing-card">
+                <h1>
+                    Оголошення не знайдено
+                </h1>
+
+                <p>
+                    Воно могло бути видалене.
+                </p>
+
+                <a
+                    href="market.html"
+                    class="primary-button"
+                >
+                    Повернутися на маркет
+                </a>
+            </div>
+        `;
+    }
 } else {
+    /* ===== ФОТОГРАФІЇ ===== */
+
     const photos =
         Array.isArray(listing.photos)
             ? listing.photos
@@ -86,288 +111,423 @@ if (!listing) {
         "";
 
 
-    listingDetails.innerHTML = `
-        <section
-            class="listing-card listing-gallery"
-        >
-            ${
-                mainPhoto
-                    ? `
-                        <div class="listing-photo-stage">
+    /* ===== ВИЗНАЧЕННЯ ВЛАСНИКА ===== */
 
-                            <button
-                                type="button"
-                                id="previousListingPhoto"
-                                class="listing-photo-arrow listing-photo-arrow-left"
-                                aria-label="Попереднє фото"
-                            >
-                                ‹
-                            </button>
-
-                            <img
-                                id="listingMainPhoto"
-                                class="listing-main-photo"
-                                src="${mainPhoto}"
-                                alt="${listing.name}"
-                            >
-
-                            <button
-                                type="button"
-                                id="nextListingPhoto"
-                                class="listing-photo-arrow listing-photo-arrow-right"
-                                aria-label="Наступне фото"
-                            >
-                                ›
-                            </button>
-
-                            <div
-                                id="listingPhotoCounter"
-                                class="listing-photo-counter"
-                            >
-                                ${mainPhotoIndex + 1} / ${photos.length}
-                            </div>
-
-                        </div>
-
-                        <div
-                            id="listingPhotoThumbnails"
-                            class="listing-photo-thumbnails"
-                        >
-                            ${photos
-                                .map(
-                                    (photo, index) => `
-                                        <button
-                                            type="button"
-                                            class="listing-photo-thumbnail ${
-                                                index === mainPhotoIndex
-                                                    ? "is-active"
-                                                    : ""
-                                            }"
-                                            data-photo-index="${index}"
-                                            aria-label="Відкрити фото ${index + 1}"
-                                        >
-                                            <img
-                                                src="${photo}"
-                                                alt="${listing.name}, фото ${index + 1}"
-                                            >
-                                        </button>
-                                    `
-                                )
-                                .join("")}
-                        </div>
-                    `
-                    : `
-                        <div class="listing-no-photo">
-                            🚗 Немає фотографії
-                        </div>
-                    `
-            }
-        </section>
+    const currentUser =
+        typeof getCurrentUser === "function"
+            ? getCurrentUser()
+            : null;
 
 
-        <section class="listing-card">
-            <h1>
-                ${listing.name} (${listing.year})
-            </h1>
+    const currentUserId =
+        currentUser?.id ||
+        currentUser?.userId ||
+        currentUser?.email ||
+        "";
 
-            <h2 class="listing-price">
-                ${Number(
-                    listing.priceUsd || 0
-                ).toLocaleString("uk-UA")} $
-            </h2>
 
-            <p>
-                ≈ ${Number(
-                    listing.priceUah || 0
-                ).toLocaleString("uk-UA")} грн
-            </p>
+    const listingOwnerId =
+        listing.ownerId ||
+        listing.userId ||
+        listing.sellerId ||
+        listing.ownerEmail ||
+        listing.email ||
+        "";
 
-            <p>
-                📍 ${listing.city || "Місто не вказано"}
-            </p>
 
-            <p>
-                Опубліковано:
+    const isListingOwner =
+        Boolean(
+            currentUser &&
+            currentUserId &&
+            listingOwnerId &&
+            String(currentUserId) ===
+                String(listingOwnerId)
+        );
+
+
+    /* ===== ВИВЕДЕННЯ ОГОЛОШЕННЯ ===== */
+
+    if (listingDetails) {
+        listingDetails.innerHTML = `
+            <section
+                class="listing-card listing-gallery"
+            >
                 ${
-                    listing.createdAt
-                        ? new Date(
-                            listing.createdAt
-                        ).toLocaleDateString(
-                            "uk-UA"
-                        )
-                        : "Дата не вказана"
-                }
-            </p>
-        </section>
-
-
-        <section class="listing-card">
-            <h2>Основні параметри</h2>
-
-            <div class="listing-parameters">
-                <p>
-                    <strong>Рік випуску:</strong>
-
-                    ${
-                        listing.year ||
-                        "Не вказано"
-                    }
-                </p>
-
-                <p>
-                    <strong>Пробіг:</strong>
-
-                    ${Number(
-                        listing.mileage || 0
-                    ).toLocaleString("uk-UA")} км
-                </p>
-
-                <p>
-                    <strong>Пальне:</strong>
-
-                    ${
-                        listing.fuel ||
-                        "Не вказано"
-                    }
-                </p>
-
-                <p>
-                    <strong>Коробка:</strong>
-
-                    ${
-                        listing.transmission ||
-                        "Не вказано"
-                    }
-                </p>
-
-                <p>
-                    <strong>Кузов:</strong>
-
-                    ${
-                        listing.body ||
-                        "Не вказано"
-                    }
-                </p>
-
-                <p>
-                    <strong>Привід:</strong>
-
-                    ${
-                        listing.drive ||
-                        "Не вказано"
-                    }
-                </p>
-
-                <p>
-                    <strong>
-                        ${
-                            listing.powerType ===
-                            "battery"
-                                ? "Ємність батареї:"
-                                : "Об’єм двигуна:"
-                        }
-                    </strong>
-
-                    ${
-                        listing.powerValue
-                            ? `${listing.powerValue} ${
-                                listing.powerType ===
-                                "battery"
-                                    ? "кВт·год"
-                                    : "л"
-                            }`
-                            : listing.engine ||
-                              "Не вказано"
-                    }
-                </p>
-
-                <p>
-                    <strong>VIN-код:</strong>
-
-                    <span id="listingVinValue">
-                        ${
-                            listing.vin ||
-                            "Не вказано"
-                        }
-                    </span>
-
-                    ${
-                        listing.vin
-                            ? `
+                    mainPhoto
+                        ? `
+                            <div
+                                class="listing-photo-stage"
+                            >
                                 <button
                                     type="button"
-                                    id="copyVinButton"
-                                    class="copy-vin-button"
+                                    id="previousListingPhoto"
+                                    class="listing-photo-arrow listing-photo-arrow-left"
+                                    aria-label="Попереднє фото"
                                 >
-                                    Копіювати VIN
+                                    ‹
                                 </button>
-                            `
-                            : ""
+
+                                <img
+                                    id="listingMainPhoto"
+                                    class="listing-main-photo"
+                                    src="${mainPhoto}"
+                                    alt="${listing.name || "Автомобіль"}"
+                                >
+
+                                <button
+                                    type="button"
+                                    id="nextListingPhoto"
+                                    class="listing-photo-arrow listing-photo-arrow-right"
+                                    aria-label="Наступне фото"
+                                >
+                                    ›
+                                </button>
+
+                                <div
+                                    id="listingPhotoCounter"
+                                    class="listing-photo-counter"
+                                >
+                                    ${mainPhotoIndex + 1}
+                                    /
+                                    ${photos.length}
+                                </div>
+                            </div>
+
+                            <div
+                                id="listingPhotoThumbnails"
+                                class="listing-photo-thumbnails"
+                            >
+                                ${photos
+                                    .map(
+                                        (
+                                            photo,
+                                            index
+                                        ) => `
+                                            <button
+                                                type="button"
+                                                class="listing-photo-thumbnail ${
+                                                    index ===
+                                                    mainPhotoIndex
+                                                        ? "is-active"
+                                                        : ""
+                                                }"
+                                                data-photo-index="${index}"
+                                                aria-label="Відкрити фото ${
+                                                    index + 1
+                                                }"
+                                            >
+                                                <img
+                                                    src="${photo}"
+                                                    alt="${
+                                                        listing.name ||
+                                                        "Автомобіль"
+                                                    }, фото ${
+                                                        index + 1
+                                                    }"
+                                                >
+                                            </button>
+                                        `
+                                    )
+                                    .join("")}
+                            </div>
+                        `
+                        : `
+                            <div
+                                class="listing-no-photo"
+                            >
+                                🚗 Немає фотографії
+                            </div>
+                        `
+                }
+            </section>
+
+
+            <section class="listing-card">
+                <h1>
+                    ${
+                        listing.name ||
+                        "Автомобіль"
+                    }
+                    (
+                    ${
+                        listing.year ||
+                        "рік не вказано"
+                    }
+                    )
+                </h1>
+
+                <h2 class="listing-price">
+                    ${Number(
+                        listing.priceUsd || 0
+                    ).toLocaleString(
+                        "uk-UA"
+                    )}
+                    $
+                </h2>
+
+                <p>
+                    ≈
+                    ${Number(
+                        listing.priceUah || 0
+                    ).toLocaleString(
+                        "uk-UA"
+                    )}
+                    грн
+                </p>
+
+                <p>
+                    📍
+                    ${
+                        listing.city ||
+                        "Місто не вказано"
                     }
                 </p>
-            </div>
-        </section>
+
+                <p>
+                    Опубліковано:
+                    ${
+                        listing.createdAt
+                            ? new Date(
+                                listing.createdAt
+                            ).toLocaleDateString(
+                                "uk-UA"
+                            )
+                            : "Дата не вказана"
+                    }
+                </p>
+            </section>
 
 
-        <section class="listing-card">
-            <h2>Опис автомобіля</h2>
+            <section class="listing-card">
+                <h2>
+                    Основні параметри
+                </h2>
 
-            <p class="listing-description">
-                ${
-                    listing.description ||
-                    "Опис не додано."
-                }
-            </p>
-        </section>
+                <div
+                    class="listing-parameters"
+                >
+                    <p>
+                        <strong>
+                            Рік випуску:
+                        </strong>
+
+                        ${
+                            listing.year ||
+                            "Не вказано"
+                        }
+                    </p>
+
+                    <p>
+                        <strong>
+                            Пробіг:
+                        </strong>
+
+                        ${Number(
+                            listing.mileage || 0
+                        ).toLocaleString(
+                            "uk-UA"
+                        )}
+                        км
+                    </p>
+
+                    <p>
+                        <strong>
+                            Пальне:
+                        </strong>
+
+                        ${
+                            listing.fuel ||
+                            "Не вказано"
+                        }
+                    </p>
+
+                    <p>
+                        <strong>
+                            Коробка:
+                        </strong>
+
+                        ${
+                            listing.transmission ||
+                            "Не вказано"
+                        }
+                    </p>
+
+                    <p>
+                        <strong>
+                            Кузов:
+                        </strong>
+
+                        ${
+                            listing.body ||
+                            "Не вказано"
+                        }
+                    </p>
+
+                    <p>
+                        <strong>
+                            Привід:
+                        </strong>
+
+                        ${
+                            listing.drive ||
+                            "Не вказано"
+                        }
+                    </p>
+
+                    <p>
+                        <strong>
+                            ${
+                                listing.powerType ===
+                                "battery"
+                                    ? "Ємність батареї:"
+                                    : "Об’єм двигуна:"
+                            }
+                        </strong>
+
+                        ${
+                            listing.powerValue
+                                ? `
+                                    ${listing.powerValue}
+                                    ${
+                                        listing.powerType ===
+                                        "battery"
+                                            ? "кВт·год"
+                                            : "л"
+                                    }
+                                `
+                                : listing.engine ||
+                                  "Не вказано"
+                        }
+                    </p>
+
+                    <p>
+                        <strong>
+                            VIN-код:
+                        </strong>
+
+                        <span
+                            id="listingVinValue"
+                        >
+                            ${
+                                listing.vin ||
+                                "Не вказано"
+                            }
+                        </span>
+
+                        ${
+                            listing.vin
+                                ? `
+                                    <button
+                                        type="button"
+                                        id="copyVinButton"
+                                        class="copy-vin-button"
+                                    >
+                                        Копіювати VIN
+                                    </button>
+                                `
+                                : ""
+                        }
+                    </p>
+                </div>
+            </section>
 
 
-        <section
-            class="listing-card seller-card"
-        >
-            <h2>Продавець</h2>
+            <section class="listing-card">
+                <h2>
+                    Опис автомобіля
+                </h2>
 
-            <p>
-                Місто:
-                ${
-                    listing.city ||
-                    "Не вказано"
-                }
-            </p>
+                <p
+                    class="listing-description"
+                >
+                    ${
+                        listing.description ||
+                        "Опис не додано."
+                    }
+                </p>
+            </section>
 
-            <button
-                type="button"
-                id="showPhoneButton"
-                class="primary-button"
+
+            <section
+                class="listing-card seller-card"
             >
-                Показати номер
-            </button>
+                <h2>
+                    Продавець
+                </h2>
 
-            <button
-                type="button"
-                id="openChatButton"
-                class="secondary-button"
-            >
-                Написати продавцю
-            </button>
+                <p>
+                    Місто:
+                    ${
+                        listing.city ||
+                        "Не вказано"
+                    }
+                </p>
 
-            <button
-            type="button"
-            id="serviceHistoryButton"
-            class="secondary-button"
-        >
-            Подивитися історію обслуговування
-        </button>
+                <button
+                    type="button"
+                    id="showPhoneButton"
+                    class="primary-button"
+                >
+                    Показати номер
+                </button>
 
-        <button
-    type="button"
-    id="checkVinButton"
-    class="secondary-button"
->
-    Перевірити автомобіль за VIN
-</button>
+                <button
+                    type="button"
+                    id="openChatButton"
+                    class="secondary-button"
+                >
+                    Написати продавцю
+                </button>
 
-        </section>
-    `;
+                <button
+                    type="button"
+                    id="serviceHistoryButton"
+                    class="secondary-button"
+                >
+                    Подивитися історію
+                    обслуговування
+                </button>
+
+                <button
+                    type="button"
+                    id="checkVinButton"
+                    class="secondary-button"
+                >
+                    Перевірити автомобіль
+                    за VIN
+                </button>
+
+                ${
+                    isListingOwner
+                        ? `
+                            <div
+                                id="listingOwnerActions"
+                                class="listing-owner-actions"
+                            >
+                                <button
+                                    type="button"
+                                    id="editListingButton"
+                                    class="primary-button"
+                                >
+                                    ✏️ Редагувати
+                                    оголошення
+                                </button>
+
+                                <button
+                                    type="button"
+                                    id="deleteListingButton"
+                                    class="secondary-button"
+                                >
+                                    🗑️ Видалити
+                                    оголошення
+                                </button>
+                            </div>
+                        `
+                        : ""
+                }
+            </section>
+        `;
+    }
 
 
     /* ===== КНОПКА НОМЕРА ===== */
@@ -393,23 +553,41 @@ if (!listing) {
     /* ===== КНОПКА ЧАТУ ===== */
 
     const openChatButton =
-        document.getElementById(
-            "openChatButton"
-        );
+    document.getElementById(
+        "openChatButton"
+    );
 
+if (openChatButton) {
 
-    if (openChatButton) {
+    if (isListingOwner) {
+
+        openChatButton.textContent =
+            "Мої чати";
+
         openChatButton.addEventListener(
             "click",
             () => {
-                const currentUser =
-                    getCurrentUser();
+                window.location.href =
+                "profile.html?section=chats";
+            }
+        );
 
-                if (!currentUser) {
+    } else {
+
+        openChatButton.addEventListener(
+            "click",
+            () => {
+
+                const user =
+                    typeof getCurrentUser ===
+                    "function"
+                        ? getCurrentUser()
+                        : null;
+
+                if (!user) {
                     alert(
                         "Спочатку увійдіть у свій профіль."
                     );
-
                     return;
                 }
 
@@ -419,40 +597,146 @@ if (!listing) {
                     )}`;
             }
         );
+
+    }
+
+}
+    /* ===== КНОПКА ІСТОРІЇ ===== */
+
+    const serviceHistoryButton =
+        document.getElementById(
+            "serviceHistoryButton"
+        );
+
+
+    if (serviceHistoryButton) {
+        serviceHistoryButton.addEventListener(
+            "click",
+            () => {
+                window.location.href =
+                    `profile.html?section=service&listingId=${encodeURIComponent(
+                        listing.id
+                    )}`;
+            }
+        );
     }
 
 
- /* ===== КНОПКА ІСТОРІЇ ===== */
+    /* ===== КНОПКА ПЕРЕВІРКИ VIN ===== */
 
- const serviceHistoryButton =
- document.getElementById("serviceHistoryButton");
-
-if (serviceHistoryButton) {
- serviceHistoryButton.addEventListener("click", () => {
-     window.location.href =
-         `profile.html?section=service&listingId=${encodeURIComponent(
-             listing.id
-         )}`;
- });
-}
+    const checkVinButton =
+        document.getElementById(
+            "checkVinButton"
+        );
 
 
-const checkVinButton =
-    document.getElementById("checkVinButton");
+    if (checkVinButton) {
+        checkVinButton.addEventListener(
+            "click",
+            () => {
+                if (!listing.vin) {
+                    alert(
+                        "VIN-код цього автомобіля не вказаний."
+                    );
 
-if (checkVinButton) {
-    checkVinButton.addEventListener("click", () => {
-        if (!listing.vin) {
-            alert("VIN-код цього автомобіля не вказаний.");
-            return;
-        }
+                    return;
+                }
 
-        window.location.href =
-            `vin-check.html?vin=${encodeURIComponent(
-                listing.vin
-            )}`;
-    });
-}
+
+                window.location.href =
+                    `vin-check.html?vin=${encodeURIComponent(
+                        listing.vin
+                    )}`;
+            }
+        );
+    }
+
+
+    /* ===== КНОПКА РЕДАГУВАННЯ ===== */
+
+    const editListingButton =
+        document.getElementById(
+            "editListingButton"
+        );
+
+
+    if (editListingButton) {
+        editListingButton.addEventListener(
+            "click",
+            () => {
+                window.location.href =
+                    `market.html?edit=${encodeURIComponent(
+                        listing.id
+                    )}`;
+            }
+        );
+    }
+
+
+    /* ===== КНОПКА ВИДАЛЕННЯ ===== */
+
+    const deleteListingButton =
+        document.getElementById(
+            "deleteListingButton"
+        );
+
+
+    if (deleteListingButton) {
+        deleteListingButton.addEventListener(
+            "click",
+            () => {
+                const shouldDelete =
+                    window.confirm(
+                        "Ви точно хочете видалити це оголошення?"
+                    );
+
+
+                if (!shouldDelete) {
+                    return;
+                }
+
+
+                const updatedListings =
+                    listings.filter(
+                        (item) =>
+                            String(item.id) !==
+                            String(listing.id)
+                    );
+
+
+                try {
+                    localStorage.setItem(
+                        MARKET_STORAGE_KEY,
+                        JSON.stringify(
+                            updatedListings
+                        )
+                    );
+                } catch (error) {
+                    console.error(
+                        "Не вдалося видалити оголошення:",
+                        error
+                    );
+
+                    alert(
+                        "Не вдалося видалити оголошення."
+                    );
+
+                    return;
+                }
+
+
+                alert(
+                    "Оголошення успішно видалено."
+                );
+
+
+                window.location.href =
+                    "market.html";
+            }
+        );
+    }
+
+
     /* ===== КОПІЮВАННЯ VIN ===== */
 
     const copyVinButton =
@@ -466,12 +750,15 @@ if (checkVinButton) {
             "click",
             async () => {
                 try {
-                    await navigator.clipboard.writeText(
-                        listing.vin
-                    );
+                    await navigator.clipboard
+                        .writeText(
+                            listing.vin
+                        );
+
 
                     copyVinButton.textContent =
                         "Скопійовано ✓";
+
 
                     setTimeout(
                         () => {
@@ -571,6 +858,7 @@ if (checkVinButton) {
             return;
         }
 
+
         currentPhotoIndex =
             (
                 index +
@@ -587,7 +875,10 @@ if (checkVinButton) {
 
 
         listingMainPhoto.alt =
-            `${listing.name}, фото ${
+            `${
+                listing.name ||
+                "Автомобіль"
+            }, фото ${
                 currentPhotoIndex + 1
             }`;
 
@@ -633,7 +924,10 @@ if (checkVinButton) {
 
 
             photoViewerImage.alt =
-                `${listing.name}, фото ${
+                `${
+                    listing.name ||
+                    "Автомобіль"
+                }, фото ${
                     currentPhotoIndex + 1
                 }`;
         }
@@ -645,6 +939,7 @@ if (checkVinButton) {
             event.stopPropagation();
         }
 
+
         showListingPhoto(
             currentPhotoIndex - 1
         );
@@ -655,6 +950,7 @@ if (checkVinButton) {
         if (event) {
             event.stopPropagation();
         }
+
 
         showListingPhoto(
             currentPhotoIndex + 1
@@ -670,6 +966,7 @@ if (checkVinButton) {
         ) {
             return;
         }
+
 
         photoViewerImage.src =
             photos[currentPhotoIndex] ||
@@ -707,6 +1004,7 @@ if (checkVinButton) {
             return;
         }
 
+
         if (
             document.activeElement &&
             photoViewer.contains(
@@ -715,6 +1013,7 @@ if (checkVinButton) {
         ) {
             document.activeElement.blur();
         }
+
 
         photoViewer.classList.remove(
             "is-open"
@@ -738,7 +1037,7 @@ if (checkVinButton) {
     }
 
 
-    /* ===== СТРІЛКИ БІЛЯ ГОЛОВНОГО ФОТО ===== */
+    /* ===== СТРІЛКИ ГАЛЕРЕЇ ===== */
 
     if (previousListingPhoto) {
         previousListingPhoto.addEventListener(
@@ -769,6 +1068,7 @@ if (checkVinButton) {
                                 .photoIndex
                         );
 
+
                     showListingPhoto(
                         photoIndex
                     );
@@ -778,7 +1078,7 @@ if (checkVinButton) {
     );
 
 
-    /* ===== ВІДКРИТТЯ НА ВЕСЬ ЕКРАН ===== */
+    /* ===== ВІДКРИТТЯ ФОТО ===== */
 
     if (listingMainPhoto) {
         listingMainPhoto.addEventListener(
@@ -787,7 +1087,8 @@ if (checkVinButton) {
         );
 
 
-        listingMainPhoto.tabIndex = 0;
+        listingMainPhoto.tabIndex =
+            0;
 
 
         listingMainPhoto.setAttribute(
@@ -811,6 +1112,7 @@ if (checkVinButton) {
                 ) {
                     event.preventDefault();
 
+
                     openPhotoViewer();
                 }
             }
@@ -818,7 +1120,7 @@ if (checkVinButton) {
     }
 
 
-    /* ===== СТРІЛКИ У ПОВНОЕКРАННОМУ РЕЖИМІ ===== */
+    /* ===== СТРІЛКИ ПОВНОГО ЕКРАНА ===== */
 
     if (previousViewerPhoto) {
         previousViewerPhoto.addEventListener(
@@ -836,7 +1138,7 @@ if (checkVinButton) {
     }
 
 
-    /* ===== ЗАКРИТТЯ ПОВНОЕКРАННОГО РЕЖИМУ ===== */
+    /* ===== ЗАКРИТТЯ ПОВНОГО ЕКРАНА ===== */
 
     if (closePhotoViewerButton) {
         closePhotoViewerButton.addEventListener(
@@ -861,15 +1163,16 @@ if (checkVinButton) {
     }
 
 
-    /* ===== КЛАВІАТУРА ===== */
+    /* ===== КЕРУВАННЯ КЛАВІАТУРОЮ ===== */
 
     document.addEventListener(
         "keydown",
         (event) => {
             const viewerIsOpen =
-                photoViewer?.classList.contains(
-                    "is-open"
-                );
+                photoViewer?.classList
+                    .contains(
+                        "is-open"
+                    );
 
 
             if (!viewerIsOpen) {
@@ -884,21 +1187,27 @@ if (checkVinButton) {
             }
 
 
-            if (event.key === "ArrowLeft") {
+            if (
+                event.key ===
+                "ArrowLeft"
+            ) {
                 showPreviousPhoto();
 
                 return;
             }
 
 
-            if (event.key === "ArrowRight") {
+            if (
+                event.key ===
+                "ArrowRight"
+            ) {
                 showNextPhoto();
             }
         }
     );
 
 
-    /* ===== СТРІЛКИ НЕ ПОТРІБНІ ДЛЯ ОДНОГО ФОТО ===== */
+    /* ===== ПРИХОВАТИ СТРІЛКИ ДЛЯ ОДНОГО ФОТО ===== */
 
     if (photos.length <= 1) {
         if (previousListingPhoto) {
@@ -906,15 +1215,18 @@ if (checkVinButton) {
                 true;
         }
 
+
         if (nextListingPhoto) {
             nextListingPhoto.hidden =
                 true;
         }
 
+
         if (previousViewerPhoto) {
             previousViewerPhoto.hidden =
                 true;
         }
+
 
         if (nextViewerPhoto) {
             nextViewerPhoto.hidden =
