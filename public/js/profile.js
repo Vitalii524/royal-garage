@@ -3455,20 +3455,17 @@ if (
     );
 }
 
-const openChatsButton =
+const globalOpenChatsButton =
     document.getElementById(
-        "openChatsButton"
+        "globalOpenChatsButton"
     );
 
-if (openChatsButton) {
-    openChatsButton.addEventListener(
+if (globalOpenChatsButton) {
+    globalOpenChatsButton.addEventListener(
         "click",
         () => {
             renderMyChats();
-
-            openModal(
-                elements.chatsModal
-            );
+            openModal(chatsModal);
         }
     );
 }
