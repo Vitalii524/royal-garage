@@ -633,3 +633,33 @@
         font-size: 13px;
     }
 }
+
+.global-chats-actions {
+    display: flex;
+    justify-content: center;
+    padding: 24px 20px 40px;
+}
+
+.global-chats-button {
+    width: 100%;
+    max-width: 330px;
+    min-height: 56px;
+    font-size: 18px;
+    font-weight: 700;
+    border-radius: 14px;
+    cursor: pointer;
+}
+
+#profileUnreadCount:not(:empty) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    margin-left: 8px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: #f4b72f;
+    color: #111;
+    font-size: 14px;
+}
