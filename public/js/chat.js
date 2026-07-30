@@ -10,6 +10,9 @@ const IMAGE_MAX_WIDTH = 1280;
 const IMAGE_MAX_HEIGHT = 1280;
 const IMAGE_QUALITY = 0.75;
 
+const CHAT_REFRESH_INTERVAL = 1500;
+const BOTTOM_SCROLL_THRESHOLD = 100;
+
 const chatTitle =
     document.getElementById("chatTitle");
 
@@ -66,13 +69,29 @@ const withUserId =
 let selectedAttachment = null;
 let isSendingMessage = false;
 
+let isFirstMessagesRender = true;
+let previousConversationSignature = "";
+let chatRefreshInterval = null;
+
+
+/* =========================================================
+   LOCAL STORAGE
+========================================================= */
+
 function readStorage(key) {
     try {
         const value =
             localStorage.getItem(key);
 
-        return value
-            ? JSON.parse(value)
+        if (!value) {
+            return [];
+        }
+
+        const parsedValue =
+            JSON.parse(value);
+
+        return Array.isArray(parsedValue)
+            ? parsedValue
             : [];
     } catch (error) {
         console.error(
@@ -108,6 +127,11 @@ function saveStorage(key, value) {
     }
 }
 
+
+/* =========================================================
+   ПОМИЛКИ
+========================================================= */
+
 function showFileError(message) {
     if (!chatFileError) {
         return;
@@ -125,6 +149,11 @@ function clearFileError() {
     chatFileError.textContent = "";
     chatFileError.hidden = true;
 }
+
+
+/* =========================================================
+   ДОПОМІЖНІ ФУНКЦІЇ
+========================================================= */
 
 function generateMessageId() {
     return (
@@ -154,6 +183,102 @@ function formatFileSize(bytes) {
         ).toFixed(1)
     } МБ`;
 }
+
+function formatMessageDate(dateValue) {
+    const date =
+        new Date(dateValue);
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+        return "";
+    }
+
+    return date.toLocaleString(
+        "uk-UA",
+        {
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit"
+        }
+    );
+}
+
+function isNearChatBottom() {
+    if (!chatMessages) {
+        return true;
+    }
+
+    const distanceFromBottom =
+        chatMessages.scrollHeight -
+        chatMessages.scrollTop -
+        chatMessages.clientHeight;
+
+    return (
+        distanceFromBottom <=
+        BOTTOM_SCROLL_THRESHOLD
+    );
+}
+
+function scrollChatToBottom(
+    behavior = "auto"
+) {
+    if (!chatMessages) {
+        return;
+    }
+
+    chatMessages.scrollTo({
+        top: chatMessages.scrollHeight,
+        behavior
+    });
+}
+
+function createConversationSignature(
+    conversation
+) {
+    return JSON.stringify(
+        conversation.map(
+            (message) => ({
+                id: message.id,
+                text: message.text || "",
+                createdAt:
+                    message.createdAt || "",
+                editedAt:
+                    message.editedAt || "",
+                deletedAt:
+                    message.deletedAt || "",
+                readAt:
+                    message.readAt || "",
+                attachmentType:
+                    message.attachment?.type || "",
+                attachmentData:
+                    message.attachment?.data || ""
+            })
+        )
+    );
+}
+
+function closeAllMessageMenus() {
+    document
+        .querySelectorAll(
+            ".chat-message-menu.is-open"
+        )
+        .forEach(
+            (menu) => {
+                menu.classList.remove(
+                    "is-open"
+                );
+            }
+        );
+}
+
+
+/* =========================================================
+   ФАЙЛИ
+========================================================= */
 
 function fileToDataUrl(file) {
     return new Promise(
@@ -254,6 +379,11 @@ async function compressImage(file) {
         IMAGE_QUALITY
     );
 }
+
+
+/* =========================================================
+   ВКЛАДЕННЯ
+========================================================= */
 
 function clearSelectedAttachment() {
     selectedAttachment = null;
@@ -448,6 +578,11 @@ async function handleAttachmentSelection(
     }
 }
 
+
+/* =========================================================
+   ПЕРЕГЛЯД ФОТО
+========================================================= */
+
 function openImageViewer(
     imageSource
 ) {
@@ -488,6 +623,7 @@ function createMessageAttachment(
     message
 ) {
     if (
+        message.deletedAt ||
         !message.attachment ||
         !message.attachment.data
     ) {
@@ -557,6 +693,11 @@ function createMessageAttachment(
     return attachmentWrapper;
 }
 
+
+/* =========================================================
+   ОГОЛОШЕННЯ
+========================================================= */
+
 const listings =
     readStorage(
         LISTINGS_STORAGE_KEY
@@ -578,6 +719,11 @@ if (chatBackLink) {
         }`
         : "market.html";
 }
+
+
+/* =========================================================
+   ЗАПУСК ЧАТУ
+========================================================= */
 
 if (!currentUser) {
     if (chatMessages) {
@@ -624,7 +770,11 @@ if (!currentUser) {
 
     if (chatTitle) {
         chatTitle.textContent =
-            `Чат щодо ${listing.name} (${listing.year})`;
+            `Чат щодо ${
+                listing.name || "автомобіля"
+            } (${
+                listing.year || "рік не вказано"
+            })`;
     }
 
     if (!chatPartnerId) {
@@ -645,8 +795,16 @@ if (!currentUser) {
         );
     }
 
+
+    /* =====================================================
+       ПРОЧИТАННЯ ПОВІДОМЛЕНЬ
+    ===================================================== */
+
     function markIncomingMessagesAsRead() {
-        if (!chatPartnerId) {
+        if (
+            !chatPartnerId ||
+            document.hidden
+        ) {
             return;
         }
 
@@ -693,6 +851,11 @@ if (!currentUser) {
             );
         }
     }
+
+
+    /* =====================================================
+       ОТРИМАННЯ ДІАЛОГУ
+    ===================================================== */
 
     function getConversationMessages() {
         const messages =
@@ -751,7 +914,309 @@ if (!currentUser) {
             );
     }
 
-    function renderMessages() {
+
+    /* =====================================================
+       РЕДАГУВАННЯ
+    ===================================================== */
+
+    function editMessage(messageId) {
+        closeAllMessageMenus();
+
+        const messages =
+            readStorage(
+                MESSAGES_STORAGE_KEY
+            );
+
+        const message =
+            messages.find(
+                (item) =>
+                    String(item.id) ===
+                    String(messageId)
+            );
+
+        if (!message) {
+            alert(
+                "Повідомлення не знайдено."
+            );
+
+            return;
+        }
+
+        if (
+            String(message.senderId) !==
+            currentUserId
+        ) {
+            alert(
+                "Можна редагувати лише власні повідомлення."
+            );
+
+            return;
+        }
+
+        if (message.deletedAt) {
+            alert(
+                "Видалене повідомлення не можна редагувати."
+            );
+
+            return;
+        }
+
+        if (
+            !message.text ||
+            !message.text.trim()
+        ) {
+            alert(
+                "У повідомленні немає тексту для редагування."
+            );
+
+            return;
+        }
+
+        const editedText =
+            window.prompt(
+                "Редагування повідомлення:",
+                message.text
+            );
+
+        if (editedText === null) {
+            return;
+        }
+
+        const normalizedText =
+            editedText.trim();
+
+        if (!normalizedText) {
+            alert(
+                "Повідомлення не може бути порожнім."
+            );
+
+            return;
+        }
+
+        if (
+            normalizedText ===
+            message.text.trim()
+        ) {
+            return;
+        }
+
+        message.text =
+            normalizedText;
+
+        message.editedAt =
+            new Date().toISOString();
+
+        const wasSaved =
+            saveStorage(
+                MESSAGES_STORAGE_KEY,
+                messages
+            );
+
+        if (wasSaved) {
+            renderMessages({
+                forceRender: true,
+                preservePosition: true
+            });
+        }
+    }
+
+
+    /* =====================================================
+       ВИДАЛЕННЯ
+    ===================================================== */
+
+    function deleteMessage(messageId) {
+        closeAllMessageMenus();
+
+        const messages =
+            readStorage(
+                MESSAGES_STORAGE_KEY
+            );
+
+        const message =
+            messages.find(
+                (item) =>
+                    String(item.id) ===
+                    String(messageId)
+            );
+
+        if (!message) {
+            alert(
+                "Повідомлення не знайдено."
+            );
+
+            return;
+        }
+
+        if (
+            String(message.senderId) !==
+            currentUserId
+        ) {
+            alert(
+                "Можна видаляти лише власні повідомлення."
+            );
+
+            return;
+        }
+
+        if (message.deletedAt) {
+            return;
+        }
+
+        const shouldDelete =
+            window.confirm(
+                "Видалити це повідомлення?"
+            );
+
+        if (!shouldDelete) {
+            return;
+        }
+
+        message.text = "";
+        message.attachment = null;
+        message.editedAt = null;
+
+        message.deletedAt =
+            new Date().toISOString();
+
+        const wasSaved =
+            saveStorage(
+                MESSAGES_STORAGE_KEY,
+                messages
+            );
+
+        if (wasSaved) {
+            renderMessages({
+                forceRender: true,
+                preservePosition: true
+            });
+        }
+    }
+
+
+    /* =====================================================
+       МЕНЮ ДІЙ
+    ===================================================== */
+
+    function createMessageActions(
+        message
+    ) {
+        const actions =
+            document.createElement("div");
+
+        actions.className =
+            "chat-message-actions";
+
+        const menuButton =
+            document.createElement("button");
+
+        menuButton.type = "button";
+
+        menuButton.className =
+            "chat-message-menu-button";
+
+        menuButton.textContent = "⋮";
+
+        menuButton.setAttribute(
+            "aria-label",
+            "Дії з повідомленням"
+        );
+
+        const menu =
+            document.createElement("div");
+
+        menu.className =
+            "chat-message-menu";
+
+        if (
+            message.text &&
+            message.text.trim()
+        ) {
+            const editButton =
+                document.createElement("button");
+
+            editButton.type = "button";
+
+            editButton.className =
+                "chat-message-action-button";
+
+            editButton.textContent =
+                "Редагувати";
+
+            editButton.addEventListener(
+                "click",
+                () => {
+                    editMessage(
+                        message.id
+                    );
+                }
+            );
+
+            menu.appendChild(
+                editButton
+            );
+        }
+
+        const deleteButton =
+            document.createElement("button");
+
+        deleteButton.type = "button";
+
+        deleteButton.className =
+            "chat-message-action-button chat-message-delete-button";
+
+        deleteButton.textContent =
+            "Видалити";
+
+        deleteButton.addEventListener(
+            "click",
+            () => {
+                deleteMessage(
+                    message.id
+                );
+            }
+        );
+
+        menu.appendChild(
+            deleteButton
+        );
+
+        menuButton.addEventListener(
+            "click",
+            (event) => {
+                event.stopPropagation();
+
+                const wasOpen =
+                    menu.classList.contains(
+                        "is-open"
+                    );
+
+                closeAllMessageMenus();
+
+                if (!wasOpen) {
+                    menu.classList.add(
+                        "is-open"
+                    );
+                }
+            }
+        );
+
+        actions.append(
+            menuButton,
+            menu
+        );
+
+        return actions;
+    }
+
+
+    /* =====================================================
+       ВИВЕДЕННЯ ПОВІДОМЛЕНЬ
+    ===================================================== */
+
+    function renderMessages(
+        options = {}
+    ) {
         if (
             !chatPartnerId ||
             !chatMessages
@@ -759,10 +1224,42 @@ if (!currentUser) {
             return;
         }
 
+        const {
+            forceScrollBottom = false,
+            forceRender = false,
+            preservePosition = true
+        } = options;
+
+        const wasNearBottom =
+            isNearChatBottom();
+
+        const previousScrollTop =
+            chatMessages.scrollTop;
+
+        const previousScrollHeight =
+            chatMessages.scrollHeight;
+
         markIncomingMessagesAsRead();
 
         const conversation =
             getConversationMessages();
+
+        const conversationSignature =
+            createConversationSignature(
+                conversation
+            );
+
+        if (
+            !forceRender &&
+            !isFirstMessagesRender &&
+            conversationSignature ===
+                previousConversationSignature
+        ) {
+            return;
+        }
+
+        previousConversationSignature =
+            conversationSignature;
 
         chatMessages.innerHTML = "";
 
@@ -774,6 +1271,8 @@ if (!currentUser) {
                     Повідомлень поки немає.
                 </p>
             `;
+
+            isFirstMessagesRender = false;
 
             return;
         }
@@ -795,35 +1294,59 @@ if (!currentUser) {
                         ? "chat-message chat-message-own"
                         : "chat-message chat-message-other";
 
-                if (
-                    message.text &&
-                    message.text.trim()
-                ) {
-                    const messageText =
+                messageElement.dataset.messageId =
+                    String(message.id);
+
+                if (message.deletedAt) {
+                    messageElement.classList.add(
+                        "chat-message-deleted"
+                    );
+
+                    const deletedText =
                         document.createElement(
                             "p"
                         );
 
-                    messageText.className =
-                        "chat-message-text";
+                    deletedText.className =
+                        "chat-message-text chat-message-deleted-text";
 
-                    messageText.textContent =
-                        message.text;
+                    deletedText.textContent =
+                        "Повідомлення видалено";
 
                     messageElement.appendChild(
-                        messageText
+                        deletedText
                     );
-                }
+                } else {
+                    if (
+                        message.text &&
+                        message.text.trim()
+                    ) {
+                        const messageText =
+                            document.createElement(
+                                "p"
+                            );
 
-                const attachmentElement =
-                    createMessageAttachment(
-                        message
-                    );
+                        messageText.className =
+                            "chat-message-text";
 
-                if (attachmentElement) {
-                    messageElement.appendChild(
-                        attachmentElement
-                    );
+                        messageText.textContent =
+                            message.text;
+
+                        messageElement.appendChild(
+                            messageText
+                        );
+                    }
+
+                    const attachmentElement =
+                        createMessageAttachment(
+                            message
+                        );
+
+                    if (attachmentElement) {
+                        messageElement.appendChild(
+                            attachmentElement
+                        );
+                    }
                 }
 
                 const messageFooter =
@@ -839,35 +1362,37 @@ if (!currentUser) {
                         "small"
                     );
 
-                const createdAtDate =
-                    new Date(
+                messageTime.className =
+                    "chat-message-time";
+
+                messageTime.textContent =
+                    formatMessageDate(
                         message.createdAt
                     );
-
-                if (
-                    Number.isNaN(
-                        createdAtDate.getTime()
-                    )
-                ) {
-                    messageTime.textContent =
-                        "";
-                } else {
-                    messageTime.textContent =
-                        createdAtDate
-                            .toLocaleString(
-                                "uk-UA",
-                                {
-                                    day: "2-digit",
-                                    month: "2-digit",
-                                    hour: "2-digit",
-                                    minute: "2-digit"
-                                }
-                            );
-                }
 
                 messageFooter.appendChild(
                     messageTime
                 );
+
+                if (
+                    message.editedAt &&
+                    !message.deletedAt
+                ) {
+                    const editedLabel =
+                        document.createElement(
+                            "small"
+                        );
+
+                    editedLabel.className =
+                        "chat-message-edited";
+
+                    editedLabel.textContent =
+                        "ред.";
+
+                    messageFooter.appendChild(
+                        editedLabel
+                    );
+                }
 
                 if (isOwnMessage) {
                     const messageStatus =
@@ -894,15 +1419,61 @@ if (!currentUser) {
                     messageFooter
                 );
 
+                if (
+                    isOwnMessage &&
+                    !message.deletedAt
+                ) {
+                    const actions =
+                        createMessageActions(
+                            message
+                        );
+
+                    messageElement.appendChild(
+                        actions
+                    );
+                }
+
                 chatMessages.appendChild(
                     messageElement
                 );
             }
         );
 
-        chatMessages.scrollTop =
-            chatMessages.scrollHeight;
+        const shouldScrollToBottom =
+            isFirstMessagesRender ||
+            forceScrollBottom ||
+            wasNearBottom;
+
+        requestAnimationFrame(
+            () => {
+                if (shouldScrollToBottom) {
+                    scrollChatToBottom(
+                        "auto"
+                    );
+                } else if (
+                    preservePosition
+                ) {
+                    const heightDifference =
+                        chatMessages.scrollHeight -
+                        previousScrollHeight;
+
+                    chatMessages.scrollTop =
+                        previousScrollTop +
+                        heightDifference;
+                } else {
+                    chatMessages.scrollTop =
+                        previousScrollTop;
+                }
+            }
+        );
+
+        isFirstMessagesRender = false;
     }
+
+
+    /* =====================================================
+       НАДСИЛАННЯ
+    ===================================================== */
 
     async function sendMessage(
         event
@@ -957,6 +1528,8 @@ if (!currentUser) {
                 receiverId: chatPartnerId,
                 text,
                 readAt: null,
+                editedAt: null,
+                deletedAt: null,
                 createdAt:
                     new Date().toISOString()
             };
@@ -988,12 +1561,17 @@ if (!currentUser) {
             if (wasSaved) {
                 if (chatMessageInput) {
                     chatMessageInput.value = "";
+
                     chatMessageInput.style.height =
                         "auto";
                 }
 
                 clearSelectedAttachment();
-                renderMessages();
+
+                renderMessages({
+                    forceScrollBottom: true,
+                    forceRender: true
+                });
             }
         } catch (error) {
             console.error(
@@ -1009,11 +1587,17 @@ if (!currentUser) {
 
             if (chatSubmitButton) {
                 chatSubmitButton.disabled = false;
+
                 chatSubmitButton.textContent =
                     "Надіслати";
             }
         }
     }
+
+
+    /* =====================================================
+       ПОДІЇ
+    ===================================================== */
 
     if (chatPartnerId) {
         if (chatForm) {
@@ -1056,18 +1640,19 @@ if (!currentUser) {
             );
         }
 
-        renderMessages();
+        renderMessages({
+            forceScrollBottom: true,
+            forceRender: true
+        });
 
-        const chatRefreshInterval =
+        chatRefreshInterval =
             window.setInterval(
                 () => {
-                    if (
-                        !document.hidden
-                    ) {
+                    if (!document.hidden) {
                         renderMessages();
                     }
                 },
-                1500
+                CHAT_REFRESH_INTERVAL
             );
 
         window.addEventListener(
@@ -1086,21 +1671,37 @@ if (!currentUser) {
             "visibilitychange",
             () => {
                 if (!document.hidden) {
-                    renderMessages();
+                    renderMessages({
+                        forceRender: true
+                    });
                 }
-            }
-        );
-
-        window.addEventListener(
-            "beforeunload",
-            () => {
-                window.clearInterval(
-                    chatRefreshInterval
-                );
             }
         );
     }
 }
+
+
+/* =========================================================
+   ЗАКРИТТЯ МЕНЮ ПРИ НАТИСКАННІ ПОЗА НИМ
+========================================================= */
+
+document.addEventListener(
+    "click",
+    (event) => {
+        if (
+            !event.target.closest(
+                ".chat-message-actions"
+            )
+        ) {
+            closeAllMessageMenus();
+        }
+    }
+);
+
+
+/* =========================================================
+   ПОВНОЕКРАННИЙ ПЕРЕГЛЯД
+========================================================= */
 
 if (closeChatImageViewer) {
     closeChatImageViewer.addEventListener(
@@ -1123,11 +1724,33 @@ if (chatImageViewer) {
     );
 }
 
+
+/* =========================================================
+   КЛАВІАТУРА
+========================================================= */
+
 document.addEventListener(
     "keydown",
     (event) => {
         if (event.key === "Escape") {
+            closeAllMessageMenus();
             closeImageViewer();
+        }
+    }
+);
+
+
+/* =========================================================
+   ОЧИЩЕННЯ ІНТЕРВАЛУ
+========================================================= */
+
+window.addEventListener(
+    "beforeunload",
+    () => {
+        if (chatRefreshInterval) {
+            window.clearInterval(
+                chatRefreshInterval
+            );
         }
     }
 );
