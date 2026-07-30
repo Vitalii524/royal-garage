@@ -230,7 +230,98 @@ const CARS_STORAGE_KEY =
 
 const MARKET_STORAGE_KEY =
     "royalGarageMarketListings";
+    
+    const FAVORITES_STORAGE_KEY =
+    `royalGarageFavoriteListings_${currentUser.id}`;
 
+
+let favoriteListingIds = [];
+
+
+try {
+    const storedFavorites =
+        JSON.parse(
+            localStorage.getItem(
+                FAVORITES_STORAGE_KEY
+            )
+        ) || [];
+
+
+    favoriteListingIds =
+        Array.isArray(storedFavorites)
+            ? storedFavorites.map(String)
+            : [];
+} catch (error) {
+    console.error(
+        "Не вдалося завантажити обране:",
+        error
+    );
+
+    favoriteListingIds = [];
+}
+
+
+function saveFavoriteListings() {
+    try {
+        localStorage.setItem(
+            FAVORITES_STORAGE_KEY,
+            JSON.stringify(
+                favoriteListingIds
+            )
+        );
+
+        return true;
+    } catch (error) {
+        console.error(
+            "Не вдалося зберегти обране:",
+            error
+        );
+
+        alert(
+            "Не вдалося зберегти оголошення в обране."
+        );
+
+        return false;
+    }
+}
+
+
+function isFavoriteListing(listingId) {
+    return favoriteListingIds.includes(
+        String(listingId)
+    );
+}
+
+
+function toggleFavoriteListing(listingId) {
+    const normalizedId =
+        String(listingId);
+
+
+    if (
+        favoriteListingIds.includes(
+            normalizedId
+        )
+    ) {
+        favoriteListingIds =
+            favoriteListingIds.filter(
+                (id) =>
+                    id !== normalizedId
+            );
+    } else {
+        favoriteListingIds.push(
+            normalizedId
+        );
+    }
+
+
+    if (!saveFavoriteListings()) {
+        return;
+    }
+
+
+    renderListings();
+}
 
 let cars = [];
 
@@ -1877,8 +1968,59 @@ function renderListings() {
                     0
                 );
 
+                const isFavorite =
+    isFavoriteListing(
+        listing.id
+    );
 
             card.innerHTML = `
+
+            <button
+            type="button"
+            class="favorite-headlight-button ${
+                isFavorite
+                    ? "is-active"
+                    : ""
+            }"
+            aria-label="${
+                isFavorite
+                    ? "Прибрати з обраного"
+                    : "Додати в обране"
+            }"
+            aria-pressed="${isFavorite}"
+            title="${
+                isFavorite
+                    ? "В обраному"
+                    : "Додати в обране"
+            }"
+        >
+            <span
+                class="favorite-headlight-beam"
+                aria-hidden="true"
+            ></span>
+        
+            <svg
+                class="favorite-headlight-icon"
+                viewBox="0 0 64 44"
+                aria-hidden="true"
+            >
+                <path
+                    class="favorite-headlight-shell"
+                    d="M8 22C15 9 29 5 49 8L57 22L49 36C29 39 15 35 8 22Z"
+                ></path>
+        
+                <path
+                    class="favorite-headlight-lens"
+                    d="M17 22C23 14 33 12 45 14L50 22L45 30C33 32 23 30 17 22Z"
+                ></path>
+        
+                <path
+                    class="favorite-headlight-lines"
+                    d="M3 14H12M1 22H11M3 30H12"
+                ></path>
+            </svg>
+        </button>
+
                 ${
                     photo
                         ? `
@@ -1985,6 +2127,23 @@ function renderListings() {
                 </div>
             `;
 
+            const favoriteButton =
+    card.querySelector(
+        ".favorite-headlight-button"
+    );
+
+
+favoriteButton?.addEventListener(
+    "click",
+    (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        toggleFavoriteListing(
+            listing.id
+        );
+    }
+);
 
             card.addEventListener(
                 "click",

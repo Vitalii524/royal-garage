@@ -88,6 +88,7 @@
 /* ===== КАРТКА ОГОЛОШЕННЯ ===== */
 
 .market-card {
+    position: relative;
     overflow: hidden;
     background: rgba(8, 34, 74, 0.95);
     border: 1px solid rgba(240, 201, 107, 0.35);
@@ -400,5 +401,231 @@
 
     .listing-photos-info {
         justify-content: flex-start;
+    }
+}
+
+
+/* ===== ФАРА — ДОДАТИ В ОБРАНЕ ===== */
+
+.favorite-headlight-button {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    z-index: 5;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 40px;
+    height: 40px;
+
+    padding: 0;
+
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    box-shadow: none;
+
+    cursor: pointer;
+
+    transition:
+        transform .2s ease,
+        filter .2s ease;
+}
+
+.favorite-headlight-button:hover {
+    transform: scale(1.15);
+}
+
+.favorite-headlight-button:focus-visible {
+    outline: 3px solid rgba(240, 201, 107, 0.55);
+    outline-offset: 3px;
+}
+
+.favorite-headlight-icon {
+    position: relative;
+    z-index: 2;
+
+    width: 39px;
+    height: 29px;
+
+    overflow: visible;
+}
+
+.favorite-headlight-shell {
+    fill: #182338;
+    stroke: currentColor;
+    stroke-width: 3;
+
+    transition:
+        fill 0.2s ease,
+        stroke 0.2s ease,
+        filter 0.2s ease;
+}
+
+.favorite-headlight-lens {
+    fill: #263248;
+    stroke: rgba(255, 255, 255, 0.25);
+    stroke-width: 2;
+
+    transition:
+        fill 0.2s ease,
+        stroke 0.2s ease,
+        filter 0.2s ease;
+}
+
+.favorite-headlight-lines {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 3;
+    stroke-linecap: round;
+
+    opacity: 0.42;
+
+    transition:
+        opacity 0.2s ease,
+        filter 0.2s ease;
+}
+
+.favorite-headlight-beam {
+    position: absolute;
+    top: 11px;
+    right: 42px;
+
+    width: 55px;
+    height: 26px;
+
+    pointer-events: none;
+    opacity: 0;
+
+    background: linear-gradient(
+        90deg,
+        rgba(255, 221, 102, 0),
+        rgba(255, 221, 102, 0.34)
+    );
+
+    clip-path: polygon(
+        100% 30%,
+        100% 70%,
+        0 100%,
+        0 0
+    );
+
+    filter: blur(1px);
+
+    transform: scaleX(0.25);
+    transform-origin: right center;
+
+    transition:
+        opacity 0.2s ease,
+        transform 0.25s ease;
+}
+
+.favorite-headlight-button.is-active {
+    color: #ffe477;
+    animation:
+    headlight-blink 0.65s ease;
+}
+
+.favorite-headlight-button.is-active
+.favorite-headlight-shell {
+    fill: #55420d;
+
+    filter:
+        drop-shadow(
+            0 0 5px rgba(255, 224, 100, 0.65)
+        );
+}
+
+.favorite-headlight-button.is-active
+.favorite-headlight-lens {
+    fill: #ffe477;
+    stroke: #fff4b8;
+
+    filter:
+        drop-shadow(
+            0 0 7px rgba(255, 224, 100, 0.95)
+        );
+}
+
+.favorite-headlight-button.is-active
+.favorite-headlight-lines {
+    opacity: 1;
+
+    filter:
+        drop-shadow(
+            0 0 4px rgba(255, 224, 100, 0.9)
+        );
+}
+
+.favorite-headlight-button.is-active
+.favorite-headlight-beam {
+    opacity: 1;
+    transform: scaleX(1);
+}
+
+@keyframes headlight-blink {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+        filter: brightness(1);
+    }
+
+    18% {
+        opacity: 0.35;
+        transform: scale(0.92);
+        filter: brightness(0.5);
+    }
+
+    35% {
+        opacity: 1;
+        transform: scale(1.12);
+        filter: brightness(1.8);
+    }
+
+    52% {
+        opacity: 0.4;
+        transform: scale(0.95);
+        filter: brightness(0.6);
+    }
+
+    72% {
+        opacity: 1;
+        transform: scale(1.1);
+        filter: brightness(1.7);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: brightness(1);
+    }
+}
+
+@keyframes headlight-glow {
+    0%,
+    100% {
+        filter: brightness(1);
+    }
+
+    50% {
+        filter: brightness(1.12);
+    }
+}
+
+.favorite-headlight-button.is-active
+.favorite-headlight-lens {
+    animation: headlight-glow 2.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .favorite-headlight-button,
+    .favorite-headlight-beam,
+    .favorite-headlight-shell,
+    .favorite-headlight-lens,
+    .favorite-headlight-lines {
+        transition: none;
+        animation: none;
     }
 }
