@@ -625,3 +625,36 @@ body.chat-viewer-open {
         font-size: 15px;
     }
 }
+
+/* Меню не повинно обрізатися всередині повідомлення */
+.chat-message {
+    overflow: visible !important;
+}
+
+.chat-message-actions {
+    overflow: visible !important;
+    z-index: 100;
+}
+
+.chat-message-menu {
+    top: 38px;
+    right: 0;
+    z-index: 999;
+    background: #202532 !important;
+    color: #ffffff !important;
+}
+
+.chat-message-action-button {
+    display: block;
+    color: #ffffff !important;
+    background: transparent !important;
+    white-space: nowrap;
+}
+
+.chat-message-delete-button {
+    color: #ff9292 !important;
+}
+
+.chat-message-own .chat-message-menu {
+    right: 0;
+}
