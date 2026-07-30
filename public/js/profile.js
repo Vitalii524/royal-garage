@@ -215,6 +215,14 @@ const elements = {
 
 let cars = loadCars();
 
+const globalOpenChatsButton =
+    document.getElementById("globalOpenChatsButton");
+
+if (globalOpenChatsButton) {
+    globalOpenChatsButton.hidden =
+        cars.length > 0;
+}
+
 let selectedCarId =
     cars[0]?.id ?? null;
 
@@ -3455,17 +3463,15 @@ if (
     );
 }
 
-const globalOpenChatsButton =
-    document.getElementById(
-        "globalOpenChatsButton"
-    );
-
 if (globalOpenChatsButton) {
+    globalOpenChatsButton.hidden =
+        cars.length > 0;
+
     globalOpenChatsButton.addEventListener(
         "click",
         () => {
             renderMyChats();
-            openModal(chatsModal);
+            openModal(elements.chatsModal);
         }
     );
 }
