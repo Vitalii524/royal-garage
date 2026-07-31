@@ -4,6 +4,303 @@
 const MARKET_STORAGE_KEY =
     "royalGarageMarketListings";
 
+    /* ===== РЕПУТАЦІЯ ПРОДАВЦІВ ===== */
+
+const SELLER_RATINGS_STORAGE_KEY =
+"royalGarageSellerRatings";
+
+
+function loadSellerRatings() {
+try {
+    const savedRatings =
+        JSON.parse(
+            localStorage.getItem(
+                SELLER_RATINGS_STORAGE_KEY
+            )
+        );
+
+    return savedRatings &&
+        typeof savedRatings === "object"
+            ? savedRatings
+            : {};
+} catch (error) {
+    console.error(
+        "Не вдалося завантажити рейтинги продавців:",
+        error
+    );
+
+    return {};
+}
+}
+
+
+function saveSellerRatings(ratings) {
+try {
+    localStorage.setItem(
+        SELLER_RATINGS_STORAGE_KEY,
+        JSON.stringify(ratings)
+    );
+
+    return true;
+} catch (error) {
+    console.error(
+        "Не вдалося зберегти рейтинг продавця:",
+        error
+    );
+
+    alert(
+        "Не вдалося зберегти оцінку."
+    );
+
+    return false;
+}
+}
+
+
+function getSellerRatingData(sellerId) {
+const ratings =
+    loadSellerRatings();
+
+const sellerKey =
+    String(sellerId || "");
+
+const sellerRating =
+    ratings[sellerKey];
+
+if (
+    !sellerRating ||
+    typeof sellerRating !== "object"
+) {
+    return {
+        votes: {},
+        average: 0,
+        count: 0
+    };
+}
+
+const votes =
+    sellerRating.votes &&
+    typeof sellerRating.votes === "object"
+        ? sellerRating.votes
+        : {};
+
+const values =
+    Object.values(votes)
+        .map(Number)
+        .filter(
+            (value) =>
+                Number.isInteger(value) &&
+                value >= 1 &&
+                value <= 5
+        );
+
+const average =
+    values.length > 0
+        ? values.reduce(
+            (sum, value) =>
+                sum + value,
+            0
+        ) / values.length
+        : 0;
+
+return {
+    votes,
+    average,
+    count: values.length
+};
+}
+
+
+function saveSellerVote(
+sellerId,
+voterId,
+ratingValue
+) {
+const normalizedSellerId =
+    String(sellerId || "");
+
+const normalizedVoterId =
+    String(voterId || "");
+
+const normalizedRating =
+    Number(ratingValue);
+
+if (
+    !normalizedSellerId ||
+    !normalizedVoterId ||
+    !Number.isInteger(
+        normalizedRating
+    ) ||
+    normalizedRating < 1 ||
+    normalizedRating > 5
+) {
+    return false;
+}
+
+const ratings =
+    loadSellerRatings();
+
+const currentSellerRating =
+    ratings[normalizedSellerId] &&
+    typeof ratings[
+        normalizedSellerId
+    ] === "object"
+        ? ratings[
+            normalizedSellerId
+        ]
+        : {};
+
+const currentVotes =
+    currentSellerRating.votes &&
+    typeof currentSellerRating
+        .votes === "object"
+        ? currentSellerRating.votes
+        : {};
+
+currentVotes[
+    normalizedVoterId
+] = normalizedRating;
+
+ratings[
+    normalizedSellerId
+] = {
+    ...currentSellerRating,
+    votes: currentVotes,
+    updatedAt:
+        new Date().toISOString()
+};
+
+return saveSellerRatings(
+    ratings
+);
+}
+
+/* ===== ЗБЕРЕЖЕННЯ ВІДГУКУ ПРО ПРОДАВЦЯ ===== */
+
+function saveSellerReview(
+    sellerId,
+    voterId,
+    voterName,
+    ratingValue,
+    reviewText
+) {
+    const normalizedSellerId =
+        String(sellerId || "");
+
+    const normalizedVoterId =
+        String(voterId || "");
+
+    const normalizedRating =
+        Number(ratingValue);
+
+    const normalizedReviewText =
+        String(reviewText || "")
+            .trim()
+            .slice(0, 1000);
+
+    if (
+        !normalizedSellerId ||
+        !normalizedVoterId ||
+        !Number.isInteger(normalizedRating) ||
+        normalizedRating < 1 ||
+        normalizedRating > 5
+    ) {
+        return false;
+    }
+
+    const ratings =
+        loadSellerRatings();
+
+    const sellerData =
+        ratings[normalizedSellerId] &&
+        typeof ratings[normalizedSellerId] === "object"
+            ? ratings[normalizedSellerId]
+            : {};
+
+    const votes =
+        sellerData.votes &&
+        typeof sellerData.votes === "object"
+            ? sellerData.votes
+            : {};
+
+    const reviews =
+        sellerData.reviews &&
+        typeof sellerData.reviews === "object"
+            ? sellerData.reviews
+            : {};
+
+    votes[normalizedVoterId] =
+        normalizedRating;
+
+    reviews[normalizedVoterId] = {
+        userId: normalizedVoterId,
+
+        userName:
+            String(voterName || "Користувач")
+                .trim()
+                .slice(0, 80),
+
+        rating: normalizedRating,
+
+        text: normalizedReviewText,
+
+        updatedAt:
+            new Date().toISOString()
+    };
+
+    ratings[normalizedSellerId] = {
+        ...sellerData,
+        votes,
+        reviews,
+        updatedAt:
+            new Date().toISOString()
+    };
+
+    return saveSellerRatings(ratings);
+}
+
+
+function getSellerReviews(sellerId) {
+    const ratings =
+        loadSellerRatings();
+
+    const sellerData =
+        ratings[String(sellerId || "")];
+
+    const reviews =
+        sellerData?.reviews &&
+        typeof sellerData.reviews === "object"
+            ? sellerData.reviews
+            : {};
+
+    return Object.values(reviews)
+        .filter(
+            (review) =>
+                review &&
+                typeof review === "object"
+        )
+        .sort(
+            (firstReview, secondReview) =>
+                new Date(
+                    secondReview.updatedAt || 0
+                ) -
+                new Date(
+                    firstReview.updatedAt || 0
+                )
+        );
+}
+
+
+function formatSellerRating(
+average,
+count
+) {
+if (count === 0) {
+    return "Новий продавець";
+}
+
+return `${average.toFixed(1)} із 5`;
+}
 
 const listingDetails =
     document.getElementById(
@@ -143,6 +440,45 @@ if (!listing) {
             String(currentUserId) ===
                 String(listingOwnerId)
         );
+
+        /* ===== ДАНІ РЕПУТАЦІЇ ПРОДАВЦЯ ===== */
+
+const sellerRatingData =
+getSellerRatingData(
+    listingOwnerId
+);
+
+
+const currentUserVote =
+currentUserId
+    ? Number(
+        sellerRatingData.votes[
+            String(currentUserId)
+        ] || 0
+    )
+    : 0
+
+    const sellerReviews =
+    getSellerReviews(
+        listingOwnerId
+    );
+
+const currentUserReview =
+    currentUserId
+        ? sellerReviews.find(
+            (review) =>
+                String(review.userId) ===
+                String(currentUserId)
+        )
+        : null;
+
+
+const canRateSeller =
+Boolean(
+    currentUser &&
+    listingOwnerId &&
+    !isListingOwner
+);
 
 
     /* ===== ВИВЕДЕННЯ ОГОЛОШЕННЯ ===== */
@@ -455,6 +791,192 @@ if (!listing) {
                     Продавець
                 </h2>
 
+                <div
+    class="seller-reputation"
+    id="sellerReputation"
+>
+    <div class="seller-rating-summary">
+        <div
+            class="seller-rating-display"
+            aria-label="Рейтинг продавця ${
+                sellerRatingData.count > 0
+                    ? sellerRatingData.average.toFixed(1)
+                    : "ще не сформовано"
+            }"
+        >
+            ${[1, 2, 3, 4, 5]
+                .map(
+                    (star) => `
+                        <span
+                            class="seller-display-star ${
+                                star <=
+                                Math.round(
+                                    sellerRatingData.average
+                                )
+                                    ? "is-filled"
+                                    : ""
+                            }"
+                            aria-hidden="true"
+                        >
+                            ★
+                        </span>
+                    `
+                )
+                .join("")}
+        </div>
+
+        <strong
+            class="seller-rating-number"
+            id="sellerRatingNumber"
+        >
+            ${
+                sellerRatingData.count > 0
+                    ? sellerRatingData.average.toFixed(1)
+                    : "—"
+            }
+        </strong>
+
+        <span
+            class="seller-rating-count"
+            id="sellerRatingCount"
+        >
+            ${
+                sellerRatingData.count === 0
+                    ? "Новий продавець"
+                    : `${sellerRatingData.count} оцінок`
+            }
+        </span>
+    </div>
+
+    ${
+        isListingOwner
+        ? `
+            <p class="seller-rating-message">
+                ${
+                    sellerRatingData.count === 0
+                        ? "Вам ще не поставили жодної оцінки."
+                        : `Вам поставили ${sellerRatingData.average.toFixed(1)} із 5 на основі ${sellerRatingData.count} ${
+                            sellerRatingData.count === 1
+                                ? "оцінки"
+                                : "оцінок"
+                        }.`
+                }
+            </p>
+        `
+            : !currentUser
+                ? `
+                    <p class="seller-rating-message">
+                        Увійдіть, щоб оцінити продавця.
+                    </p>
+                `
+                : canRateSeller
+                    ? `
+                        <div
+                            class="seller-rating-form"
+                            id="sellerRatingForm"
+                        >
+                            <p>
+                                ${
+                                    currentUserVote
+                                        ? "Ваша оцінка:"
+                                        : "Оцініть продавця:"
+                                }
+                            </p>
+
+                            <div
+                                class="seller-rating-buttons"
+                                role="radiogroup"
+                                aria-label="Оцінка продавця"
+                            >
+                                ${[1, 2, 3, 4, 5]
+                                    .map(
+                                        (star) => `
+                                            <button
+                                                type="button"
+                                                class="seller-rating-button ${
+                                                    star <=
+                                                    currentUserVote
+                                                        ? "is-selected"
+                                                        : ""
+                                                }"
+                                                data-rating-value="${star}"
+                                                aria-label="${star} із 5"
+                                                aria-pressed="${
+                                                    star ===
+                                                    currentUserVote
+                                                }"
+                                            >
+                                                ★
+                                            </button>
+                                        `
+                                    )
+                                    .join("")}
+                            </div>
+
+                            <p
+                                class="seller-rating-status"
+                                id="sellerRatingStatus"
+                                aria-live="polite"
+                            >
+                                ${
+                                    currentUserVote
+                                        ? `Ви поставили ${currentUserVote} із 5. Оцінку можна змінити.`
+                                        : ""
+                                }
+                            </p>
+
+                            <label
+                            class="seller-review-label"
+                            for="sellerReviewText"
+                        >
+                            Ваш відгук
+                        </label>
+                        
+                        <textarea
+                            id="sellerReviewText"
+                            class="seller-review-textarea"
+                            maxlength="1000"
+                            rows="4"
+                            placeholder="Напишіть, як пройшло спілкування з продавцем..."
+                        >${currentUserReview?.text || ""}</textarea>
+                        
+                        <div class="seller-review-footer">
+                            <span
+                                id="sellerReviewCounter"
+                                class="seller-review-counter"
+                            >
+                                ${
+                                    currentUserReview?.text
+                                        ? currentUserReview.text.length
+                                        : 0
+                                } / 1000
+                            </span>
+                        
+                            <button
+                                type="button"
+                                id="saveSellerReviewButton"
+                                class="primary-button seller-review-save-button"
+                            >
+                                ${
+                                    currentUserReview
+                                        ? "Оновити відгук"
+                                        : "Зберегти оцінку та відгук"
+                                }
+                            </button>
+                        </div>
+                        
+                        <p
+                            id="sellerReviewStatus"
+                            class="seller-review-status"
+                            aria-live="polite"
+                        ></p>
+
+                        </div>
+                    `
+                    : ""
+    }
+</div>
+
                 <p>
                     Місто:
                     ${
@@ -549,6 +1071,388 @@ if (!listing) {
         );
     }
 
+    /* ===== ОЦІНЮВАННЯ ПРОДАВЦЯ ===== */
+
+const sellerRatingButtons =
+document.querySelectorAll(
+    ".seller-rating-button"
+);
+
+
+const sellerRatingStatus =
+document.getElementById(
+    "sellerRatingStatus"
+);
+
+
+sellerRatingButtons.forEach(
+(button) => {
+    button.addEventListener(
+        "click",
+        () => {
+            const user =
+                typeof getCurrentUser ===
+                "function"
+                    ? getCurrentUser()
+                    : null;
+
+
+            if (!user) {
+                alert(
+                    "Спочатку увійдіть у профіль."
+                );
+
+                return;
+            }
+
+
+            const userId =
+                user.id ||
+                user.userId ||
+                user.email ||
+                "";
+
+
+            if (
+                !listingOwnerId ||
+                !userId
+            ) {
+                alert(
+                    "Не вдалося визначити продавця або користувача."
+                );
+
+                return;
+            }
+
+
+            if (
+                String(userId) ===
+                String(listingOwnerId)
+            ) {
+                alert(
+                    "Ви не можете оцінювати самого себе."
+                );
+
+                return;
+            }
+
+
+            const ratingValue =
+                Number(
+                    button.dataset
+                        .ratingValue
+                );
+
+
+            const saved =
+                saveSellerVote(
+                    listingOwnerId,
+                    userId,
+                    ratingValue
+                );
+
+
+            if (!saved) {
+                return;
+            }
+
+
+            sellerRatingButtons.forEach(
+                (ratingButton) => {
+                    const buttonValue =
+                        Number(
+                            ratingButton.dataset
+                                .ratingValue
+                        );
+
+
+                    const isSelected =
+                        buttonValue <=
+                        ratingValue;
+
+
+                    ratingButton.classList.toggle(
+                        "is-selected",
+                        isSelected
+                    );
+
+
+                    ratingButton.setAttribute(
+                        "aria-pressed",
+                        String(
+                            buttonValue ===
+                            ratingValue
+                        )
+                    );
+                }
+            );
+
+
+            const updatedRatingData =
+                getSellerRatingData(
+                    listingOwnerId
+                );
+
+
+            const sellerRatingNumber =
+                document.getElementById(
+                    "sellerRatingNumber"
+                );
+
+
+            const sellerRatingCount =
+                document.getElementById(
+                    "sellerRatingCount"
+                );
+
+
+            const sellerDisplayStars =
+                document.querySelectorAll(
+                    ".seller-display-star"
+                );
+
+
+            if (
+                sellerRatingNumber
+            ) {
+                sellerRatingNumber.textContent =
+                    updatedRatingData.count >
+                    0
+                        ? updatedRatingData.average.toFixed(
+                            1
+                        )
+                        : "—";
+            }
+
+
+            if (
+                sellerRatingCount
+            ) {
+                sellerRatingCount.textContent =
+                    updatedRatingData.count ===
+                    0
+                        ? "Новий продавець"
+                        : `${updatedRatingData.count} оцінок`;
+            }
+
+
+            sellerDisplayStars.forEach(
+                (
+                    starElement,
+                    index
+                ) => {
+                    const starNumber =
+                        index + 1;
+
+
+                    starElement.classList.toggle(
+                        "is-filled",
+                        starNumber <=
+                            Math.round(
+                                updatedRatingData.average
+                            )
+                    );
+                }
+            );
+
+
+            if (
+                sellerRatingStatus
+            ) {
+                sellerRatingStatus.textContent =
+                    `Ви поставили ${ratingValue} із 5. Оцінку можна змінити.`;
+            }
+        }
+    );
+}
+);
+
+/* ===== ПОЛЕ ТА ЗБЕРЕЖЕННЯ ВІДГУКУ ===== */
+
+const sellerReviewText =
+    document.getElementById(
+        "sellerReviewText"
+    );
+
+const sellerReviewCounter =
+    document.getElementById(
+        "sellerReviewCounter"
+    );
+
+const saveSellerReviewButton =
+    document.getElementById(
+        "saveSellerReviewButton"
+    );
+
+const sellerReviewStatus =
+    document.getElementById(
+        "sellerReviewStatus"
+    );
+
+
+function getSelectedSellerRating() {
+    const selectedButtons =
+        Array.from(
+            document.querySelectorAll(
+                ".seller-rating-button.is-selected"
+            )
+        );
+
+    if (selectedButtons.length === 0) {
+        return 0;
+    }
+
+    return Math.max(
+        ...selectedButtons.map(
+            (button) =>
+                Number(
+                    button.dataset.ratingValue
+                ) || 0
+        )
+    );
+}
+
+
+if (
+    sellerReviewText &&
+    sellerReviewCounter
+) {
+    sellerReviewText.addEventListener(
+        "input",
+        () => {
+            sellerReviewCounter.textContent =
+                `${sellerReviewText.value.length} / 1000`;
+        }
+    );
+}
+
+
+if (saveSellerReviewButton) {
+    saveSellerReviewButton.addEventListener(
+        "click",
+        () => {
+            const user =
+                typeof getCurrentUser ===
+                "function"
+                    ? getCurrentUser()
+                    : null;
+
+            if (!user) {
+                alert(
+                    "Спочатку увійдіть у профіль."
+                );
+                return;
+            }
+
+            const userId =
+                user.id ||
+                user.userId ||
+                user.email ||
+                "";
+
+            if (
+                !listingOwnerId ||
+                !userId
+            ) {
+                alert(
+                    "Не вдалося визначити продавця або користувача."
+                );
+                return;
+            }
+
+            if (
+                String(userId) ===
+                String(listingOwnerId)
+            ) {
+                alert(
+                    "Ви не можете залишити відгук самому собі."
+                );
+                return;
+            }
+
+            const selectedRating =
+                getSelectedSellerRating();
+
+            if (
+                selectedRating < 1 ||
+                selectedRating > 5
+            ) {
+                if (sellerReviewStatus) {
+                    sellerReviewStatus.textContent =
+                        "Спочатку виберіть оцінку від 1 до 5.";
+                }
+                return;
+            }
+
+            const reviewText =
+                sellerReviewText
+                    ? sellerReviewText.value.trim()
+                    : "";
+
+            if (
+                reviewText.length > 0 &&
+                reviewText.length < 5
+            ) {
+                if (sellerReviewStatus) {
+                    sellerReviewStatus.textContent =
+                        "Відгук повинен містити щонайменше 5 символів.";
+                }
+                return;
+            }
+
+            const saved =
+                saveSellerReview(
+                    listingOwnerId,
+                    userId,
+                    user.name ||
+                        user.email ||
+                        "Користувач",
+                    selectedRating,
+                    reviewText
+                );
+
+            if (!saved) {
+                return;
+            }
+
+            if (sellerReviewStatus) {
+                sellerReviewStatus.textContent =
+                    reviewText
+                        ? "Вашу оцінку та відгук збережено."
+                        : "Вашу оцінку збережено.";
+            }
+
+            saveSellerReviewButton.textContent =
+                "Оновити відгук";
+
+            const ratingForm =
+                document.getElementById(
+                    "sellerRatingForm"
+                );
+
+            if (ratingForm) {
+                ratingForm.classList.remove(
+                    "rating-success"
+                );
+
+                void ratingForm.offsetWidth;
+
+                ratingForm.classList.add(
+                    "rating-success"
+                );
+
+                setTimeout(
+                    () => {
+                        ratingForm.classList.remove(
+                            "rating-success"
+                        );
+                    },
+                    700
+                );
+            }
+        }
+    );
+}
 
     /* ===== КНОПКА ЧАТУ ===== */
 
