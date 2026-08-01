@@ -231,6 +231,121 @@ const CARS_STORAGE_KEY =
 const MARKET_STORAGE_KEY =
     "royalGarageMarketListings";
     
+    const SELLER_RATINGS_KEY =
+    "royalGarageSellerRatings";
+
+
+function loadSellerRatings() {
+    try {
+        const storedRatings =
+            JSON.parse(
+                localStorage.getItem(
+                    SELLER_RATINGS_KEY
+                )
+            ) || {};
+
+        return (
+            storedRatings &&
+            typeof storedRatings === "object"
+        )
+            ? storedRatings
+            : {};
+    } catch (error) {
+        console.error(
+            "Не вдалося завантажити рейтинги продавців:",
+            error
+        );
+
+        return {};
+    }
+}
+
+
+function getSellerRatingData(
+    sellerId
+) {
+    const ratings =
+        loadSellerRatings();
+
+    const sellerData =
+        ratings[
+            String(sellerId || "")
+        ];
+
+    const votes =
+        sellerData?.votes &&
+        typeof sellerData.votes === "object"
+            ? Object.values(
+                sellerData.votes
+            )
+                .map(Number)
+                .filter(
+                    (rating) =>
+                        Number.isFinite(
+                            rating
+                        ) &&
+                        rating >= 1 &&
+                        rating <= 5
+                )
+            : [];
+
+    if (votes.length === 0) {
+        return {
+            average: 0,
+            count: 0
+        };
+    }
+
+    const total =
+        votes.reduce(
+            (sum, rating) =>
+                sum + rating,
+            0
+        );
+
+    return {
+        average:
+            total / votes.length,
+
+        count:
+            votes.length
+    };
+}
+
+
+function getRatingCountLabel(
+    count
+) {
+    const value =
+        Number(count) || 0;
+
+    const lastTwoDigits =
+        value % 100;
+
+    const lastDigit =
+        value % 10;
+
+    if (
+        lastTwoDigits >= 11 &&
+        lastTwoDigits <= 14
+    ) {
+        return `${value} оцінок`;
+    }
+
+    if (lastDigit === 1) {
+        return `${value} оцінка`;
+    }
+
+    if (
+        lastDigit >= 2 &&
+        lastDigit <= 4
+    ) {
+        return `${value} оцінки`;
+    }
+
+    return `${value} оцінок`;
+}
+
     const FAVORITES_STORAGE_KEY =
     `royalGarageFavoriteListings_${currentUser.id}`;
 
@@ -1968,6 +2083,18 @@ function renderListings() {
                     0
                 );
 
+                const sellerId =
+                listing.ownerId ||
+                listing.userId ||
+                listing.sellerId ||
+                listing.ownerEmail ||
+                "";
+            
+            const sellerRating =
+                getSellerRatingData(
+                    sellerId
+                );
+
                 const isFavorite =
     isFavoriteListing(
         listing.id
@@ -2115,6 +2242,32 @@ function renderListings() {
                             "Місто не вказано"
                         }
                     </p>
+
+                    <div class="market-card-seller-rating">
+    ${
+        sellerRating.count > 0
+            ? `
+                <span class="market-card-rating-star">
+                    ★
+                </span>
+
+                <strong>
+                    ${sellerRating.average.toFixed(1)}
+                </strong>
+
+                <span>
+                    · ${getRatingCountLabel(
+                        sellerRating.count
+                    )}
+                </span>
+            `
+            : `
+                <span class="market-card-new-seller">
+                    ☆ Новий продавець
+                </span>
+            `
+    }
+</div>
 
                     <p
                         class="market-card-description"
@@ -2662,6 +2815,20 @@ if (listingForm) {
                     )}`;
 
 
+                return;
+            }
+
+            if (
+                !currentUser ||
+                !currentUser.id
+            ) {
+                alert(
+                    "Сесія користувача недійсна. Увійдіть повторно."
+                );
+            
+                window.location.href =
+                    "index.html";
+            
                 return;
             }
 

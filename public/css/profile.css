@@ -663,3 +663,180 @@
     color: #111;
     font-size: 14px;
 }
+
+/* ===== РЕПУТАЦІЯ ПРОДАВЦЯ В ПРОФІЛІ ===== */
+
+.profile-seller-reputation {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 6px;
+
+    margin-top: 16px;
+    padding: 10px 14px;
+
+    width: fit-content;
+
+    background:
+        rgba(67, 48, 10, 0.38);
+
+    border:
+        1px solid
+        rgba(240, 201, 107, 0.45);
+
+    border-radius: 12px;
+
+    box-shadow:
+        0 0 12px
+        rgba(240, 201, 107, 0.1);
+}
+
+.profile-reputation-label {
+    color:
+        rgba(255, 255, 255, 0.65);
+
+    font-size: 13px;
+}
+
+.profile-reputation-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.profile-reputation-star {
+    color: #f0c96b;
+
+    font-size: 20px;
+
+    text-shadow:
+        0 0 8px
+        rgba(240, 201, 107, 0.5);
+}
+
+.profile-reputation-rating {
+    color: #f0c96b;
+
+    font-size: 19px;
+}
+
+.profile-reputation-count {
+    color:
+        rgba(255, 255, 255, 0.78);
+
+    font-size: 14px;
+}
+
+@media (max-width: 600px) {
+    .profile-seller-reputation {
+        width: 100%;
+        box-sizing: border-box;
+    }
+}
+
+/* ===== ВІДГУКИ ПРО ПРОДАВЦЯ В ПРОФІЛІ ===== */
+
+.profile-seller-reviews {
+    margin-top: 18px;
+    padding: 16px;
+
+    background:
+        rgba(6, 24, 50, 0.55);
+
+    border:
+        1px solid
+        rgba(240, 201, 107, 0.24);
+
+    border-radius: 12px;
+}
+
+.profile-seller-reviews h3 {
+    margin: 0 0 14px;
+
+    color: #f0c96b;
+
+    font-size: 20px;
+}
+
+.profile-seller-reviews-empty {
+    margin: 0;
+
+    color:
+        rgba(255, 255, 255, 0.65);
+}
+
+.profile-seller-review-card {
+    margin-top: 12px;
+    padding: 14px;
+
+    background:
+        rgba(255, 255, 255, 0.04);
+
+    border:
+        1px solid
+        rgba(240, 201, 107, 0.2);
+
+    border-radius: 10px;
+}
+
+.profile-seller-review-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+
+    margin-bottom: 7px;
+}
+
+.profile-seller-review-header strong {
+    color: #ffffff;
+}
+
+.profile-seller-review-header span {
+    color:
+        rgba(255, 255, 255, 0.5);
+
+    font-size: 13px;
+}
+
+.profile-seller-review-stars {
+    display: flex;
+    gap: 2px;
+
+    margin-bottom: 8px;
+}
+
+.profile-seller-review-stars span {
+    color:
+        rgba(255, 255, 255, 0.22);
+
+    font-size: 18px;
+}
+
+.profile-seller-review-stars
+.is-filled {
+    color: #f0c96b;
+
+    text-shadow:
+        0 0 7px
+        rgba(240, 201, 107, 0.45);
+}
+
+.profile-seller-review-card p {
+    margin: 0;
+
+    color:
+        rgba(255, 255, 255, 0.88);
+
+    line-height: 1.5;
+
+    white-space: pre-wrap;
+}
+
+@media (max-width: 600px) {
+    .profile-seller-review-header {
+        align-items: flex-start;
+        flex-direction: column;
+
+        gap: 4px;
+    }
+}

@@ -302,6 +302,36 @@ if (count === 0) {
 return `${average.toFixed(1)} із 5`;
 }
 
+function getRatingCountLabel(count) {
+    const value = Number(count) || 0;
+
+    const lastTwoDigits =
+        value % 100;
+
+    const lastDigit =
+        value % 10;
+
+    if (
+        lastTwoDigits >= 11 &&
+        lastTwoDigits <= 14
+    ) {
+        return `${value} оцінок`;
+    }
+
+    if (lastDigit === 1) {
+        return `${value} оцінка`;
+    }
+
+    if (
+        lastDigit >= 2 &&
+        lastDigit <= 4
+    ) {
+        return `${value} оцінки`;
+    }
+
+    return `${value} оцінок`;
+}
+
 const listingDetails =
     document.getElementById(
         "listingDetails"
@@ -471,6 +501,14 @@ const currentUserReview =
                 String(currentUserId)
         )
         : null;
+
+        const visibleSellerReviews =
+    sellerReviews.filter(
+        (review) =>
+            String(
+                review.text || ""
+            ).trim().length > 0
+    );
 
 
 const canRateSeller =
@@ -843,7 +881,9 @@ Boolean(
             ${
                 sellerRatingData.count === 0
                     ? "Новий продавець"
-                    : `${sellerRatingData.count} оцінок`
+                    :getRatingCountLabel(
+                        sellerRatingData.count
+                    )
             }
         </span>
     </div>
@@ -976,6 +1016,90 @@ Boolean(
                     : ""
     }
 </div>
+
+<section class="seller-reviews-section">
+    <h3 class="seller-reviews-title">
+        Відгуки про продавця
+    </h3>
+
+    ${
+        visibleSellerReviews.length === 0
+            ? `
+                <p class="seller-reviews-empty">
+                    Відгуків поки немає.
+                </p>
+            `
+            : visibleSellerReviews
+                .map(
+                    (review) => `
+                        <article class="seller-review-card">
+
+                            <div class="seller-review-header">
+                                <strong class="seller-review-author">
+                                    ${
+                                        escapeHtml(
+                                            review.userName ||
+                                            "Користувач"
+                                        )
+                                    }
+                                </strong>
+
+                                <span class="seller-review-date">
+                                    ${
+                                        review.updatedAt
+                                            ? new Date(
+                                                review.updatedAt
+                                            ).toLocaleDateString(
+                                                "uk-UA"
+                                            )
+                                            : ""
+                                    }
+                                </span>
+                            </div>
+
+                            <div
+                                class="seller-review-stars"
+                                aria-label="Оцінка ${
+                                    Number(
+                                        review.rating || 0
+                                    )
+                                } із 5"
+                            >
+                                ${[1, 2, 3, 4, 5]
+                                    .map(
+                                        (star) => `
+                                            <span
+                                                class="seller-review-star ${
+                                                    star <=
+                                                    Number(
+                                                        review.rating ||
+                                                        0
+                                                    )
+                                                        ? "is-filled"
+                                                        : ""
+                                                }"
+                                            >
+                                                ★
+                                            </span>
+                                        `
+                                    )
+                                    .join("")}
+                            </div>
+
+                            <p class="seller-review-text">
+                                ${
+                                    escapeHtml(
+                                        review.text
+                                    )
+                                }
+                            </p>
+
+                        </article>
+                    `
+                )
+                .join("")
+    }
+</section>
 
                 <p>
                     Місто:
@@ -1232,7 +1356,9 @@ sellerRatingButtons.forEach(
                     updatedRatingData.count ===
                     0
                         ? "Новий продавець"
-                        : `${updatedRatingData.count} оцінок`;
+                        : getRatingCountLabel(
+                            updatedRatingData.count
+                        )
             }
 
 
@@ -1558,16 +1684,42 @@ if (openChatButton) {
 
     /* ===== КНОПКА РЕДАГУВАННЯ ===== */
 
-    const editListingButton =
-        document.getElementById(
-            "editListingButton"
-        );
-
-
     if (editListingButton) {
         editListingButton.addEventListener(
             "click",
             () => {
+                const user =
+                    typeof getCurrentUser === "function"
+                        ? getCurrentUser()
+                        : null;
+    
+                const userId =
+                    user?.id ||
+                    user?.userId ||
+                    user?.email ||
+                    "";
+    
+                const listingOwnerId =
+                    listing.ownerId ||
+                    listing.userId ||
+                    listing.sellerId ||
+                    listing.ownerEmail ||
+                    listing.email ||
+                    "";
+    
+                if (
+                    !userId ||
+                    !listingOwnerId ||
+                    String(userId) !==
+                        String(listingOwnerId)
+                ) {
+                    alert(
+                        "Ви не можете редагувати чуже оголошення."
+                    );
+    
+                    return;
+                }
+    
                 window.location.href =
                     `market.html?edit=${encodeURIComponent(
                         listing.id
@@ -1575,7 +1727,6 @@ if (openChatButton) {
             }
         );
     }
-
 
     /* ===== КНОПКА ВИДАЛЕННЯ ===== */
 
@@ -1589,6 +1740,30 @@ if (openChatButton) {
         deleteListingButton.addEventListener(
             "click",
             () => {
+
+                const user =
+                typeof getCurrentUser === "function"
+                    ? getCurrentUser()
+                    : null;
+            
+            const userId =
+                user?.id ||
+                user?.userId ||
+                user?.email ||
+                "";
+            
+            if (
+                !userId ||
+                !listingOwnerId ||
+                String(userId) !== String(listingOwnerId)
+            ) {
+                alert(
+                    "Ви не можете видалити чуже оголошення."
+                );
+            
+                return;
+            }
+
                 const shouldDelete =
                     window.confirm(
                         "Ви точно хочете видалити це оголошення?"

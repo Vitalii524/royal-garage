@@ -508,3 +508,141 @@ body.photo-viewer-open {
         font-size: 27px;
     }
 }
+
+/* ===== ВІДГУКИ ПРО ПРОДАВЦЯ ===== */
+
+.seller-reviews-section {
+    margin-top: 18px;
+}
+
+.seller-reviews-title {
+    margin: 0 0 14px;
+
+    color: #f0c96b;
+
+    font-size: 22px;
+}
+
+.seller-reviews-empty {
+    margin: 0;
+
+    color:
+        rgba(255, 255, 255, 0.7);
+}
+
+.seller-review-card {
+    margin-top: 12px;
+    padding: 16px;
+
+    background:
+        rgba(5, 23, 52, 0.72);
+
+    border:
+        1px solid
+        rgba(240, 201, 107, 0.28);
+
+    border-radius: 12px;
+}
+
+.seller-review-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    margin-bottom: 8px;
+}
+
+.seller-review-author {
+    color: #ffffff;
+
+    font-size: 16px;
+}
+
+.seller-review-date {
+    color:
+        rgba(255, 255, 255, 0.55);
+
+    font-size: 13px;
+}
+
+.seller-review-stars {
+    display: flex;
+    gap: 2px;
+
+    margin-bottom: 8px;
+}
+
+.seller-review-star {
+    color:
+        rgba(255, 255, 255, 0.25);
+
+    font-size: 20px;
+}
+
+.seller-review-star.is-filled {
+    color: #f0c96b;
+
+    text-shadow:
+        0 0 7px
+        rgba(240, 201, 107, 0.45);
+}
+
+.seller-review-text {
+    margin: 0;
+
+    color:
+        rgba(255, 255, 255, 0.9);
+
+    line-height: 1.5;
+
+    white-space: pre-wrap;
+}
+
+
+/* ===== АНІМАЦІЯ ПІСЛЯ ЗБЕРЕЖЕННЯ ===== */
+
+.rating-success
+.seller-rating-button.is-selected {
+    animation:
+        seller-star-success
+        0.65s ease;
+}
+
+@keyframes seller-star-success {
+    0% {
+        transform: scale(1);
+    }
+
+    45% {
+        transform: scale(1.18);
+
+        box-shadow:
+            0 0 20px
+            rgba(240, 201, 107, 0.8);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+
+/* ===== МОБІЛЬНА ВЕРСІЯ ВІДГУКІВ ===== */
+
+@media (max-width: 650px) {
+    .seller-reviews-title {
+        font-size: 20px;
+    }
+
+    .seller-review-card {
+        padding: 14px;
+    }
+
+    .seller-review-header {
+        align-items: flex-start;
+        flex-direction: column;
+
+        gap: 4px;
+    }
+}

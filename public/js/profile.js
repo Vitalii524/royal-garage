@@ -15,6 +15,9 @@ const MESSAGES_KEY =
 const LISTINGS_KEY =
     "royalGarageMarketListings";
 
+const SELLER_RATINGS_KEY =
+    "royalGarageSellerRatings";
+
 let currentUser = null;
 
 try {
@@ -256,6 +259,217 @@ function readJson(
 
         return fallback;
     }
+}
+function getProfileSellerRating() {
+    const ratings =
+        readJson(
+            SELLER_RATINGS_KEY,
+            {}
+        );
+
+    const possibleSellerIds = [
+        currentUser.id,
+        currentUser.userId,
+        currentUser.email
+    ]
+        .filter(Boolean)
+        .map(String);
+
+
+    /* ===== СПОЧАТКУ ШУКАЄМО НАПРЯМУ ===== */
+
+    for (
+        const sellerId of
+        possibleSellerIds
+    ) {
+        const sellerData =
+            ratings[sellerId];
+
+        if (
+            sellerData &&
+            typeof sellerData === "object"
+        ) {
+            return calculateProfileRating(
+                sellerData
+            );
+        }
+    }
+
+
+    /* ===== ШУКАЄМО КЛЮЧ ЧЕРЕЗ ВЛАСНЕ ОГОЛОШЕННЯ ===== */
+
+    const listings =
+        readJson(
+            LISTINGS_KEY,
+            []
+        );
+
+    const ownCarIds =
+        cars.map(
+            (car) =>
+                String(car.id)
+        );
+
+    const ownVins =
+        cars
+            .map(
+                (car) =>
+                    normalizeVin(
+                        car.vin
+                    )
+            )
+            .filter(Boolean);
+
+
+    const ownListing =
+        listings.find(
+            (listing) => {
+                const listingCarId =
+                    String(
+                        listing.carId || ""
+                    );
+
+                const listingVin =
+                    normalizeVin(
+                        listing.vin
+                    );
+
+                return (
+                    (
+                        listingCarId &&
+                        ownCarIds.includes(
+                            listingCarId
+                        )
+                    ) ||
+                    (
+                        listingVin &&
+                        ownVins.includes(
+                            listingVin
+                        )
+                    )
+                );
+            }
+        );
+
+
+    if (!ownListing) {
+        return {
+            average: 0,
+            count: 0
+        };
+    }
+
+
+    const listingSellerId =
+        ownListing.ownerId ||
+        ownListing.userId ||
+        ownListing.sellerId ||
+        ownListing.ownerEmail ||
+        ownListing.email ||
+        "";
+
+
+    const sellerData =
+        ratings[
+            String(
+                listingSellerId
+            )
+        ];
+
+
+    if (!sellerData) {
+        return {
+            average: 0,
+            count: 0
+        };
+    }
+
+
+    return calculateProfileRating(
+        sellerData
+    );
+}
+
+
+function calculateProfileRating(
+    sellerData
+) {
+    const votes =
+        sellerData?.votes &&
+        typeof sellerData.votes ===
+            "object"
+            ? Object.values(
+                sellerData.votes
+            )
+                .map(Number)
+                .filter(
+                    (rating) =>
+                        Number.isFinite(
+                            rating
+                        ) &&
+                        rating >= 1 &&
+                        rating <= 5
+                )
+            : [];
+
+
+    if (
+        votes.length === 0
+    ) {
+        return {
+            average: 0,
+            count: 0
+        };
+    }
+
+
+    const total =
+        votes.reduce(
+            (sum, rating) =>
+                sum + rating,
+            0
+        );
+
+
+    return {
+        average:
+            total / votes.length,
+
+        count:
+            votes.length
+    };
+}
+function getRatingCountLabel(
+    count
+) {
+    const value =
+        Number(count) || 0;
+
+    const lastTwoDigits =
+        value % 100;
+
+    const lastDigit =
+        value % 10;
+
+    if (
+        lastTwoDigits >= 11 &&
+        lastTwoDigits <= 14
+    ) {
+        return `${value} оцінок`;
+    }
+
+    if (lastDigit === 1) {
+        return `${value} оцінка`;
+    }
+
+    if (
+        lastDigit >= 2 &&
+        lastDigit <= 4
+    ) {
+        return `${value} оцінки`;
+    }
+
+    return `${value} оцінок`;
 }
 
 function loadCars() {
@@ -1939,10 +2153,176 @@ VIN: ${car.vin || "-"}
     );
 }
 
+function renderProfileSellerReputation() {
+    const ratingElement =
+        document.getElementById(
+            "profileSellerRating"
+        );
+
+    const countElement =
+        document.getElementById(
+            "profileSellerRatingCount"
+        );
+
+    if (
+        !ratingElement ||
+        !countElement
+    ) {
+        return;
+    }
+
+    const ratingData =
+        getProfileSellerRating();
+
+    if (
+        ratingData.count === 0
+    ) {
+        ratingElement.textContent =
+            "—";
+
+        countElement.textContent =
+            "Новий продавець";
+
+        return;
+    }
+
+    ratingElement.textContent =
+        ratingData.average.toFixed(1);
+
+    countElement.textContent =
+        `· ${getRatingCountLabel(
+            ratingData.count
+        )}`;
+}
+
+function renderProfileSellerReviews() {
+    const reviewsList =
+        document.getElementById(
+            "profileSellerReviewsList"
+        );
+
+    if (!reviewsList) {
+        return;
+    }
+
+    const ratings =
+        readJson(
+            SELLER_RATINGS_KEY,
+            {}
+        );
+
+    const sellerData =
+        ratings[
+            String(currentUser.id)
+        ];
+
+    const reviews =
+        sellerData?.reviews &&
+        typeof sellerData.reviews === "object"
+            ? Object.values(
+                sellerData.reviews
+            )
+                .filter(
+                    (review) =>
+                        review &&
+                        String(
+                            review.text || ""
+                        ).trim()
+                )
+                .sort(
+                    (
+                        firstReview,
+                        secondReview
+                    ) =>
+                        new Date(
+                            secondReview.updatedAt || 0
+                        ) -
+                        new Date(
+                            firstReview.updatedAt || 0
+                        )
+                )
+            : [];
+
+    if (
+        reviews.length === 0
+    ) {
+        reviewsList.innerHTML = `
+            <p class="profile-seller-reviews-empty">
+                Відгуків поки немає.
+            </p>
+        `;
+
+        return;
+    }
+
+    reviewsList.innerHTML =
+        reviews
+            .map(
+                (review) => `
+                    <article class="profile-seller-review-card">
+
+                        <div class="profile-seller-review-header">
+
+                            <strong>
+                                ${escapeHtml(
+                                    review.userName ||
+                                    "Користувач"
+                                )}
+                            </strong>
+
+                            <span>
+                                ${
+                                    review.updatedAt
+                                        ? new Date(
+                                            review.updatedAt
+                                        ).toLocaleDateString(
+                                            "uk-UA"
+                                        )
+                                        : ""
+                                }
+                            </span>
+
+                        </div>
+
+                        <div class="profile-seller-review-stars">
+                            ${[1, 2, 3, 4, 5]
+                                .map(
+                                    (star) => `
+                                        <span
+                                            class="${
+                                                star <=
+                                                Number(
+                                                    review.rating || 0
+                                                )
+                                                    ? "is-filled"
+                                                    : ""
+                                            }"
+                                        >
+                                            ★
+                                        </span>
+                                    `
+                                )
+                                .join("")}
+                        </div>
+
+                        <p>
+                            ${escapeHtml(
+                                review.text
+                            )}
+                        </p>
+
+                    </article>
+                `
+            )
+            .join("");
+}
+
 function renderPage() {
     renderCars();
     renderSelectedCar();
     renderMyChats();
+    renderProfileSellerReputation();
+    renderProfileSellerReviews();
 }
 
 
@@ -2938,26 +3318,20 @@ function renderMyChats() {
    ВІДКРИТТЯ ІСТОРІЇ
    З ОГОЛОШЕННЯ
    ========================= */
-
-function openServiceHistoryFromUrl() {
+   function openServiceHistoryFromUrl() {
     const params =
         new URLSearchParams(
             window.location.search
         );
 
     const section =
-        params.get(
-            "section"
-        );
+        params.get("section");
 
     const listingId =
-        params.get(
-            "listingId"
-        );
+        params.get("listingId");
 
     if (
-        section !==
-            "service" ||
+        section !== "service" ||
         !listingId
     ) {
         return;
@@ -2972,17 +3346,21 @@ function openServiceHistoryFromUrl() {
     const listing =
         listings.find(
             (item) =>
-                String(
-                    item.id
-                ) ===
-                String(
-                    listingId
-                )
+                String(item.id) ===
+                String(listingId)
         );
+
+    if (!listing) {
+        alert(
+            "Оголошення не знайдено."
+        );
+
+        return;
+    }
 
     const listingVin =
         normalizeVin(
-            listing?.vin
+            listing.vin
         );
 
     if (!listingVin) {
@@ -2993,33 +3371,371 @@ function openServiceHistoryFromUrl() {
         return;
     }
 
-    const matchingCar =
-        cars.find(
-            (car) =>
-                normalizeVin(
-                    car.vin
-                ) ===
-                listingVin
-        );
+    const listingOwnerId =
+        listing.ownerId ||
+        listing.userId ||
+        listing.sellerId ||
+        listing.ownerEmail ||
+        listing.email ||
+        "";
 
-    if (!matchingCar) {
+    if (!listingOwnerId) {
         alert(
-            `Автомобіль з VIN ${
-                listingVin
-            } не знайдений у гаражі.`
+            "Не вдалося визначити власника автомобіля."
         );
 
         return;
     }
 
-    selectedCarId =
-        matchingCar.id;
+    const isOwner =
+        String(currentUser.id) ===
+        String(listingOwnerId);
 
-    renderPage();
+
+    /* ===== ВЛАСНИК АВТО ===== */
+
+    if (isOwner) {
+        const matchingCar =
+            cars.find(
+                (car) =>
+                    normalizeVin(
+                        car.vin
+                    ) ===
+                    listingVin
+            );
+
+        if (!matchingCar) {
+            alert(
+                `Автомобіль з VIN ${listingVin} не знайдений у вашому гаражі.`
+            );
+
+            return;
+        }
+
+        selectedCarId =
+            matchingCar.id;
+
+        renderPage();
+
+        openModal(
+            elements.historyModal
+        );
+
+        window.history.replaceState(
+            {},
+            document.title,
+            "profile.html"
+        );
+
+        return;
+    }
+
+
+    /* ===== ПОКУПЕЦЬ — ЧИТАЄМО ГАРАЖ ПРОДАВЦЯ ===== */
+
+    const sellerGarageKey =
+        `royalGarageCars_${listingOwnerId}`;
+
+    const sellerCars =
+        readJson(
+            sellerGarageKey,
+            []
+        );
+
+    const matchingCar =
+        Array.isArray(sellerCars)
+            ? sellerCars.find(
+                (car) =>
+                    normalizeVin(
+                        car.vin
+                    ) ===
+                    listingVin
+            )
+            : null;
+
+    if (!matchingCar) {
+        alert(
+            "Історія обслуговування цього автомобіля недоступна."
+        );
+
+        return;
+    }
+
+
+    /* ===== ТІЛЬКИ ПУБЛІЧНІ ЗАПИСИ ===== */
+
+    const publicServices =
+        Array.isArray(
+            matchingCar.services
+        )
+            ? matchingCar.services
+                .filter(
+                    (service) =>
+                        service.isPublic === true
+                )
+                .sort(
+                    (
+                        first,
+                        second
+                    ) =>
+                        String(
+                            second.date || ""
+                        ).localeCompare(
+                            String(
+                                first.date || ""
+                            )
+                        )
+                )
+            : [];
+
+
+    if (
+        elements.serviceHistory
+    ) {
+        elements.serviceHistory
+            .querySelectorAll(
+                ".service-card"
+            )
+            .forEach(
+                (element) => {
+                    element.remove();
+                }
+            );
+    }
+
+
+    if (
+        elements.noServiceMessage
+    ) {
+        elements.noServiceMessage.hidden =
+            publicServices.length > 0;
+
+        if (
+            publicServices.length === 0
+        ) {
+            elements.noServiceMessage.textContent =
+                "Продавець ще не опублікував історію обслуговування цього автомобіля.";
+        }
+    }
+
+
+    /* ===== СТАТИСТИКА ПУБЛІЧНОЇ ІСТОРІЇ ===== */
+
+    if (
+        elements.serviceCount
+    ) {
+        elements.serviceCount.textContent =
+            String(
+                publicServices.length
+            );
+    }
+
+    const publicTotalCost =
+        publicServices.reduce(
+            (
+                total,
+                service
+            ) =>
+                total +
+                Number(
+                    service.cost || 0
+                ),
+            0
+        );
+
+    if (
+        elements.totalServiceCost
+    ) {
+        elements.totalServiceCost.textContent =
+            `${formatNumber(
+                publicTotalCost
+            )} грн`;
+    }
+
+    if (
+        elements.currentMileage
+    ) {
+        elements.currentMileage.textContent =
+            `${formatNumber(
+                matchingCar.mileage
+            )} км`;
+    }
+
+
+    /* ===== ВІДОБРАЖЕННЯ ПУБЛІЧНИХ ЗАПИСІВ ===== */
+
+    publicServices.forEach(
+        (service) => {
+            const card =
+                document.createElement(
+                    "article"
+                );
+
+            card.className =
+                "service-card";
+
+            card.innerHTML = `
+                <div class="service-card-top">
+
+                    <div>
+                        <p class="service-date">
+                            ${formatDate(
+                                service.date
+                            )}
+                        </p>
+
+                        <h3>
+                            ${escapeHtml(
+                                service.title
+                            )}
+                        </h3>
+                    </div>
+
+                    <span class="service-visibility">
+                        Публічний
+                    </span>
+
+                </div>
+
+                <div class="service-details">
+
+                    <span>
+                        Пробіг:
+
+                        <strong>
+                            ${formatNumber(
+                                service.mileage
+                            )} км
+                        </strong>
+                    </span>
+
+                    <span>
+                        Вартість:
+
+                        <strong>
+                            ${formatNumber(
+                                service.cost
+                            )} грн
+                        </strong>
+                    </span>
+
+                </div>
+
+                ${
+                    service.station
+                        ? `
+                            <p>
+                                <strong>
+                                    СТО:
+                                </strong>
+
+                                ${escapeHtml(
+                                    service.station
+                                )}
+                            </p>
+                        `
+                        : ""
+                }
+
+                ${
+                    service.description
+                        ? `
+                            <p>
+                                ${escapeHtml(
+                                    service.description
+                                )}
+                            </p>
+                        `
+                        : ""
+                }
+            `;
+
+
+            /* ===== ПУБЛІЧНІ ФОТО ===== */
+
+            const photos =
+                Array.isArray(
+                    service.photos
+                )
+                    ? service.photos
+                    : [];
+
+            if (
+                photos.length > 0
+            ) {
+                const gallery =
+                    document.createElement(
+                        "div"
+                    );
+
+                gallery.className =
+                    "service-photo-gallery";
+
+                photos.forEach(
+                    (
+                        photo,
+                        photoIndex
+                    ) => {
+                        const photoItem =
+                            document.createElement(
+                                "div"
+                            );
+
+                        photoItem.className =
+                            "service-photo-item";
+
+                        const image =
+                            document.createElement(
+                                "img"
+                            );
+
+                        image.src =
+                            photo;
+
+                        image.alt =
+                            "Фото до запису";
+
+                        image.className =
+                            "service-photo";
+
+                        image.addEventListener(
+                            "click",
+                            () => {
+                                openPhotoViewer(
+                                    photos,
+                                    photoIndex
+                                );
+                            }
+                        );
+
+                        photoItem.appendChild(
+                            image
+                        );
+
+                        gallery.appendChild(
+                            photoItem
+                        );
+                    }
+                );
+
+                card.appendChild(
+                    gallery
+                );
+            }
+
+
+            elements.serviceHistory
+                ?.appendChild(
+                    card
+                );
+        }
+    );
+
 
     openModal(
         elements.historyModal
     );
+
 
     window.history.replaceState(
         {},
@@ -3027,7 +3743,6 @@ function openServiceHistoryFromUrl() {
         "profile.html"
     );
 }
-
 
 /* =========================
    ОБРОБНИКИ ПОДІЙ
@@ -3439,6 +4154,7 @@ document.addEventListener(
 
 saveCars();
 renderPage();
+renderProfileSellerReputation();
 openServiceHistoryFromUrl();
 
 const profileParams =
@@ -3475,3 +4191,4 @@ if (globalOpenChatsButton) {
         }
     );
 }
+
