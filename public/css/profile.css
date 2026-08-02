@@ -840,3 +840,64 @@
         gap: 4px;
     }
 }
+
+/* ===== ОБРАНЕ ===== */
+
+.profile-favorites-section {
+    margin-top: 24px;
+}
+
+.profile-favorites-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.profile-favorites-count {
+    min-width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--gold);
+    border-radius: 999px;
+}
+
+.profile-favorites-list {
+    display: grid;
+    gap: 14px;
+}
+
+.profile-favorite-card {
+    display: block;
+    overflow: hidden;
+    border: 1px solid rgba(230, 190, 100, 0.45);
+    border-radius: 18px;
+    text-decoration: none;
+    color: inherit;
+    background: rgba(8, 30, 58, 0.75);
+}
+
+.profile-favorite-photo {
+    display: block;
+    width: 100%;
+    height: 170px;
+    object-fit: cover;
+}
+
+.profile-favorite-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 14px;
+}
+
+.profile-favorite-info strong {
+    font-size: 18px;
+}
+
+.profile-favorite-info span {
+    opacity: 0.85;
+}

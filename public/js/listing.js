@@ -198,6 +198,13 @@ function saveSellerReview(
             .trim()
             .slice(0, 1000);
 
+            if (
+                normalizedSellerId ===
+                normalizedVoterId
+            ) {
+                return false;
+            }
+
     if (
         !normalizedSellerId ||
         !normalizedVoterId ||
@@ -2240,6 +2247,131 @@ if (openChatButton) {
             }
         );
     }
+
+    /* ===== СВАЙП ФОТО НА ТЕЛЕФОНІ ===== */
+
+let touchStartX = 0;
+let touchStartY = 0;
+
+const minimumSwipeDistance = 50;
+
+
+function handleTouchStart(event) {
+    if (!event.touches.length) {
+        return;
+    }
+
+    touchStartX =
+        event.touches[0].clientX;
+
+    touchStartY =
+        event.touches[0].clientY;
+}
+
+
+function handleTouchEnd(event) {
+    if (!event.changedTouches.length) {
+        return;
+    }
+
+    const touchEndX =
+        event.changedTouches[0].clientX;
+
+    const touchEndY =
+        event.changedTouches[0].clientY;
+
+
+    const swipeDistanceX =
+        touchEndX - touchStartX;
+
+    const swipeDistanceY =
+        touchEndY - touchStartY;
+
+
+    /*
+        Якщо рух більше вертикальний,
+        залишаємо звичайний скрол сторінки.
+    */
+
+    if (
+        Math.abs(swipeDistanceY) >
+        Math.abs(swipeDistanceX)
+    ) {
+        return;
+    }
+
+
+    if (
+        Math.abs(swipeDistanceX) <
+        minimumSwipeDistance
+    ) {
+        return;
+    }
+
+
+    /*
+        Свайп вліво →
+        наступне фото
+    */
+
+    if (swipeDistanceX < 0) {
+        showNextPhoto();
+
+        return;
+    }
+
+
+    /*
+        Свайп вправо →
+        попереднє фото
+    */
+
+    showPreviousPhoto();
+}
+
+
+/* ===== СВАЙП ГОЛОВНОГО ФОТО ===== */
+
+if (listingMainPhoto) {
+    listingMainPhoto.addEventListener(
+        "touchstart",
+        handleTouchStart,
+        {
+            passive: true
+        }
+    );
+
+
+    listingMainPhoto.addEventListener(
+        "touchend",
+        handleTouchEnd,
+        {
+            passive: true
+        }
+    );
+}
+
+
+/* ===== СВАЙП У ПОВНОЕКРАННОМУ ПЕРЕГЛЯДІ ===== */
+
+if (photoViewerImage) {
+    photoViewerImage.addEventListener(
+        "touchstart",
+        handleTouchStart,
+        {
+            passive: true
+        }
+    );
+
+
+    photoViewerImage.addEventListener(
+        "touchend",
+        handleTouchEnd,
+        {
+            passive: true
+        }
+    );
+}
 
 
     /* ===== КЕРУВАННЯ КЛАВІАТУРОЮ ===== */

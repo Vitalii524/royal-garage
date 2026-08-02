@@ -43,6 +43,160 @@ if (!currentUser?.id) {
     );
 }
 
+function getFavoritesStorageKey() {
+    return `royalGarageFavoriteListings_${currentUser.id}`;
+}
+
+
+function loadFavoriteListingIds() {
+    try {
+        const storedFavorites =
+            JSON.parse(
+                localStorage.getItem(
+                    getFavoritesStorageKey()
+                )
+            ) || [];
+
+        return Array.isArray(
+            storedFavorites
+        )
+            ? storedFavorites.map(String)
+            : [];
+    } catch (error) {
+        console.error(
+            "Не вдалося завантажити обране:",
+            error
+        );
+
+        return [];
+    }
+}
+
+function renderFavoriteListings() {
+    const favoritesList =
+        document.getElementById(
+            "profileFavoritesList"
+        );
+
+    const favoritesCount =
+        document.getElementById(
+            "profileFavoritesCount"
+        );
+
+    if (
+        !favoritesList ||
+        !favoritesCount
+    ) {
+        return;
+    }
+
+    const favoriteIds =
+        loadFavoriteListingIds();
+
+    const listings =
+        readJson(
+            LISTINGS_KEY,
+            []
+        );
+
+    const favoriteListings =
+        listings.filter(
+            (listing) =>
+                favoriteIds.includes(
+                    String(listing.id)
+                )
+        );
+
+    favoritesCount.textContent =
+        String(
+            favoriteListings.length
+        );
+
+    if (
+        favoriteListings.length === 0
+    ) {
+        favoritesList.innerHTML = `
+            <p class="profile-favorites-empty">
+                Ви ще не додали оголошення в обране.
+            </p>
+        `;
+
+        return;
+    }
+
+    favoritesList.innerHTML =
+    favoriteListings
+    .map((listing) => {
+        const listingPhotos =
+            Array.isArray(listing.photos)
+                ? listing.photos
+                : listing.photo
+                    ? [listing.photo]
+                    : [];
+
+        const mainPhoto =
+            listingPhotos[0] || "";
+
+        return `
+            <a
+                class="profile-favorite-card"
+                href="listing.html?id=${encodeURIComponent(
+                    listing.id
+                )}"
+            >
+                ${
+                    mainPhoto
+                        ? `
+                            <img
+                                class="profile-favorite-photo"
+                                src="${escapeHtml(mainPhoto)}"
+                                alt="${escapeHtml(
+                                    listing.name ||
+                                    "Автомобіль"
+                                )}"
+                            >
+                        `
+                        : ""
+                }
+
+                <div class="profile-favorite-info">
+                    <strong>
+                        ${escapeHtml(
+                            listing.name ||
+                            "Автомобіль"
+                        )}
+                    </strong>
+
+                    ${
+                        listing.year
+                            ? `
+                                <span>
+                                    ${escapeHtml(
+                                        String(listing.year)
+                                    )} рік
+                                </span>
+                            `
+                            : ""
+                    }
+
+                    ${
+                        listing.priceUsd
+                            ? `
+                                <span>
+                                ${Number(listing.priceUsd || 0
+                                    ).toLocaleString("uk-UA")} $
+                                </span>
+                            `
+                            : ""
+                    }
+                </div>
+            </a>
+        `;
+    })
+    .join("");
+          
+}
+
 document.documentElement.style.visibility =
     "visible";
 
@@ -933,8 +1087,10 @@ function renderCars() {
     if (
         elements.noCarsMessage
     ) {
-        elements.noCarsMessage.hidden =
-            cars.length > 0;
+        elements.noCarsMessage.style.display =
+    cars.length > 0
+        ? "none"
+        : "block";
     }
 
     cars.forEach((car) => {
@@ -984,7 +1140,7 @@ function renderCars() {
                 selectedCarId =
                     car.id;
 
-                renderPage();
+                age();
             }
         );
 
@@ -1388,7 +1544,7 @@ function deleteService(
         );
 
     saveCars();
-    renderPage();
+    age();
 }
 
 function deleteServicePhoto(
@@ -1435,7 +1591,7 @@ function deleteServicePhoto(
         photos;
 
     saveCars();
-    renderPage();
+    age();
 }
 
 async function replaceServicePhoto(
@@ -1475,7 +1631,7 @@ async function replaceServicePhoto(
             photos;
 
         saveCars();
-        renderPage();
+        age();
     } catch (error) {
         alert(error.message);
     }
@@ -1547,7 +1703,7 @@ async function addServicePhotos(
         ];
 
         saveCars();
-        renderPage();
+        age();
     } catch (error) {
         alert(error.message);
     }
@@ -2323,6 +2479,7 @@ function renderPage() {
     renderMyChats();
     renderProfileSellerReputation();
     renderProfileSellerReviews();
+    renderFavoriteListings();
 }
 
 

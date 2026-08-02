@@ -346,8 +346,8 @@ function getRatingCountLabel(
     return `${value} оцінок`;
 }
 
-    const FAVORITES_STORAGE_KEY =
-    `royalGarageFavoriteListings_${currentUser.id}`;
+const FAVORITES_STORAGE_KEY =
+`royalGarageFavoriteListings_${currentUser.id}`;
 
 
 let favoriteListingIds = [];
@@ -2281,22 +2281,21 @@ function renderListings() {
             `;
 
             const favoriteButton =
-    card.querySelector(
-        ".favorite-headlight-button"
-    );
-
-
-favoriteButton?.addEventListener(
-    "click",
-    (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-
-        toggleFavoriteListing(
-            listing.id
+            card.querySelector(
+                ".favorite-headlight-button"
+            );
+        
+        favoriteButton?.addEventListener(
+            "click",
+            (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+        
+                toggleFavoriteListing(
+                    listing.id
+                );
+            }
         );
-    }
-);
 
             card.addEventListener(
                 "click",
