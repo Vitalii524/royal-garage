@@ -112,15 +112,42 @@
                 </select>
             </label>
 
-            <label>
-                Назва автомобіля
-                <input
-                    type="text"
-                    id="listingName"
-                    placeholder="Наприклад: Peugeot 308"
-                    required
-                >
-            </label>
+            <div class="listing-car-name-fields">
+
+                <label>
+                    Марка автомобіля
+            
+                    <select
+                        id="listingBrand"
+                        required
+                    >
+                        <option value="">
+                            Обери марку
+                        </option>
+                    </select>
+                </label>
+            
+            
+                <label>
+                    Модель автомобіля
+            
+                    <select
+                        id="listingModel"
+                        required
+                        disabled
+                    >
+                        <option value="">
+                            Спочатку обери марку
+                        </option>
+                    </select>
+                </label>
+            
+            </div>
+            
+            <input
+                type="hidden"
+                id="listingName"
+            >
             
             <label class="listing-photo-field">
                 Додати фотографії

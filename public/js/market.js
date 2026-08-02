@@ -77,6 +77,17 @@ const listingName =
         "listingName"
     );
 
+    const listingBrand =
+    document.getElementById(
+        "listingBrand"
+    );
+
+
+const listingModel =
+    document.getElementById(
+        "listingModel"
+    );
+
 
 const listingYear =
     document.getElementById(
@@ -219,6 +230,730 @@ const selectedCarVin =
         "selectedCarVin"
     );
 
+    /* =====================================================
+   МАРКИ ТА МОДЕЛІ АВТОМОБІЛІВ
+===================================================== */
+
+const CAR_BRANDS_MODELS = {
+    "Audi": [
+        "A1",
+        "A3",
+        "A4",
+        "A5",
+        "A6",
+        "A7",
+        "A8",
+        "Q2",
+        "Q3",
+        "Q4 e-tron",
+        "Q5",
+        "Q7",
+        "Q8",
+        "TT",
+        "R8",
+        "e-tron",
+        "Інша модель"
+    ],
+
+    "BMW": [
+        "1 Series",
+        "2 Series",
+        "3 Series",
+        "4 Series",
+        "5 Series",
+        "6 Series",
+        "7 Series",
+        "8 Series",
+        "X1",
+        "X2",
+        "X3",
+        "X4",
+        "X5",
+        "X6",
+        "X7",
+        "XM",
+        "Z4",
+        "i3",
+        "i4",
+        "i5",
+        "i7",
+        "iX",
+        "Інша модель"
+    ],
+
+    "Mercedes-Benz": [
+        "A-Class",
+        "B-Class",
+        "C-Class",
+        "E-Class",
+        "S-Class",
+        "CLA",
+        "CLS",
+        "GLA",
+        "GLB",
+        "GLC",
+        "GLE",
+        "GLS",
+        "G-Class",
+        "V-Class",
+        "AMG GT",
+        "EQA",
+        "EQB",
+        "EQE",
+        "EQS",
+        "Інша модель"
+    ],
+
+    "Volkswagen": [
+        "Polo",
+        "Golf",
+        "Jetta",
+        "Passat",
+        "Arteon",
+        "Touran",
+        "Tiguan",
+        "Touareg",
+        "T-Roc",
+        "T-Cross",
+        "Caddy",
+        "Transporter",
+        "Multivan",
+        "ID.3",
+        "ID.4",
+        "ID.5",
+        "ID.7",
+        "Інша модель"
+    ],
+
+    "Toyota": [
+        "Yaris",
+        "Corolla",
+        "Camry",
+        "Avalon",
+        "Prius",
+        "C-HR",
+        "RAV4",
+        "Highlander",
+        "Land Cruiser",
+        "Hilux",
+        "Proace",
+        "bZ4X",
+        "Інша модель"
+    ],
+
+    "Skoda": [
+        "Fabia",
+        "Scala",
+        "Octavia",
+        "Superb",
+        "Kamiq",
+        "Karoq",
+        "Kodiaq",
+        "Enyaq",
+        "Roomster",
+        "Yeti",
+        "Інша модель"
+    ],
+
+    "Renault": [
+        "Clio",
+        "Megane",
+        "Laguna",
+        "Talisman",
+        "Captur",
+        "Kadjar",
+        "Austral",
+        "Koleos",
+        "Scenic",
+        "Espace",
+        "Kangoo",
+        "Trafic",
+        "Master",
+        "Zoe",
+        "Інша модель"
+    ],
+
+    "Peugeot": [
+        "107",
+        "108",
+        "206",
+        "207",
+        "208",
+        "301",
+        "307",
+        "308",
+        "407",
+        "408",
+        "508",
+        "2008",
+        "3008",
+        "5008",
+        "Partner",
+        "Rifter",
+        "Expert",
+        "Traveller",
+        "Інша модель"
+    ],
+
+    "Citroen": [
+        "C1",
+        "C3",
+        "C4",
+        "C5",
+        "C-Elysee",
+        "C3 Aircross",
+        "C5 Aircross",
+        "Berlingo",
+        "Jumpy",
+        "Jumper",
+        "Інша модель"
+    ],
+
+    "Ford": [
+        "Fiesta",
+        "Focus",
+        "Mondeo",
+        "Fusion",
+        "Mustang",
+        "Puma",
+        "Kuga",
+        "Edge",
+        "Explorer",
+        "Ranger",
+        "Transit",
+        "Інша модель"
+    ],
+
+    "Opel": [
+        "Corsa",
+        "Astra",
+        "Insignia",
+        "Mokka",
+        "Crossland",
+        "Grandland",
+        "Zafira",
+        "Combo",
+        "Vivaro",
+        "Інша модель"
+    ],
+
+    "Nissan": [
+        "Micra",
+        "Note",
+        "Almera",
+        "Sentra",
+        "Altima",
+        "Maxima",
+        "Juke",
+        "Qashqai",
+        "X-Trail",
+        "Pathfinder",
+        "Patrol",
+        "Leaf",
+        "Інша модель"
+    ],
+
+    "Mazda": [
+        "2",
+        "3",
+        "6",
+        "CX-3",
+        "CX-30",
+        "CX-5",
+        "CX-60",
+        "CX-7",
+        "CX-9",
+        "MX-5",
+        "Інша модель"
+    ],
+
+    "Honda": [
+        "Jazz",
+        "Civic",
+        "Accord",
+        "Insight",
+        "HR-V",
+        "CR-V",
+        "Pilot",
+        "Інша модель"
+    ],
+
+    "Hyundai": [
+        "i10",
+        "i20",
+        "i30",
+        "Elantra",
+        "Sonata",
+        "Accent",
+        "Tucson",
+        "Santa Fe",
+        "Kona",
+        "Palisade",
+        "Ioniq",
+        "Ioniq 5",
+        "Ioniq 6",
+        "Інша модель"
+    ],
+
+    "Kia": [
+        "Picanto",
+        "Rio",
+        "Ceed",
+        "Cerato",
+        "Optima",
+        "K5",
+        "Stonic",
+        "Niro",
+        "Sportage",
+        "Sorento",
+        "EV6",
+        "EV9",
+        "Інша модель"
+    ],
+
+    "Volvo": [
+        "S40",
+        "S60",
+        "S80",
+        "S90",
+        "V40",
+        "V60",
+        "V90",
+        "XC40",
+        "XC60",
+        "XC70",
+        "XC90",
+        "Інша модель"
+    ],
+
+    "Lexus": [
+        "IS",
+        "ES",
+        "GS",
+        "LS",
+        "UX",
+        "NX",
+        "RX",
+        "GX",
+        "LX",
+        "Інша модель"
+    ],
+
+    "Porsche": [
+        "718",
+        "911",
+        "Panamera",
+        "Macan",
+        "Cayenne",
+        "Taycan",
+        "Інша модель"
+    ],
+
+    "Tesla": [
+        "Model 3",
+        "Model S",
+        "Model X",
+        "Model Y",
+        "Cybertruck",
+        "Інша модель"
+    ],
+
+    "Chevrolet": [
+        "Aveo",
+        "Cruze",
+        "Malibu",
+        "Camaro",
+        "Captiva",
+        "Equinox",
+        "Tahoe",
+        "Інша модель"
+    ],
+
+    "Mitsubishi": [
+        "Colt",
+        "Lancer",
+        "ASX",
+        "Eclipse Cross",
+        "Outlander",
+        "Pajero",
+        "L200",
+        "Інша модель"
+    ],
+
+    "Subaru": [
+        "Impreza",
+        "Legacy",
+        "Outback",
+        "Forester",
+        "XV",
+        "Crosstrek",
+        "WRX",
+        "BRZ",
+        "Інша модель"
+    ],
+
+    "Suzuki": [
+        "Swift",
+        "Baleno",
+        "SX4",
+        "Vitara",
+        "S-Cross",
+        "Jimny",
+        "Інша модель"
+    ],
+
+    "Land Rover": [
+        "Defender",
+        "Discovery",
+        "Discovery Sport",
+        "Range Rover",
+        "Range Rover Sport",
+        "Range Rover Velar",
+        "Range Rover Evoque",
+        "Інша модель"
+    ],
+
+    "Jeep": [
+        "Renegade",
+        "Compass",
+        "Cherokee",
+        "Grand Cherokee",
+        "Wrangler",
+        "Інша модель"
+    ],
+
+    "Fiat": [
+        "500",
+        "Panda",
+        "Tipo",
+        "Punto",
+        "Doblo",
+        "Ducato",
+        "Інша модель"
+    ],
+
+    "Alfa Romeo": [
+        "Giulietta",
+        "Giulia",
+        "Stelvio",
+        "Tonale",
+        "Інша модель"
+    ],
+
+    "Dacia": [
+        "Logan",
+        "Sandero",
+        "Duster",
+        "Jogger",
+        "Lodgy",
+        "Dokker",
+        "Інша модель"
+    ],
+
+    "SEAT": [
+        "Ibiza",
+        "Leon",
+        "Toledo",
+        "Arona",
+        "Ateca",
+        "Tarraco",
+        "Інша модель"
+    ],
+
+    "Cupra": [
+        "Leon",
+        "Formentor",
+        "Ateca",
+        "Born",
+        "Tavascan",
+        "Інша модель"
+    ],
+
+    "Інша марка": [
+        "Інша модель"
+    ]
+};
+
+
+function fillBrandSelect() {
+    if (!listingBrand) {
+        return;
+    }
+
+    listingBrand.innerHTML = `
+        <option value="">
+            Обери марку
+        </option>
+    `;
+
+
+    Object.keys(
+        CAR_BRANDS_MODELS
+    ).forEach(
+        (brand) => {
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+            option.value =
+                brand;
+
+            option.textContent =
+                brand;
+
+            listingBrand.appendChild(
+                option
+            );
+        }
+    );
+}
+
+
+function fillModelSelect(
+    brand,
+    selectedModel = ""
+) {
+    if (!listingModel) {
+        return;
+    }
+
+
+    listingModel.innerHTML = "";
+
+
+    if (
+        !brand ||
+        !CAR_BRANDS_MODELS[brand]
+    ) {
+        listingModel.innerHTML = `
+            <option value="">
+                Спочатку обери марку
+            </option>
+        `;
+
+        listingModel.disabled =
+            true;
+
+        return;
+    }
+
+
+    listingModel.disabled =
+        false;
+
+
+    const defaultOption =
+        document.createElement(
+            "option"
+        );
+
+    defaultOption.value = "";
+
+    defaultOption.textContent =
+        "Обери модель";
+
+    listingModel.appendChild(
+        defaultOption
+    );
+
+
+    CAR_BRANDS_MODELS[
+        brand
+    ].forEach(
+        (model) => {
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+            option.value =
+                model;
+
+            option.textContent =
+                model;
+
+            listingModel.appendChild(
+                option
+            );
+        }
+    );
+
+
+    if (selectedModel) {
+        listingModel.value =
+            selectedModel;
+    }
+}
+
+
+function updateListingNameFromBrandModel() {
+    if (
+        !listingName ||
+        !listingBrand ||
+        !listingModel
+    ) {
+        return;
+    }
+
+
+    const brand =
+        listingBrand.value.trim();
+
+    const model =
+        listingModel.value.trim();
+
+
+    listingName.value =
+        [brand, model]
+            .filter(Boolean)
+            .join(" ");
+}
+
+function setBrandAndModelFromName(
+    vehicleName
+) {
+    if (
+        !listingBrand ||
+        !listingModel
+    ) {
+        return;
+    }
+
+
+    const name =
+        String(vehicleName || "")
+            .trim();
+
+
+    if (!name) {
+        listingBrand.value = "";
+
+        fillModelSelect("");
+
+        return;
+    }
+
+
+    const brands =
+        Object.keys(
+            CAR_BRANDS_MODELS
+        )
+            .filter(
+                (brand) =>
+                    brand !==
+                    "Інша марка"
+            )
+            .sort(
+                (firstBrand, secondBrand) =>
+                    secondBrand.length -
+                    firstBrand.length
+            );
+
+
+    const foundBrand =
+        brands.find(
+            (brand) =>
+                name.toLowerCase()
+                    .startsWith(
+                        brand.toLowerCase() +
+                        " "
+                    ) ||
+                name.toLowerCase() ===
+                    brand.toLowerCase()
+        );
+
+
+    if (!foundBrand) {
+        listingBrand.value =
+            "Інша марка";
+
+        fillModelSelect(
+            "Інша марка"
+        );
+
+        listingModel.value =
+            "Інша модель";
+
+        return;
+    }
+
+
+    const model =
+        name
+            .slice(
+                foundBrand.length
+            )
+            .trim();
+
+
+    listingBrand.value =
+        foundBrand;
+
+
+    fillModelSelect(
+        foundBrand
+    );
+
+
+    if (model) {
+        const modelExists =
+            Array.from(
+                listingModel.options
+            ).some(
+                (option) =>
+                    option.value ===
+                    model
+            );
+
+
+        if (!modelExists) {
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+            option.value =
+                model;
+
+            option.textContent =
+                model;
+
+            listingModel.appendChild(
+                option
+            );
+        }
+
+
+        listingModel.value =
+            model;
+    }
+
+
+    updateListingNameFromBrandModel();
+}
+
+
+if (listingBrand) {
+    listingBrand.addEventListener(
+        "change",
+        () => {
+            fillModelSelect(
+                listingBrand.value
+            );
+
+            updateListingNameFromBrandModel();
+        }
+    );
+}
+
+
+if (listingModel) {
+    listingModel.addEventListener(
+        "change",
+        updateListingNameFromBrandModel
+    );
+}
 
 /* =====================================================
    LOCAL STORAGE
@@ -753,6 +1488,11 @@ function fillFieldsFromCar(car) {
         listingName.value =
             car.name || "";
     }
+    
+    
+    setBrandAndModelFromName(
+        car.name
+    );
 
 
     if (listingVin) {
@@ -1611,6 +2351,11 @@ function fillEditForm(listing) {
         listingName.value =
             listing.name || "";
     }
+    
+    
+    setBrandAndModelFromName(
+        listing.name
+    );
 
 
     if (listingYear) {
@@ -1773,6 +2518,16 @@ function resetListingForm() {
         listingForm.reset();
     }
 
+    if (listingBrand) {
+        listingBrand.value = "";
+    }
+    
+    fillModelSelect("");
+    
+    if (listingName) {
+        listingName.value = "";
+    }
+
 
     resetSelectedPhotos();
 
@@ -1844,9 +2599,9 @@ if (openListingButton) {
         () => {
             resetListingForm();
 
+            fillBrandSelect();
 
             fillCarSelect();
-
 
             showListingModal();
         }
@@ -2942,6 +3697,9 @@ if (listingForm) {
 ===================================================== */
 
 fillCarSelect();
+
+
+updatePhotosCounter();
 
 
 updatePhotosCounter();
