@@ -547,10 +547,12 @@
 
 /* ===== ПОЛЯ ВИБОРУ АВТОМОБІЛЯ ===== */
 
+#carBrand,
+#carModel,
 #carFuel,
 #carTransmission,
 #carBody,
-#carDrive {
+#carDrive  {
     width: 100%;
     padding: 12px 14px;
     color: #ffffff;
@@ -560,6 +562,8 @@
     font: inherit;
 }
 
+#carBrand option,
+#carModel option,
 #carFuel option,
 #carTransmission option,
 #carBody option,
