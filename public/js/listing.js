@@ -2248,15 +2248,18 @@ if (openChatButton) {
         );
     }
 
-    /* ===== СВАЙП ФОТО НА ТЕЛЕФОНІ ===== */
+    /* ===== ЖИВИЙ СВАЙП ФОТО НА ТЕЛЕФОНІ ===== */
 
 let touchStartX = 0;
+let touchCurrentX = 0;
 let touchStartY = 0;
 
-const minimumSwipeDistance = 50;
+let isDraggingPhoto = false;
+
+const swipeThreshold = 80;
 
 
-function handleTouchStart(event) {
+function startPhotoDrag(event) {
     if (!event.touches.length) {
         return;
     }
@@ -2264,87 +2267,205 @@ function handleTouchStart(event) {
     touchStartX =
         event.touches[0].clientX;
 
+    touchCurrentX =
+        touchStartX;
+
     touchStartY =
         event.touches[0].clientY;
+
+    isDraggingPhoto = true;
+
+    const target =
+        event.currentTarget;
+
+    target.style.transition =
+        "none";
 }
 
 
-function handleTouchEnd(event) {
-    if (!event.changedTouches.length) {
+function movePhotoDrag(event) {
+    if (
+        !isDraggingPhoto ||
+        !event.touches.length
+    ) {
         return;
     }
 
-    const touchEndX =
-        event.changedTouches[0].clientX;
+    const currentX =
+        event.touches[0].clientX;
 
-    const touchEndY =
-        event.changedTouches[0].clientY;
+    const currentY =
+        event.touches[0].clientY;
 
+    const distanceX =
+        currentX - touchStartX;
 
-    const swipeDistanceX =
-        touchEndX - touchStartX;
-
-    const swipeDistanceY =
-        touchEndY - touchStartY;
+    const distanceY =
+        currentY - touchStartY;
 
 
     /*
-        Якщо рух більше вертикальний,
-        залишаємо звичайний скрол сторінки.
+        Якщо користувач скролить
+        сторінку вертикально —
+        фото не рухаємо.
     */
 
     if (
-        Math.abs(swipeDistanceY) >
-        Math.abs(swipeDistanceX)
+        Math.abs(distanceY) >
+        Math.abs(distanceX)
     ) {
         return;
     }
 
 
-    if (
-        Math.abs(swipeDistanceX) <
-        minimumSwipeDistance
-    ) {
-        return;
-    }
+    touchCurrentX =
+        currentX;
+
+    const target =
+        event.currentTarget;
 
 
     /*
-        Свайп вліво →
-        наступне фото
+        Трохи зменшуємо рух,
+        щоб фото відчувалося плавніше.
     */
 
-    if (swipeDistanceX < 0) {
-        showNextPhoto();
-
-        return;
-    }
-
-
-    /*
-        Свайп вправо →
-        попереднє фото
-    */
-
-    showPreviousPhoto();
+    target.style.transform =
+        `translateX(${distanceX * 0.8}px)`;
 }
 
 
-/* ===== СВАЙП ГОЛОВНОГО ФОТО ===== */
+function endPhotoDrag(event) {
+    if (!isDraggingPhoto) {
+        return;
+    }
+
+    isDraggingPhoto = false;
+
+
+    const distanceX =
+        touchCurrentX -
+        touchStartX;
+
+
+    const target =
+        event.currentTarget;
+
+
+    target.style.transition =
+        "transform 0.25s ease";
+
+
+    /*
+        Якщо свайп достатньо великий —
+        міняємо фото.
+    */
+
+    if (
+        Math.abs(distanceX) >=
+        swipeThreshold
+    ) {
+        if (distanceX < 0) {
+            target.style.transform =
+                "translateX(-120%)";
+
+            setTimeout(
+                () => {
+                    showNextPhoto();
+
+                    target.style.transition =
+                        "none";
+
+                    target.style.transform =
+                        "translateX(120%)";
+
+                    requestAnimationFrame(
+                        () => {
+                            requestAnimationFrame(
+                                () => {
+                                    target.style.transition =
+                                        "transform 0.25s ease";
+
+                                    target.style.transform =
+                                        "translateX(0)";
+                                }
+                            );
+                        }
+                    );
+                },
+                180
+            );
+        } else {
+            target.style.transform =
+                "translateX(120%)";
+
+            setTimeout(
+                () => {
+                    showPreviousPhoto();
+
+                    target.style.transition =
+                        "none";
+
+                    target.style.transform =
+                        "translateX(-120%)";
+
+                    requestAnimationFrame(
+                        () => {
+                            requestAnimationFrame(
+                                () => {
+                                    target.style.transition =
+                                        "transform 0.25s ease";
+
+                                    target.style.transform =
+                                        "translateX(0)";
+                                }
+                            );
+                        }
+                    );
+                },
+                180
+            );
+        }
+
+        return;
+    }
+
+
+    /*
+        Якщо протягнули недостатньо —
+        фото повертається назад.
+    */
+
+    target.style.transform =
+        "translateX(0)";
+}
+
+
+/* ===== ГОЛОВНЕ ФОТО ===== */
 
 if (listingMainPhoto) {
+    listingMainPhoto.style.touchAction =
+        "pan-y";
+
     listingMainPhoto.addEventListener(
         "touchstart",
-        handleTouchStart,
+        startPhotoDrag,
         {
             passive: true
         }
     );
 
+    listingMainPhoto.addEventListener(
+        "touchmove",
+        movePhotoDrag,
+        {
+            passive: true
+        }
+    );
 
     listingMainPhoto.addEventListener(
         "touchend",
-        handleTouchEnd,
+        endPhotoDrag,
         {
             passive: true
         }
@@ -2352,21 +2473,31 @@ if (listingMainPhoto) {
 }
 
 
-/* ===== СВАЙП У ПОВНОЕКРАННОМУ ПЕРЕГЛЯДІ ===== */
+/* ===== ПОВНОЕКРАННЕ ФОТО ===== */
 
 if (photoViewerImage) {
+    photoViewerImage.style.touchAction =
+        "pan-y";
+
     photoViewerImage.addEventListener(
         "touchstart",
-        handleTouchStart,
+        startPhotoDrag,
         {
             passive: true
         }
     );
 
+    photoViewerImage.addEventListener(
+        "touchmove",
+        movePhotoDrag,
+        {
+            passive: true
+        }
+    );
 
     photoViewerImage.addEventListener(
         "touchend",
-        handleTouchEnd,
+        endPhotoDrag,
         {
             passive: true
         }
