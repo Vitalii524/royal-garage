@@ -1118,6 +1118,14 @@ Boolean(
 
                 <button
                     type="button"
+                    id="openSellerProfileButton"
+                    class="primary-button"
+                >
+                    Переглянути профіль продавця
+                </button>
+
+                <button
+                    type="button"
                     id="showPhoneButton"
                     class="primary-button"
                 >
@@ -1201,6 +1209,35 @@ Boolean(
             }
         );
     }
+
+    /* ===== ПРОФІЛЬ ПРОДАВЦЯ ===== */
+
+const openSellerProfileButton =
+document.getElementById(
+    "openSellerProfileButton"
+);
+
+if (openSellerProfileButton) {
+openSellerProfileButton.addEventListener(
+    "click",
+    () => {
+        if (!listingOwnerId) {
+            alert(
+                "Не вдалося визначити продавця."
+            );
+
+            return;
+        }
+
+        window.location.href =
+            `seller.html?sellerId=${encodeURIComponent(
+                listingOwnerId
+            )}&listingId=${encodeURIComponent(
+                listing.id
+            )}`;
+    }
+);
+}
 
     /* ===== ОЦІНЮВАННЯ ПРОДАВЦЯ ===== */
 

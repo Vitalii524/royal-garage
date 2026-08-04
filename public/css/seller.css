@@ -1,0 +1,204 @@
+.seller-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 30px 16px 60px;
+}
+
+.seller-back-link {
+    display: inline-block;
+    margin-bottom: 20px;
+    text-decoration: none;
+}
+
+.seller-profile {
+    display: grid;
+    gap: 18px;
+}
+
+.seller-card {
+    background: rgba(8, 20, 42, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    padding: 20px;
+}
+
+.seller-main-card {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.seller-avatar {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 34px;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.seller-main-info h1 {
+    margin: 4px 0 10px;
+}
+
+.seller-main-info p {
+    margin: 5px 0;
+}
+
+.section-label {
+    opacity: 0.75;
+    font-size: 14px;
+    text-transform: uppercase;
+}
+
+.seller-rating-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.seller-rating-star {
+    font-size: 22px;
+}
+
+.seller-contacts p,
+.seller-verification p {
+    margin: 8px 0;
+}
+
+.seller-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.seller-section-header h2 {
+    margin: 0;
+}
+
+.seller-listings-count {
+    min-width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.seller-listings {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 18px;
+}
+
+.seller-listing-card {
+    display: block;
+    overflow: hidden;
+    border-radius: 14px;
+    text-decoration: none;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.seller-listing-photo {
+    width: 100%;
+    height: 190px;
+    object-fit: cover;
+    display: block;
+}
+
+.seller-listing-no-photo {
+    height: 190px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+}
+
+.seller-listing-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px;
+}
+
+.seller-listing-info strong {
+    font-size: 18px;
+}
+
+.seller-service-history {
+    display: grid;
+    gap: 16px;
+}
+
+.seller-service-locked {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+}
+
+.seller-service-lock-icon {
+    font-size: 26px;
+}
+
+.seller-service-locked p {
+    margin-bottom: 0;
+}
+
+.seller-public-review {
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.seller-public-review:last-child {
+    border-bottom: none;
+}
+
+.seller-public-review-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.seller-public-review-stars {
+    margin: 6px 0;
+}
+
+.seller-public-review-stars span {
+    opacity: 0.25;
+}
+
+.seller-public-review-stars .is-filled {
+    opacity: 1;
+}
+
+#openSellerChatButton,
+#unlockServiceHistoryButton {
+    margin-top: 14px;
+}
+
+@media (max-width: 700px) {
+    .seller-page {
+        padding: 20px 12px 45px;
+    }
+
+    .seller-main-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .seller-listings {
+        grid-template-columns: 1fr;
+    }
+
+    .seller-listing-photo {
+        height: 220px;
+    }
+}

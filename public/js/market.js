@@ -235,444 +235,340 @@ const selectedCarVin =
 ===================================================== */
 
 const CAR_BRANDS_MODELS = {
-    "Audi": [
-        "A1",
-        "A3",
-        "A4",
-        "A5",
-        "A6",
-        "A7",
-        "A8",
-        "Q2",
-        "Q3",
-        "Q4 e-tron",
-        "Q5",
-        "Q7",
-        "Q8",
-        "TT",
-        "R8",
-        "e-tron",
-        "Інша модель"
-    ],
-
-    "BMW": [
-        "1 Series",
-        "2 Series",
-        "3 Series",
-        "4 Series",
-        "5 Series",
-        "6 Series",
-        "7 Series",
-        "8 Series",
-        "X1",
-        "X2",
-        "X3",
-        "X4",
-        "X5",
-        "X6",
-        "X7",
-        "XM",
-        "Z4",
-        "i3",
-        "i4",
-        "i5",
-        "i7",
-        "iX",
-        "Інша модель"
-    ],
-
-    "Mercedes-Benz": [
-        "A-Class",
-        "B-Class",
-        "C-Class",
-        "E-Class",
-        "S-Class",
-        "CLA",
-        "CLS",
-        "GLA",
-        "GLB",
-        "GLC",
-        "GLE",
-        "GLS",
-        "G-Class",
-        "V-Class",
-        "AMG GT",
-        "EQA",
-        "EQB",
-        "EQE",
-        "EQS",
-        "Інша модель"
-    ],
-
-    "Volkswagen": [
-        "Polo",
-        "Golf",
-        "Jetta",
-        "Passat",
-        "Arteon",
-        "Touran",
-        "Tiguan",
-        "Touareg",
-        "T-Roc",
-        "T-Cross",
-        "Caddy",
-        "Transporter",
-        "Multivan",
-        "ID.3",
-        "ID.4",
-        "ID.5",
-        "ID.7",
-        "Інша модель"
-    ],
-
-    "Toyota": [
-        "Yaris",
-        "Corolla",
-        "Camry",
-        "Avalon",
-        "Prius",
-        "C-HR",
-        "RAV4",
-        "Highlander",
-        "Land Cruiser",
-        "Hilux",
-        "Proace",
-        "bZ4X",
-        "Інша модель"
-    ],
-
-    "Skoda": [
-        "Fabia",
-        "Scala",
-        "Octavia",
-        "Superb",
-        "Kamiq",
-        "Karoq",
-        "Kodiaq",
-        "Enyaq",
-        "Roomster",
-        "Yeti",
-        "Інша модель"
-    ],
-
-    "Renault": [
-        "Clio",
-        "Megane",
-        "Laguna",
-        "Talisman",
-        "Captur",
-        "Kadjar",
-        "Austral",
-        "Koleos",
-        "Scenic",
-        "Espace",
-        "Kangoo",
-        "Trafic",
-        "Master",
-        "Zoe",
-        "Інша модель"
-    ],
-
-    "Peugeot": [
-        "107",
-        "108",
-        "206",
-        "207",
-        "208",
-        "301",
-        "307",
-        "308",
-        "407",
-        "408",
-        "508",
-        "2008",
-        "3008",
-        "5008",
-        "Partner",
-        "Rifter",
-        "Expert",
-        "Traveller",
-        "Інша модель"
-    ],
-
-    "Citroen": [
-        "C1",
-        "C3",
-        "C4",
-        "C5",
-        "C-Elysee",
-        "C3 Aircross",
-        "C5 Aircross",
-        "Berlingo",
-        "Jumpy",
-        "Jumper",
-        "Інша модель"
-    ],
-
-    "Ford": [
-        "Fiesta",
-        "Focus",
-        "Mondeo",
-        "Fusion",
-        "Mustang",
-        "Puma",
-        "Kuga",
-        "Edge",
-        "Explorer",
-        "Ranger",
-        "Transit",
-        "Інша модель"
-    ],
-
-    "Opel": [
-        "Corsa",
-        "Astra",
-        "Insignia",
-        "Mokka",
-        "Crossland",
-        "Grandland",
-        "Zafira",
-        "Combo",
-        "Vivaro",
-        "Інша модель"
-    ],
-
-    "Nissan": [
-        "Micra",
-        "Note",
-        "Almera",
-        "Sentra",
-        "Altima",
-        "Maxima",
-        "Juke",
-        "Qashqai",
-        "X-Trail",
-        "Pathfinder",
-        "Patrol",
-        "Leaf",
-        "Інша модель"
-    ],
-
-    "Mazda": [
-        "2",
-        "3",
-        "6",
-        "CX-3",
-        "CX-30",
-        "CX-5",
-        "CX-60",
-        "CX-7",
-        "CX-9",
-        "MX-5",
-        "Інша модель"
-    ],
-
-    "Honda": [
-        "Jazz",
-        "Civic",
-        "Accord",
-        "Insight",
-        "HR-V",
-        "CR-V",
-        "Pilot",
-        "Інша модель"
-    ],
-
-    "Hyundai": [
-        "i10",
-        "i20",
-        "i30",
-        "Elantra",
-        "Sonata",
-        "Accent",
-        "Tucson",
-        "Santa Fe",
-        "Kona",
-        "Palisade",
-        "Ioniq",
-        "Ioniq 5",
-        "Ioniq 6",
-        "Інша модель"
-    ],
-
-    "Kia": [
-        "Picanto",
-        "Rio",
-        "Ceed",
-        "Cerato",
-        "Optima",
-        "K5",
-        "Stonic",
-        "Niro",
-        "Sportage",
-        "Sorento",
-        "EV6",
-        "EV9",
-        "Інша модель"
-    ],
-
-    "Volvo": [
-        "S40",
-        "S60",
-        "S80",
-        "S90",
-        "V40",
-        "V60",
-        "V90",
-        "XC40",
-        "XC60",
-        "XC70",
-        "XC90",
-        "Інша модель"
-    ],
-
-    "Lexus": [
-        "IS",
-        "ES",
-        "GS",
-        "LS",
-        "UX",
-        "NX",
-        "RX",
-        "GX",
-        "LX",
-        "Інша модель"
-    ],
-
-    "Porsche": [
-        "718",
-        "911",
-        "Panamera",
-        "Macan",
-        "Cayenne",
-        "Taycan",
-        "Інша модель"
-    ],
-
-    "Tesla": [
-        "Model 3",
-        "Model S",
-        "Model X",
-        "Model Y",
-        "Cybertruck",
-        "Інша модель"
-    ],
-
-    "Chevrolet": [
-        "Aveo",
-        "Cruze",
-        "Malibu",
-        "Camaro",
-        "Captiva",
-        "Equinox",
-        "Tahoe",
-        "Інша модель"
-    ],
-
-    "Mitsubishi": [
-        "Colt",
-        "Lancer",
-        "ASX",
-        "Eclipse Cross",
-        "Outlander",
-        "Pajero",
-        "L200",
-        "Інша модель"
-    ],
-
-    "Subaru": [
-        "Impreza",
-        "Legacy",
-        "Outback",
-        "Forester",
-        "XV",
-        "Crosstrek",
-        "WRX",
-        "BRZ",
-        "Інша модель"
-    ],
-
-    "Suzuki": [
-        "Swift",
-        "Baleno",
-        "SX4",
-        "Vitara",
-        "S-Cross",
-        "Jimny",
-        "Інша модель"
-    ],
-
-    "Land Rover": [
-        "Defender",
-        "Discovery",
-        "Discovery Sport",
-        "Range Rover",
-        "Range Rover Sport",
-        "Range Rover Velar",
-        "Range Rover Evoque",
-        "Інша модель"
-    ],
-
-    "Jeep": [
-        "Renegade",
-        "Compass",
-        "Cherokee",
-        "Grand Cherokee",
-        "Wrangler",
-        "Інша модель"
-    ],
-
-    "Fiat": [
-        "500",
-        "Panda",
-        "Tipo",
-        "Punto",
-        "Doblo",
-        "Ducato",
-        "Інша модель"
-    ],
-
-    "Alfa Romeo": [
-        "Giulietta",
-        "Giulia",
-        "Stelvio",
-        "Tonale",
-        "Інша модель"
-    ],
-
-    "Dacia": [
-        "Logan",
-        "Sandero",
-        "Duster",
-        "Jogger",
-        "Lodgy",
-        "Dokker",
-        "Інша модель"
-    ],
-
-    "SEAT": [
-        "Ibiza",
-        "Leon",
-        "Toledo",
-        "Arona",
-        "Ateca",
-        "Tarraco",
-        "Інша модель"
-    ],
-
-    "Cupra": [
-        "Leon",
-        "Formentor",
-        "Ateca",
-        "Born",
-        "Tavascan",
-        "Інша модель"
-    ],
-
-    "Інша марка": [
-        "Інша модель"
-    ]
-};
+        BMW: [
+            "114", "116", "118", "120", "123", "125", "128", "130", "135", "140",
+            "216", "218", "220", "225", "228", "230", "235", "240",
+            "315", "316", "318", "320", "323", "325", "328", "330", "335", "340",
+            "418", "420", "425", "428", "430", "435", "440",
+            "518", "520", "523", "524", "525", "528", "530", "535", "540", "545", "550",
+            "620", "628", "630", "633", "635", "640", "645", "650",
+            "725", "728", "730", "735", "740", "745", "750", "760",
+            "840", "850",
+            "X1", "X2", "X3", "X4", "X5", "X6", "X7",
+            "Z3", "Z4",
+            "i3", "i4", "i5", "i7", "i8", "iX", "iX1", "iX2",
+            "M2", "M3", "M4", "M5", "M6", "M8",
+            "X3 M", "X4 M", "X5 M", "X6 M"
+        ],
+    
+        "Mercedes-Benz": [
+            "A140", "A150", "A160", "A170", "A180", "A200", "A220", "A250", "A35 AMG", "A45 AMG",
+            "B150", "B160", "B170", "B180", "B200", "B220", "B250",
+            "C180", "C200", "C220", "C230", "C240", "C250", "C270", "C280", "C300", "C320", "C350",
+            "C43 AMG", "C55 AMG", "C63 AMG",
+            "E200", "E220", "E230", "E240", "E250", "E270", "E280", "E300", "E320", "E350", "E400", "E420", "E430", "E500",
+            "E43 AMG", "E53 AMG", "E55 AMG", "E63 AMG",
+            "S280", "S300", "S320", "S350", "S400", "S420", "S430", "S450", "S500", "S550", "S600",
+            "S63 AMG", "S65 AMG",
+            "CLA", "CLS",
+            "GLA", "GLB", "GLC", "GLE", "GL", "GLS",
+            "ML", "G-Class",
+            "Vito", "Viano", "V-Class",
+            "Sprinter",
+            "SL", "SLK", "SLC",
+            "EQC", "EQA", "EQB", "EQE", "EQS"
+        ],
+    
+        Audi: [
+            "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8",
+            "S1", "S3", "S4", "S5", "S6", "S7", "S8",
+            "RS3", "RS4", "RS5", "RS6", "RS7",
+            "Q2", "Q3", "Q4 e-tron", "Q5", "Q6 e-tron", "Q7", "Q8",
+            "SQ5", "SQ7", "SQ8",
+            "RS Q3", "RS Q8",
+            "TT", "TTS", "TT RS",
+            "R8",
+            "e-tron", "e-tron GT"
+        ],
+    
+        Volkswagen: [
+            "Golf",
+            "Golf GTI",
+            "Golf R",
+            "Passat",
+            "Passat CC",
+            "Arteon",
+            "Jetta",
+            "Bora",
+            "Polo",
+            "Vento",
+            "Phaeton",
+            "Beetle",
+            "Scirocco",
+            "Touran",
+            "Sharan",
+            "Tiguan",
+            "Touareg",
+            "T-Roc",
+            "T-Cross",
+            "Taigo",
+            "Caddy",
+            "Transporter",
+            "Caravelle",
+            "Multivan",
+            "Crafter",
+            "Amarok",
+            "ID.3",
+            "ID.4",
+            "ID.5",
+            "ID.7",
+            "ID.Buzz"
+        ],
+    
+        Skoda: [
+            "Fabia",
+            "Octavia",
+            "Superb",
+            "Rapid",
+            "Scala",
+            "Roomster",
+            "Yeti",
+            "Kamiq",
+            "Karoq",
+            "Kodiaq",
+            "Enyaq"
+        ],
+    
+        Peugeot: [
+            "106", "107", "108",
+            "205", "206", "207", "208",
+            "301", "306", "307", "308",
+            "405", "406", "407", "408",
+            "508",
+            "605", "607",
+            "2008", "3008", "4007", "4008", "5008",
+            "Partner",
+            "Expert",
+            "Boxer",
+            "RCZ",
+            "Rifter"
+        ],
+    
+        Renault: [
+            "Clio",
+            "Megane",
+            "Laguna",
+            "Talisman",
+            "Fluence",
+            "Symbol",
+            "Scenic",
+            "Grand Scenic",
+            "Espace",
+            "Captur",
+            "Kadjar",
+            "Koleos",
+            "Austral",
+            "Arkana",
+            "Duster",
+            "Kangoo",
+            "Trafic",
+            "Master",
+            "Zoe"
+        ],
+    
+        Toyota: [
+            "Aygo",
+            "Yaris",
+            "Corolla",
+            "Auris",
+            "Avensis",
+            "Camry",
+            "Prius",
+            "C-HR",
+            "RAV4",
+            "Highlander",
+            "Land Cruiser",
+            "Land Cruiser Prado",
+            "Hilux",
+            "Fortuner",
+            "Supra",
+            "GT86",
+            "Celica",
+            "Sienna",
+            "Proace",
+            "bZ4X"
+        ],
+    
+        Ford: [
+            "Ka",
+            "Fiesta",
+            "Focus",
+            "Mondeo",
+            "Fusion",
+            "Taurus",
+            "Mustang",
+            "Puma",
+            "EcoSport",
+            "Kuga",
+            "Edge",
+            "Explorer",
+            "Ranger",
+            "Maverick",
+            "Transit",
+            "Transit Connect",
+            "Tourneo Connect",
+            "Tourneo Custom"
+        ],
+    
+        Opel: [
+            "Adam",
+            "Corsa",
+            "Astra",
+            "Vectra",
+            "Insignia",
+            "Omega",
+            "Meriva",
+            "Zafira",
+            "Mokka",
+            "Crossland",
+            "Grandland",
+            "Antara",
+            "Combo",
+            "Vivaro",
+            "Movano"
+        ],
+    
+        Nissan: [
+            "Micra",
+            "Almera",
+            "Note",
+            "Tiida",
+            "Sentra",
+            "Primera",
+            "Maxima",
+            "Juke",
+            "Qashqai",
+            "X-Trail",
+            "Murano",
+            "Pathfinder",
+            "Patrol",
+            "Navara",
+            "350Z",
+            "370Z",
+            "GT-R",
+            "Leaf"
+        ],
+    
+        Honda: [
+            "Jazz",
+            "Civic",
+            "Accord",
+            "Legend",
+            "CR-Z",
+            "HR-V",
+            "CR-V",
+            "Pilot",
+            "Prelude",
+            "Integra",
+            "S2000",
+            "e"
+        ],
+    
+        Mazda: [
+            "2",
+            "3",
+            "5",
+            "6",
+            "CX-3",
+            "CX-30",
+            "CX-5",
+            "CX-60",
+            "CX-7",
+            "CX-9",
+            "MX-5",
+            "RX-7",
+            "RX-8"
+        ],
+    
+        Volvo: [
+            "C30",
+            "C70",
+            "S40",
+            "S60",
+            "S70",
+            "S80",
+            "S90",
+            "V40",
+            "V50",
+            "V60",
+            "V70",
+            "V90",
+            "XC40",
+            "XC60",
+            "XC70",
+            "XC90",
+            "EX30",
+            "EX90"
+        ],
+    
+        Hyundai: [
+            "i10",
+            "i20",
+            "i30",
+            "i40",
+            "Accent",
+            "Elantra",
+            "Sonata",
+            "Veloster",
+            "Bayon",
+            "Kona",
+            "Tucson",
+            "Santa Fe",
+            "Palisade",
+            "Staria",
+            "Ioniq",
+            "Ioniq 5",
+            "Ioniq 6"
+        ],
+    
+        Kia: [
+            "Picanto",
+            "Rio",
+            "Ceed",
+            "ProCeed",
+            "Cerato",
+            "Optima",
+            "K5",
+            "Stinger",
+            "Stonic",
+            "Niro",
+            "Soul",
+            "Sportage",
+            "Sorento",
+            "Carnival",
+            "EV3",
+            "EV6",
+            "EV9"
+        ],
+    
+        Lexus: [
+            "CT",
+            "IS",
+            "ES",
+            "GS",
+            "LS",
+            "RC",
+            "LC",
+            "UX",
+            "NX",
+            "RX",
+            "GX",
+            "LX",
+            "RZ"
+        ],
+    
+        Porsche: [
+            "911",
+            "718 Boxster",
+            "718 Cayman",
+            "Boxster",
+            "Cayman",
+            "Panamera",
+            "Macan",
+            "Cayenne",
+            "Taycan"
+        ]
+    };
 
 
 function fillBrandSelect() {
@@ -3594,6 +3490,12 @@ if (listingForm) {
 
                 ownerId:
                     currentUser.id,
+
+                    sellerName:
+    currentUser.name ||
+    currentUser.username ||
+    currentUser.email ||
+    "Продавець",
 
                 carId:
                     car?.id ||

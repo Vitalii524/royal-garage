@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Профіль продавця | Royal Garage</title>
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="images/favicon.png"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/styles.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/seller.css"
+    >
+</head>
+
+<body>
+
+<header class="site-header">
+
+    <div class="top-line">
+
+        <div class="brand">
+            <a href="index.html">
+                <img
+                    src="images/royal-garage-logo.png"
+                    alt="Royal Garage"
+                >
+            </a>
+        </div>
+
+        <nav class="nav">
+            <a href="index.html">Головна</a>
+            <a href="forum.html">Форум</a>
+            <a href="market.html">Авторинок</a>
+            <a href="profile.html">Мій гараж</a>
+        </nav>
+
+        <div
+            id="authArea"
+            class="auth-area"
+        ></div>
+
+    </div>
+
+</header>
+
+
+<main class="seller-page">
+
+    <a
+        href="market.html"
+        class="seller-back-link"
+    >
+        ← Назад до авторинку
+    </a>
+
+
+    <section
+        id="sellerLoading"
+        class="seller-card"
+    >
+        <p>
+            Завантаження профілю продавця...
+        </p>
+    </section>
+
+
+    <section
+        id="sellerProfile"
+        class="seller-profile hidden"
+    >
+
+        <div class="seller-card seller-main-card">
+
+            <div class="seller-avatar">
+                <span id="sellerAvatarLetter">
+                    P
+                </span>
+            </div>
+
+            <div class="seller-main-info">
+
+                <p class="section-label">
+                    Продавець Royal Garage
+                </p>
+
+                <h1 id="sellerName">
+                    Продавець
+                </h1>
+
+                <p id="sellerCity">
+                    Місто не вказано
+                </p>
+
+                <p id="sellerRegisteredAt">
+                    Дата реєстрації не вказана
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <section class="seller-card">
+
+            <h2>
+                Верифікація
+            </h2>
+
+            <div
+                id="sellerVerification"
+                class="seller-verification"
+            >
+                <p>
+                    Інформація про підтвердження
+                    профілю відсутня.
+                </p>
+            </div>
+
+        </section>
+
+
+        <section class="seller-card">
+
+            <h2>
+                Репутація продавця
+            </h2>
+
+            <div class="seller-rating-row">
+
+                <span class="seller-rating-star">
+                    ★
+                </span>
+
+                <strong id="sellerRating">
+                    —
+                </strong>
+
+                <span id="sellerRatingCount">
+                    Новий продавець
+                </span>
+
+            </div>
+
+        </section>
+
+
+        <section class="seller-card">
+
+            <h2>
+                Контакти
+            </h2>
+
+            <div
+                id="sellerContacts"
+                class="seller-contacts"
+            >
+                <p>
+                    Продавець не відкрив контакти.
+                </p>
+            </div>
+
+            <button
+                type="button"
+                id="openSellerChatButton"
+                class="primary-button"
+            >
+                Написати продавцю
+            </button>
+
+        </section>
+
+
+        <section class="seller-card">
+
+            <div class="seller-section-header">
+
+                <h2>
+                    Активні оголошення
+                </h2>
+
+                <span
+                    id="sellerListingsCount"
+                    class="seller-listings-count"
+                >
+                    0
+                </span>
+
+            </div>
+
+            <div
+                id="sellerListings"
+                class="seller-listings"
+            >
+                <p>
+                    Активних оголошень поки немає.
+                </p>
+            </div>
+
+        </section>
+
+
+        <section class="seller-card">
+
+            <h2>
+                Історія обслуговування
+            </h2>
+
+            <div
+                id="sellerServiceHistory"
+                class="seller-service-history"
+            >
+                <div class="seller-service-locked">
+
+                    <span class="seller-service-lock-icon">
+                        🔒
+                    </span>
+
+                    <div>
+                        <strong>
+                            Історія обслуговування захищена
+                        </strong>
+
+                        <p>
+                            Якщо для автомобіля є записи,
+                            повну історію можна відкрити
+                            після оплати.
+                        </p>
+                    </div>
+
+                </div>
+
+                <button
+                    type="button"
+                    id="unlockServiceHistoryButton"
+                    class="primary-button"
+                >
+                    Відкрити історію за 50 грн
+                </button>
+            </div>
+
+        </section>
+
+
+        <section class="seller-card">
+
+            <h2>
+                Відгуки про продавця
+            </h2>
+
+            <div id="sellerReviews">
+                <p>
+                    Відгуків поки немає.
+                </p>
+            </div>
+
+        </section>
+
+    </section>
+
+
+    <section
+        id="sellerNotFound"
+        class="seller-card hidden"
+    >
+        <h1>
+            Продавця не знайдено
+        </h1>
+
+        <p>
+            Профіль міг бути видалений
+            або ще не активований.
+        </p>
+
+        <a
+            href="market.html"
+            class="primary-button"
+        >
+            Повернутися на авторинок
+        </a>
+    </section>
+
+</main>
+
+
+<footer>
+    Royal Garage © 2026
+</footer>
+
+
+<script src="js/auth.js"></script>
+<script src="js/seller.js"></script>
+
+</body>
+</html>
