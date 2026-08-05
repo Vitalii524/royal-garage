@@ -1675,26 +1675,53 @@ if (openChatButton) {
     }
 
 }
-    /* ===== КНОПКА ІСТОРІЇ ===== */
+   /* ===== КНОПКА ІСТОРІЇ ===== */
 
-    const serviceHistoryButton =
-        document.getElementById(
-            "serviceHistoryButton"
-        );
+const serviceHistoryButton =
+document.getElementById(
+    "serviceHistoryButton"
+);
 
+if (serviceHistoryButton) {
+serviceHistoryButton.addEventListener(
+    "click",
+    () => {
+        /*
+            Власник автомобіля бачить
+            свою історію безкоштовно.
+        */
 
-    if (serviceHistoryButton) {
-        serviceHistoryButton.addEventListener(
-            "click",
-            () => {
-                window.location.href =
-                    `profile.html?section=service&listingId=${encodeURIComponent(
-                        listing.id
-                    )}`;
-            }
-        );
+        if (isListingOwner) {
+            window.location.href =
+                `profile.html?section=service&listingId=${encodeURIComponent(
+                    listing.id
+                )}`;
+
+            return;
+        }
+
+        /*
+            Покупець переходить у профіль
+            продавця до платного блоку історії.
+        */
+
+        if (!listingOwnerId) {
+            alert(
+                "Не вдалося визначити продавця."
+            );
+
+            return;
+        }
+
+        window.location.href =
+            `seller.html?sellerId=${encodeURIComponent(
+                listingOwnerId
+            )}&listingId=${encodeURIComponent(
+                listing.id
+            )}#service-history`;
     }
-
+);
+}
 
     /* ===== КНОПКА ПЕРЕВІРКИ VIN ===== */
 

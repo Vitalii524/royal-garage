@@ -158,6 +158,86 @@ function getUserName(user) {
     );
 }
 
+/* ===== РІВНІ ФОРУМУ ===== */
+
+const FORUM_LEVELS = [
+    {
+        name: "Новачок",
+        minPoints: 0
+    },
+    {
+        name: "Учасник",
+        minPoints: 10
+    },
+    {
+        name: "Знавець",
+        minPoints: 40
+    },
+    {
+        name: "Профі",
+        minPoints: 100
+    },
+    {
+        name: "Експерт",
+        minPoints: 250
+    },
+    {
+        name: "Амбасадор",
+        minPoints: 500
+    }
+];
+
+
+function getForumUserPoints(userId) {
+    let points = 0;
+
+    topics.forEach((topic) => {
+        const replies =
+            Array.isArray(topic.replies)
+                ? topic.replies
+                : [];
+
+        replies.forEach((reply) => {
+            if (
+                String(reply.authorId) !==
+                String(userId)
+            ) {
+                return;
+            }
+
+            const likesCount =
+                Array.isArray(reply.likeUserIds)
+                    ? reply.likeUserIds.length
+                    : 0;
+
+            points += likesCount;
+
+            if (reply.isHelpful) {
+                points += 5;
+            }
+
+            if (reply.isExpertConfirmed) {
+                points += 10;
+            }
+        });
+    });
+
+    return points;
+}
+
+
+function getForumUserLevel(userId) {
+    const points =
+        getForumUserPoints(userId);
+
+    return [...FORUM_LEVELS]
+        .reverse()
+        .find(
+            (level) =>
+                points >= level.minPoints
+        ) || FORUM_LEVELS[0];
+}
+
 function openForumModal(modal) {
     if (!modal) {
         return;
@@ -442,12 +522,23 @@ function openTopicView(topicId) {
                                     <div
                                         class="forum-topic-meta">
 
+                             <span class="forum-reply-author">
+                                        👤
+                                    
                                         <span>
-                                            👤
                                             ${escapeForumHtml(
                                                 reply.authorName
                                             )}
                                         </span>
+                                    
+                                        <span class="forum-user-level">
+                                            ${escapeForumHtml(
+                                                getForumUserLevel(
+                                                    reply.authorId
+                                                ).name
+                                            )}
+                            </span>
+                                    </span>
 
                                         <span>
                                             🕒
@@ -456,6 +547,33 @@ function openTopicView(topicId) {
                                             )}
                                         </span>
 
+                                    </div>
+
+                                     <div class="forum-reply-actions">
+                                        <button
+                                            type="button"
+                                            class="forum-like-button ${
+                                                Array.isArray(reply.likeUserIds) &&
+                                                currentUser?.id &&
+                                                reply.likeUserIds.some(
+                                                    (userId) =>
+                                                        String(userId) ===
+                                                        String(currentUser.id)
+                                                )
+                                                    ? "is-liked"
+                                                    : ""
+                                            }"
+                                            data-action="like-reply"
+                                            data-topic-id="${topic.id}"
+                                            data-reply-id="${reply.id}"
+                                        >
+                                            👍
+                                            ${
+                                                Array.isArray(reply.likeUserIds)
+                                                    ? reply.likeUserIds.length
+                                                    : 0
+                                            }
+                                        </button>
                                     </div>
 
                                 </article>
@@ -514,6 +632,102 @@ function openTopicView(topicId) {
 
     openForumModal(topicViewModal);
 }
+
+/* ===== ЛАЙК ВІДПОВІДІ ===== */
+
+function toggleReplyLike(
+    topicId,
+    replyId
+) {
+    const currentUser =
+        getCurrentForumUser();
+
+    if (!currentUser?.id) {
+        alert(
+            "Увійди в акаунт, щоб поставити лайк."
+        );
+
+        return;
+    }
+
+    const topic =
+        topics.find(
+            (item) =>
+                String(item.id) ===
+                String(topicId)
+        );
+
+    if (!topic) {
+        return;
+    }
+
+    const reply =
+        topic.replies.find(
+            (item) =>
+                String(item.id) ===
+                String(replyId)
+        );
+
+    if (!reply) {
+        return;
+    }
+
+    if (
+        String(reply.authorId) ===
+        String(currentUser.id)
+    ) {
+        alert(
+            "Не можна лайкати власну відповідь."
+        );
+
+        return;
+    }
+
+    if (!Array.isArray(reply.likeUserIds)) {
+        reply.likeUserIds = [];
+    }
+
+    const userIndex =
+        reply.likeUserIds.findIndex(
+            (userId) =>
+                String(userId) ===
+                String(currentUser.id)
+        );
+
+    if (userIndex >= 0) {
+        reply.likeUserIds.splice(
+            userIndex,
+            1
+        );
+    } else {
+        reply.likeUserIds.push(
+            currentUser.id
+        );
+    }
+
+    saveForumTopics();
+
+    openTopicView(topic.id);
+}
+
+topicViewBody.addEventListener(
+    "click",
+    (event) => {
+        const likeButton =
+            event.target.closest(
+                '[data-action="like-reply"]'
+            );
+
+        if (!likeButton) {
+            return;
+        }
+
+        toggleReplyLike(
+            likeButton.dataset.topicId,
+            likeButton.dataset.replyId
+        );
+    }
+);
 
 
 /* ===== ДОДАВАННЯ ВІДПОВІДІ ===== */
