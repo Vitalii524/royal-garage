@@ -439,12 +439,22 @@ if (
     }
 
     if (elements.avatarLetter) {
-        elements.avatarLetter.textContent =
-            sellerName
-                .trim()
-                .charAt(0)
-                .toUpperCase() ||
-            "П";
+        if (sellerProfile.photo) {
+            elements.avatarLetter.innerHTML = `
+                <img
+                    src="${sellerProfile.photo}"
+                    alt="${escapeHtml(sellerName)}"
+                    class="seller-avatar-photo"
+                >
+            `;
+        } else {
+            elements.avatarLetter.textContent =
+                sellerName
+                    .trim()
+                    .charAt(0)
+                    .toUpperCase() ||
+                "P";
+        }
     }
 
     if (elements.city) {

@@ -9,6 +9,9 @@ document.documentElement.style.visibility = "hidden";
 const CURRENT_USER_KEY =
     "royalGarageCurrentUser";
 
+const USERS_KEY =
+    "royalGarageUsers";
+
 const MESSAGES_KEY =
     "royalGarageMessages";
 
@@ -17,6 +20,9 @@ const LISTINGS_KEY =
 
 const SELLER_RATINGS_KEY =
     "royalGarageSellerRatings";
+
+const SELLER_PROFILES_KEY =
+    "royalGarageSellerProfiles";
 
 let currentUser = null;
 
@@ -414,6 +420,313 @@ function readJson(
         return fallback;
     }
 }
+
+function loadSellerProfiles() {
+    return readJson(
+        SELLER_PROFILES_KEY,
+        {}
+    );
+}
+
+function loadCurrentSellerProfile() {
+    const profiles =
+        loadSellerProfiles();
+
+    return (
+        profiles[
+            String(currentUser.id)
+        ] || {}
+    );
+}
+
+let sellerProfilePhotoData = "";
+
+function renderSellerProfilePhoto(
+    photo,
+    name = ""
+) {
+    const preview =
+        document.getElementById(
+            "sellerProfilePhotoPreview"
+        );
+
+    if (!preview) {
+        return;
+    }
+
+    if (photo) {
+        preview.innerHTML = `
+            <img
+                src="${photo}"
+                alt="Фото профілю продавця"
+            >
+        `;
+
+        return;
+    }
+
+    preview.textContent =
+        String(name || "П")
+            .trim()
+            .charAt(0)
+            .toUpperCase() || "П";
+}
+
+const sellerProfilePhotoInput =
+    document.getElementById(
+        "sellerProfilePhoto"
+    );
+
+const removeSellerProfilePhotoButton =
+    document.getElementById(
+        "removeSellerProfilePhoto"
+    );
+
+if (sellerProfilePhotoInput) {
+    sellerProfilePhotoInput.addEventListener(
+        "change",
+        async () => {
+            const file =
+                sellerProfilePhotoInput
+                    .files?.[0];
+
+            if (!file) {
+                return;
+            }
+
+            try {
+                sellerProfilePhotoData =
+                    await compressImage(file);
+
+                const profileName =
+                    document
+                        .getElementById(
+                            "sellerProfileName"
+                        )
+                        ?.value
+                        .trim() || "";
+
+                renderSellerProfilePhoto(
+                    sellerProfilePhotoData,
+                    profileName
+                );
+            } catch (error) {
+                alert(
+                    error.message ||
+                    "Не вдалося обробити фото."
+                );
+            }
+
+            sellerProfilePhotoInput.value =
+                "";
+        }
+    );
+}
+
+if (removeSellerProfilePhotoButton) {
+    removeSellerProfilePhotoButton
+        .addEventListener(
+            "click",
+            () => {
+                sellerProfilePhotoData = "";
+
+                const profileName =
+                    document
+                        .getElementById(
+                            "sellerProfileName"
+                        )
+                        ?.value
+                        .trim() || "";
+
+                renderSellerProfilePhoto(
+                    "",
+                    profileName
+                );
+            }
+        );
+}
+
+function fillSellerProfileSettings() {
+    const sellerProfile =
+        loadCurrentSellerProfile();
+
+    sellerProfilePhotoData =
+        sellerProfile.photo || "";
+
+    const nameInput =
+        document.getElementById(
+            "sellerProfileName"
+        );
+
+    const cityInput =
+        document.getElementById(
+            "sellerProfileCity"
+        );
+
+    const phoneInput =
+        document.getElementById(
+            "sellerProfilePhone"
+        );
+
+    const telegramInput =
+        document.getElementById(
+            "sellerProfileTelegram"
+        );
+
+    const showPhoneInput =
+        document.getElementById(
+            "sellerProfileShowPhone"
+        );
+
+    const showTelegramInput =
+        document.getElementById(
+            "sellerProfileShowTelegram"
+        );
+
+    if (nameInput) {
+        nameInput.value =
+            sellerProfile.name ||
+            currentUser.name ||
+            "";
+    }
+
+    if (cityInput) {
+        cityInput.value =
+            sellerProfile.city ||
+            "";
+    }
+
+    if (phoneInput) {
+        phoneInput.value =
+            sellerProfile.phone ||
+            currentUser.phone ||
+            "";
+    }
+
+    if (telegramInput) {
+        telegramInput.value =
+            sellerProfile.telegram ||
+            "";
+    }
+
+    if (showPhoneInput) {
+        showPhoneInput.checked =
+            Boolean(
+                sellerProfile.showPhone
+            );
+    }
+
+    if (showTelegramInput) {
+        showTelegramInput.checked =
+            Boolean(
+                sellerProfile.showTelegram
+            );
+    }
+
+    renderSellerProfilePhoto(
+        sellerProfilePhotoData,
+        sellerProfile.name ||
+            currentUser.name ||
+            ""
+    );
+}
+
+function saveSellerProfileSettings(event) {
+    event.preventDefault();
+
+    const profiles =
+        loadSellerProfiles();
+
+    const name =
+        document
+            .getElementById(
+                "sellerProfileName"
+            )
+            ?.value
+            .trim() || "";
+
+    const city =
+        document
+            .getElementById(
+                "sellerProfileCity"
+            )
+            ?.value
+            .trim() || "";
+
+    const phone =
+        document
+            .getElementById(
+                "sellerProfilePhone"
+            )
+            ?.value
+            .trim() || "";
+
+    const telegram =
+        document
+            .getElementById(
+                "sellerProfileTelegram"
+            )
+            ?.value
+            .trim() || "";
+
+    const showPhone =
+        Boolean(
+            document.getElementById(
+                "sellerProfileShowPhone"
+            )?.checked
+        );
+
+    const showTelegram =
+        Boolean(
+            document.getElementById(
+                "sellerProfileShowTelegram"
+            )?.checked
+        );
+
+    profiles[
+        String(currentUser.id)
+    ] = {
+        ...profiles[
+            String(currentUser.id)
+        ],
+
+        name,
+        city,
+        phone,
+        telegram,
+        photo:
+            sellerProfilePhotoData,
+        showPhone,
+        showTelegram,
+
+        updatedAt:
+            new Date()
+                .toISOString()
+    };
+
+    localStorage.setItem(
+        SELLER_PROFILES_KEY,
+        JSON.stringify(profiles)
+    );
+
+    alert(
+        "Налаштування профілю продавця збережено."
+    );
+}
+
+const sellerProfileSettingsForm =
+    document.getElementById(
+        "sellerProfileSettingsForm"
+    );
+
+if (sellerProfileSettingsForm) {
+    sellerProfileSettingsForm
+        .addEventListener(
+            "submit",
+            saveSellerProfileSettings
+        );
+}
+
 function getProfileSellerRating() {
     const ratings =
         readJson(
@@ -428,6 +741,213 @@ function getProfileSellerRating() {
     ]
         .filter(Boolean)
         .map(String);
+
+
+        /* =========================
+   НАЛАШТУВАННЯ ПРОФІЛЮ ПРОДАВЦЯ
+   ========================= */
+
+function loadCurrentSellerProfile() {
+    const profiles =
+        loadSellerProfiles();
+
+    return (
+        profiles[
+            String(currentUser.id)
+        ] || {}
+    );
+}
+
+function renderSellerProfilePhoto(
+    photo,
+    name = ""
+) {
+    const preview =
+        document.getElementById(
+            "sellerProfilePhotoPreview"
+        );
+
+    if (!preview) {
+        return;
+    }
+
+    if (photo) {
+        preview.innerHTML = `
+            <img
+                src="${photo}"
+                alt="Фото профілю продавця"
+            >
+        `;
+
+        return;
+    }
+
+    preview.textContent =
+        String(name || "П")
+            .trim()
+            .charAt(0)
+            .toUpperCase() || "П";
+}
+
+const sellerProfilePhotoInput =
+    document.getElementById(
+        "sellerProfilePhoto"
+    );
+
+const removeSellerProfilePhotoButton =
+    document.getElementById(
+        "removeSellerProfilePhoto"
+    );
+
+if (sellerProfilePhotoInput) {
+    sellerProfilePhotoInput.addEventListener(
+        "change",
+        async () => {
+            const file =
+                sellerProfilePhotoInput
+                    .files?.[0];
+
+            if (!file) {
+                return;
+            }
+
+            try {
+                sellerProfilePhotoData =
+                    await compressImage(file);
+
+                const profileName =
+                    document
+                        .getElementById(
+                            "sellerProfileName"
+                        )
+                        ?.value
+                        .trim() || "";
+
+                renderSellerProfilePhoto(
+                    sellerProfilePhotoData,
+                    profileName
+                );
+            } catch (error) {
+                alert(
+                    error.message ||
+                    "Не вдалося обробити фото."
+                );
+            }
+
+            sellerProfilePhotoInput.value =
+                "";
+        }
+    );
+}
+
+if (removeSellerProfilePhotoButton) {
+    removeSellerProfilePhotoButton
+        .addEventListener(
+            "click",
+            () => {
+                sellerProfilePhotoData = "";
+
+                const profileName =
+                    document
+                        .getElementById(
+                            "sellerProfileName"
+                        )
+                        ?.value
+                        .trim() || "";
+
+                renderSellerProfilePhoto(
+                    "",
+                    profileName
+                );
+            }
+        );
+}
+
+function fillSellerProfileSettings() {
+    const sellerProfile =
+        loadCurrentSellerProfile();
+
+        sellerProfilePhotoData =
+        sellerProfile.photo || "";
+
+    const nameInput =
+        document.getElementById(
+            "sellerProfileName"
+        );
+
+    const cityInput =
+        document.getElementById(
+            "sellerProfileCity"
+        );
+
+    const phoneInput =
+        document.getElementById(
+            "sellerProfilePhone"
+        );
+
+    const telegramInput =
+        document.getElementById(
+            "sellerProfileTelegram"
+        );
+
+    const showPhoneInput =
+        document.getElementById(
+            "sellerProfileShowPhone"
+        );
+
+    const showTelegramInput =
+        document.getElementById(
+            "sellerProfileShowTelegram"
+        );
+
+    if (nameInput) {
+        nameInput.value =
+            sellerProfile.name ||
+            currentUser.name ||
+            "";
+    }
+
+    if (cityInput) {
+        cityInput.value =
+            sellerProfile.city ||
+            "";
+    }
+
+    if (phoneInput) {
+        phoneInput.value =
+            sellerProfile.phone ||
+            currentUser.phone ||
+            "";
+    }
+
+    if (telegramInput) {
+        telegramInput.value =
+            sellerProfile.telegram ||
+            "";
+    }
+
+    if (showPhoneInput) {
+        showPhoneInput.checked =
+            Boolean(
+                sellerProfile.showPhone
+            );
+    }
+
+    if (showTelegramInput) {
+        showTelegramInput.checked =
+            Boolean(
+                sellerProfile.showTelegram
+            );
+    }
+
+    renderSellerProfilePhoto(
+        sellerProfilePhotoData,
+        sellerProfile.name ||
+            currentUser.name ||
+            ""
+    );
+
+}
 
 
     /* ===== СПОЧАТКУ ШУКАЄМО НАПРЯМУ ===== */
@@ -2473,7 +2993,189 @@ function renderProfileSellerReviews() {
             .join("");
 }
 
+function normalizePhone(value) {
+    const digits =
+        String(value || "")
+            .replace(/\D/g, "");
+
+    if (
+        digits.length === 10 &&
+        digits.startsWith("0")
+    ) {
+        return `380${digits.slice(1)}`;
+    }
+
+    return digits;
+}
+
+function renderAccountSettings() {
+    
+    const accountEmail =
+        document.getElementById(
+            "accountEmail"
+        );
+
+    const accountPhone =
+        document.getElementById(
+            "accountPhone"
+        );
+
+        const changeAccountPhoneButton =
+    document.getElementById(
+        "changeAccountPhoneButton"
+    );
+
+if (changeAccountPhoneButton) {
+    changeAccountPhoneButton.textContent =
+        currentUser.phone
+            ? "Змінити номер телефону"
+            : "Додати номер телефону";
+}
+
+    if (accountEmail) {
+        accountEmail.textContent =
+            currentUser.email || "—";
+    }
+
+    if (accountPhone) {
+        accountPhone.textContent =
+            currentUser.phone || "—";
+    }
+}
+
+const changeAccountPhoneButton =
+    document.getElementById(
+        "changeAccountPhoneButton"
+    );
+
+if (changeAccountPhoneButton) {
+    changeAccountPhoneButton.addEventListener(
+        "click",
+        () => {
+            const enteredPhone =
+                prompt(
+                    "Введи новий номер телефону:"
+                );
+
+            if (!enteredPhone) {
+                return;
+            }
+
+            const newPhone =
+                normalizePhone(
+                    enteredPhone
+                );
+
+            if (
+                !/^380\d{9}$/.test(
+                    newPhone
+                )
+            ) {
+                alert(
+                    "Введи правильний український номер телефону."
+                );
+
+                return;
+            }
+
+            const users =
+                readJson(
+                    USERS_KEY,
+                    []
+                );
+
+            const phoneExists =
+                users.some(
+                    (user) =>
+                        String(user.id) !==
+                            String(
+                                currentUser.id
+                            ) &&
+                        normalizePhone(
+                            user.phone
+                        ) === newPhone
+                );
+
+            if (phoneExists) {
+                alert(
+                    "Цей номер телефону вже використовується іншим акаунтом."
+                );
+
+                return;
+            }
+
+            const currentUserInList =
+                users.find(
+                    (user) =>
+                        String(user.id) ===
+                        String(currentUser.id)
+                );
+
+            if (currentUserInList) {
+                currentUserInList.phone =
+                    newPhone;
+
+                localStorage.setItem(
+                    USERS_KEY,
+                    JSON.stringify(users)
+                );
+            }
+
+            currentUser.phone =
+                newPhone;
+
+            localStorage.setItem(
+                CURRENT_USER_KEY,
+                JSON.stringify(
+                    currentUser
+                )
+            );
+
+            const profiles =
+                loadSellerProfiles();
+
+            if (
+                profiles[
+                    String(
+                        currentUser.id
+                    )
+                ]
+            ) {
+                profiles[
+                    String(
+                        currentUser.id
+                    )
+                ].phone = newPhone;
+
+                localStorage.setItem(
+                    SELLER_PROFILES_KEY,
+                    JSON.stringify(
+                        profiles
+                    )
+                );
+            }
+
+            const sellerPhoneInput =
+                document.getElementById(
+                    "sellerProfilePhone"
+                );
+
+            if (sellerPhoneInput) {
+                sellerPhoneInput.value =
+                    newPhone;
+            }
+
+            renderAccountSettings();
+
+            alert(
+                "Номер телефону змінено."
+            );
+        }
+    );
+}
+
 function renderPage() {
+    renderAccountSettings();
     renderCars();
     renderSelectedCar();
     renderMyChats();
@@ -5084,6 +5786,7 @@ fillCarBrandSelect();
 
 saveCars();
 renderPage();
+fillSellerProfileSettings();
 renderProfileSellerReputation();
 openServiceHistoryFromUrl();
 
@@ -5122,3 +5825,64 @@ if (globalOpenChatsButton) {
     );
 }
 
+/* ===== КНОПКА "ВГОРУ" ===== */
+
+let backToTopButton =
+    document.getElementById(
+        "backToTopButton"
+    );
+
+if (!backToTopButton) {
+    backToTopButton =
+        document.createElement(
+            "button"
+        );
+
+    backToTopButton.type =
+        "button";
+
+    backToTopButton.id =
+        "backToTopButton";
+
+    backToTopButton.className =
+        "back-to-top-button";
+
+    backToTopButton.setAttribute(
+        "aria-label",
+        "Повернутися вгору"
+    );
+
+    backToTopButton.textContent =
+        "↑";
+
+    document.body.appendChild(
+        backToTopButton
+    );
+}
+
+function updateBackToTopButton() {
+    backToTopButton.classList.toggle(
+        "is-visible",
+        window.scrollY > 350
+    );
+}
+
+backToTopButton.addEventListener(
+    "click",
+    () => {
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+    }
+);
+
+window.addEventListener(
+    "scroll",
+    updateBackToTopButton,
+    {
+        passive: true
+    }
+);
+
+updateBackToTopButton();

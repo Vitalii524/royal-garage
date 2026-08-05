@@ -716,41 +716,48 @@ function setBrandAndModelFromName(
         return;
     }
 
-
-    const name =
+    const originalName =
         String(vehicleName || "")
             .trim();
 
+    const name =
+        originalName
+            .replace(
+                /\s*\(\d{4}\)\s*$/,
+                ""
+            )
+            .trim();
 
     if (!name) {
         listingBrand.value = "";
 
         fillModelSelect("");
 
+        if (listingName) {
+            listingName.value = "";
+        }
+
         return;
     }
-
 
     const brands =
         Object.keys(
             CAR_BRANDS_MODELS
         )
-            .filter(
-                (brand) =>
-                    brand !==
-                    "Інша марка"
-            )
             .sort(
-                (firstBrand, secondBrand) =>
+                (
+                    firstBrand,
+                    secondBrand
+                ) =>
                     secondBrand.length -
                     firstBrand.length
             );
 
-
     const foundBrand =
         brands.find(
             (brand) =>
-                name.toLowerCase()
+                name
+                    .toLowerCase()
                     .startsWith(
                         brand.toLowerCase() +
                         " "
@@ -759,21 +766,18 @@ function setBrandAndModelFromName(
                     brand.toLowerCase()
         );
 
-
     if (!foundBrand) {
-        listingBrand.value =
-            "Інша марка";
+        listingBrand.value = "";
 
-        fillModelSelect(
-            "Інша марка"
-        );
+        fillModelSelect("");
 
-        listingModel.value =
-            "Інша модель";
+        if (listingName) {
+            listingName.value =
+                name;
+        }
 
         return;
     }
-
 
     const model =
         name
@@ -782,15 +786,12 @@ function setBrandAndModelFromName(
             )
             .trim();
 
-
     listingBrand.value =
         foundBrand;
-
 
     fillModelSelect(
         foundBrand
     );
-
 
     if (model) {
         const modelExists =
@@ -801,7 +802,6 @@ function setBrandAndModelFromName(
                     option.value ===
                     model
             );
-
 
         if (!modelExists) {
             const option =
@@ -820,13 +820,16 @@ function setBrandAndModelFromName(
             );
         }
 
-
         listingModel.value =
             model;
     }
 
-
-    updateListingNameFromBrandModel();
+    if (listingName) {
+        listingName.value =
+            [foundBrand, model]
+                .filter(Boolean)
+                .join(" ");
+    }
 }
 
 
@@ -2559,6 +2562,373 @@ document.addEventListener(
     }
 );
 
+/* =====================================================
+   ПОВНОЕКРАННИЙ ПЕРЕГЛЯД ФОТО АВТОРИНКУ
+===================================================== */
+
+let marketViewerPhotos = [];
+let marketViewerIndex = 0;
+let marketViewerTouchStartX = null;
+
+function ensureMarketPhotoViewer() {
+    let viewer =
+        document.getElementById(
+            "marketPhotoViewer"
+        );
+
+    if (viewer) {
+        return viewer;
+    }
+
+    viewer =
+        document.createElement(
+            "div"
+        );
+
+    viewer.id =
+        "marketPhotoViewer";
+
+    viewer.className =
+        "photo-viewer";
+
+    viewer.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+
+    viewer.innerHTML = `
+        <button
+            type="button"
+            id="closeMarketPhotoViewer"
+            class="photo-viewer-close"
+            aria-label="Закрити фото"
+        >
+            ×
+        </button>
+
+        <button
+            type="button"
+            id="previousMarketViewerPhoto"
+            class="photo-viewer-arrow photo-viewer-arrow-left"
+            aria-label="Попереднє фото"
+        >
+            ‹
+        </button>
+
+        <img
+            id="marketPhotoViewerImage"
+            class="photo-viewer-image"
+            src=""
+            alt=""
+        >
+
+        <button
+            type="button"
+            id="nextMarketViewerPhoto"
+            class="photo-viewer-arrow photo-viewer-arrow-right"
+            aria-label="Наступне фото"
+        >
+            ›
+        </button>
+    `;
+
+    document.body.appendChild(
+        viewer
+    );
+
+    const closeButton =
+        viewer.querySelector(
+            "#closeMarketPhotoViewer"
+        );
+
+    const previousButton =
+        viewer.querySelector(
+            "#previousMarketViewerPhoto"
+        );
+
+    const nextButton =
+        viewer.querySelector(
+            "#nextMarketViewerPhoto"
+        );
+
+    closeButton?.addEventListener(
+        "click",
+        closeMarketPhotoViewer
+    );
+
+    previousButton?.addEventListener(
+        "click",
+        (event) => {
+            event.stopPropagation();
+
+            showPreviousMarketPhoto();
+        }
+    );
+
+    nextButton?.addEventListener(
+        "click",
+        (event) => {
+            event.stopPropagation();
+
+            showNextMarketPhoto();
+        }
+    );
+
+    viewer.addEventListener(
+        "click",
+        (event) => {
+            if (
+                event.target === viewer
+            ) {
+                closeMarketPhotoViewer();
+            }
+        }
+    );
+
+    viewer.addEventListener(
+        "touchstart",
+        (event) => {
+            marketViewerTouchStartX =
+                event.touches?.[0]
+                    ?.clientX ?? null;
+        },
+        {
+            passive: true
+        }
+    );
+
+    viewer.addEventListener(
+        "touchend",
+        (event) => {
+            if (
+                marketViewerTouchStartX ===
+                null
+            ) {
+                return;
+            }
+
+            const touchEndX =
+                event.changedTouches?.[0]
+                    ?.clientX;
+
+            if (
+                typeof touchEndX !==
+                "number"
+            ) {
+                marketViewerTouchStartX =
+                    null;
+
+                return;
+            }
+
+            const difference =
+                touchEndX -
+                marketViewerTouchStartX;
+
+            marketViewerTouchStartX =
+                null;
+
+            if (
+                Math.abs(difference) <
+                40
+            ) {
+                return;
+            }
+
+            if (difference < 0) {
+                showNextMarketPhoto();
+            } else {
+                showPreviousMarketPhoto();
+            }
+        },
+        {
+            passive: true
+        }
+    );
+
+    return viewer;
+}
+
+function renderMarketPhotoViewer() {
+    const viewer =
+        ensureMarketPhotoViewer();
+
+    const image =
+        viewer.querySelector(
+            "#marketPhotoViewerImage"
+        );
+
+    const previousButton =
+        viewer.querySelector(
+            "#previousMarketViewerPhoto"
+        );
+
+    const nextButton =
+        viewer.querySelector(
+            "#nextMarketViewerPhoto"
+        );
+
+    if (
+        !image ||
+        marketViewerPhotos.length ===
+            0
+    ) {
+        return;
+    }
+
+    marketViewerIndex =
+        (
+            marketViewerIndex +
+            marketViewerPhotos.length
+        ) %
+        marketViewerPhotos.length;
+
+    image.src =
+        marketViewerPhotos[
+            marketViewerIndex
+        ];
+
+    const onlyOnePhoto =
+        marketViewerPhotos.length <= 1;
+
+    if (previousButton) {
+        previousButton.hidden =
+            onlyOnePhoto;
+    }
+
+    if (nextButton) {
+        nextButton.hidden =
+            onlyOnePhoto;
+    }
+}
+
+function openMarketPhotoViewer(
+    photos,
+    startIndex = 0
+) {
+    if (
+        !Array.isArray(photos) ||
+        photos.length === 0
+    ) {
+        return;
+    }
+
+    marketViewerPhotos =
+        [...photos];
+
+    marketViewerIndex =
+        Math.min(
+            Math.max(
+                Number(startIndex) || 0,
+                0
+            ),
+            marketViewerPhotos.length -
+                1
+        );
+
+    const viewer =
+        ensureMarketPhotoViewer();
+
+    renderMarketPhotoViewer();
+
+    viewer.classList.add(
+        "open"
+    );
+
+    viewer.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+
+    document.body.style.overflow =
+        "hidden";
+}
+
+function closeMarketPhotoViewer() {
+    const viewer =
+        document.getElementById(
+            "marketPhotoViewer"
+        );
+
+    if (!viewer) {
+        return;
+    }
+
+    viewer.classList.remove(
+        "open"
+    );
+
+    viewer.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+
+    document.body.style.overflow =
+        "";
+
+    marketViewerPhotos = [];
+    marketViewerIndex = 0;
+}
+
+function showPreviousMarketPhoto() {
+    if (
+        marketViewerPhotos.length <= 1
+    ) {
+        return;
+    }
+
+    marketViewerIndex -= 1;
+
+    renderMarketPhotoViewer();
+}
+
+function showNextMarketPhoto() {
+    if (
+        marketViewerPhotos.length <= 1
+    ) {
+        return;
+    }
+
+    marketViewerIndex += 1;
+
+    renderMarketPhotoViewer();
+}
+
+document.addEventListener(
+    "keydown",
+    (event) => {
+        const viewer =
+            document.getElementById(
+                "marketPhotoViewer"
+            );
+
+        if (
+            !viewer?.classList.contains(
+                "open"
+            )
+        ) {
+            return;
+        }
+
+        if (event.key === "Escape") {
+            closeMarketPhotoViewer();
+        }
+
+        if (
+            event.key ===
+            "ArrowLeft"
+        ) {
+            showPreviousMarketPhoto();
+        }
+
+        if (
+            event.key ===
+            "ArrowRight"
+        ) {
+            showNextMarketPhoto();
+        }
+    }
+);
 
 /* =====================================================
    ВІДОБРАЖЕННЯ ОГОЛОШЕНЬ
@@ -2930,6 +3300,24 @@ function renderListings() {
                     </p>
                 </div>
             `;
+
+            const marketCardPhoto =
+    card.querySelector(
+        ".market-card-photo"
+    );
+
+marketCardPhoto?.addEventListener(
+    "click",
+    (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        openMarketPhotoViewer(
+            photos,
+            mainPhotoIndex
+        );
+    }
+);
 
             const favoriteButton =
             card.querySelector(
@@ -3598,17 +3986,13 @@ if (listingForm) {
    ЗАПУСК СТОРІНКИ
 ===================================================== */
 
+fillBrandSelect();
+
 fillCarSelect();
 
-
 updatePhotosCounter();
-
-
-updatePhotosCounter();
-
 
 loadUsdRate();
-
 
 renderListings();
 

@@ -97,6 +97,160 @@
 
     </section>
 
+    <section class="account-settings-section">
+        <h2>Налаштування акаунта</h2>
+    
+        <div class="account-settings-row">
+            <span>Email</span>
+            <strong id="accountEmail">
+                —
+            </strong>
+        </div>
+    
+        <div class="account-settings-row">
+            <span>Телефон</span>
+            <strong id="accountPhone">
+                —
+            </strong>
+        </div>
+    
+        <button
+            type="button"
+            class="gold-btn"
+            id="changeAccountPhoneButton"
+        >
+            Змінити номер телефону
+        </button>
+    </section>
+
+    <section class="seller-profile-settings">
+
+        <div class="seller-profile-settings-header">
+            <div>
+                <p class="section-label">
+                    Публічний профіль
+                </p>
+    
+                <h2>
+                    Налаштування профілю продавця
+                </h2>
+    
+                <p>
+                    Ці дані побачать покупці після
+                    публікації хоча б одного оголошення.
+                </p>
+            </div>
+        </div>
+    
+        <form id="sellerProfileSettingsForm">
+    
+            <label>
+                Ім’я продавця
+    
+                <input
+                    type="text"
+                    id="sellerProfileName"
+                    maxlength="80"
+                    placeholder="Наприклад: Віталій"
+                >
+            </label>
+    
+            <label>
+                Місто
+    
+                <input
+                    type="text"
+                    id="sellerProfileCity"
+                    maxlength="80"
+                    placeholder="Наприклад: Львів"
+                >
+            </label>
+    
+            <label>
+                Телефон
+    
+                <input
+                    type="tel"
+                    id="sellerProfilePhone"
+                    readonly
+                    maxlength="30"
+                    placeholder="+380..."
+                >
+            </label>
+    
+            <label>
+                Telegram
+    
+                <input
+                    type="text"
+                    id="sellerProfileTelegram"
+                    maxlength="80"
+                    placeholder="@username"
+                >
+            </label>
+    
+            <div class="seller-profile-visibility">
+    
+                <label>
+                    <input
+                        type="checkbox"
+                        id="sellerProfileShowPhone"
+                    >
+    
+                    Показувати телефон
+                </label>
+    
+                <label>
+                    <input
+                        type="checkbox"
+                        id="sellerProfileShowTelegram"
+                    >
+    
+                    Показувати Telegram
+                </label>
+    
+            </div>
+
+            <div class="seller-profile-photo-field">
+
+                <div
+                    id="sellerProfilePhotoPreview"
+                    class="seller-profile-photo-preview"
+                >
+                    В
+                </div>
+            
+                <label>
+                    Фото профілю
+            
+                    <input
+                        type="file"
+                        id="sellerProfilePhoto"
+                        accept="image/jpeg,image/png,image/webp"
+                    >
+                </label>
+            
+                <button
+                    type="button"
+                    id="removeSellerProfilePhoto"
+                    class="remove-profile-photo-button"
+                >
+                    Видалити фото
+                </button>
+            
+            </div>
+    
+            <button
+                type="submit"
+                class="gold-btn"
+            >
+                Зберегти налаштування
+            </button>
+    
+        </form>
+    
+    </section>
+
 
     <section class="garage-layout">
 

@@ -150,6 +150,17 @@ function createAuthModal() {
                 </label>
 
                 <label>
+    Номер телефону
+    <input
+        type="tel"
+        id="registerPhone"
+        autocomplete="tel"
+        placeholder="+380..."
+        required
+    >
+</label>
+
+                <label>
                 Пароль
               
                 <div class="password-field">
@@ -294,6 +305,32 @@ function switchAuthTab(tab) {
     registerForm.classList.toggle("hidden", tab !== "register");
 }
 
+function normalizePhone(value) {
+    const digits =
+        String(value || "")
+            .replace(/\D/g, "");
+
+    if (!digits) {
+        return "";
+    }
+
+    if (
+        digits.length === 10 &&
+        digits.startsWith("0")
+    ) {
+        return `380${digits.slice(1)}`;
+    }
+
+    if (
+        digits.length === 12 &&
+        digits.startsWith("380")
+    ) {
+        return digits;
+    }
+
+    return digits;
+}
+
 function registerUser(event) {
     event.preventDefault();
 
@@ -308,14 +345,36 @@ function registerUser(event) {
         .trim()
         .toLowerCase();
 
+    const errorElement =
+        document.getElementById(
+            "registerError"
+        );
+    
+    errorElement.textContent = "";   
+
+    const phone =
+        normalizePhone(
+        document
+        .getElementById(
+        "registerPhone"
+            )
+            .value
+    );
+
+    if (
+        !/^380\d{9}$/.test(phone)
+    ) {
+        errorElement.textContent =
+            "Введи правильний український номер телефону.";
+    
+        return;
+    }
+
     const password =
         document.getElementById("registerPassword").value;
 
     const passwordRepeat =
         document.getElementById("registerPasswordRepeat").value;
-
-    const errorElement =
-        document.getElementById("registerError");
 
     errorElement.textContent = "";
 
@@ -338,6 +397,21 @@ function registerUser(event) {
 
     const users = getUsers();
 
+    const phoneExists =
+    users.some(
+        (user) =>
+            normalizePhone(
+                user.phone
+            ) === phone
+    );
+
+if (phoneExists) {
+    errorElement.textContent =
+        "Користувач із таким номером телефону вже зареєстрований.";
+
+    return;
+}
+
     const userExists = users.some(
         (user) => user.email === email
     );
@@ -355,6 +429,7 @@ function registerUser(event) {
     
         name,
         email,
+        phone,
         password,
     
         accountType: "user",
@@ -367,11 +442,14 @@ function registerUser(event) {
     saveUsers(users);
 
     saveCurrentUser({
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-        accountType: newUser.accountType,
-        role: newUser.role
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || "",
+        accountType:
+        user.accountType || "user",
+        role:
+        user.role || "user"
     });
 
     document.getElementById("registerForm").reset();
@@ -379,7 +457,7 @@ function registerUser(event) {
     closeAuthModal();
     renderAuthArea();
 
-    alert(`Вітаємо, ${name}! Реєстрація успішна.`);
+ 
 }
 
 function loginUser(event) {
@@ -417,10 +495,11 @@ function loginUser(event) {
         id: user.id,
         name: user.name,
         email: user.email,
+        phone: user.phone || "",
         accountType:
-            user.accountType || "user",
+        user.accountType || "user",
         role:
-            user.role || "user"
+        user.role || "user"
     });
 
     document.getElementById("loginForm").reset();
