@@ -442,14 +442,14 @@ if (phoneExists) {
     saveUsers(users);
 
     saveCurrentUser({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone || "",
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        phone: newUser.phone || "",
         accountType:
-        user.accountType || "user",
+            newUser.accountType || "user",
         role:
-        user.role || "user"
+            newUser.role || "user"
     });
 
     document.getElementById("registerForm").reset();
