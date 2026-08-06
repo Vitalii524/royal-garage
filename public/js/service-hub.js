@@ -163,6 +163,57 @@ function ensureServiceHubBusiness() {
                     "Автоелектрика"
                 ],
 
+                serviceDetails:
+    oldBusiness.serviceDetails || {
+        "oil-service": {
+            title:
+                "Заміна мастила та фільтрів",
+
+            description:
+                "Планове технічне обслуговування автомобіля з перевіркою основних витратних матеріалів."
+        },
+
+        "brakes": {
+            title:
+                "Гальмівна система",
+
+            description:
+                "Діагностика та ремонт гальмівної системи автомобіля."
+        },
+
+        "suspension": {
+            title:
+                "Діагностика та ремонт підвіски",
+
+            description:
+                "Перевірка стану ходової частини та ремонт несправних елементів."
+        },
+
+        "diagnostics": {
+            title:
+                "Пошук несправностей та ремонт",
+
+            description:
+                "Комплексна діагностика автомобіля та пошук несправностей."
+        },
+
+        "air-conditioning": {
+            title:
+                "Кондиціонери",
+
+            description:
+                "Діагностика, обслуговування та заправка системи кондиціонування."
+        },
+
+        "auto-electric": {
+            title:
+                "Автоелектрика",
+
+            description:
+                "Діагностика та ремонт електричних систем автомобіля."
+        }
+    },
+
         ownerId:
             SERVICE_HUB_OWNER_ID,
 
@@ -374,15 +425,13 @@ function makeTelegramUrl(value) {
 /* =========================
    ВІДОБРАЖЕННЯ СТОРІНКИ
    ========================= */
-
-function renderServiceHub() {
+   function renderServiceHub() {
     const business =
         getServiceHubBusiness();
 
     if (!business) {
         return;
     }
-
 
     const name =
         document.getElementById(
@@ -398,7 +447,6 @@ function renderServiceHub() {
         document.getElementById(
             "serviceHubAddress"
         );
-
 
     if (name) {
         name.textContent =
@@ -420,8 +468,15 @@ function renderServiceHub() {
                 .join(", ");
     }
 
-
     renderMainPhoto(
+        business
+    );
+
+    renderServiceDetails(
+        business
+    );
+
+    renderPublicServices(
         business
     );
 
@@ -435,6 +490,281 @@ function renderServiceHub() {
 
     renderOwnerPanel(
         business
+    );
+
+    renderServicesEditor(
+        business
+    );
+}
+
+
+/* =========================
+   ДЕТАЛЬНІ ОПИСИ ПОСЛУГ
+   ========================= */
+
+function renderServiceDetails(
+    business
+) {
+    const details =
+        business.serviceDetails || {};
+
+    const owner =
+        isServiceHubOwner();
+
+    Object.entries(
+        details
+    ).forEach(
+        ([serviceId, service]) => {
+
+            const card =
+                document.getElementById(
+                    serviceId
+                );
+
+            if (!card) {
+                return;
+            }
+
+            const title =
+    
+            card.querySelector(
+                "h2"
+            );
+        
+        const description =
+            card.querySelector(
+                "h2 + p"
+            );
+            if (title) {
+                title.textContent =
+                    service.title || "";
+            }
+
+            if (description) {
+                description.textContent =
+                    service.description || "";
+            }
+
+
+            /* КНОПКА ТІЛЬКИ ДЛЯ ВЛАСНИКА */
+
+            let editButton =
+                card.querySelector(
+                    ".service-hub-detail-edit-button"
+                );
+
+            if (!owner) {
+                if (editButton) {
+                    editButton.remove();
+                }
+
+                return;
+            }
+
+            if (!editButton) {
+                editButton =
+                    document.createElement(
+                        "button"
+                    );
+
+                editButton.type =
+                    "button";
+
+                editButton.className =
+                    "upholstery-secondary-button service-hub-detail-edit-button";
+
+                editButton.textContent =
+                    "Редагувати опис";
+
+                editButton.addEventListener(
+                    "click",
+                    () => {
+                        editServiceHubDetail(
+                            serviceId
+                        );
+                    }
+                );
+
+                card.appendChild(
+                    editButton
+                );
+            }
+        }
+    );
+}
+
+
+/* =========================
+   РЕДАГУВАННЯ ОПИСУ
+   ========================= */
+
+function editServiceHubDetail(
+    serviceId
+) {
+    if (!isServiceHubOwner()) {
+        return;
+    }
+
+    const businesses =
+        loadBusinesses();
+
+    const business =
+        businesses[
+            SERVICE_HUB_ID
+        ];
+
+    if (!business) {
+        return;
+    }
+
+    business.serviceDetails =
+        business.serviceDetails || {};
+
+    const current =
+        business.serviceDetails[
+            serviceId
+        ];
+
+    if (!current) {
+        return;
+    }
+
+
+    /* НАЗВА */
+
+    const newTitle =
+        prompt(
+            "Назва детальної послуги:",
+            current.title || ""
+        );
+
+    if (newTitle === null) {
+        return;
+    }
+
+    const cleanTitle =
+        newTitle.trim();
+
+    if (!cleanTitle) {
+        alert(
+            "Назва не може бути порожньою."
+        );
+
+        return;
+    }
+
+
+    /* ОПИС */
+
+    const newDescription =
+        prompt(
+            "Опис послуги:",
+            current.description || ""
+        );
+
+    if (newDescription === null) {
+        return;
+    }
+
+
+    business.serviceDetails[
+        serviceId
+    ] = {
+        ...current,
+
+        title:
+            cleanTitle,
+
+        description:
+            newDescription.trim(),
+
+        updatedAt:
+            new Date()
+                .toISOString()
+    };
+
+    business.updatedAt =
+        new Date()
+            .toISOString();
+
+    saveBusinesses(
+        businesses
+    );
+
+    renderServiceHub();
+}
+
+function renderPublicServices(
+    business
+) {
+    const container =
+        document.getElementById(
+            "serviceHubPublicServices"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    const services =
+        Array.isArray(
+            business.services
+        )
+            ? business.services
+            : [];
+
+    container.innerHTML = "";
+
+    services.forEach(
+        (service) => {
+            const card =
+                document.createElement(
+                    "div"
+                );
+
+            card.className =
+                "service-hub-public-service-card";
+
+            const name =
+                typeof service === "string"
+                    ? service
+                    : service.name || "";
+
+            const price =
+                typeof service === "object"
+                    ? service.price || ""
+                    : "";
+
+            const title =
+                document.createElement(
+                    "strong"
+                );
+
+            title.textContent =
+                name;
+
+            card.appendChild(
+                title
+            );
+
+            if (price) {
+                const priceElement =
+                    document.createElement(
+                        "span"
+                    );
+
+                priceElement.textContent =
+                    price;
+
+                card.appendChild(
+                    priceElement
+                );
+            }
+
+            container.appendChild(
+                card
+            );
+        }
     );
 }
 
@@ -1413,6 +1743,346 @@ editForm?.addEventListener(
     "submit",
     saveServiceHubChanges
 );
+
+function deleteServiceHubService(
+    serviceIndex
+) {
+    if (!isServiceHubOwner()) {
+        return;
+    }
+
+    const businesses =
+        loadBusinesses();
+
+    const business =
+        businesses[
+            SERVICE_HUB_ID
+        ];
+
+    if (
+        !business ||
+        !Array.isArray(
+            business.services
+        )
+    ) {
+        return;
+    }
+
+    const confirmed =
+        confirm(
+            "Видалити цю послугу?"
+        );
+
+    if (!confirmed) {
+        return;
+    }
+
+    business.services.splice(
+        serviceIndex,
+        1
+    );
+
+    business.updatedAt =
+        new Date()
+            .toISOString();
+
+    saveBusinesses(
+        businesses
+    );
+
+    renderServiceHub();
+}
+
+function editServiceHubService(
+    serviceIndex
+) {
+    if (!isServiceHubOwner()) {
+        return;
+    }
+
+    const businesses =
+        loadBusinesses();
+
+    const business =
+        businesses[
+            SERVICE_HUB_ID
+        ];
+
+    if (
+        !business ||
+        !Array.isArray(
+            business.services
+        )
+    ) {
+        return;
+    }
+
+    const service =
+        business.services[
+            serviceIndex
+        ];
+
+    const oldName =
+        typeof service === "string"
+            ? service
+            : service.name || "";
+
+    const oldPrice =
+        typeof service === "object"
+            ? service.price || ""
+            : "";
+
+    const newName =
+        prompt(
+            "Назва послуги:",
+            oldName
+        );
+
+    if (newName === null) {
+        return;
+    }
+
+    const cleanName =
+        newName.trim();
+
+    if (!cleanName) {
+        alert(
+            "Назва послуги не може бути порожньою."
+        );
+
+        return;
+    }
+
+    const newPrice =
+        prompt(
+            "Ціна:",
+            oldPrice
+        );
+
+    if (newPrice === null) {
+        return;
+    }
+
+    business.services[
+        serviceIndex
+    ] = {
+        name: cleanName,
+        price: newPrice.trim(),
+        updatedAt:
+            new Date()
+                .toISOString()
+    };
+
+    business.updatedAt =
+        new Date()
+            .toISOString();
+
+    saveBusinesses(
+        businesses
+    );
+
+    renderServiceHub();
+}
+
+function renderServicesEditor(
+    business
+) {
+    const list =
+        document.getElementById(
+            "serviceHubServicesEditorList"
+        );
+
+    if (!list) {
+        return;
+    }
+
+    const services =
+        Array.isArray(
+            business.services
+        )
+            ? business.services
+            : [];
+
+    list.innerHTML = "";
+
+    services.forEach(
+        (service, index) => {
+            const item =
+                document.createElement(
+                    "div"
+                );
+
+            item.className =
+                "service-hub-service-editor-item";
+
+            const serviceName =
+                typeof service === "string"
+                    ? service
+                    : service.name || "";
+
+            const servicePrice =
+                typeof service === "object"
+                    ? service.price || ""
+                    : "";
+
+            const text =
+                document.createElement(
+                    "span"
+                );
+
+            text.textContent =
+                servicePrice
+                    ? `${serviceName} — ${servicePrice}`
+                    : serviceName;
+
+            item.appendChild(
+                text
+            );
+
+            const editButton =
+    document.createElement(
+        "button"
+    );
+
+editButton.type =
+    "button";
+
+editButton.className =
+    "service-hub-service-edit";
+
+editButton.textContent =
+    "Редагувати";
+
+editButton.addEventListener(
+    "click",
+    () => {
+        editServiceHubService(
+            index
+        );
+    }
+);
+
+item.appendChild(
+    editButton
+);
+
+            const deleteButton =
+    document.createElement(
+        "button"
+    );
+
+deleteButton.type =
+    "button";
+
+deleteButton.className =
+    "service-hub-service-delete";
+
+deleteButton.textContent =
+    "Видалити";
+
+deleteButton.addEventListener(
+    "click",
+    () => {
+        deleteServiceHubService(
+            index
+        );
+    }
+);
+
+item.appendChild(
+    deleteButton
+);
+
+            list.appendChild(
+                item
+            );
+        }
+    );
+}
+
+
+document
+    .getElementById(
+        "serviceHubAddServiceButton"
+    )
+    ?.addEventListener(
+        "click",
+        () => {
+            if (!isServiceHubOwner()) {
+                return;
+            }
+
+            const nameInput =
+                document.getElementById(
+                    "serviceHubNewServiceName"
+                );
+
+            const priceInput =
+                document.getElementById(
+                    "serviceHubNewServicePrice"
+                );
+
+            const name =
+                nameInput
+                    ?.value
+                    .trim() || "";
+
+            const price =
+                priceInput
+                    ?.value
+                    .trim() || "";
+
+            if (!name) {
+                alert(
+                    "Введи назву послуги."
+                );
+
+                return;
+            }
+
+            const businesses =
+                loadBusinesses();
+
+            const business =
+                businesses[
+                    SERVICE_HUB_ID
+                ];
+
+            if (!business) {
+                return;
+            }
+
+            business.services =
+                Array.isArray(
+                    business.services
+                )
+                    ? business.services
+                    : [];
+
+            business.services.push({
+                name,
+                price,
+                createdAt:
+                    new Date()
+                        .toISOString()
+            });
+
+            business.updatedAt =
+                new Date()
+                    .toISOString();
+
+            saveBusinesses(
+                businesses
+            );
+
+            nameInput.value = "";
+            priceInput.value = "";
+
+            renderServicesEditor(
+                business
+            );
+        }
+    );
 
 
 /* =========================

@@ -206,155 +206,14 @@
 
         </div>
 
-
-
-        <div class="upholstery-services-grid">
-
-
-            <a
-                href="#oil-service"
-                class="upholstery-service-card upholstery-service-link"
-            >
-                <span>
-                    🛢️
-                </span>
-
-                <h3>
-                    Заміна мастила та фільтрів
-                </h3>
-
-                <p>
-                    Планове технічне обслуговування
-                    автомобіля.
-                </p>
-
-                <strong class="upholstery-card-more">
-                    Детальніше →
-                </strong>
-            </a>
+        <div
+    class="service-hub-public-services"
+    id="serviceHubPublicServices"
+></div>
 
 
 
-            <a
-                href="#brakes"
-                class="upholstery-service-card upholstery-service-link"
-            >
-                <span>
-                    🛑
-                </span>
 
-                <h3>
-                    Гальмівна система
-                </h3>
-
-                <p>
-                    Діагностика та ремонт гальмівної
-                    системи автомобіля.
-                </p>
-
-                <strong class="upholstery-card-more">
-                    Детальніше →
-                </strong>
-            </a>
-
-
-
-            <a
-                href="#suspension"
-                class="upholstery-service-card upholstery-service-link"
-            >
-                <span>
-                    🔧
-                </span>
-
-                <h3>
-                    Ремонт ходової
-                </h3>
-
-                <p>
-                    Діагностика та ремонт
-                    елементів підвіски.
-                </p>
-
-                <strong class="upholstery-card-more">
-                    Детальніше →
-                </strong>
-            </a>
-
-
-
-            <a
-                href="#diagnostics"
-                class="upholstery-service-card upholstery-service-link"
-            >
-                <span>
-                    🧰
-                </span>
-
-                <h3>
-                    Діагностика та ремонт
-                </h3>
-
-                <p>
-                    Пошук несправностей та перевірка
-                    технічного стану автомобіля.
-                </p>
-
-                <strong class="upholstery-card-more">
-                    Детальніше →
-                </strong>
-            </a>
-
-
-
-            <a
-                href="#air-conditioning"
-                class="upholstery-service-card upholstery-service-link"
-            >
-                <span>
-                    ❄️
-                </span>
-
-                <h3>
-                    Кондиціонери
-                </h3>
-
-                <p>
-                    Діагностика, ремонт та
-                    обслуговування кондиціонерів.
-                </p>
-
-                <strong class="upholstery-card-more">
-                    Детальніше →
-                </strong>
-            </a>
-
-
-
-            <a
-                href="#auto-electric"
-                class="upholstery-service-card upholstery-service-link"
-            >
-                <span>
-                    ⚡
-                </span>
-
-                <h3>
-                    Автоелектрика
-                </h3>
-
-                <p>
-                    Електродіагностика та окремі
-                    програмні роботи.
-                </p>
-
-                <strong class="upholstery-card-more">
-                    Детальніше →
-                </strong>
-            </a>
-
-
-        </div>
 
     </section>
 
@@ -934,6 +793,40 @@
                     maxlength="800"
                 ></textarea>
             </label>
+
+            <div class="service-hub-services-editor">
+                <h3>Послуги та ціни</h3>
+            
+                <div id="serviceHubServicesEditorList"></div>
+            
+                <label>
+                    Назва послуги
+                    <input
+                        type="text"
+                        id="serviceHubNewServiceName"
+                        maxlength="100"
+                        placeholder="Наприклад: Заміна масла"
+                    >
+                </label>
+            
+                <label>
+                    Ціна
+                    <input
+                        type="text"
+                        id="serviceHubNewServicePrice"
+                        maxlength="50"
+                        placeholder="Наприклад: від 800 грн"
+                    >
+                </label>
+            
+                <button
+                    type="button"
+                    class="upholstery-secondary-button"
+                    id="serviceHubAddServiceButton"
+                >
+                    + Додати послугу
+                </button>
+            </div>
 
 
             <label>
