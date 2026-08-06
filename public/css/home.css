@@ -1199,3 +1199,30 @@
   background: transparent !important;
   appearance: none;
 }
+
+.service-hub-card-logo {
+    width: 90px;
+    height: 90px;
+
+    object-fit: contain;
+
+    border-radius: 12px;
+
+    background: #000;
+
+    padding: 4px;
+
+    margin-bottom: 8px;
+}
+
+@media (max-width: 620px) {
+    .service-hub-card-logo {
+        width: 82px;
+        height: 82px;
+    }
+
+    .atelier-card {
+        padding-top: 18px;
+        padding-bottom: 18px;
+    }
+}
