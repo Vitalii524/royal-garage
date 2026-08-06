@@ -1755,6 +1755,11 @@ serviceHistoryButton.addEventListener(
 
     /* ===== КНОПКА РЕДАГУВАННЯ ===== */
 
+    const editListingButton =
+    document.getElementById(
+        "editListingButton"
+    );
+
     if (editListingButton) {
         editListingButton.addEventListener(
             "click",
@@ -2127,10 +2132,7 @@ serviceHistoryButton.addEventListener(
             listingMainPhoto.alt;
 
 
-        photoViewer.classList.add(
-            "is-open"
-        );
-
+            photoViewer.classList.add("open");
 
         photoViewer.setAttribute(
             "aria-hidden",
@@ -2164,11 +2166,7 @@ serviceHistoryButton.addEventListener(
             document.activeElement.blur();
         }
 
-
-        photoViewer.classList.remove(
-            "is-open"
-        );
-
+        photoViewer.classList.remove("open");
 
         photoViewer.setAttribute(
             "aria-hidden",
@@ -2576,10 +2574,7 @@ if (photoViewerImage) {
         (event) => {
             const viewerIsOpen =
                 photoViewer?.classList
-                    .contains(
-                        "is-open"
-                    );
-
+                .contains("open");
 
             if (!viewerIsOpen) {
                 return;
