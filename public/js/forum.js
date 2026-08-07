@@ -63,47 +63,66 @@ function getCurrentForumUser() {
 
 /* ===== ЗАВАНТАЖЕННЯ ТЕМ ===== */
 
-function loadForumTopics() {
+let topics = [];
+
+async function loadForumTopics() {
     try {
-        const savedTopics =
-            localStorage.getItem(
-                FORUM_STORAGE_KEY
+        const response = await fetch(
+            "/api/forum/topics"
+        );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити теми."
             );
-
-        const parsedTopics =
-            savedTopics
-                ? JSON.parse(savedTopics)
-                : [];
-
-        if (!Array.isArray(parsedTopics)) {
-            return [];
         }
 
-        return parsedTopics.map((topic) => ({
-            ...topic,
+        topics = (data.topics || []).map(
+            (topic) => ({
+                id: topic.id,
 
-            replies: Array.isArray(topic.replies)
-                ? topic.replies
-                : []
-        }));
+                authorId:
+                    topic.user_id,
+
+                authorName:
+                    topic.author_name,
+
+                title:
+                    topic.title,
+
+                category:
+                    topic.category,
+
+                text:
+                    topic.content,
+
+                createdAt:
+                    topic.created_at,
+
+                replies: []
+            })
+        );
+
+        renderForumTopics();
+
     } catch (error) {
         console.error(
             "Не вдалося завантажити теми:",
             error
         );
 
-        return [];
+        topics = [];
+        renderForumTopics();
     }
 }
-
 function saveForumTopics() {
-    localStorage.setItem(
-        FORUM_STORAGE_KEY,
-        JSON.stringify(topics)
-    );
-}
-
-let topics = loadForumTopics();
+    // Тимчасово залишаємо,
+    // поки переносимо лайки, відповіді та видалення в PostgreSQL.
+} 
 
 
 /* ===== ДОПОМІЖНІ ФУНКЦІЇ ===== */
@@ -813,7 +832,7 @@ openTopicButton.addEventListener(
 
 topicForm.addEventListener(
     "submit",
-    (event) => {
+    async (event) => {
         event.preventDefault();
 
         const currentUser =
@@ -841,33 +860,72 @@ topicForm.addEventListener(
             return;
         }
 
-        const newTopic = {
-            id: createForumId(),
+        const token =
+            localStorage.getItem(
+                "royalGarageToken"
+            );
 
-            authorId: currentUser.id,
+        if (!token) {
+            alert(
+                "Сесія не знайдена. Увійди ще раз."
+            );
 
-            authorName:
-                getUserName(currentUser),
+            return;
+        }
 
-            title,
-            category,
-            text,
+        try {
+            const response = await fetch(
+                "/api/forum/topics",
+                {
+                    method: "POST",
 
-            createdAt:
-                new Date().toISOString(),
+                    headers: {
+                        "Content-Type":
+                            "application/json",
 
-            replies: []
-        };
+                        Authorization:
+                            `Bearer ${token}`
+                    },
 
-        topics.push(newTopic);
+                    body: JSON.stringify({
+                        title,
+                        category,
+                        content: text
+                    })
+                }
+            );
 
-        saveForumTopics();
-        renderForumTopics();
+            const data =
+                await response.json();
 
-        topicForm.reset();
-        closeForumModal(topicModal);
+            if (!response.ok) {
+                alert(
+                    data.message ||
+                    "Не вдалося створити тему."
+                );
 
-        openTopicView(newTopic.id);
+                return;
+            }
+
+            topicForm.reset();
+            closeForumModal(topicModal);
+
+            await loadForumTopics();
+
+            alert(
+                "Тему збережено в базі."
+            );
+
+        } catch (error) {
+            console.error(
+                "Create forum topic error:",
+                error
+            );
+
+            alert(
+                "Не вдалося з’єднатися із сервером."
+            );
+        }
     }
 );
 
@@ -1009,4 +1067,4 @@ document.addEventListener(
 
 /* ===== ЗАПУСК ===== */
 
-renderForumTopics();
+loadForumTopics();

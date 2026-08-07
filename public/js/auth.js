@@ -490,6 +490,11 @@ async function loginUser(event) {
 
         saveCurrentUser(data.user);
 
+        localStorage.setItem(
+            "royalGarageToken",
+            data.token
+        );
+
         document
             .getElementById(
                 "loginForm"
@@ -511,6 +516,7 @@ async function loginUser(event) {
 
 function logoutUser() {
     removeCurrentUser();
+    localStorage.removeItem("royalGarageToken");
     renderAuthArea();
 }
 

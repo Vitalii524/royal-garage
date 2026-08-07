@@ -338,6 +338,120 @@ app.post("/api/login", async (req, res) => {
     }
 });
 
+app.get("/api/forum/topics", async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT
+                t.id,
+                t.title,
+                t.category,
+                t.content,
+                t.created_at,
+                t.updated_at,
+                u.id AS user_id,
+                u.name AS author_name
+            FROM forum_topics t
+            JOIN users u ON u.id = t.user_id
+            ORDER BY t.created_at DESC
+        `);
+
+        res.json({
+            ok: true,
+            topics: result.rows
+        });
+    } catch (error) {
+        console.error("Forum topics load error:", error);
+
+        res.status(500).json({
+            ok: false,
+            message: "Не вдалося завантажити теми форуму."
+        });
+    }
+});
+
+function requireAuth(req, res, next) {
+    const authHeader = req.headers.authorization || "";
+
+    if (!authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({
+            ok: false,
+            message: "Потрібно увійти."
+        });
+    }
+
+    const token = authHeader.slice(7);
+
+    try {
+        const decoded = jwt.verify(
+            token,
+            process.env.JWT_SECRET
+        );
+
+        req.user = decoded;
+        next();
+    } catch (error) {
+        return res.status(401).json({
+            ok: false,
+            message: "Сесія недійсна або завершилась."
+        });
+    }
+}
+
+app.post(
+    "/api/forum/topics",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const { title, category, content } = req.body;
+
+            if (!title || !content) {
+                return res.status(400).json({
+                    ok: false,
+                    message: "Вкажи назву та текст теми."
+                });
+            }
+
+            const topicId = crypto.randomUUID();
+
+            const result = await pool.query(
+                `
+                INSERT INTO forum_topics (
+                    id,
+                    user_id,
+                    title,
+                    category,
+                    content
+                )
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING *
+                `,
+                [
+                    topicId,
+                    req.user.userId,
+                    String(title).trim(),
+                    String(category || "Загальне").trim(),
+                    String(content).trim()
+                ]
+            );
+
+            res.status(201).json({
+                ok: true,
+                topic: result.rows[0]
+            });
+        } catch (error) {
+            console.error(
+                "Forum topic create error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message: "Не вдалося створити тему."
+            });
+        }
+    }
+);
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
