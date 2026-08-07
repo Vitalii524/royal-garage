@@ -39,6 +39,28 @@ async function initDatabase() {
         ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     `);
 
+    await pool.query(`
+    CREATE TABLE IF NOT EXISTS forum_topics (
+        id UUID PRIMARY KEY,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title VARCHAR(200) NOT NULL,
+        category VARCHAR(80) NOT NULL DEFAULT 'Загальне',
+        content TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+`);
+
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS forum_replies (
+        id UUID PRIMARY KEY,
+        topic_id UUID NOT NULL REFERENCES forum_topics(id) ON DELETE CASCADE,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+`);
+
         console.log("Users table ready");
     } catch (error) {
         console.error("Database initialization error:", error);
