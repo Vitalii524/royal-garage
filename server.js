@@ -349,9 +349,32 @@ app.get("/api/forum/topics", async (req, res) => {
                 t.created_at,
                 t.updated_at,
                 u.id AS user_id,
-                u.name AS author_name
+                u.name AS author_name,
+
+                COALESCE(
+                    (
+                        SELECT json_agg(
+                            json_build_object(
+                                'id', r.id,
+                                'authorId', r.user_id,
+                                'authorName', ru.name,
+                                'text', r.content,
+                                'createdAt', r.created_at
+                            )
+                            ORDER BY r.created_at ASC
+                        )
+                        FROM forum_replies r
+                        JOIN users ru
+                            ON ru.id = r.user_id
+                        WHERE r.topic_id = t.id
+                    ),
+                    '[]'::json
+                ) AS replies
+
             FROM forum_topics t
-            JOIN users u ON u.id = t.user_id
+            JOIN users u
+                ON u.id = t.user_id
+
             ORDER BY t.created_at DESC
         `);
 
@@ -359,12 +382,17 @@ app.get("/api/forum/topics", async (req, res) => {
             ok: true,
             topics: result.rows
         });
+
     } catch (error) {
-        console.error("Forum topics load error:", error);
+        console.error(
+            "Forum topics load error:",
+            error
+        );
 
         res.status(500).json({
             ok: false,
-            message: "Не вдалося завантажити теми форуму."
+            message:
+                "Не вдалося завантажити теми форуму."
         });
     }
 });
@@ -447,6 +475,60 @@ app.post(
             res.status(500).json({
                 ok: false,
                 message: "Не вдалося створити тему."
+            });
+        }
+    }
+);
+
+app.post(
+    "/api/forum/topics/:topicId/replies",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const { topicId } = req.params;
+            const { content } = req.body;
+
+            if (!content || !String(content).trim()) {
+                return res.status(400).json({
+                    ok: false,
+                    message: "Введи текст відповіді."
+                });
+            }
+
+            const replyId = crypto.randomUUID();
+
+            const result = await pool.query(
+                `
+                INSERT INTO forum_replies (
+                    id,
+                    topic_id,
+                    user_id,
+                    content
+                )
+                VALUES ($1, $2, $3, $4)
+                RETURNING *
+                `,
+                [
+                    replyId,
+                    topicId,
+                    req.user.userId,
+                    String(content).trim()
+                ]
+            );
+
+            res.status(201).json({
+                ok: true,
+                reply: result.rows[0]
+            });
+        } catch (error) {
+            console.error(
+                "Forum reply create error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message: "Не вдалося додати відповідь."
             });
         }
     }

@@ -103,7 +103,10 @@ async function loadForumTopics() {
                 createdAt:
                     topic.created_at,
 
-                replies: []
+                replies: Array.isArray(topic.replies)
+                    ? topic.replies
+                    : []
+                
             })
         );
 
@@ -751,7 +754,7 @@ topicViewBody.addEventListener(
 
 /* ===== ДОДАВАННЯ ВІДПОВІДІ ===== */
 
-function addTopicReply(topicId) {
+async function addTopicReply(topicId) {
     const currentUser =
         getCurrentForumUser();
 
@@ -789,23 +792,64 @@ function addTopicReply(topicId) {
         topic.replies = [];
     }
 
-    topic.replies.push({
-        id: createForumId(),
+    const token =
+    localStorage.getItem(
+        "royalGarageToken"
+    );
 
-        authorId: currentUser.id,
+if (!token) {
+    alert(
+        "Сесія не знайдена. Увійди ще раз."
+    );
+    return;
+}
 
-        authorName:
-            getUserName(currentUser),
+try {
+    const response = await fetch(
+        `/api/forum/topics/${topic.id}/replies`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type":
+                    "application/json",
 
-        text,
+                Authorization:
+                    `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                content: text
+            })
+        }
+    );
 
-        createdAt:
-            new Date().toISOString()
-    });
+    const data =
+        await response.json();
 
-    saveForumTopics();
-    renderForumTopics();
+    if (!response.ok) {
+        alert(
+            data.message ||
+            "Не вдалося додати відповідь."
+        );
+        return;
+    }
+
+    replyInput.value = "";
+
+    await loadForumTopics();
+
     openTopicView(topic.id);
+
+} catch (error) {
+    console.error(
+        "Create forum reply error:",
+        error
+    );
+
+    alert(
+        "Не вдалося з’єднатися із сервером."
+    );
+  }
+
 }
 
 
