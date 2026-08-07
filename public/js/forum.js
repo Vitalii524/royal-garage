@@ -996,7 +996,7 @@ topicForm.addEventListener(
 
 /* ===== ВИДАЛЕННЯ ТЕМИ ===== */
 
-function deleteForumTopic(topicId) {
+async function deleteForumTopic(topicId) {
     const currentUser =
         getCurrentForumUser();
 
@@ -1026,9 +1026,53 @@ function deleteForumTopic(topicId) {
         `Видалити тему "${topic.title}"?`
     );
 
-    if (!confirmed) {
+    const token =
+    localStorage.getItem(
+        "royalGarageToken"
+    );
+
+if (!token) {
+    alert(
+        "Сесія не знайдена. Увійди ще раз."
+    );
+    return;
+}
+
+try {
+    const response = await fetch(
+        `/api/forum/topics/${topicId}`,
+        {
+            method: "DELETE",
+            headers: {
+                Authorization:
+                    `Bearer ${token}`
+            }
+        }
+    );
+
+    const data =
+        await response.json();
+
+    if (!response.ok) {
+        alert(
+            data.message ||
+            "Не вдалося видалити тему."
+        );
         return;
     }
+
+    await loadForumTopics();
+
+} catch (error) {
+    console.error(
+        "Forum topic delete error:",
+        error
+    );
+
+    alert(
+        "Не вдалося з’єднатися із сервером."
+    );
+}
 
     topics = topics.filter(
         (item) =>

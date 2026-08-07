@@ -678,6 +678,67 @@ app.post(
     }
 );
 
+app.delete(
+    "/api/forum/topics/:topicId",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const { topicId } = req.params;
+
+            const topicResult = await pool.query(
+                `
+                SELECT id, user_id
+                FROM forum_topics
+                WHERE id = $1
+                LIMIT 1
+                `,
+                [topicId]
+            );
+
+            if (topicResult.rows.length === 0) {
+                return res.status(404).json({
+                    ok: false,
+                    message: "Тему не знайдено."
+                });
+            }
+
+            if (
+                String(topicResult.rows[0].user_id) !==
+                String(req.user.userId)
+            ) {
+                return res.status(403).json({
+                    ok: false,
+                    message: "Можна видаляти лише власну тему."
+                });
+            }
+
+            await pool.query(
+                `
+                DELETE FROM forum_topics
+                WHERE id = $1
+                `,
+                [topicId]
+            );
+
+            res.json({
+                ok: true,
+                message: "Тему видалено."
+            });
+
+        } catch (error) {
+            console.error(
+                "Forum topic delete error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message: "Не вдалося видалити тему."
+            });
+        }
+    }
+);
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
