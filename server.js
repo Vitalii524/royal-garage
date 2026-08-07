@@ -61,6 +61,23 @@ await pool.query(`
     );
 `);
 
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS forum_reply_likes (
+        reply_id UUID NOT NULL
+            REFERENCES forum_replies(id)
+            ON DELETE CASCADE,
+
+        user_id UUID NOT NULL
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+
+        created_at TIMESTAMPTZ
+            NOT NULL DEFAULT NOW(),
+
+        PRIMARY KEY (reply_id, user_id)
+    )
+`);
+
         console.log("Users table ready");
     } catch (error) {
         console.error("Database initialization error:", error);
@@ -355,11 +372,21 @@ app.get("/api/forum/topics", async (req, res) => {
                     (
                         SELECT json_agg(
                             json_build_object(
-                                'id', r.id,
-                                'authorId', r.user_id,
-                                'authorName', ru.name,
-                                'text', r.content,
-                                'createdAt', r.created_at
+                            'id', r.id,
+                            'authorId', r.user_id,
+                            'authorName', ru.name,
+                            'text', r.content,
+                            'createdAt', r.created_at,
+
+                            'likeUserIds',
+                            COALESCE(
+                                (
+                                    SELECT json_agg(l.user_id)
+                                    FROM forum_reply_likes l
+                                    WHERE l.reply_id = r.id
+                                ),
+                                '[]'::json
+                            )
                             )
                             ORDER BY r.created_at ASC
                         )
@@ -529,6 +556,123 @@ app.post(
             res.status(500).json({
                 ok: false,
                 message: "Не вдалося додати відповідь."
+            });
+        }
+    }
+);
+
+
+
+
+app.post(
+    "/api/forum/replies/:replyId/like",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const { replyId } = req.params;
+
+            const replyResult = await pool.query(
+                `
+                SELECT id, user_id
+                FROM forum_replies
+                WHERE id = $1
+                LIMIT 1
+                `,
+                [replyId]
+            );
+
+            if (replyResult.rows.length === 0) {
+                return res.status(404).json({
+                    ok: false,
+                    message: "Відповідь не знайдено."
+                });
+            }
+
+            if (
+                String(replyResult.rows[0].user_id) ===
+                String(req.user.userId)
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Не можна лайкати власну відповідь."
+                });
+            }
+
+            const existingLike = await pool.query(
+                `
+                SELECT 1
+                FROM forum_reply_likes
+                WHERE reply_id = $1
+                  AND user_id = $2
+                LIMIT 1
+                `,
+                [
+                    replyId,
+                    req.user.userId
+                ]
+            );
+
+            let liked;
+
+            if (existingLike.rows.length > 0) {
+                await pool.query(
+                    `
+                    DELETE FROM forum_reply_likes
+                    WHERE reply_id = $1
+                      AND user_id = $2
+                    `,
+                    [
+                        replyId,
+                        req.user.userId
+                    ]
+                );
+
+                liked = false;
+            } else {
+                await pool.query(
+                    `
+                    INSERT INTO forum_reply_likes (
+                        reply_id,
+                        user_id
+                    )
+                    VALUES ($1, $2)
+                    `,
+                    [
+                        replyId,
+                        req.user.userId
+                    ]
+                );
+
+                liked = true;
+            }
+
+            const countResult = await pool.query(
+                `
+                SELECT COUNT(*)::int AS count
+                FROM forum_reply_likes
+                WHERE reply_id = $1
+                `,
+                [replyId]
+            );
+
+            res.json({
+                ok: true,
+                liked,
+                likesCount:
+                    countResult.rows[0].count
+            });
+
+        } catch (error) {
+            console.error(
+                "Forum reply like error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося змінити лайк."
             });
         }
     }

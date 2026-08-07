@@ -656,8 +656,7 @@ function openTopicView(topicId) {
 }
 
 /* ===== ЛАЙК ВІДПОВІДІ ===== */
-
-function toggleReplyLike(
+async function toggleReplyLike(
     topicId,
     replyId
 ) {
@@ -668,7 +667,6 @@ function toggleReplyLike(
         alert(
             "Увійди в акаунт, щоб поставити лайк."
         );
-
         return;
     }
 
@@ -701,37 +699,59 @@ function toggleReplyLike(
         alert(
             "Не можна лайкати власну відповідь."
         );
-
         return;
     }
 
-    if (!Array.isArray(reply.likeUserIds)) {
-        reply.likeUserIds = [];
+    const token =
+        localStorage.getItem(
+            "royalGarageToken"
+        );
+
+    if (!token) {
+        alert(
+            "Сесія не знайдена. Увійди ще раз."
+        );
+        return;
     }
 
-    const userIndex =
-        reply.likeUserIds.findIndex(
-            (userId) =>
-                String(userId) ===
-                String(currentUser.id)
+    try {
+        const response = await fetch(
+            `/api/forum/replies/${replyId}/like`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization:
+                        `Bearer ${token}`
+                }
+            }
         );
 
-    if (userIndex >= 0) {
-        reply.likeUserIds.splice(
-            userIndex,
-            1
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            alert(
+                data.message ||
+                "Не вдалося змінити лайк."
+            );
+            return;
+        }
+
+        await loadForumTopics();
+
+        openTopicView(topic.id);
+
+    } catch (error) {
+        console.error(
+            "Forum reply like request error:",
+            error
         );
-    } else {
-        reply.likeUserIds.push(
-            currentUser.id
+
+        alert(
+            "Не вдалося з’єднатися із сервером."
         );
     }
-
-    saveForumTopics();
-
-    openTopicView(topic.id);
 }
-
 topicViewBody.addEventListener(
     "click",
     (event) => {
