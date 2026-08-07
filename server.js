@@ -3,6 +3,7 @@ const path = require("path");
 const { Pool } = require("pg");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
 const app = express();
 
 const pool = new Pool({
@@ -276,8 +277,20 @@ app.post("/api/login", async (req, res) => {
             });
         }
 
+        const token = jwt.sign(
+            {
+                userId: user.id,
+                role: user.role || "user"
+            },
+            process.env.JWT_SECRET,
+            {
+                expiresIn: "7d"
+            }
+        );
+
         res.json({
             ok: true,
+            token,
             user: {
                 id: user.id,
                 name: user.name,
