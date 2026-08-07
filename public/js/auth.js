@@ -331,7 +331,7 @@ function normalizePhone(value) {
     return digits;
 }
 
-function registerUser(event) {
+async function registerUser(event) {
     event.preventDefault();
 
     const name = document
@@ -345,42 +345,38 @@ function registerUser(event) {
         .trim()
         .toLowerCase();
 
+    const phone = normalizePhone(
+        document
+            .getElementById("registerPhone")
+            .value
+    );
+
+    const password =
+        document.getElementById(
+            "registerPassword"
+        ).value;
+
+    const passwordRepeat =
+        document.getElementById(
+            "registerPasswordRepeat"
+        ).value;
+
     const errorElement =
         document.getElementById(
             "registerError"
         );
-    
-    errorElement.textContent = "";   
-
-    const phone =
-        normalizePhone(
-        document
-        .getElementById(
-        "registerPhone"
-            )
-            .value
-    );
-
-    if (
-        !/^380\d{9}$/.test(phone)
-    ) {
-        errorElement.textContent =
-            "Введи правильний український номер телефону.";
-    
-        return;
-    }
-
-    const password =
-        document.getElementById("registerPassword").value;
-
-    const passwordRepeat =
-        document.getElementById("registerPasswordRepeat").value;
 
     errorElement.textContent = "";
 
     if (name.length < 2) {
         errorElement.textContent =
             "Ім’я повинно містити щонайменше 2 символи.";
+        return;
+    }
+
+    if (!/^380\d{9}$/.test(phone)) {
+        errorElement.textContent =
+            "Введи правильний український номер телефону.";
         return;
     }
 
@@ -391,76 +387,61 @@ function registerUser(event) {
     }
 
     if (password !== passwordRepeat) {
-        errorElement.textContent = "Паролі не збігаються.";
-        return;
-    }
-
-    const users = getUsers();
-
-    const phoneExists =
-    users.some(
-        (user) =>
-            normalizePhone(
-                user.phone
-            ) === phone
-    );
-
-if (phoneExists) {
-    errorElement.textContent =
-        "Користувач із таким номером телефону вже зареєстрований.";
-
-    return;
-}
-
-    const userExists = users.some(
-        (user) => user.email === email
-    );
-
-    if (userExists) {
         errorElement.textContent =
-            "Користувач із таким email вже зареєстрований.";
+            "Паролі не збігаються.";
         return;
     }
 
-    const newUser = {
-        id: crypto.randomUUID
-            ? crypto.randomUUID()
-            : String(Date.now()),
-    
-        name,
-        email,
-        phone,
-        password,
-    
-        accountType: "user",
-        role: "user",
-    
-        createdAt: new Date().toISOString()
-    };
+    try {
+        const response = await fetch(
+            "/api/register",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+                body: JSON.stringify({
+                    name,
+                    email,
+                    phone,
+                    password
+                })
+            }
+        );
 
-    users.push(newUser);
-    saveUsers(users);
+        const data =
+            await response.json();
 
-    saveCurrentUser({
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-        phone: newUser.phone || "",
-        accountType:
-            newUser.accountType || "user",
-        role:
-            newUser.role || "user"
-    });
+        if (!response.ok) {
+            errorElement.textContent =
+                data.message ||
+                "Не вдалося зареєструватися.";
+            return;
+        }
 
-    document.getElementById("registerForm").reset();
+        saveCurrentUser(data.user);
 
-    closeAuthModal();
-    renderAuthArea();
+        document
+            .getElementById(
+                "registerForm"
+            )
+            .reset();
 
- 
+        closeAuthModal();
+        renderAuthArea();
+    } catch (error) {
+        console.error(
+            "Registration request error:",
+            error
+        );
+
+        errorElement.textContent =
+            "Не вдалося з’єднатися із сервером.";
+    }
 }
 
-function loginUser(event) {
+async function loginUser(event) {
     event.preventDefault();
 
     const email = document
@@ -470,42 +451,62 @@ function loginUser(event) {
         .toLowerCase();
 
     const password =
-        document.getElementById("loginPassword").value;
+        document.getElementById(
+            "loginPassword"
+        ).value;
 
     const errorElement =
-        document.getElementById("loginError");
+        document.getElementById(
+            "loginError"
+        );
 
     errorElement.textContent = "";
 
-    const users = getUsers();
+    try {
+        const response = await fetch(
+            "/api/login",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+                body: JSON.stringify({
+                    email,
+                    password
+                })
+            }
+        );
 
-    const user = users.find(
-        (item) =>
-            item.email === email &&
-            item.password === password
-    );
+        const data =
+            await response.json();
 
-    if (!user) {
+        if (!response.ok) {
+            errorElement.textContent =
+                data.message ||
+                "Не вдалося увійти.";
+            return;
+        }
+
+        saveCurrentUser(data.user);
+
+        document
+            .getElementById(
+                "loginForm"
+            )
+            .reset();
+
+        closeAuthModal();
+        renderAuthArea();
+    } catch (error) {
+        console.error(
+            "Login request error:",
+            error
+        );
+
         errorElement.textContent =
-            "Неправильний email або пароль.";
-        return;
+            "Не вдалося з’єднатися із сервером.";
     }
-
-    saveCurrentUser({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone || "",
-        accountType:
-        user.accountType || "user",
-        role:
-        user.role || "user"
-    });
-
-    document.getElementById("loginForm").reset();
-
-    closeAuthModal();
-    renderAuthArea();
 }
 
 function logoutUser() {
