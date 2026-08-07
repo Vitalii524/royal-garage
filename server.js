@@ -28,6 +28,16 @@ async function initDatabase() {
             )
         `);
 
+        await pool.query(`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS city VARCHAR(80),
+        ADD COLUMN IF NOT EXISTS telegram VARCHAR(80),
+        ADD COLUMN IF NOT EXISTS profile_photo TEXT,
+        ADD COLUMN IF NOT EXISTS show_phone BOOLEAN NOT NULL DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS show_telegram BOOLEAN NOT NULL DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    `);
+
         console.log("Users table ready");
     } catch (error) {
         console.error("Database initialization error:", error);
