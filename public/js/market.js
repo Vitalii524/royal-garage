@@ -3961,7 +3961,7 @@ if (listingForm) {
                     return;
                 }
                   
-                }
+                
 
 
                 alert(
@@ -3977,6 +3977,7 @@ if (listingForm) {
 
                 return;
             
+        }
 
             if (
                 !currentUser ||
