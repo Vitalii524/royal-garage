@@ -742,6 +742,100 @@ app.delete(
     }
 );
 
+app.patch(
+    "/api/forum/replies/:replyId",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const { replyId } = req.params;
+
+            const content =
+                String(
+                    req.body?.content || ""
+                ).trim();
+
+            if (!content) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Відповідь не може бути порожньою."
+                });
+            }
+
+            const replyResult =
+                await pool.query(
+                    `
+                    SELECT id, user_id
+                    FROM forum_replies
+                    WHERE id = $1
+                    LIMIT 1
+                    `,
+                    [replyId]
+                );
+
+            if (
+                replyResult.rows.length === 0
+            ) {
+                return res
+                    .status(404)
+                    .json({
+                        ok: false,
+                        message:
+                            "Відповідь не знайдено."
+                    });
+            }
+
+            if (
+                String(
+                    replyResult.rows[0]
+                        .user_id
+                ) !==
+                String(req.user.userId)
+            ) {
+                return res
+                    .status(403)
+                    .json({
+                        ok: false,
+                        message:
+                            "Редагувати відповідь може лише її автор."
+                    });
+            }
+
+            const result =
+                await pool.query(
+                    `
+                    UPDATE forum_replies
+                    SET content = $1
+                    WHERE id = $2
+                    RETURNING *
+                    `,
+                    [
+                        content,
+                        replyId
+                    ]
+                );
+
+            res.json({
+                ok: true,
+                reply:
+                    result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "Forum reply edit error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося відредагувати відповідь."
+            });
+        }
+    }
+);
+
 app.delete(
     "/api/forum/topics/:topicId",
     requireAuth,

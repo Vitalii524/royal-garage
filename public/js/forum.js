@@ -602,6 +602,17 @@ function openTopicView(topicId) {
                                         currentUser?.id &&
                                         String(currentUser.id) === String(reply.authorId)
                                             ? `
+
+                                            <button
+                                            type="button"
+                                            class="forum-reply-edit"
+                                            data-action="edit-reply"
+                                            data-topic-id="${topic.id}"
+                                            data-reply-id="${reply.id}"
+                                        >
+                                            ✏️ Редагувати
+                                        </button>
+
                                                 <button
                                                     type="button"
                                                     class="forum-reply-delete"
@@ -786,6 +797,20 @@ topicViewBody.addEventListener(
     
         return;
     }
+
+    const editButton =
+    event.target.closest(
+        '[data-action="edit-reply"]'
+    );
+
+if (editButton) {
+    editForumReply(
+        editButton.dataset.topicId,
+        editButton.dataset.replyId
+    );
+
+    return;
+}
 
         const likeButton =
             event.target.closest(
@@ -1009,6 +1034,142 @@ async function deleteForumReply(
     } catch (error) {
         console.error(
             "Forum reply delete request error:",
+            error
+        );
+
+        alert(
+            "Не вдалося з’єднатися із сервером."
+        );
+    }
+}
+
+async function editForumReply(
+    topicId,
+    replyId
+) {
+    const currentUser =
+        getCurrentForumUser();
+
+    if (!currentUser?.id) {
+        alert(
+            "Увійди в акаунт."
+        );
+        return;
+    }
+
+    const topic =
+        topics.find(
+            (item) =>
+                String(item.id) ===
+                String(topicId)
+        );
+
+    if (!topic) {
+        return;
+    }
+
+    const reply =
+        topic.replies.find(
+            (item) =>
+                String(item.id) ===
+                String(replyId)
+        );
+
+    if (!reply) {
+        return;
+    }
+
+    if (
+        String(reply.authorId) !==
+        String(currentUser.id)
+    ) {
+        alert(
+            "Редагувати відповідь може лише її автор."
+        );
+        return;
+    }
+
+    const newText = prompt(
+        "Редагувати відповідь:",
+        reply.text
+    );
+
+    if (newText === null) {
+        return;
+    }
+
+    const text =
+        newText.trim();
+
+    if (!text) {
+        alert(
+            "Відповідь не може бути порожньою."
+        );
+        return;
+    }
+
+    if (text === reply.text) {
+        return;
+    }
+
+    const token =
+        localStorage.getItem(
+            "royalGarageToken"
+        );
+
+    if (!token) {
+        alert(
+            "Сесія не знайдена. Увійди ще раз."
+        );
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `/api/forum/replies/${replyId}`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type":
+                        "application/json",
+                    Authorization:
+                        `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    content: text
+                })
+            }
+        );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            alert(
+                data.message ||
+                "Не вдалося відредагувати відповідь."
+            );
+            return;
+        }
+
+        await loadForumTopics();
+
+        const updatedTopic =
+            topics.find(
+                (item) =>
+                    String(item.id) ===
+                    String(topicId)
+            );
+
+        if (updatedTopic) {
+            openTopicView(
+                updatedTopic.id
+            );
+        }
+
+    } catch (error) {
+        console.error(
+            "Forum reply edit request error:",
             error
         );
 
