@@ -78,6 +78,52 @@ await pool.query(`
     )
 `);
 
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS market_listings (
+        id UUID PRIMARY KEY,
+
+        owner_id UUID NOT NULL
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+
+        seller_name VARCHAR(255) NOT NULL,
+
+        car_id TEXT,
+
+        name VARCHAR(255) NOT NULL,
+        year VARCHAR(20),
+        vin VARCHAR(50),
+
+        photos JSONB NOT NULL DEFAULT '[]'::jsonb,
+
+        active_photo_index INTEGER NOT NULL DEFAULT 0,
+
+        engine VARCHAR(100),
+        mileage VARCHAR(100),
+        fuel VARCHAR(100),
+
+        power_type VARCHAR(30),
+        power_value VARCHAR(100),
+
+        transmission VARCHAR(100),
+        body VARCHAR(100),
+        drive VARCHAR(100),
+
+        services JSONB NOT NULL DEFAULT '[]'::jsonb,
+
+        price_usd NUMERIC,
+        price_uah NUMERIC,
+
+        city VARCHAR(150),
+        phone VARCHAR(50),
+
+        description TEXT,
+
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+`);
+
         console.log("Users table ready");
     } catch (error) {
         console.error("Database initialization error:", error);
@@ -88,6 +134,353 @@ initDatabase();
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+app.get(
+    "/api/market/listings",
+    async (req, res) => {
+        try {
+            const result = await pool.query(`
+                SELECT
+                    id,
+                    owner_id AS "ownerId",
+                    seller_name AS "sellerName",
+                    car_id AS "carId",
+                    name,
+                    year,
+                    vin,
+                    photos,
+                    active_photo_index AS "activePhotoIndex",
+                    engine,
+                    mileage,
+                    fuel,
+                    power_type AS "powerType",
+                    power_value AS "powerValue",
+                    transmission,
+                    body,
+                    drive,
+                    services,
+                    price_usd AS "priceUsd",
+                    price_uah AS "priceUah",
+                    city,
+                    phone,
+                    description,
+                    created_at AS "createdAt",
+                    updated_at AS "updatedAt"
+                FROM market_listings
+                ORDER BY created_at DESC
+            `);
+
+            res.json({
+                ok: true,
+                listings: result.rows
+            });
+
+        } catch (error) {
+            console.error(
+                "Market listings load error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити оголошення."
+            });
+        }
+    }
+);
+
+app.post(
+    "/api/market/listings",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const {
+                carId,
+                name,
+                year,
+                vin,
+                photos,
+                activePhotoIndex,
+                engine,
+                mileage,
+                fuel,
+                powerType,
+                powerValue,
+                transmission,
+                body,
+                drive,
+                services,
+                priceUsd,
+                priceUah,
+                city,
+                phone,
+                description
+            } = req.body;
+
+            if (!name) {
+                return res.status(400).json({
+                    ok: false,
+                    message: "Вкажіть назву автомобіля."
+                });
+            }
+
+            const userResult = await pool.query(
+                `
+                SELECT name, email
+                FROM users
+                WHERE id = $1
+                LIMIT 1
+                `,
+                [req.user.userId]
+            );
+
+            if (userResult.rows.length === 0) {
+                return res.status(404).json({
+                    ok: false,
+                    message: "Користувача не знайдено."
+                });
+            }
+
+            const sellerName =
+                userResult.rows[0].name ||
+                userResult.rows[0].email ||
+                "Продавець";
+
+            const id =
+                crypto.randomUUID();
+
+            const result = await pool.query(
+                `
+                INSERT INTO market_listings (
+                    id,
+                    owner_id,
+                    seller_name,
+                    car_id,
+                    name,
+                    year,
+                    vin,
+                    photos,
+                    active_photo_index,
+                    engine,
+                    mileage,
+                    fuel,
+                    power_type,
+                    power_value,
+                    transmission,
+                    body,
+                    drive,
+                    services,
+                    price_usd,
+                    price_uah,
+                    city,
+                    phone,
+                    description
+                )
+                VALUES (
+                    $1, $2, $3, $4, $5, $6, $7,
+                    $8, $9, $10, $11, $12, $13,
+                    $14, $15, $16, $17, $18,
+                    $19, $20, $21, $22, $23
+                )
+                RETURNING *
+                `,
+                [
+                    id,
+                    req.user.userId,
+                    sellerName,
+                    carId || null,
+                    name,
+                    year || null,
+                    vin || null,
+                    JSON.stringify(
+                        Array.isArray(photos)
+                            ? photos
+                            : []
+                    ),
+                    Number.isInteger(activePhotoIndex)
+                        ? activePhotoIndex
+                        : 0,
+                    engine || "",
+                    mileage || "",
+                    fuel || "",
+                    powerType || "",
+                    powerValue || "",
+                    transmission || "",
+                    body || "",
+                    drive || "",
+                    JSON.stringify(
+                        Array.isArray(services)
+                            ? services
+                            : []
+                    ),
+                    priceUsd || null,
+                    priceUah || null,
+                    city || "",
+                    phone || "",
+                    description || ""
+                ]
+            );
+
+            res.status(201).json({
+                ok: true,
+                listing: result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "Market listing create error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося створити оголошення."
+            });
+        }
+    }
+);
+
+app.patch(
+    "/api/market/listings/:listingId",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const { listingId } = req.params;
+
+            const listingResult = await pool.query(
+                `
+                SELECT id, owner_id
+                FROM market_listings
+                WHERE id = $1
+                LIMIT 1
+                `,
+                [listingId]
+            );
+
+            if (listingResult.rows.length === 0) {
+                return res.status(404).json({
+                    ok: false,
+                    message: "Оголошення не знайдено."
+                });
+            }
+
+            if (
+                String(listingResult.rows[0].owner_id) !==
+                String(req.user.userId)
+            ) {
+                return res.status(403).json({
+                    ok: false,
+                    message:
+                        "Редагувати оголошення може лише його власник."
+                });
+            }
+
+            const {
+                carId,
+                name,
+                year,
+                vin,
+                photos,
+                activePhotoIndex,
+                engine,
+                mileage,
+                fuel,
+                powerType,
+                powerValue,
+                transmission,
+                body,
+                drive,
+                services,
+                priceUsd,
+                priceUah,
+                city,
+                phone,
+                description
+            } = req.body;
+
+            const result = await pool.query(
+                `
+                UPDATE market_listings
+                SET
+                    car_id = $1,
+                    name = $2,
+                    year = $3,
+                    vin = $4,
+                    photos = $5,
+                    active_photo_index = $6,
+                    engine = $7,
+                    mileage = $8,
+                    fuel = $9,
+                    power_type = $10,
+                    power_value = $11,
+                    transmission = $12,
+                    body = $13,
+                    drive = $14,
+                    services = $15,
+                    price_usd = $16,
+                    price_uah = $17,
+                    city = $18,
+                    phone = $19,
+                    description = $20,
+                    updated_at = NOW()
+                WHERE id = $21
+                RETURNING *
+                `,
+                [
+                    carId || null,
+                    name || "",
+                    year || null,
+                    vin || null,
+                    JSON.stringify(
+                        Array.isArray(photos)
+                            ? photos
+                            : []
+                    ),
+                    Number.isInteger(activePhotoIndex)
+                        ? activePhotoIndex
+                        : 0,
+                    engine || "",
+                    mileage || "",
+                    fuel || "",
+                    powerType || "",
+                    powerValue || "",
+                    transmission || "",
+                    body || "",
+                    drive || "",
+                    JSON.stringify(
+                        Array.isArray(services)
+                            ? services
+                            : []
+                    ),
+                    priceUsd || null,
+                    priceUah || null,
+                    city || "",
+                    phone || "",
+                    description || "",
+                    listingId
+                ]
+            );
+
+            res.json({
+                ok: true,
+                listing: result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "Market listing update error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося оновити оголошення."
+            });
+        }
+    }
+);
 
 app.get("/api", (req, res) => {
     res.json({

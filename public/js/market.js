@@ -1077,6 +1077,41 @@ let cars = [];
 
 let listings = [];
 
+async function loadMarketListings() {
+    try {
+        const response = await fetch(
+            "/api/market/listings"
+        );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити оголошення."
+            );
+        }
+
+        listings =
+            Array.isArray(data.listings)
+                ? data.listings
+                : [];
+
+        renderListings();
+
+    } catch (error) {
+        console.error(
+            "Market listings load request error:",
+            error
+        );
+
+        listings = [];
+
+        renderListings();
+    }
+}
+
 
 try {
     cars =
@@ -1095,22 +1130,7 @@ try {
 }
 
 
-try {
-    listings =
-        JSON.parse(
-            localStorage.getItem(
-                MARKET_STORAGE_KEY
-            )
-        ) || [];
-} catch (error) {
-    console.error(
-        "Не вдалося завантажити оголошення:",
-        error
-    );
-
-    listings = [];
-}
-
+loadMarketListings();
 
 /* =====================================================
    РЕЖИМ РЕДАГУВАННЯ
@@ -3811,34 +3831,136 @@ if (listingForm) {
                 ] =
                     updatedListing;
 
-
-                try {
-                    localStorage.setItem(
-                        MARKET_STORAGE_KEY,
-                        JSON.stringify(
-                            listings
-                        )
+                    const token =
+                    localStorage.getItem(
+                        "royalGarageToken"
                     );
-                } catch (error) {
-                    console.error(
-                        "Не вдалося зберегти зміни:",
-                        error
-                    );
-
-
+                
+                if (!token) {
                     listings[
                         listingIndex
-                    ] =
-                        previousListing;
-
-
+                    ] = previousListing;
+                
                     alert(
-                        "Не вдалося зберегти зміни. " +
-                        "Фотографії можуть займати забагато місця."
+                        "Сесія недійсна. Увійдіть повторно."
                     );
-
-
+                
                     return;
+                }
+                
+                try {
+                    const response = await fetch(
+                        `/api/market/listings/${updatedListing.id}`,
+                        {
+                            method: "PATCH",
+                
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+                
+                                Authorization:
+                                    `Bearer ${token}`
+                            },
+                
+                            body: JSON.stringify({
+                                carId:
+                                    updatedListing.carId,
+                
+                                name:
+                                    updatedListing.name,
+                
+                                year:
+                                    updatedListing.year,
+                
+                                vin:
+                                    updatedListing.vin,
+                
+                                photos:
+                                    updatedListing.photos,
+                
+                                activePhotoIndex:
+                                    updatedListing.activePhotoIndex,
+                
+                                engine:
+                                    updatedListing.engine,
+                
+                                mileage:
+                                    updatedListing.mileage,
+                
+                                fuel:
+                                    updatedListing.fuel,
+                
+                                powerType:
+                                    updatedListing.powerType,
+                
+                                powerValue:
+                                    updatedListing.powerValue,
+                
+                                transmission:
+                                    updatedListing.transmission,
+                
+                                body:
+                                    updatedListing.body,
+                
+                                drive:
+                                    updatedListing.drive,
+                
+                                services:
+                                    updatedListing.services,
+                
+                                priceUsd:
+                                    updatedListing.priceUsd,
+                
+                                priceUah:
+                                    updatedListing.priceUah,
+                
+                                city:
+                                    updatedListing.city,
+                
+                                phone:
+                                    updatedListing.phone,
+                
+                                description:
+                                    updatedListing.description
+                            })
+                        }
+                    );
+                
+                    const data =
+                        await response.json();
+                
+                    if (!response.ok) {
+                        listings[
+                            listingIndex
+                        ] = previousListing;
+                
+                        alert(
+                            data.message ||
+                            "Не вдалося зберегти зміни."
+                        );
+                
+                        return;
+                    }
+                
+                    await loadMarketListings();
+                
+                } catch (error) {
+                    listings[
+                        listingIndex
+                    ] = previousListing;
+                
+                    console.error(
+                        "Market listing update request error:",
+                        error
+                    );
+                
+                    alert(
+                        "Не вдалося з’єднатися із сервером."
+                    );
+                
+                    return;
+                }
+                  
                 }
 
 
@@ -3854,7 +3976,7 @@ if (listingForm) {
 
 
                 return;
-            }
+            
 
             if (
                 !currentUser ||
@@ -3871,98 +3993,106 @@ if (listingForm) {
             }
 
 
-            const newListing = {
-                id:
-                    Date.now()
-                        .toString(),
-
-                ownerId:
-                    currentUser.id,
-
-                    sellerName:
-    currentUser.name ||
-    currentUser.username ||
-    currentUser.email ||
-    "Продавець",
-
-                carId:
-                    car?.id ||
-                    null,
-
-                name,
-                year,
-                vin,
-
-                photos:
-                    preparedPhotos,
-
-                activePhotoIndex:
-                    safeMainPhotoIndex,
-
-                engine:
-                    car?.engine ||
-                    "",
-
-                mileage,
-                fuel,
-
-                powerType:
-                    fuel === "Електро"
-                        ? "battery"
-                        : "engine",
-
-                powerValue,
-
-                transmission,
-                body,
-                drive,
-
-                services:
-                    publicServices,
-
-                priceUsd,
-                priceUah,
-
-                city,
-                phone,
-                description,
-
-                createdAt:
-                    new Date()
-                        .toISOString()
-            };
-
-
-            listings.push(
-                newListing
+            const token =
+            localStorage.getItem(
+                "royalGarageToken"
             );
-
-
-            try {
-                localStorage.setItem(
-                    MARKET_STORAGE_KEY,
-                    JSON.stringify(
-                        listings
-                    )
-                );
-            } catch (error) {
-                console.error(
-                    "Не вдалося зберегти оголошення:",
-                    error
-                );
-
-
-                listings.pop();
-
-
+        
+        if (!token) {
+            alert(
+                "Сесія недійсна. Увійдіть повторно."
+            );
+        
+            window.location.href =
+                "index.html";
+        
+            return;
+        }
+        
+        try {
+            const response = await fetch(
+                "/api/market/listings",
+                {
+                    method: "POST",
+        
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+        
+                        Authorization:
+                            `Bearer ${token}`
+                    },
+        
+                    body: JSON.stringify({
+                        carId:
+                            car?.id || null,
+        
+                        name,
+                        year,
+                        vin,
+        
+                        photos:
+                            preparedPhotos,
+        
+                        activePhotoIndex:
+                            safeMainPhotoIndex,
+        
+                        engine:
+                            car?.engine || "",
+        
+                        mileage,
+                        fuel,
+        
+                        powerType:
+                            fuel === "Електро"
+                                ? "battery"
+                                : "engine",
+        
+                        powerValue,
+        
+                        transmission,
+                        body,
+                        drive,
+        
+                        services:
+                            publicServices,
+        
+                        priceUsd,
+                        priceUah,
+        
+                        city,
+                        phone,
+                        description
+                    })
+                }
+            );
+        
+            const data =
+                await response.json();
+        
+            if (!response.ok) {
                 alert(
-                    "Фотографії займають забагато місця. " +
-                    "Спробуй додати менше фото."
+                    data.message ||
+                    "Не вдалося створити оголошення."
                 );
-
-
+        
                 return;
             }
+        
+            await loadMarketListings();
+        
+        } catch (error) {
+            console.error(
+                "Market listing create request error:",
+                error
+            );
+        
+            alert(
+                "Не вдалося з’єднатися із сервером."
+            );
+        
+            return;
+        }
 
 
             alert(
