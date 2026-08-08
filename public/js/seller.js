@@ -256,42 +256,117 @@ const requestedListingId =
         ""
     );
 
-
 /* =========================
-   ЗАВАНТАЖЕННЯ ДАНИХ
-   ========================= */
+ЗАВАНТАЖЕННЯ ДАНИХ
+========================= */
 
-const listings =
-    readJson(
-        LISTINGS_KEY,
-        []
-    );
+async function loadSellerPage() {
+    let listings = [];
 
-const ratings =
-    readJson(
-        SELLER_RATINGS_KEY,
-        {}
-    );
+    const ratings =
+        readJson(
+            SELLER_RATINGS_KEY,
+            {}
+        );
 
-const sellerProfiles =
-    readJson(
-        SELLER_PROFILES_KEY,
-        {}
-    );
+    const sellerProfiles =
+        readJson(
+            SELLER_PROFILES_KEY,
+            {}
+        );
 
-const currentUser =
-    readJson(
-        CURRENT_USER_KEY,
-        null
-    );
+    const currentUser =
+        readJson(
+            CURRENT_USER_KEY,
+            null
+        );
+
+    try {
+        const response =
+            await fetch(
+                "/api/market/listings"
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити оголошення."
+            );
+        }
+
+        listings =
+            Array.isArray(data.listings)
+                ? data.listings.map(
+                    (item) => ({
+                        ...item,
+
+                        ownerId:
+                            item.owner_id ??
+                            item.ownerId,
+
+                        sellerName:
+                            item.seller_name ??
+                            item.sellerName,
+
+                        carId:
+                            item.car_id ??
+                            item.carId,
+
+                        activePhotoIndex:
+                            item.active_photo_index ??
+                            item.activePhotoIndex ??
+                            0,
+
+                        powerType:
+                            item.power_type ??
+                            item.powerType,
+
+                        powerValue:
+                            item.power_value ??
+                            item.powerValue,
+
+                        priceUsd:
+                            item.price_usd ??
+                            item.priceUsd,
+
+                        priceUah:
+                            item.price_uah ??
+                            item.priceUah,
+
+                        createdAt:
+                            item.created_at ??
+                            item.createdAt,
+
+                        updatedAt:
+                            item.updated_at ??
+                            item.updatedAt
+                    })
+                )
+                : [];
+
+    } catch (error) {
+        console.error(
+            "Не вдалося завантажити оголошення продавця:",
+            error
+        );
+
+        showNotFound();
+        return;
+    }
 
 
-if (
-    !sellerId ||
-    !Array.isArray(listings)
-) {
-    showNotFound();
-} else {
+    if (
+        !sellerId ||
+        !Array.isArray(listings)
+    ) {
+        showNotFound();
+        return;
+    }
+
+
     const sellerListings =
         listings
             .filter(
@@ -314,6 +389,7 @@ if (
                     )
             );
 
+
     /*
         Публічна сторінка продавця
         існує тільки після появи
@@ -321,62 +397,83 @@ if (
     */
 
     if (
-        sellerListings.length === 0
+        sellerListings.length ===
+        0
     ) {
         showNotFound();
-    } else {
-        const mainListing =
-            sellerListings.find(
-                (listing) =>
-                    String(listing.id) ===
-                    requestedListingId
-            ) ||
-            sellerListings[0];
-
-        const sellerProfile =
-            sellerProfiles[sellerId] &&
-            typeof sellerProfiles[
-                sellerId
-            ] === "object"
-                ? sellerProfiles[
-                    sellerId
-                ]
-                : {};
-
-        renderSellerMainInfo(
-            sellerProfile,
-            sellerListings
-        );
-
-        renderVerification(
-            sellerProfile
-        );
-
-        renderRating();
-
-        renderContacts(
-            sellerProfile,
-            mainListing
-        );
-
-        renderListings(
-            sellerListings
-        );
-
-        renderReviews();
-
-        configureChatButton(
-            mainListing
-        );
-
-        configureHistoryButton(
-            mainListing
-        );
-
-        showProfile();
+        return;
     }
+
+
+    const mainListing =
+        sellerListings.find(
+            (listing) =>
+                String(listing.id) ===
+                requestedListingId
+        ) ||
+        sellerListings[0];
+
+
+    const storedSellerProfile =
+        sellerProfiles[sellerId] &&
+        typeof sellerProfiles[
+            sellerId
+        ] === "object"
+            ? sellerProfiles[
+                sellerId
+            ]
+            : {};
+
+
+    const sellerProfile = {
+        ...storedSellerProfile,
+
+        name:
+            storedSellerProfile.name ||
+            mainListing.sellerName ||
+            "Продавець"
+    };
+
+
+    renderSellerMainInfo(
+        sellerProfile,
+        sellerListings
+    );
+
+    renderVerification(
+        sellerProfile
+    );
+
+    renderRating();
+
+    renderContacts(
+        sellerProfile,
+        mainListing
+    );
+
+    renderListings(
+        sellerListings
+    );
+
+    renderReviews();
+
+    configureChatButton(
+        mainListing
+    );
+
+    configureHistoryButton(
+        mainListing
+    );
+
+    showProfile();
 }
 
+
+/* =========================
+ЗАПУСК СТОРІНКИ ПРОДАВЦЯ
+========================= */
+
+loadSellerPage();
 
 
 /* =========================
