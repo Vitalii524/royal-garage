@@ -358,31 +358,81 @@ const listingId =
 let listings = [];
 
 
-/* ===== ЗАВАНТАЖЕННЯ ОГОЛОШЕНЬ ===== */
+/* ===== ЗАВАНТАЖЕННЯ ОГОЛОШЕННЯ З POSTGRESQL ===== */
 
-try {
-    listings =
-        JSON.parse(
-            localStorage.getItem(
-                MARKET_STORAGE_KEY
-            )
-        ) || [];
-} catch (error) {
-    console.error(
-        "Не вдалося завантажити оголошення:",
-        error
-    );
+async function loadListingPage() {
+    let listing = null;
 
-    listings = [];
-}
+    try {
+        const response = await fetch(
+            `/api/market/listings/${encodeURIComponent(
+                listingId
+            )}`
+        );
 
+        const data =
+            await response.json();
 
-const listing =
-    listings.find(
-        (item) =>
-            String(item.id) ===
-            String(listingId)
-    );
+        if (
+            response.ok &&
+            data.listing
+        ) {
+            const item =
+                data.listing;
+
+            listing = {
+                ...item,
+
+                ownerId:
+                    item.owner_id ??
+                    item.ownerId,
+
+                sellerName:
+                    item.seller_name ??
+                    item.sellerName,
+
+                carId:
+                    item.car_id ??
+                    item.carId,
+
+                activePhotoIndex:
+                    item.active_photo_index ??
+                    item.activePhotoIndex ??
+                    0,
+
+                powerType:
+                    item.power_type ??
+                    item.powerType,
+
+                powerValue:
+                    item.power_value ??
+                    item.powerValue,
+
+                priceUsd:
+                    item.price_usd ??
+                    item.priceUsd,
+
+                priceUah:
+                    item.price_uah ??
+                    item.priceUah,
+
+                createdAt:
+                    item.created_at ??
+                    item.createdAt,
+
+                updatedAt:
+                    item.updated_at ??
+                    item.updatedAt
+            };
+        }
+
+    } catch (error) {
+        console.error(
+            "Не вдалося завантажити оголошення:",
+            error
+        );
+    }
+
 
 
 /* ===== ОГОЛОШЕННЯ НЕ ЗНАЙДЕНО ===== */
@@ -2635,3 +2685,9 @@ if (photoViewerImage) {
         }
     }
 }
+
+}
+
+/* ===== ЗАПУСК СТОРІНКИ ОГОЛОШЕННЯ ===== */
+
+loadListingPage();

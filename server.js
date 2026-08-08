@@ -193,6 +193,49 @@ app.get(
     }
 );
 
+app.get(
+    "/api/market/listings/:listingId",
+    async (req, res) => {
+        try {
+            const { listingId } = req.params;
+
+            const result = await pool.query(
+                `
+                SELECT *
+                FROM market_listings
+                WHERE id = $1
+                LIMIT 1
+                `,
+                [listingId]
+            );
+
+            if (result.rows.length === 0) {
+                return res.status(404).json({
+                    ok: false,
+                    message: "Оголошення не знайдено."
+                });
+            }
+
+            res.json({
+                ok: true,
+                listing: result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "Market listing load error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити оголошення."
+            });
+        }
+    }
+);
+
 app.post(
     "/api/market/listings",
     requireAuth,
