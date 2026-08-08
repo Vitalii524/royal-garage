@@ -260,27 +260,29 @@ const requestedListingId =
 ЗАВАНТАЖЕННЯ ДАНИХ
 ========================= */
 
+let listings = [];
+let ratings = {};
+let sellerProfiles = {};
+let currentUser = null;
+
 async function loadSellerPage() {
-    let listings = [];
+    ratings =
+    readJson(
+        SELLER_RATINGS_KEY,
+        {}
+    );
 
-    const ratings =
-        readJson(
-            SELLER_RATINGS_KEY,
-            {}
-        );
+sellerProfiles =
+    readJson(
+        SELLER_PROFILES_KEY,
+        {}
+    );
 
-    const sellerProfiles =
-        readJson(
-            SELLER_PROFILES_KEY,
-            {}
-        );
-
-    const currentUser =
-        readJson(
-            CURRENT_USER_KEY,
-            null
-        );
-
+currentUser =
+    readJson(
+        CURRENT_USER_KEY,
+        null
+    );
     try {
         const response =
             await fetch(
