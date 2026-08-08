@@ -189,7 +189,7 @@ const FORUM_LEVELS = [
     },
     {
         name: "Учасник",
-        minPoints: 10
+        minPoints: 1
     },
     {
         name: "Знавець",
