@@ -678,6 +678,70 @@ app.post(
     }
 );
 
+
+app.delete(
+    "/api/forum/replies/:replyId",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const { replyId } = req.params;
+
+            const replyResult = await pool.query(
+                `
+                SELECT id, user_id
+                FROM forum_replies
+                WHERE id = $1
+                LIMIT 1
+                `,
+                [replyId]
+            );
+
+            if (replyResult.rows.length === 0) {
+                return res.status(404).json({
+                    ok: false,
+                    message: "Відповідь не знайдено."
+                });
+            }
+
+            if (
+                String(replyResult.rows[0].user_id) !==
+                String(req.user.userId)
+            ) {
+                return res.status(403).json({
+                    ok: false,
+                    message:
+                        "Видалити відповідь може лише її автор."
+                });
+            }
+
+            await pool.query(
+                `
+                DELETE FROM forum_replies
+                WHERE id = $1
+                `,
+                [replyId]
+            );
+
+            res.json({
+                ok: true,
+                message: "Відповідь видалено."
+            });
+
+        } catch (error) {
+            console.error(
+                "Forum reply delete error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося видалити відповідь."
+            });
+        }
+    }
+);
+
 app.delete(
     "/api/forum/topics/:topicId",
     requireAuth,

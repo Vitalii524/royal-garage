@@ -598,6 +598,23 @@ function openTopicView(topicId) {
                                         </button>
                                     </div>
 
+                                    ${
+                                        currentUser?.id &&
+                                        String(currentUser.id) === String(reply.authorId)
+                                            ? `
+                                                <button
+                                                    type="button"
+                                                    class="forum-reply-delete"
+                                                    data-action="delete-reply"
+                                                    data-topic-id="${topic.id}"
+                                                    data-reply-id="${reply.id}"
+                                                >
+                                                    🗑 Видалити
+                                                </button>
+                                            `
+                                            : ""
+                                    }
+
                                 </article>
                             `
                         )
@@ -755,6 +772,21 @@ async function toggleReplyLike(
 topicViewBody.addEventListener(
     "click",
     (event) => {
+
+        const deleteButton =
+        event.target.closest(
+            '[data-action="delete-reply"]'
+        );
+    
+    if (deleteButton) {
+        deleteForumReply(
+            deleteButton.dataset.topicId,
+            deleteButton.dataset.replyId
+        );
+    
+        return;
+    }
+
         const likeButton =
             event.target.closest(
                 '[data-action="like-reply"]'
@@ -870,6 +902,120 @@ try {
     );
   }
 
+}
+
+async function deleteForumReply(
+    topicId,
+    replyId
+) {
+    const currentUser =
+        getCurrentForumUser();
+
+    if (!currentUser?.id) {
+        alert(
+            "Увійди в акаунт."
+        );
+        return;
+    }
+
+    const topic =
+        topics.find(
+            (item) =>
+                String(item.id) ===
+                String(topicId)
+        );
+
+    if (!topic) {
+        return;
+    }
+
+    const reply =
+        topic.replies.find(
+            (item) =>
+                String(item.id) ===
+                String(replyId)
+        );
+
+    if (!reply) {
+        return;
+    }
+
+    if (
+        String(reply.authorId) !==
+        String(currentUser.id)
+    ) {
+        alert(
+            "Видалити відповідь може лише її автор."
+        );
+        return;
+    }
+
+    const confirmed = confirm(
+        "Видалити цю відповідь?"
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    const token =
+        localStorage.getItem(
+            "royalGarageToken"
+        );
+
+    if (!token) {
+        alert(
+            "Сесія не знайдена. Увійди ще раз."
+        );
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `/api/forum/replies/${replyId}`,
+            {
+                method: "DELETE",
+                headers: {
+                    Authorization:
+                        `Bearer ${token}`
+                }
+            }
+        );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            alert(
+                data.message ||
+                "Не вдалося видалити відповідь."
+            );
+            return;
+        }
+
+        await loadForumTopics();
+
+        const updatedTopic =
+            topics.find(
+                (item) =>
+                    String(item.id) ===
+                    String(topicId)
+            );
+
+        if (updatedTopic) {
+            openTopicView(updatedTopic.id);
+        }
+
+    } catch (error) {
+        console.error(
+            "Forum reply delete request error:",
+            error
+        );
+
+        alert(
+            "Не вдалося з’єднатися із сервером."
+        );
+    }
 }
 
 
