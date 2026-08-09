@@ -4045,6 +4045,8 @@ if (carFuel) {
     );
 }
 
+updateCarPowerField();
+
    function resetCarForm() {
     editingCarId = null;
 
