@@ -376,6 +376,59 @@ const elements = {
         )
 };
 
+async function loadGarageCarsFromServer() {
+    const token =
+        localStorage.getItem(
+            "royalGarageToken"
+        );
+
+    if (!token) {
+        return null;
+    }
+
+    try {
+        const response =
+            await fetch(
+                "/api/garage/cars",
+                {
+                    headers: {
+                        Authorization:
+                            `Bearer ${token}`
+                    }
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            console.error(
+                "Garage load failed:",
+                data
+            );
+
+            return null;
+        }
+
+        if (
+            !Array.isArray(
+                data.cars
+            )
+        ) {
+            return [];
+        }
+
+        return data.cars;
+    } catch (error) {
+        console.error(
+            "Garage load request error:",
+            error
+        );
+
+        return null;
+    }
+}
+
 let cars = loadCars();
 
 const globalOpenChatsButton =
@@ -395,6 +448,156 @@ let editingServiceId = null;
 let viewerPhotos = [];
 let viewerIndex = 0;
 
+async function initializeGarageCars() {
+    const localCars =
+        Array.isArray(cars)
+            ? [...cars]
+            : [];
+
+    const serverCars =
+        await loadGarageCarsFromServer();
+
+    /*
+        Якщо сервер недоступний —
+        залишаємо локальний гараж.
+    */
+    if (!Array.isArray(serverCars)) {
+        renderPage();
+        return;
+    }
+
+    /*
+        Якщо на сервері вже є авто —
+        PostgreSQL є основним джерелом.
+    */
+    if (serverCars.length > 0) {
+        cars = serverCars;
+
+        selectedCarId =
+            cars[0]?.id ?? null;
+
+        renderPage();
+        return;
+    }
+
+    /*
+        Сервер порожній і локального
+        гаража теж немає.
+    */
+    if (localCars.length === 0) {
+        cars = [];
+
+        selectedCarId = null;
+
+        renderPage();
+        return;
+    }
+
+    /*
+        Одноразове перенесення
+        локального гаража на сервер.
+    */
+    const migratedCars = [];
+
+    try {
+        for (const localCar of localCars) {
+            const migratedCar =
+                await createGarageCarOnServer({
+                    name:
+                        localCar.name || "",
+
+                    year:
+                        localCar.year || null,
+
+                    mileage:
+                        localCar.mileage ?? null,
+
+                    engine:
+                        localCar.engine || "",
+
+                    fuel:
+                        localCar.fuel || "",
+
+                    transmission:
+                        localCar.transmission || "",
+
+                    body:
+                        localCar.body || "",
+
+                    drive:
+                        localCar.drive || "",
+
+                    vin:
+                        localCar.vin || "",
+
+                    plate:
+                        localCar.plate || "",
+
+                    photo:
+                        localCar.photo || "",
+
+                    photos:
+                        Array.isArray(
+                            localCar.photos
+                        )
+                            ? localCar.photos
+                            : localCar.photo
+                                ? [localCar.photo]
+                                : [],
+
+                    activePhotoIndex:
+                        Number.isInteger(
+                            localCar.activePhotoIndex
+                        )
+                            ? localCar.activePhotoIndex
+                            : 0,
+
+                    services:
+                        Array.isArray(
+                            localCar.services
+                        )
+                            ? localCar.services
+                            : []
+                });
+
+            migratedCars.push(
+                migratedCar
+            );
+        }
+
+        cars = migratedCars;
+
+        selectedCarId =
+            cars[0]?.id ?? null;
+
+        console.log(
+            "Гараж перенесено в PostgreSQL:",
+            migratedCars.length
+        );
+
+    } catch (error) {
+        console.error(
+            "Помилка перенесення гаража:",
+            error
+        );
+
+        /*
+            При помилці залишаємо
+            старі локальні авто.
+        */
+        cars = localCars;
+
+        selectedCarId =
+            cars[0]?.id ?? null;
+
+        alert(
+            "Не всі автомобілі вдалося перенести на сервер. " +
+            "Локальні дані поки збережено."
+        );
+    }
+
+    renderPage();
+}
 
 /* =========================
    ДОПОМІЖНІ ФУНКЦІЇ
@@ -4137,6 +4340,127 @@ function openCarEditor(car) {
     );
 }
 
+async function updateGarageCarOnServer(
+    carId,
+    carData
+) {
+    const token =
+        localStorage.getItem(
+            "royalGarageToken"
+        );
+
+    if (!token) {
+        throw new Error(
+            "Сесія недійсна. Увійдіть повторно."
+        );
+    }
+
+    const response =
+        await fetch(
+            `/api/garage/cars/${encodeURIComponent(
+                carId
+            )}`,
+            {
+                method: "PATCH",
+
+                headers: {
+                    "Content-Type":
+                        "application/json",
+
+                    Authorization:
+                        `Bearer ${token}`
+                },
+
+                body: JSON.stringify(
+                    carData
+                )
+            }
+        );
+
+    const data =
+        await response.json();
+
+    if (!response.ok) {
+        throw new Error(
+            data.message ||
+            "Не вдалося оновити автомобіль."
+        );
+    }
+
+    return data.car;
+}
+
+async function deleteGarageCarFromServer(carId) {
+    const response =
+        await fetch(
+            `/api/garage/cars/${carId}`,
+            {
+                method: "DELETE",
+                credentials:
+                    "include"
+            }
+        );
+
+    const data =
+        await response.json();
+
+    if (!response.ok) {
+        throw new Error(
+            data.message ||
+            "Не вдалося видалити автомобіль."
+        );
+    }
+
+    return data;
+}
+
+async function createGarageCarOnServer(carData) {
+    const token =
+        localStorage.getItem(
+            "royalGarageToken"
+        );
+
+    if (!token) {
+        throw new Error(
+            "Сесія недійсна. Увійдіть повторно."
+        );
+    }
+
+    const response =
+        await fetch(
+            "/api/garage/cars",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json",
+
+                    Authorization:
+                        `Bearer ${token}`
+                },
+
+                body: JSON.stringify(
+                    carData
+                )
+            }
+        );
+
+    const data =
+        await response.json();
+
+    if (!response.ok) {
+        throw new Error(
+            data.message ||
+            "Не вдалося додати автомобіль."
+        );
+    }
+
+    return data.car;
+}
+
+
+
 async function handleCarSubmit(
     event
 ) {
@@ -4356,54 +4680,142 @@ async function handleCarSubmit(
                 ];
         }
 
+        try {
+            const updatedCar =
+                await updateGarageCarOnServer(
+                    car.id,
+                    {
+                        name:
+                            car.name,
+        
+                        year:
+                            car.year,
+        
+                        mileage:
+                            car.mileage,
+        
+                        engine:
+                            car.engine,
+        
+                        fuel:
+                            car.fuel,
+        
+                        transmission:
+                            car.transmission,
+        
+                        body:
+                            car.body,
+        
+                        drive:
+                            car.drive,
+        
+                        vin:
+                            car.vin,
+        
+                        plate:
+                            car.plate,
+        
+                        photo:
+                            car.photo || "",
+        
+                        photos:
+                            Array.isArray(
+                                car.photos
+                            )
+                                ? car.photos
+                                : [],
+        
+                        activePhotoIndex:
+                            Number.isInteger(
+                                car.activePhotoIndex
+                            )
+                                ? car.activePhotoIndex
+                                : 0,
+        
+                        services:
+                            Array.isArray(
+                                car.services
+                            )
+                                ? car.services
+                                : []
+                    }
+                );
+        
+            Object.assign(
+                car,
+                updatedCar
+            );
+        } catch (error) {
+            console.error(
+                "Garage car update request error:",
+                error
+            );
+        
+            alert(
+                error.message ||
+                "Не вдалося оновити автомобіль."
+            );
+        
+            return;
+        }
+        
         selectedCarId =
             car.id;
-    } else {
-        const newCar = {
-            id: createId(),
-
-            ownerId:
-                currentUser.id,
-
-            name,
-            year,
-            mileage,
-            engine,
-            fuel,
-            transmission,
-            body,
-            drive,
-            vin,
-            plate,
-
-            photo:
-                compressedPhoto,
-
-            photos:
-                compressedPhoto
-                    ? [
-                        compressedPhoto
-                    ]
-                    : [],
-
-            activePhotoIndex:
-                0,
-
-            createdAt:
-                new Date()
-                    .toISOString(),
-
-            services:
-                []
-        };
-
-        cars.push(
-            newCar
-        );
 
         selectedCarId =
-            newCar.id;
-    }
+            car.id;
+        } else {
+            try {
+                const newCar =
+                    await createGarageCarOnServer({
+                        name,
+                        year,
+                        mileage,
+                        engine,
+                        fuel,
+                        transmission,
+                        body,
+                        drive,
+                        vin,
+                        plate,
+        
+                        photo:
+                            compressedPhoto,
+        
+                        photos:
+                            compressedPhoto
+                                ? [
+                                    compressedPhoto
+                                ]
+                                : [],
+        
+                        activePhotoIndex:
+                            0,
+        
+                        services:
+                            []
+                    });
+        
+                cars.unshift(
+                    newCar
+                );
+        
+                selectedCarId =
+                    newCar.id;
+            } catch (error) {
+                console.error(
+                    "Garage car create request error:",
+                    error
+                );
+        
+                alert(
+                    error.message ||
+                    "Не вдалося додати автомобіль."
+                );
+        
+                return;
+            }
+        }
 
     if (!saveCars()) {
         return;
@@ -5515,10 +5927,10 @@ elements.editCarButton
         }
     );
 
-elements.deleteCarButton
+    elements.deleteCarButton
     ?.addEventListener(
         "click",
-        () => {
+        async () => {
             const car =
                 getSelectedCar();
 
@@ -5532,39 +5944,51 @@ elements.deleteCarButton
 
             const confirmed =
                 confirm(
-                    `Видалити автомобіль "${
-                        car.name
-                    }" разом з усією історією?`
+                    `Видалити автомобіль "${car.name}" разом з усією історією?`
                 );
 
             if (!confirmed) {
                 return;
             }
 
-            cars =
-                cars.filter(
-                    (item) =>
-                        String(
-                            item.id
-                        ) !==
-                        String(
-                            car.id
-                        )
+            try {
+                await deleteGarageCarFromServer(
+                    car.id
                 );
 
-            selectedCarId =
-                cars[0]?.id ??
-                null;
+                cars =
+                    cars.filter(
+                        (item) =>
+                            String(
+                                item.id
+                            ) !==
+                            String(
+                                car.id
+                            )
+                    );
 
-            saveCars();
-            renderPage();
+                selectedCarId =
+                    cars[0]?.id ??
+                    null;
 
-            alert(
-                "Автомобіль видалено з гаража."
-            );
+                renderPage();
+
+                alert(
+                    "Автомобіль видалено з гаража."
+                );
+            } catch (error) {
+                console.error(
+                    "Garage car delete request error:",
+                    error
+                );
+
+                alert(
+                    error.message ||
+                    "Не вдалося видалити автомобіль."
+                );
+            }
         }
     );
-
 elements.openServiceButton
     ?.addEventListener(
         "click",
@@ -5889,9 +6313,7 @@ document.addEventListener(
    ========================= */
 
 fillCarBrandSelect();
-
-saveCars();
-renderPage();
+initializeGarageCars();
 fillSellerProfileSettings();
 renderProfileSellerReputation();
 openServiceHistoryFromUrl();

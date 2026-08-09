@@ -124,6 +124,46 @@ await pool.query(`
     )
 `);
 
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS garage_cars (
+        id UUID PRIMARY KEY,
+
+        owner_id UUID NOT NULL
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+
+        name VARCHAR(255) NOT NULL,
+        year INTEGER,
+        mileage INTEGER,
+
+        engine VARCHAR(100),
+        fuel VARCHAR(100),
+        transmission VARCHAR(100),
+        body VARCHAR(100),
+        drive VARCHAR(100),
+
+        vin VARCHAR(50),
+        plate VARCHAR(50),
+
+        photo TEXT,
+
+        photos JSONB NOT NULL
+            DEFAULT '[]'::jsonb,
+
+        active_photo_index INTEGER NOT NULL
+            DEFAULT 0,
+
+        services JSONB NOT NULL
+            DEFAULT '[]'::jsonb,
+
+        created_at TIMESTAMPTZ NOT NULL
+            DEFAULT NOW(),
+
+        updated_at TIMESTAMPTZ NOT NULL
+            DEFAULT NOW()
+    )
+`);
+
         console.log("Users table ready");
     } catch (error) {
         console.error("Database initialization error:", error);
@@ -137,7 +177,448 @@ app.use(
         limit: "50mb"
     })
 );
+
 app.use(express.static(path.join(__dirname, "public")));
+
+app.get(
+    "/api/garage/cars",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        owner_id AS "ownerId",
+                        name,
+                        year,
+                        mileage,
+                        engine,
+                        fuel,
+                        transmission,
+                        body,
+                        drive,
+                        vin,
+                        plate,
+                        photo,
+                        photos,
+                        active_photo_index AS "activePhotoIndex",
+                        services,
+                        created_at AS "createdAt",
+                        updated_at AS "updatedAt"
+                    FROM garage_cars
+                    WHERE owner_id = $1
+                    ORDER BY created_at DESC
+                    `,
+                    [
+                        req.user.userId
+                    ]
+                );
+
+            res.json({
+                ok: true,
+                cars: result.rows
+            });
+        } catch (error) {
+            console.error(
+                "Garage cars load error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити гараж."
+            });
+        }
+    }
+);
+
+app.post(
+    "/api/garage/cars",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const {
+                name,
+                year,
+                mileage,
+                engine,
+                fuel,
+                transmission,
+                body,
+                drive,
+                vin,
+                plate,
+                photo,
+                photos,
+                activePhotoIndex,
+                services
+            } = req.body;
+
+            if (!name) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Не вказано назву автомобіля."
+                });
+            }
+
+            const carId =
+                crypto.randomUUID();
+
+            const safePhotos =
+                Array.isArray(photos)
+                    ? photos
+                    : photo
+                        ? [photo]
+                        : [];
+
+            const safeServices =
+                Array.isArray(services)
+                    ? services
+                    : [];
+
+            const result =
+                await pool.query(
+                    `
+                    INSERT INTO garage_cars (
+                        id,
+                        owner_id,
+                        name,
+                        year,
+                        mileage,
+                        engine,
+                        fuel,
+                        transmission,
+                        body,
+                        drive,
+                        vin,
+                        plate,
+                        photo,
+                        photos,
+                        active_photo_index,
+                        services
+                    )
+                    VALUES (
+                        $1, $2, $3, $4,
+                        $5, $6, $7, $8,
+                        $9, $10, $11, $12,
+                        $13, $14::jsonb,
+                        $15, $16::jsonb
+                    )
+                    RETURNING
+                        id,
+                        owner_id AS "ownerId",
+                        name,
+                        year,
+                        mileage,
+                        engine,
+                        fuel,
+                        transmission,
+                        body,
+                        drive,
+                        vin,
+                        plate,
+                        photo,
+                        photos,
+                        active_photo_index AS "activePhotoIndex",
+                        services,
+                        created_at AS "createdAt",
+                        updated_at AS "updatedAt"
+                    `,
+                    [
+                        carId,
+                        req.user.userId,
+                        name,
+                        year || null,
+                        mileage ?? null,
+                        engine || "",
+                        fuel || "",
+                        transmission || "",
+                        body || "",
+                        drive || "",
+                        vin || "",
+                        plate || "",
+                        photo || "",
+                        JSON.stringify(
+                            safePhotos
+                        ),
+                        Number.isInteger(
+                            activePhotoIndex
+                        )
+                            ? activePhotoIndex
+                            : 0,
+                        JSON.stringify(
+                            safeServices
+                        )
+                    ]
+                );
+
+            res.status(201).json({
+                ok: true,
+                car: result.rows[0]
+            });
+        } catch (error) {
+            console.error(
+                "Garage car create error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося додати автомобіль."
+            });
+        }
+    }
+);
+
+app.patch(
+    "/api/garage/cars/:carId",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const {
+                carId
+            } = req.params;
+
+            const {
+                name,
+                year,
+                mileage,
+                engine,
+                fuel,
+                transmission,
+                body,
+                drive,
+                vin,
+                plate,
+                photo,
+                photos,
+                activePhotoIndex,
+                services
+            } = req.body;
+
+            const existing =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        owner_id
+                    FROM garage_cars
+                    WHERE id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        carId
+                    ]
+                );
+
+            if (
+                existing.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Автомобіль не знайдено."
+                });
+            }
+
+            if (
+                String(
+                    existing.rows[0]
+                        .owner_id
+                ) !==
+                String(
+                    req.user.userId
+                )
+            ) {
+                return res.status(403).json({
+                    ok: false,
+                    message:
+                        "Немає доступу до цього автомобіля."
+                });
+            }
+
+            const safePhotos =
+                Array.isArray(photos)
+                    ? photos
+                    : [];
+
+            const safeServices =
+                Array.isArray(services)
+                    ? services
+                    : [];
+
+            const result =
+                await pool.query(
+                    `
+                    UPDATE garage_cars
+                    SET
+                        name = $1,
+                        year = $2,
+                        mileage = $3,
+                        engine = $4,
+                        fuel = $5,
+                        transmission = $6,
+                        body = $7,
+                        drive = $8,
+                        vin = $9,
+                        plate = $10,
+                        photo = $11,
+                        photos = $12::jsonb,
+                        active_photo_index = $13,
+                        services = $14::jsonb,
+                        updated_at = NOW()
+                    WHERE id = $15
+                    RETURNING
+                        id,
+                        owner_id AS "ownerId",
+                        name,
+                        year,
+                        mileage,
+                        engine,
+                        fuel,
+                        transmission,
+                        body,
+                        drive,
+                        vin,
+                        plate,
+                        photo,
+                        photos,
+                        active_photo_index AS "activePhotoIndex",
+                        services,
+                        created_at AS "createdAt",
+                        updated_at AS "updatedAt"
+                    `,
+                    [
+                        name || "",
+                        year || null,
+                        mileage ?? null,
+                        engine || "",
+                        fuel || "",
+                        transmission || "",
+                        body || "",
+                        drive || "",
+                        vin || "",
+                        plate || "",
+                        photo || "",
+                        JSON.stringify(
+                            safePhotos
+                        ),
+                        Number.isInteger(
+                            activePhotoIndex
+                        )
+                            ? activePhotoIndex
+                            : 0,
+                        JSON.stringify(
+                            safeServices
+                        ),
+                        carId
+                    ]
+                );
+
+            res.json({
+                ok: true,
+                car: result.rows[0]
+            });
+        } catch (error) {
+            console.error(
+                "Garage car update error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося оновити автомобіль."
+            });
+        }
+    }
+);
+
+app.delete(
+    "/api/garage/cars/:carId",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const {
+                carId
+            } = req.params;
+
+            const existing =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        owner_id
+                    FROM garage_cars
+                    WHERE id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        carId
+                    ]
+                );
+
+            if (
+                existing.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Автомобіль не знайдено."
+                });
+            }
+
+            if (
+                String(
+                    existing.rows[0]
+                        .owner_id
+                ) !==
+                String(
+                    req.user.userId
+                )
+            ) {
+                return res.status(403).json({
+                    ok: false,
+                    message:
+                        "Немає доступу до цього автомобіля."
+                });
+            }
+
+            await pool.query(
+                `
+                DELETE FROM garage_cars
+                WHERE id = $1
+                `,
+                [
+                    carId
+                ]
+            );
+
+            res.json({
+                ok: true,
+                message:
+                    "Автомобіль успішно видалено."
+            });
+        } catch (error) {
+            console.error(
+                "Garage car delete error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося видалити автомобіль."
+            });
+        }
+    }
+);
+
 app.get(
     "/api/market/listings",
     async (req, res) => {
