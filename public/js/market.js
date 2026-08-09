@@ -1146,7 +1146,7 @@ const editListingId =
     urlParams.get("edit");
 
 
-const editingListing =
+    let editingListing =
     editListingId
         ? listings.find(
             (listing) =>
@@ -4131,58 +4131,66 @@ renderListings();
 /* =====================================================
    АВТОМАТИЧНЕ ВІДКРИТТЯ РЕДАГУВАННЯ
 ===================================================== */
+async function openEditListingIfNeeded() {
+    if (!editListingId) {
+        return;
+    }
 
-if (editListingId) {
+    await loadMarketListings();
+
+    editingListing =
+        listings.find(
+            (listing) =>
+                String(listing.id) ===
+                String(editListingId)
+        ) || null;
+
     if (!editingListing) {
         alert(
             "Оголошення для редагування не знайдено."
         );
 
+        window.location.href =
+            "market.html";
+
+        return;
+    }
+
+    const currentUserId =
+        currentUser?.id ||
+        currentUser?.userId ||
+        currentUser?.email ||
+        "";
+
+    const listingOwnerId =
+        editingListing.ownerId ||
+        editingListing.userId ||
+        editingListing.sellerId ||
+        editingListing.ownerEmail ||
+        "";
+
+    const isOwner =
+        currentUserId &&
+        listingOwnerId &&
+        String(currentUserId) ===
+            String(listingOwnerId);
+
+    if (!isOwner) {
+        alert(
+            "Ти не можеш редагувати чуже оголошення."
+        );
 
         window.location.href =
             "market.html";
-    } else {
-        const currentUserId =
-            currentUser?.id ||
-            currentUser?.userId ||
-            currentUser?.email ||
-            "";
 
-
-        const listingOwnerId =
-            editingListing.ownerId ||
-            editingListing.userId ||
-            editingListing.sellerId ||
-            editingListing.ownerEmail ||
-            "";
-
-
-        const isOwner =
-            currentUserId &&
-            listingOwnerId &&
-            String(
-                currentUserId
-            ) ===
-            String(
-                listingOwnerId
-            );
-
-
-        if (!isOwner) {
-            alert(
-                "Ти не можеш редагувати чуже оголошення."
-            );
-
-
-            window.location.href =
-                "market.html";
-        } else {
-            fillEditForm(
-                editingListing
-            );
-
-
-            showListingModal();
-        }
+        return;
     }
+
+    fillEditForm(
+        editingListing
+    );
+
+    showListingModal();
 }
+
+openEditListingIfNeeded();
