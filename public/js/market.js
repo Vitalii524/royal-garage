@@ -1156,7 +1156,7 @@ const editListingId =
         : null;
 
 
-const isEditMode =
+let isEditMode =
     Boolean(editingListing);
 
 
@@ -4144,6 +4144,9 @@ async function openEditListingIfNeeded() {
                 String(listing.id) ===
                 String(editListingId)
         ) || null;
+
+        isEditMode =
+    Boolean(editingListing);
 
     if (!editingListing) {
         alert(
