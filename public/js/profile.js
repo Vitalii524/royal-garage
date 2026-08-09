@@ -3979,21 +3979,27 @@ function updateCarPowerField() {
     const fuel =
         carFuel.value;
 
-    if (!fuel) {
+        if (!fuel) {
+            carPowerValueField.hidden =
+                true;
+        
+            carPowerValueField.style.display =
+                "none";
+        
+            carEngine.required =
+                false;
+        
+            carEngine.value =
+                "";
+        
+            return;
+        }
+        
         carPowerValueField.hidden =
-            true;
-
-        carEngine.required =
             false;
-
-        carEngine.value =
+        
+        carPowerValueField.style.display =
             "";
-
-        return;
-    }
-
-    carPowerValueField.hidden =
-        false;
 
     carEngine.required =
         true;
