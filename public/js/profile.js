@@ -4414,7 +4414,7 @@ async function deleteGarageCarFromServer(carId) {
     return data;
 }
 
-async function createGarageCarOnServer(carData) {
+async function deleteGarageCarFromServer(carId) {
     const token =
         localStorage.getItem(
             "royalGarageToken"
@@ -4428,21 +4428,13 @@ async function createGarageCarOnServer(carData) {
 
     const response =
         await fetch(
-            "/api/garage/cars",
+            `/api/garage/cars/${carId}`,
             {
-                method: "POST",
-
+                method: "DELETE",
                 headers: {
-                    "Content-Type":
-                        "application/json",
-
                     Authorization:
                         `Bearer ${token}`
-                },
-
-                body: JSON.stringify(
-                    carData
-                )
+                }
             }
         );
 
@@ -4452,11 +4444,11 @@ async function createGarageCarOnServer(carData) {
     if (!response.ok) {
         throw new Error(
             data.message ||
-            "Не вдалося додати автомобіль."
+            "Не вдалося видалити автомобіль."
         );
     }
 
-    return data.car;
+    return data;
 }
 
 
