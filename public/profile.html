@@ -492,14 +492,23 @@
                     placeholder="280000"
                     required>
             </label>
-
-            <label>
-                Двигун
-                <input
-                    type="text"
-                    id="carEngine"
-                    placeholder="1.6 бензин турбо">
-            </label>
+            <label
+            id="carPowerValueField"
+            hidden
+        >
+            <span id="carPowerValueLabel">
+                Об’єм двигуна, л
+            </span>
+        
+            <input
+                type="number"
+                id="carEngine"
+                step="0.1"
+                min="0.1"
+                max="20"
+                placeholder="Наприклад, 1.6"
+            >
+        </label>
 
             <label>
                 Тип пального

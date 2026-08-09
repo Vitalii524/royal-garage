@@ -3812,6 +3812,8 @@ function setCarBrandAndModelFromName(
            carName.value = "";
        }
 
+       updateCarPowerField();
+
        return;
    }
 
@@ -3943,6 +3945,100 @@ carModel?.addEventListener(
    ФОРМА АВТО
    ========================= */
 
+   const carPowerValueField =
+    document.getElementById(
+        "carPowerValueField"
+    );
+
+const carPowerValueLabel =
+    document.getElementById(
+        "carPowerValueLabel"
+    );
+
+const carFuel =
+    document.getElementById(
+        "carFuel"
+    );
+
+const carEngine =
+    document.getElementById(
+        "carEngine"
+    );
+
+
+function updateCarPowerField() {
+    if (
+        !carFuel ||
+        !carPowerValueField ||
+        !carPowerValueLabel ||
+        !carEngine
+    ) {
+        return;
+    }
+
+    const fuel =
+        carFuel.value;
+
+    if (!fuel) {
+        carPowerValueField.hidden =
+            true;
+
+        carEngine.required =
+            false;
+
+        carEngine.value =
+            "";
+
+        return;
+    }
+
+    carPowerValueField.hidden =
+        false;
+
+    carEngine.required =
+        true;
+
+    if (fuel === "Електро") {
+        carPowerValueLabel.textContent =
+            "Ємність батареї, кВт·год";
+
+        carEngine.placeholder =
+            "Наприклад, 64";
+
+        carEngine.min =
+            "1";
+
+        carEngine.max =
+            "300";
+
+        carEngine.step =
+            "1";
+    } else {
+        carPowerValueLabel.textContent =
+            "Об’єм двигуна, л";
+
+        carEngine.placeholder =
+            "Наприклад, 1.6";
+
+        carEngine.min =
+            "0.1";
+
+        carEngine.max =
+            "20";
+
+        carEngine.step =
+            "0.1";
+    }
+}
+
+
+if (carFuel) {
+    carFuel.addEventListener(
+        "change",
+        updateCarPowerField
+    );
+}
+
    function resetCarForm() {
     editingCarId = null;
 
@@ -3995,6 +4091,8 @@ function openCarEditor(car) {
         "carFuel",
         car.fuel
     );
+
+    updateCarPowerField();
 
     setFieldValue(
         "carTransmission",
