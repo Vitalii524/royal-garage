@@ -529,6 +529,78 @@ app.patch(
     }
 );
 
+app.delete(
+    "/api/market/listings/:listingId",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const { listingId } =
+                req.params;
+
+            const listingResult =
+                await pool.query(
+                    `
+                    SELECT id, owner_id
+                    FROM market_listings
+                    WHERE id = $1
+                    LIMIT 1
+                    `,
+                    [listingId]
+                );
+
+            if (
+                listingResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Оголошення не знайдено."
+                });
+            }
+
+            const listing =
+                listingResult.rows[0];
+
+            if (
+                String(listing.owner_id) !==
+                String(req.user.userId)
+            ) {
+                return res.status(403).json({
+                    ok: false,
+                    message:
+                        "Ви не можете видалити чуже оголошення."
+                });
+            }
+
+            await pool.query(
+                `
+                DELETE FROM market_listings
+                WHERE id = $1
+                `,
+                [listingId]
+            );
+
+            res.json({
+                ok: true,
+                message:
+                    "Оголошення успішно видалено."
+            });
+
+        } catch (error) {
+            console.error(
+                "Market listing delete error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося видалити оголошення."
+            });
+        }
+    }
+);
+
 app.get("/api", (req, res) => {
     res.json({
         message: "Royal Garage API працює 🚗"

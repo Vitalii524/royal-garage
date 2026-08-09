@@ -1865,7 +1865,7 @@ serviceHistoryButton.addEventListener(
     if (deleteListingButton) {
         deleteListingButton.addEventListener(
             "click",
-            () => {
+           async () => {
 
                 const user =
                 typeof getCurrentUser === "function"
@@ -1901,42 +1901,69 @@ serviceHistoryButton.addEventListener(
                 }
 
 
-                const updatedListings =
-                    listings.filter(
-                        (item) =>
-                            String(item.id) !==
-                            String(listing.id)
+                const token =
+                localStorage.getItem(
+                    "royalGarageToken"
+                );
+            
+            if (!token) {
+                alert(
+                    "Сесія недійсна. Увійдіть повторно."
+                );
+            
+                window.location.href =
+                    "index.html";
+            
+                return;
+            }
+            
+            try {
+                const response =
+                    await fetch(
+                        `/api/market/listings/${encodeURIComponent(
+                            listing.id
+                        )}`,
+                        {
+                            method: "DELETE",
+            
+                            headers: {
+                                Authorization:
+                                    `Bearer ${token}`
+                            }
+                        }
                     );
-
-
-                try {
-                    localStorage.setItem(
-                        MARKET_STORAGE_KEY,
-                        JSON.stringify(
-                            updatedListings
-                        )
-                    );
-                } catch (error) {
-                    console.error(
-                        "Не вдалося видалити оголошення:",
-                        error
-                    );
-
+            
+                const data =
+                    await response.json();
+            
+                if (!response.ok) {
                     alert(
+                        data.message ||
                         "Не вдалося видалити оголошення."
                     );
-
+            
                     return;
                 }
-
-
-                alert(
-                    "Оголошення успішно видалено."
+            
+            } catch (error) {
+                console.error(
+                    "Market listing delete request error:",
+                    error
                 );
-
-
-                window.location.href =
-                    "market.html";
+            
+                alert(
+                    "Не вдалося з’єднатися із сервером."
+                );
+            
+                return;
+            }
+            
+            alert(
+                "Оголошення успішно видалено."
+            );
+            
+            window.location.href =
+                "market.html";
             }
         );
     }
