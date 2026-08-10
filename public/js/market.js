@@ -1941,6 +1941,7 @@ function renderSelectedPhotos() {
                         1
                     );
 
+                    updatePhotoCount();
 
                     if (
                         selectedPhotos.length ===
@@ -2048,6 +2049,7 @@ if (listingPhotos) {
                 }
             );
 
+            updatePhotoCount();
 
             listingPhotos.value =
                 "";
