@@ -119,6 +119,7 @@
 .photo-viewer.open {
     display: flex;
 }
+
 .photo-viewer-image {
     display: block;
 
@@ -643,5 +644,35 @@ body.photo-viewer-open {
         flex-direction: column;
 
         gap: 4px;
+    }
+}
+
+/* ===== ЗАХИСТ МОБІЛЬНОЇ ШИРИНИ LISTING ===== */
+
+.listing-page,
+.listing-details,
+.listing-card,
+.listing-photo-stage,
+.listing-photo-thumbnails {
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+@media (max-width: 650px) {
+    .listing-page {
+        width: 100%;
+        margin: 20px 0;
+        padding: 0 14px;
+        overflow-x: hidden;
+    }
+
+    .listing-card {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .listing-photo-stage {
+        width: 100%;
+        min-width: 0;
     }
 }
