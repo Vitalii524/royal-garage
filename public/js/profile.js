@@ -482,12 +482,14 @@ let cars = [];
 
 const globalOpenChatsButton =
     document.getElementById("globalOpenChatsButton");
-
-if (globalOpenChatsButton) {
-    globalOpenChatsButton.hidden =
-        cars.length > 0;
-}
-
+    function updateGlobalChatsButton() {
+        if (!globalOpenChatsButton) {
+            return;
+        }
+    
+        globalOpenChatsButton.hidden =
+            cars.length > 0;
+    }
 let selectedCarId =
     cars[0]?.id ?? null;
 
@@ -514,6 +516,8 @@ async function initializeGarageCars() {
 
     selectedCarId =
         cars[0]?.id ?? null;
+
+        updateGlobalChatsButton();
 
     renderPage();
 }
@@ -3297,6 +3301,7 @@ if (changeAccountPhoneButton) {
 }
 
 function renderPage() {
+    updateGlobalChatsButton();
     renderAccountSettings();
     renderCars();
     renderSelectedCar();
@@ -6251,7 +6256,11 @@ if (
     );
 }
 
-if (globalOpenChatsButton) {
+function updateGlobalChatsButton() {
+    if (!globalOpenChatsButton) {
+        return;
+    }
+
     globalOpenChatsButton.hidden =
         cars.length > 0;
 
