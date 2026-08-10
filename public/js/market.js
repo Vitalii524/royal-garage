@@ -1803,6 +1803,20 @@ function getPhotoPreviewSource(
     return "";
 }
 
+function updatePhotoCount() {
+    const photoCount =
+        document.getElementById(
+            "listingPhotosCounter"
+        );
+
+    if (!photoCount) {
+        return;
+    }
+
+    photoCount.textContent =
+        `Вибрано: ${selectedPhotos.length} / 20`;
+}
+
 
 function renderSelectedPhotos() {
     if (!listingPhotosPreview) {
