@@ -429,6 +429,55 @@ async function loadGarageCarsFromServer() {
     }
 }
 
+async function createGarageCarOnServer(carData) {
+    const token =
+        localStorage.getItem(
+            "royalGarageToken"
+        );
+
+    if (!token) {
+        throw new Error(
+            "Сесія недійсна. Увійдіть повторно."
+        );
+    }
+
+    const response =
+        await fetch(
+            "/api/garage/cars",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json",
+
+                    Authorization:
+                        `Bearer ${token}`
+                },
+
+                body:
+                    JSON.stringify(
+                        carData
+                    )
+            }
+        );
+
+    const data =
+        await response.json();
+
+    if (!response.ok) {
+        throw new Error(
+            data.message ||
+            "Не вдалося додати автомобіль."
+        );
+    }
+
+    return (
+        data.car ||
+        data
+    );
+}
+
 let cars = [];
 
 const globalOpenChatsButton =
