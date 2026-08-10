@@ -429,7 +429,7 @@ async function loadGarageCarsFromServer() {
     }
 }
 
-let cars = loadCars();
+let cars = [];
 
 const globalOpenChatsButton =
     document.getElementById("globalOpenChatsButton");
@@ -449,42 +449,10 @@ let viewerPhotos = [];
 let viewerIndex = 0;
 
 async function initializeGarageCars() {
-    const localCars =
-        Array.isArray(cars)
-            ? [...cars]
-            : [];
-
     const serverCars =
         await loadGarageCarsFromServer();
 
-    /*
-        Якщо сервер недоступний —
-        залишаємо локальний гараж.
-    */
     if (!Array.isArray(serverCars)) {
-        renderPage();
-        return;
-    }
-
-    /*
-        Якщо на сервері вже є авто —
-        PostgreSQL є основним джерелом.
-    */
-    if (serverCars.length > 0) {
-        cars = serverCars;
-
-        selectedCarId =
-            cars[0]?.id ?? null;
-
-        renderPage();
-        return;
-    }
-
-    /*
-        Сервер порожній і локального
-        гаража теж немає.
-    */
-    if (localCars.length === 0) {
         cars = [];
 
         selectedCarId = null;
@@ -493,108 +461,10 @@ async function initializeGarageCars() {
         return;
     }
 
-    /*
-        Одноразове перенесення
-        локального гаража на сервер.
-    */
-    const migratedCars = [];
+    cars = serverCars;
 
-    try {
-        for (const localCar of localCars) {
-            const migratedCar =
-                await createGarageCarOnServer({
-                    name:
-                        localCar.name || "",
-
-                    year:
-                        localCar.year || null,
-
-                    mileage:
-                        localCar.mileage ?? null,
-
-                    engine:
-                        localCar.engine || "",
-
-                    fuel:
-                        localCar.fuel || "",
-
-                    transmission:
-                        localCar.transmission || "",
-
-                    body:
-                        localCar.body || "",
-
-                    drive:
-                        localCar.drive || "",
-
-                    vin:
-                        localCar.vin || "",
-
-                    plate:
-                        localCar.plate || "",
-
-                    photo:
-                        localCar.photo || "",
-
-                    photos:
-                        Array.isArray(
-                            localCar.photos
-                        )
-                            ? localCar.photos
-                            : localCar.photo
-                                ? [localCar.photo]
-                                : [],
-
-                    activePhotoIndex:
-                        Number.isInteger(
-                            localCar.activePhotoIndex
-                        )
-                            ? localCar.activePhotoIndex
-                            : 0,
-
-                    services:
-                        Array.isArray(
-                            localCar.services
-                        )
-                            ? localCar.services
-                            : []
-                });
-
-            migratedCars.push(
-                migratedCar
-            );
-        }
-
-        cars = migratedCars;
-
-        selectedCarId =
-            cars[0]?.id ?? null;
-
-        console.log(
-            "Гараж перенесено в PostgreSQL:",
-            migratedCars.length
-        );
-
-    } catch (error) {
-        console.error(
-            "Помилка перенесення гаража:",
-            error
-        );
-
-        /*
-            При помилці залишаємо
-            старі локальні авто.
-        */
-        cars = localCars;
-
-        selectedCarId =
-            cars[0]?.id ?? null;
-
-        alert(
-            "Не всі автомобілі вдалося перенести на сервер. " +
-            "Локальні дані поки збережено."
-        );
-    }
+    selectedCarId =
+        cars[0]?.id ?? null;
 
     renderPage();
 }
