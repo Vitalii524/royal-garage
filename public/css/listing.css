@@ -693,25 +693,39 @@ body.photo-viewer-open {
     font-size: 15px;
     font-weight: 700;
 }
-
 /* ===== LISTING НА НОУТБУЦІ / ПК ===== */
 
 @media (min-width: 651px) {
+    .listing-gallery {
+        width: 100%;
+        max-width: 850px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
     .listing-photo-stage {
+        width: 100%;
         height: 520px;
         min-height: 0;
+        background: #07182e;
+        overflow: hidden;
     }
 
     .listing-photo-stage .listing-main-photo {
+        display: block;
         width: 100%;
         height: 100%;
+        max-width: 100%;
         max-height: none;
         object-fit: contain;
+        margin: 0 auto;
     }
 
     .listing-photo-thumbnails {
+        width: 100%;
         max-width: 100%;
         overflow-x: auto;
+        overflow-y: hidden;
     }
 
     .listing-photo-thumbnail {
@@ -719,6 +733,6 @@ body.photo-viewer-open {
         min-width: 90px !important;
         max-width: 90px !important;
         height: 68px;
-        flex-basis: 90px;
+        flex: 0 0 90px;
     }
 }
