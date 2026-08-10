@@ -676,3 +676,20 @@ body.photo-viewer-open {
         min-width: 0;
     }
 }
+
+.listing-photo-counter {
+    position: absolute;
+    right: 14px;
+    bottom: 14px;
+    z-index: 5;
+
+    padding: 6px 12px;
+
+    color: #ffffff;
+    background: rgba(0, 0, 0, 0.65);
+
+    border-radius: 20px;
+
+    font-size: 15px;
+    font-weight: 700;
+}
