@@ -693,3 +693,32 @@ body.photo-viewer-open {
     font-size: 15px;
     font-weight: 700;
 }
+
+/* ===== LISTING НА НОУТБУЦІ / ПК ===== */
+
+@media (min-width: 651px) {
+    .listing-photo-stage {
+        height: 520px;
+        min-height: 0;
+    }
+
+    .listing-photo-stage .listing-main-photo {
+        width: 100%;
+        height: 100%;
+        max-height: none;
+        object-fit: contain;
+    }
+
+    .listing-photo-thumbnails {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    .listing-photo-thumbnail {
+        width: 90px !important;
+        min-width: 90px !important;
+        max-width: 90px !important;
+        height: 68px;
+        flex-basis: 90px;
+    }
+}
