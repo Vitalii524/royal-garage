@@ -183,6 +183,36 @@ await pool.query(`
     )
 `);
 
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS seller_ratings (
+        id UUID PRIMARY KEY,
+
+        seller_id UUID NOT NULL
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+
+        reviewer_id UUID NOT NULL
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+
+        rating INTEGER NOT NULL
+            CHECK (rating >= 1 AND rating <= 5),
+
+        review TEXT NOT NULL DEFAULT '',
+
+        created_at TIMESTAMPTZ NOT NULL
+            DEFAULT NOW(),
+
+        updated_at TIMESTAMPTZ NOT NULL
+            DEFAULT NOW(),
+
+        UNIQUE (
+            seller_id,
+            reviewer_id
+        )
+    )
+`);
+
         console.log("Users table ready");
     } catch (error) {
         console.error("Database initialization error:", error);
@@ -633,6 +663,111 @@ app.delete(
                 ok: false,
                 message:
                     "Не вдалося видалити автомобіль."
+            });
+        }
+    }
+);
+
+app.get(
+    "/api/sellers/:sellerId/rating",
+    async (req, res) => {
+        try {
+            const { sellerId } =
+                req.params;
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        COALESCE(
+                            AVG(rating),
+                            0
+                        ) AS average,
+                        COUNT(*)::integer
+                            AS count
+                    FROM seller_ratings
+                    WHERE seller_id = $1
+                    `,
+                    [
+                        sellerId
+                    ]
+                );
+
+            const row =
+                result.rows[0];
+
+            res.json({
+                ok: true,
+                rating: {
+                    average:
+                        Number(
+                            row.average || 0
+                        ),
+                    count:
+                        Number(
+                            row.count || 0
+                        )
+                }
+            });
+
+        } catch (error) {
+            console.error(
+                "Seller rating load error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити рейтинг продавця."
+            });
+        }
+    }
+);
+
+app.get(
+    "/api/sellers/:sellerId/reviews",
+    async (req, res) => {
+        try {
+            const { sellerId } =
+                req.params;
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        sr.rating,
+                        sr.review,
+                        sr.updated_at,
+                        u.name AS user_name
+                    FROM seller_ratings sr
+                    JOIN users u
+                        ON u.id = sr.reviewer_id
+                    WHERE sr.seller_id = $1
+                    AND TRIM(sr.review) <> ''
+                    ORDER BY sr.updated_at DESC
+                    `,
+                    [
+                        sellerId
+                    ]
+                );
+
+            res.json({
+                ok: true,
+                reviews:
+                    result.rows
+            });
+
+        } catch (error) {
+            console.error(
+                "Seller reviews load error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити відгуки продавця."
             });
         }
     }

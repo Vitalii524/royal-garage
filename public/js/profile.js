@@ -9,20 +9,11 @@ document.documentElement.style.visibility = "hidden";
 const CURRENT_USER_KEY =
     "royalGarageCurrentUser";
 
-const USERS_KEY =
-    "royalGarageUsers";
-
 const MESSAGES_KEY =
     "royalGarageMessages";
 
 const LISTINGS_KEY =
     "royalGarageMarketListings";
-
-const SELLER_RATINGS_KEY =
-    "royalGarageSellerRatings";
-
-const SELLER_PROFILES_KEY =
-    "royalGarageSellerProfiles";
 
 let currentUser = null;
 
@@ -717,24 +708,6 @@ function readJson(
     }
 }
 
-function loadSellerProfiles() {
-    return readJson(
-        SELLER_PROFILES_KEY,
-        {}
-    );
-}
-
-function loadCurrentSellerProfile() {
-    const profiles =
-        loadSellerProfiles();
-
-    return (
-        profiles[
-            String(currentUser.id)
-        ] || {}
-    );
-}
-
 let sellerProfilePhotoData = "";
 
 function renderSellerProfilePhoto(
@@ -777,239 +750,421 @@ const removeSellerProfilePhotoButton =
     document.getElementById(
         "removeSellerProfilePhoto"
     );
-
-if (sellerProfilePhotoInput) {
-    sellerProfilePhotoInput.addEventListener(
-        "change",
-        async () => {
-            const file =
-                sellerProfilePhotoInput
-                    .files?.[0];
-
-            if (!file) {
-                return;
-            }
-
-            try {
-                sellerProfilePhotoData =
-                    await compressImage(file);
-
-                const profileName =
-                    document
-                        .getElementById(
-                            "sellerProfileName"
+    if (sellerProfilePhotoInput) {
+        sellerProfilePhotoInput.addEventListener(
+            "change",
+            async () => {
+                const file =
+                    sellerProfilePhotoInput
+                        .files?.[0];
+    
+                if (!file) {
+                    return;
+                }
+    
+                try {
+                    const compressedPhoto =
+                        await compressImage(file);
+    
+                    const token =
+                        localStorage.getItem(
+                            "royalGarageToken"
+                        );
+    
+                    if (!token) {
+                        alert(
+                            "Сесія недійсна. Увійдіть повторно."
+                        );
+    
+                        return;
+                    }
+    
+                    const response =
+                        await fetch(
+                            "/api/profile",
+                            {
+                                method: "PATCH",
+    
+                                headers: {
+                                    "Content-Type":
+                                        "application/json",
+    
+                                    Authorization:
+                                        `Bearer ${token}`
+                                },
+    
+                                body:
+                                    JSON.stringify({
+                                        profilePhoto:
+                                            compressedPhoto
+                                    })
+                            }
+                        );
+    
+                    const data =
+                        await response.json();
+    
+                    if (!response.ok) {
+                        throw new Error(
+                            data.message ||
+                            "Не вдалося зберегти фото профілю."
+                        );
+                    }
+    
+                    sellerProfilePhotoData =
+                        data.user.profile_photo ||
+                        compressedPhoto;
+    
+                    currentUser.profilePhoto =
+                        sellerProfilePhotoData;
+    
+                    localStorage.setItem(
+                        CURRENT_USER_KEY,
+                        JSON.stringify(
+                            currentUser
                         )
-                        ?.value
-                        .trim() || "";
-
-                renderSellerProfilePhoto(
-                    sellerProfilePhotoData,
-                    profileName
-                );
-            } catch (error) {
-                alert(
-                    error.message ||
-                    "Не вдалося обробити фото."
-                );
-            }
-
-            sellerProfilePhotoInput.value =
-                "";
-        }
-    );
-}
-
-if (removeSellerProfilePhotoButton) {
-    removeSellerProfilePhotoButton
-        .addEventListener(
-            "click",
-            () => {
-                sellerProfilePhotoData = "";
-
-                const profileName =
-                    document
-                        .getElementById(
-                            "sellerProfileName"
-                        )
-                        ?.value
-                        .trim() || "";
-
-                renderSellerProfilePhoto(
-                    "",
-                    profileName
-                );
+                    );
+    
+                    const profileName =
+                        document
+                            .getElementById(
+                                "sellerProfileName"
+                            )
+                            ?.value
+                            .trim() || "";
+    
+                    renderSellerProfilePhoto(
+                        sellerProfilePhotoData,
+                        profileName
+                    );
+    
+                } catch (error) {
+                    console.error(
+                        "Profile photo update error:",
+                        error
+                    );
+    
+                    alert(
+                        error.message ||
+                        "Не вдалося обробити фото."
+                    );
+                }
+    
+                sellerProfilePhotoInput.value =
+                    "";
             }
         );
-}
-
-function fillSellerProfileSettings() {
-    const sellerProfile =
-        loadCurrentSellerProfile();
-
-    sellerProfilePhotoData =
-        sellerProfile.photo || "";
-
-    const nameInput =
-        document.getElementById(
-            "sellerProfileName"
-        );
-
-    const cityInput =
-        document.getElementById(
-            "sellerProfileCity"
-        );
-
-    const phoneInput =
-        document.getElementById(
-            "sellerProfilePhone"
-        );
-
-    const telegramInput =
-        document.getElementById(
-            "sellerProfileTelegram"
-        );
-
-    const showPhoneInput =
-        document.getElementById(
-            "sellerProfileShowPhone"
-        );
-
-    const showTelegramInput =
-        document.getElementById(
-            "sellerProfileShowTelegram"
-        );
-
-    if (nameInput) {
-        nameInput.value =
-            sellerProfile.name ||
-            currentUser.name ||
-            "";
     }
-
-    if (cityInput) {
-        cityInput.value =
-            sellerProfile.city ||
-            "";
-    }
-
-    if (phoneInput) {
-        phoneInput.value =
-            sellerProfile.phone ||
-            currentUser.phone ||
-            "";
-    }
-
-    if (telegramInput) {
-        telegramInput.value =
-            sellerProfile.telegram ||
-            "";
-    }
-
-    if (showPhoneInput) {
-        showPhoneInput.checked =
-            Boolean(
-                sellerProfile.showPhone
+    if (removeSellerProfilePhotoButton) {
+        removeSellerProfilePhotoButton
+            .addEventListener(
+                "click",
+                async () => {
+                    const token =
+                        localStorage.getItem(
+                            "royalGarageToken"
+                        );
+    
+                    if (!token) {
+                        alert(
+                            "Сесія недійсна. Увійдіть повторно."
+                        );
+    
+                        return;
+                    }
+    
+                    try {
+                        const response =
+                            await fetch(
+                                "/api/profile",
+                                {
+                                    method: "PATCH",
+    
+                                    headers: {
+                                        "Content-Type":
+                                            "application/json",
+    
+                                        Authorization:
+                                            `Bearer ${token}`
+                                    },
+    
+                                    body:
+                                        JSON.stringify({
+                                            profilePhoto: ""
+                                        })
+                                }
+                            );
+    
+                        const data =
+                            await response.json();
+    
+                        if (!response.ok) {
+                            throw new Error(
+                                data.message ||
+                                "Не вдалося видалити фото профілю."
+                            );
+                        }
+    
+                        sellerProfilePhotoData = "";
+    
+                        currentUser.profilePhoto = "";
+    
+                        localStorage.setItem(
+                            CURRENT_USER_KEY,
+                            JSON.stringify(
+                                currentUser
+                            )
+                        );
+    
+                        const profileName =
+                            document
+                                .getElementById(
+                                    "sellerProfileName"
+                                )
+                                ?.value
+                                .trim() || "";
+    
+                        renderSellerProfilePhoto(
+                            "",
+                            profileName
+                        );
+    
+                    } catch (error) {
+                        console.error(
+                            "Profile photo delete error:",
+                            error
+                        );
+    
+                        alert(
+                            error.message ||
+                            "Не вдалося видалити фото профілю."
+                        );
+                    }
+                }
             );
     }
 
-    if (showTelegramInput) {
-        showTelegramInput.checked =
-            Boolean(
-                sellerProfile.showTelegram
-            );
-    }
-
-    renderSellerProfilePhoto(
-        sellerProfilePhotoData,
-        sellerProfile.name ||
-            currentUser.name ||
-            ""
-    );
-}
-
-function saveSellerProfileSettings(event) {
-    event.preventDefault();
-
-    const profiles =
-        loadSellerProfiles();
-
-    const name =
-        document
-            .getElementById(
+    function fillSellerProfileSettings() {
+        sellerProfilePhotoData =
+            currentUser.profilePhoto ||
+            "";
+    
+        const nameInput =
+            document.getElementById(
                 "sellerProfileName"
-            )
-            ?.value
-            .trim() || "";
-
-    const city =
-        document
-            .getElementById(
+            );
+    
+        const cityInput =
+            document.getElementById(
                 "sellerProfileCity"
-            )
-            ?.value
-            .trim() || "";
-
-    const phone =
-        document
-            .getElementById(
+            );
+    
+        const phoneInput =
+            document.getElementById(
                 "sellerProfilePhone"
-            )
-            ?.value
-            .trim() || "";
-
-    const telegram =
-        document
-            .getElementById(
+            );
+    
+        const telegramInput =
+            document.getElementById(
                 "sellerProfileTelegram"
-            )
-            ?.value
-            .trim() || "";
-
-    const showPhone =
-        Boolean(
+            );
+    
+        const showPhoneInput =
             document.getElementById(
                 "sellerProfileShowPhone"
-            )?.checked
-        );
-
-    const showTelegram =
-        Boolean(
+            );
+    
+        const showTelegramInput =
             document.getElementById(
                 "sellerProfileShowTelegram"
-            )?.checked
-        );
-
-    profiles[
-        String(currentUser.id)
-    ] = {
-        ...profiles[
-            String(currentUser.id)
-        ],
-
-        name,
-        city,
-        phone,
-        telegram,
-        photo:
+            );
+    
+        if (nameInput) {
+            nameInput.value =
+                currentUser.name ||
+                "";
+        }
+    
+        if (cityInput) {
+            cityInput.value =
+                currentUser.city ||
+                "";
+        }
+    
+        if (phoneInput) {
+            phoneInput.value =
+                currentUser.phone ||
+                "";
+        }
+    
+        if (telegramInput) {
+            telegramInput.value =
+                currentUser.telegram ||
+                "";
+        }
+    
+        if (showPhoneInput) {
+            showPhoneInput.checked =
+                Boolean(
+                    currentUser.showPhone
+                );
+        }
+    
+        if (showTelegramInput) {
+            showTelegramInput.checked =
+                Boolean(
+                    currentUser.showTelegram
+                );
+        }
+    
+        renderSellerProfilePhoto(
             sellerProfilePhotoData,
-        showPhone,
-        showTelegram,
+            currentUser.name ||
+            ""
+        );
+    }
 
-        updatedAt:
-            new Date()
-                .toISOString()
-    };
-
-    localStorage.setItem(
-        SELLER_PROFILES_KEY,
-        JSON.stringify(profiles)
-    );
-
-    alert(
-        "Налаштування профілю продавця збережено."
-    );
-}
-
+    async function saveSellerProfileSettings(event) {
+        event.preventDefault();
+    
+        const name =
+            document
+                .getElementById(
+                    "sellerProfileName"
+                )
+                ?.value
+                .trim() || "";
+    
+        const city =
+            document
+                .getElementById(
+                    "sellerProfileCity"
+                )
+                ?.value
+                .trim() || "";
+    
+        const phone =
+            document
+                .getElementById(
+                    "sellerProfilePhone"
+                )
+                ?.value
+                .trim() || "";
+    
+        const telegram =
+            document
+                .getElementById(
+                    "sellerProfileTelegram"
+                )
+                ?.value
+                .trim() || "";
+    
+        const showPhone =
+            Boolean(
+                document.getElementById(
+                    "sellerProfileShowPhone"
+                )?.checked
+            );
+    
+        const showTelegram =
+            Boolean(
+                document.getElementById(
+                    "sellerProfileShowTelegram"
+                )?.checked
+            );
+    
+        const token =
+            localStorage.getItem(
+                "royalGarageToken"
+            );
+    
+        if (!token) {
+            alert(
+                "Сесія недійсна. Увійдіть повторно."
+            );
+    
+            return;
+        }
+    
+        try {
+            const response =
+                await fetch(
+                    "/api/profile",
+                    {
+                        method: "PATCH",
+    
+                        headers: {
+                            "Content-Type":
+                                "application/json",
+    
+                            Authorization:
+                                `Bearer ${token}`
+                        },
+    
+                        body:
+                            JSON.stringify({
+                                city,
+                                telegram,
+                                profilePhoto:
+                                    sellerProfilePhotoData,
+                                showPhone,
+                                showTelegram
+                            })
+                    }
+                );
+    
+            const data =
+                await response.json();
+    
+            if (!response.ok) {
+                throw new Error(
+                    data.message ||
+                    "Не вдалося зберегти налаштування профілю."
+                );
+            }
+    
+            currentUser.city =
+                data.user.city || "";
+    
+            currentUser.telegram =
+                data.user.telegram || "";
+    
+            currentUser.profilePhoto =
+                data.user.profile_photo || "";
+    
+            currentUser.showPhone =
+                Boolean(
+                    data.user.show_phone
+                );
+    
+            currentUser.showTelegram =
+                Boolean(
+                    data.user.show_telegram
+                );
+    
+            localStorage.setItem(
+                CURRENT_USER_KEY,
+                JSON.stringify(
+                    currentUser
+                )
+            );
+    
+            alert(
+                "Налаштування профілю продавця збережено."
+            );
+    
+        } catch (error) {
+            console.error(
+                "Seller profile update error:",
+                error
+            );
+    
+            alert(
+                error.message ||
+                "Не вдалося зберегти налаштування профілю."
+            );
+        }
+    }
 const sellerProfileSettingsForm =
     document.getElementById(
         "sellerProfileSettingsForm"
@@ -1023,341 +1178,60 @@ if (sellerProfileSettingsForm) {
         );
 }
 
-function getProfileSellerRating() {
-    const ratings =
-        readJson(
-            SELLER_RATINGS_KEY,
-            {}
-        );
-
-    const possibleSellerIds = [
-        currentUser.id,
-        currentUser.userId,
-        currentUser.email
-    ]
-        .filter(Boolean)
-        .map(String);
-
-
-        /* =========================
-   НАЛАШТУВАННЯ ПРОФІЛЮ ПРОДАВЦЯ
-   ========================= */
-
-function loadCurrentSellerProfile() {
-    const profiles =
-        loadSellerProfiles();
-
-    return (
-        profiles[
-            String(currentUser.id)
-        ] || {}
-    );
-}
-
-function renderSellerProfilePhoto(
-    photo,
-    name = ""
-) {
-    const preview =
-        document.getElementById(
-            "sellerProfilePhotoPreview"
-        );
-
-    if (!preview) {
-        return;
-    }
-
-    if (photo) {
-        preview.innerHTML = `
-            <img
-                src="${photo}"
-                alt="Фото профілю продавця"
-            >
-        `;
-
-        return;
-    }
-
-    preview.textContent =
-        String(name || "П")
-            .trim()
-            .charAt(0)
-            .toUpperCase() || "П";
-}
-
-const sellerProfilePhotoInput =
-    document.getElementById(
-        "sellerProfilePhoto"
-    );
-
-const removeSellerProfilePhotoButton =
-    document.getElementById(
-        "removeSellerProfilePhoto"
-    );
-
-if (sellerProfilePhotoInput) {
-    sellerProfilePhotoInput.addEventListener(
-        "change",
-        async () => {
-            const file =
-                sellerProfilePhotoInput
-                    .files?.[0];
-
-            if (!file) {
-                return;
-            }
-
-            try {
-                sellerProfilePhotoData =
-                    await compressImage(file);
-
-                const profileName =
-                    document
-                        .getElementById(
-                            "sellerProfileName"
-                        )
-                        ?.value
-                        .trim() || "";
-
-                renderSellerProfilePhoto(
-                    sellerProfilePhotoData,
-                    profileName
-                );
-            } catch (error) {
-                alert(
-                    error.message ||
-                    "Не вдалося обробити фото."
-                );
-            }
-
-            sellerProfilePhotoInput.value =
-                "";
-        }
-    );
-}
-
-if (removeSellerProfilePhotoButton) {
-    removeSellerProfilePhotoButton
-        .addEventListener(
-            "click",
-            () => {
-                sellerProfilePhotoData = "";
-
-                const profileName =
-                    document
-                        .getElementById(
-                            "sellerProfileName"
-                        )
-                        ?.value
-                        .trim() || "";
-
-                renderSellerProfilePhoto(
-                    "",
-                    profileName
-                );
-            }
-        );
-}
-
-function fillSellerProfileSettings() {
-    const sellerProfile =
-        loadCurrentSellerProfile();
-
-        sellerProfilePhotoData =
-        sellerProfile.photo || "";
-
-    const nameInput =
-        document.getElementById(
-            "sellerProfileName"
-        );
-
-    const cityInput =
-        document.getElementById(
-            "sellerProfileCity"
-        );
-
-    const phoneInput =
-        document.getElementById(
-            "sellerProfilePhone"
-        );
-
-    const telegramInput =
-        document.getElementById(
-            "sellerProfileTelegram"
-        );
-
-    const showPhoneInput =
-        document.getElementById(
-            "sellerProfileShowPhone"
-        );
-
-    const showTelegramInput =
-        document.getElementById(
-            "sellerProfileShowTelegram"
-        );
-
-    if (nameInput) {
-        nameInput.value =
-            sellerProfile.name ||
-            currentUser.name ||
-            "";
-    }
-
-    if (cityInput) {
-        cityInput.value =
-            sellerProfile.city ||
-            "";
-    }
-
-    if (phoneInput) {
-        phoneInput.value =
-            sellerProfile.phone ||
-            currentUser.phone ||
-            "";
-    }
-
-    if (telegramInput) {
-        telegramInput.value =
-            sellerProfile.telegram ||
-            "";
-    }
-
-    if (showPhoneInput) {
-        showPhoneInput.checked =
-            Boolean(
-                sellerProfile.showPhone
-            );
-    }
-
-    if (showTelegramInput) {
-        showTelegramInput.checked =
-            Boolean(
-                sellerProfile.showTelegram
-            );
-    }
-
-    renderSellerProfilePhoto(
-        sellerProfilePhotoData,
-        sellerProfile.name ||
-            currentUser.name ||
-            ""
-    );
-
-}
-
-
-    /* ===== СПОЧАТКУ ШУКАЄМО НАПРЯМУ ===== */
-
-    for (
-        const sellerId of
-        possibleSellerIds
-    ) {
-        const sellerData =
-            ratings[sellerId];
-
-        if (
-            sellerData &&
-            typeof sellerData === "object"
-        ) {
-            return calculateProfileRating(
-                sellerData
-            );
-        }
-    }
-
-
-    /* ===== ШУКАЄМО КЛЮЧ ЧЕРЕЗ ВЛАСНЕ ОГОЛОШЕННЯ ===== */
-
-    const listings =
-        readJson(
-            LISTINGS_KEY,
-            []
-        );
-
-    const ownCarIds =
-        cars.map(
-            (car) =>
-                String(car.id)
-        );
-
-    const ownVins =
-        cars
-            .map(
-                (car) =>
-                    normalizeVin(
-                        car.vin
-                    )
-            )
-            .filter(Boolean);
-
-
-    const ownListing =
-        listings.find(
-            (listing) => {
-                const listingCarId =
-                    String(
-                        listing.carId || ""
-                    );
-
-                const listingVin =
-                    normalizeVin(
-                        listing.vin
-                    );
-
-                return (
-                    (
-                        listingCarId &&
-                        ownCarIds.includes(
-                            listingCarId
-                        )
-                    ) ||
-                    (
-                        listingVin &&
-                        ownVins.includes(
-                            listingVin
-                        )
-                    )
-                );
-            }
-        );
-
-
-    if (!ownListing) {
-        return {
-            average: 0,
-            count: 0
-        };
-    }
-
-
-    const listingSellerId =
-        ownListing.ownerId ||
-        ownListing.userId ||
-        ownListing.sellerId ||
-        ownListing.ownerEmail ||
-        ownListing.email ||
+async function getProfileSellerRating() {
+    const sellerId =
+        currentUser?.id ||
+        currentUser?.userId ||
         "";
 
-
-    const sellerData =
-        ratings[
-            String(
-                listingSellerId
-            )
-        ];
-
-
-    if (!sellerData) {
+    if (!sellerId) {
         return {
             average: 0,
             count: 0
         };
     }
 
+    try {
+        const response =
+            await fetch(
+                `/api/sellers/${encodeURIComponent(
+                    sellerId
+                )}/rating`
+            );
 
-    return calculateProfileRating(
-        sellerData
-    );
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити рейтинг продавця."
+            );
+        }
+
+        return {
+            average:
+                Number(
+                    data.rating?.average || 0
+                ),
+
+            count:
+                Number(
+                    data.rating?.count || 0
+                )
+        };
+
+    } catch (error) {
+        console.error(
+            "Profile seller rating load error:",
+            error
+        );
+
+        return {
+            average: 0,
+            count: 0
+        };
+    }
 }
 
 
@@ -3125,7 +2999,7 @@ VIN: ${car.vin || "-"}
     );
 }
 
-function renderProfileSellerReputation() {
+async function renderProfileSellerReputation() {
     const ratingElement =
         document.getElementById(
             "profileSellerRating"
@@ -3144,7 +3018,7 @@ function renderProfileSellerReputation() {
     }
 
     const ratingData =
-        getProfileSellerRating();
+    await getProfileSellerRating();
 
     if (
         ratingData.count === 0
@@ -3167,7 +3041,7 @@ function renderProfileSellerReputation() {
         )}`;
 }
 
-function renderProfileSellerReviews() {
+async function renderProfileSellerReviews() {
     const reviewsList =
         document.getElementById(
             "profileSellerReviewsList"
@@ -3177,47 +3051,12 @@ function renderProfileSellerReviews() {
         return;
     }
 
-    const ratings =
-        readJson(
-            SELLER_RATINGS_KEY,
-            {}
-        );
+    const sellerId =
+        currentUser?.id ||
+        currentUser?.userId ||
+        "";
 
-    const sellerData =
-        ratings[
-            String(currentUser.id)
-        ];
-
-    const reviews =
-        sellerData?.reviews &&
-        typeof sellerData.reviews === "object"
-            ? Object.values(
-                sellerData.reviews
-            )
-                .filter(
-                    (review) =>
-                        review &&
-                        String(
-                            review.text || ""
-                        ).trim()
-                )
-                .sort(
-                    (
-                        firstReview,
-                        secondReview
-                    ) =>
-                        new Date(
-                            secondReview.updatedAt || 0
-                        ) -
-                        new Date(
-                            firstReview.updatedAt || 0
-                        )
-                )
-            : [];
-
-    if (
-        reviews.length === 0
-    ) {
+    if (!sellerId) {
         reviewsList.innerHTML = `
             <p class="profile-seller-reviews-empty">
                 Відгуків поки немає.
@@ -3227,66 +3066,116 @@ function renderProfileSellerReviews() {
         return;
     }
 
-    reviewsList.innerHTML =
-        reviews
-            .map(
-                (review) => `
-                    <article class="profile-seller-review-card">
+    try {
+        const response =
+            await fetch(
+                `/api/sellers/${encodeURIComponent(
+                    sellerId
+                )}/reviews`
+            );
 
-                        <div class="profile-seller-review-header">
+        const data =
+            await response.json();
 
-                            <strong>
-                                ${escapeHtml(
-                                    review.userName ||
-                                    "Користувач"
-                                )}
-                            </strong>
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити відгуки продавця."
+            );
+        }
 
-                            <span>
-                                ${
-                                    review.updatedAt
-                                        ? new Date(
-                                            review.updatedAt
-                                        ).toLocaleDateString(
-                                            "uk-UA"
-                                        )
-                                        : ""
-                                }
-                            </span>
-
-                        </div>
-
-                        <div class="profile-seller-review-stars">
-                            ${[1, 2, 3, 4, 5]
-                                .map(
-                                    (star) => `
-                                        <span
-                                            class="${
-                                                star <=
-                                                Number(
-                                                    review.rating || 0
-                                                )
-                                                    ? "is-filled"
-                                                    : ""
-                                            }"
-                                        >
-                                            ★
-                                        </span>
-                                    `
-                                )
-                                .join("")}
-                        </div>
-
-                        <p>
-                            ${escapeHtml(
-                                review.text
-                            )}
-                        </p>
-
-                    </article>
-                `
+        const reviews =
+            Array.isArray(
+                data.reviews
             )
-            .join("");
+                ? data.reviews
+                : [];
+
+        if (
+            reviews.length === 0
+        ) {
+            reviewsList.innerHTML = `
+                <p class="profile-seller-reviews-empty">
+                    Відгуків поки немає.
+                </p>
+            `;
+
+            return;
+        }
+
+        reviewsList.innerHTML =
+            reviews
+                .map(
+                    (review) => `
+                        <article class="profile-seller-review-card">
+
+                            <div class="profile-seller-review-header">
+
+                                <strong>
+                                    ${escapeHtml(
+                                        review.user_name ||
+                                        "Користувач"
+                                    )}
+                                </strong>
+
+                                <span>
+                                    ${
+                                        review.updated_at
+                                            ? new Date(
+                                                review.updated_at
+                                            ).toLocaleDateString(
+                                                "uk-UA"
+                                            )
+                                            : ""
+                                    }
+                                </span>
+
+                            </div>
+
+                            <div class="profile-seller-review-stars">
+                                ${[1, 2, 3, 4, 5]
+                                    .map(
+                                        (star) => `
+                                            <span
+                                                class="${
+                                                    star <=
+                                                    Number(
+                                                        review.rating || 0
+                                                    )
+                                                        ? "is-filled"
+                                                        : ""
+                                                }"
+                                            >
+                                                ★
+                                            </span>
+                                        `
+                                    )
+                                    .join("")}
+                            </div>
+
+                            <p>
+                                ${escapeHtml(
+                                    review.review || ""
+                                )}
+                            </p>
+
+                        </article>
+                    `
+                )
+                .join("");
+
+    } catch (error) {
+        console.error(
+            "Profile seller reviews load error:",
+            error
+        );
+
+        reviewsList.innerHTML = `
+            <p class="profile-seller-reviews-empty">
+                Не вдалося завантажити відгуки.
+            </p>
+        `;
+    }
 }
 
 function normalizePhone(value) {
@@ -3471,8 +3360,6 @@ function renderPage() {
     renderCars();
     renderSelectedCar();
     renderMyChats();
-    renderProfileSellerReputation();
-    renderProfileSellerReviews();
     renderFavoriteListings();
 }
 
@@ -6394,18 +6281,19 @@ document.addEventListener(
    ========================= */
 
    fillCarBrandSelect();
-
    async function initializeProfilePage() {
-       await loadProfileFromServer();
-   
-       await initializeGarageCars();
-   
-       fillSellerProfileSettings();
-   
-       renderProfileSellerReputation();
-   
-       openServiceHistoryFromUrl();
-   }
+    await loadProfileFromServer();
+
+    await initializeGarageCars();
+
+    fillSellerProfileSettings();
+
+    await renderProfileSellerReputation();
+
+    await renderProfileSellerReviews();
+
+    openServiceHistoryFromUrl();
+}
    
    initializeProfilePage();
 
