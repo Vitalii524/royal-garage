@@ -593,6 +593,82 @@ let editingServiceId = null;
 let viewerPhotos = [];
 let viewerIndex = 0;
 
+async function loadProfileFromServer() {
+    const token =
+        localStorage.getItem(
+            "royalGarageToken"
+        );
+
+    if (!token) {
+        return null;
+    }
+
+    try {
+        const response =
+            await fetch(
+                "/api/profile",
+                {
+                    headers: {
+                        Authorization:
+                            `Bearer ${token}`
+                    }
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити профіль."
+            );
+        }
+
+        const user =
+            data.user;
+
+        currentUser.phone =
+            user.phone || "";
+
+        currentUser.city =
+            user.city || "";
+
+        currentUser.telegram =
+            user.telegram || "";
+
+        currentUser.profilePhoto =
+            user.profile_photo || "";
+
+        currentUser.showPhone =
+            Boolean(
+                user.show_phone
+            );
+
+        currentUser.showTelegram =
+            Boolean(
+                user.show_telegram
+            );
+
+        localStorage.setItem(
+            CURRENT_USER_KEY,
+            JSON.stringify(
+                currentUser
+            )
+        );
+
+        return user;
+
+    } catch (error) {
+        console.error(
+            "Profile load request error:",
+            error
+        );
+
+        return null;
+    }
+}
+
 async function initializeGarageCars() {
     const serverCars =
         await loadGarageCarsFromServer();
@@ -3271,21 +3347,21 @@ const changeAccountPhoneButton =
 if (changeAccountPhoneButton) {
     changeAccountPhoneButton.addEventListener(
         "click",
-        () => {
+        async () => {
             const enteredPhone =
                 prompt(
                     "Введи новий номер телефону:"
                 );
-
+    
             if (!enteredPhone) {
                 return;
             }
-
+    
             const newPhone =
                 normalizePhone(
                     enteredPhone
                 );
-
+    
             if (
                 !/^380\d{9}$/.test(
                     newPhone
@@ -3294,102 +3370,97 @@ if (changeAccountPhoneButton) {
                 alert(
                     "Введи правильний український номер телефону."
                 );
-
+    
                 return;
             }
-
-            const users =
-                readJson(
-                    USERS_KEY,
-                    []
+    
+            const token =
+                localStorage.getItem(
+                    "royalGarageToken"
                 );
-
-            const phoneExists =
-                users.some(
-                    (user) =>
-                        String(user.id) !==
-                            String(
-                                currentUser.id
-                            ) &&
-                        normalizePhone(
-                            user.phone
-                        ) === newPhone
-                );
-
-            if (phoneExists) {
+    
+            if (!token) {
                 alert(
-                    "Цей номер телефону вже використовується іншим акаунтом."
+                    "Сесія недійсна. Увійдіть повторно."
                 );
-
+    
                 return;
             }
-
-            const currentUserInList =
-                users.find(
-                    (user) =>
-                        String(user.id) ===
-                        String(currentUser.id)
-                );
-
-            if (currentUserInList) {
-                currentUserInList.phone =
-                    newPhone;
-
+    
+            try {
+                const response =
+                    await fetch(
+                        "/api/profile",
+                        {
+                            method: "PATCH",
+    
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+    
+                                Authorization:
+                                    `Bearer ${token}`
+                            },
+    
+                            body:
+                                JSON.stringify({
+                                    phone:
+                                        newPhone
+                                })
+                        }
+                    );
+    
+                const data =
+                    await response.json();
+    
+                if (!response.ok) {
+                    throw new Error(
+                        data.message ||
+                        "Не вдалося змінити номер телефону."
+                    );
+                }
+    
+                const updatedUser =
+                    data.user;
+    
+                currentUser.phone =
+                    updatedUser.phone;
+    
                 localStorage.setItem(
-                    USERS_KEY,
-                    JSON.stringify(users)
-                );
-            }
-
-            currentUser.phone =
-                newPhone;
-
-            localStorage.setItem(
-                CURRENT_USER_KEY,
-                JSON.stringify(
-                    currentUser
-                )
-            );
-
-            const profiles =
-                loadSellerProfiles();
-
-            if (
-                profiles[
-                    String(
-                        currentUser.id
-                    )
-                ]
-            ) {
-                profiles[
-                    String(
-                        currentUser.id
-                    )
-                ].phone = newPhone;
-
-                localStorage.setItem(
-                    SELLER_PROFILES_KEY,
+                    CURRENT_USER_KEY,
                     JSON.stringify(
-                        profiles
+                        currentUser
                     )
                 );
-            }
-
-            const sellerPhoneInput =
-                document.getElementById(
-                    "sellerProfilePhone"
+    
+                const sellerPhoneInput =
+                    document.getElementById(
+                        "sellerProfilePhone"
+                    );
+    
+                if (sellerPhoneInput) {
+                    sellerPhoneInput.value =
+                        updatedUser.phone ||
+                        "";
+                }
+    
+                renderAccountSettings();
+    
+                alert(
+                    "Номер телефону змінено."
                 );
-
-            if (sellerPhoneInput) {
-                sellerPhoneInput.value =
-                    newPhone;
+    
+            } catch (error) {
+                console.error(
+                    "Profile phone update error:",
+                    error
+                );
+    
+                alert(
+                    error.message ||
+                    "Не вдалося змінити номер телефону."
+                );
             }
-
-            renderAccountSettings();
-
-            alert(
-                "Номер телефону змінено."
-            );
         }
     );
 }
@@ -6322,11 +6393,21 @@ document.addEventListener(
    ЗАПУСК
    ========================= */
 
-fillCarBrandSelect();
-initializeGarageCars();
-fillSellerProfileSettings();
-renderProfileSellerReputation();
-openServiceHistoryFromUrl();
+   fillCarBrandSelect();
+
+   async function initializeProfilePage() {
+       await loadProfileFromServer();
+   
+       await initializeGarageCars();
+   
+       fillSellerProfileSettings();
+   
+       renderProfileSellerReputation();
+   
+       openServiceHistoryFromUrl();
+   }
+   
+   initializeProfilePage();
 
 const profileParams =
     new URLSearchParams(

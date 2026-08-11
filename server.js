@@ -2070,6 +2070,235 @@ app.delete(
     }
 );
 
+app.patch(
+    "/api/profile",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const {
+                phone,
+                city,
+                telegram,
+                profilePhoto,
+                showPhone,
+                showTelegram
+            } = req.body;
+
+            if (phone) {
+                const normalizedPhone =
+                    String(phone).replace(
+                        /\D/g,
+                        ""
+                    );
+
+                if (
+                    !/^380\d{9}$/.test(
+                        normalizedPhone
+                    )
+                ) {
+                    return res.status(400).json({
+                        ok: false,
+                        message:
+                            "Введіть правильний український номер телефону."
+                    });
+                }
+
+                const duplicateResult =
+                    await pool.query(
+                        `
+                        SELECT id
+                        FROM users
+                        WHERE phone = $1
+                          AND id <> $2
+                        LIMIT 1
+                        `,
+                        [
+                            normalizedPhone,
+                            req.user.userId
+                        ]
+                    );
+
+                if (
+                    duplicateResult.rows.length >
+                    0
+                ) {
+                    return res.status(409).json({
+                        ok: false,
+                        message:
+                            "Цей номер телефону вже використовується іншим акаунтом."
+                    });
+                }
+            }
+
+            const result =
+                await pool.query(
+                    `
+                    UPDATE users
+                    SET
+                        phone =
+                            COALESCE(
+                                $1,
+                                phone
+                            ),
+
+                        city =
+                            COALESCE(
+                                $2,
+                                city
+                            ),
+
+                        telegram =
+                            COALESCE(
+                                $3,
+                                telegram
+                            ),
+
+                        profile_photo =
+                            COALESCE(
+                                $4,
+                                profile_photo
+                            ),
+
+                        show_phone =
+                            COALESCE(
+                                $5,
+                                show_phone
+                            ),
+
+                        show_telegram =
+                            COALESCE(
+                                $6,
+                                show_telegram
+                            ),
+
+                        updated_at =
+                            NOW()
+
+                    WHERE id = $7
+
+                    RETURNING
+                        id,
+                        name,
+                        email,
+                        phone,
+                        city,
+                        telegram,
+                        profile_photo,
+                        show_phone,
+                        show_telegram,
+                        account_type,
+                        role
+                    `,
+                    [
+                        phone ?? null,
+                        city ?? null,
+                        telegram ?? null,
+                        profilePhoto ?? null,
+                        typeof showPhone ===
+                        "boolean"
+                            ? showPhone
+                            : null,
+                        typeof showTelegram ===
+                        "boolean"
+                            ? showTelegram
+                            : null,
+                        req.user.userId
+                    ]
+                );
+
+            if (
+                result.rows.length ===
+                0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Користувача не знайдено."
+                });
+            }
+
+            res.json({
+                ok: true,
+                user:
+                    result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "Profile update error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося оновити профіль."
+            });
+        }
+    }
+);
+
+app.get(
+    "/api/profile",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        name,
+                        email,
+                        phone,
+                        city,
+                        telegram,
+                        profile_photo,
+                        show_phone,
+                        show_telegram,
+                        account_type,
+                        role
+                    FROM users
+                    WHERE id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.user.userId
+                    ]
+                );
+
+            if (
+                result.rows.length ===
+                0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Користувача не знайдено."
+                });
+            }
+
+            res.json({
+                ok: true,
+                user:
+                    result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "Profile load error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити профіль."
+            });
+        }
+    }
+);
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
