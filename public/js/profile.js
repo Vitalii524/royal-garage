@@ -78,7 +78,7 @@ function loadFavoriteListingIds() {
     }
 }
 
-function renderFavoriteListings() {
+async function renderFavoriteListings() {
     const favoritesList =
         document.getElementById(
             "profileFavoritesList"
@@ -96,113 +96,207 @@ function renderFavoriteListings() {
         return;
     }
 
-    const favoriteIds =
-        loadFavoriteListingIds();
-
-    const listings =
-        readJson(
-            LISTINGS_KEY,
-            []
+    const token =
+        localStorage.getItem(
+            "royalGarageToken"
         );
 
-    const favoriteListings =
-        listings.filter(
-            (listing) =>
-                favoriteIds.includes(
-                    String(listing.id)
-                )
-        );
+    if (!token) {
+        favoritesCount.textContent = "0";
 
-    favoritesCount.textContent =
-        String(
-            favoriteListings.length
-        );
-
-    if (
-        favoriteListings.length === 0
-    ) {
         favoritesList.innerHTML = `
             <p class="profile-favorites-empty">
-                Ви ще не додали оголошення в обране.
+                Увійдіть у профіль, щоб переглянути обране.
             </p>
         `;
 
         return;
     }
 
-    favoritesList.innerHTML =
-    favoriteListings
-    .map((listing) => {
-        const listingPhotos =
-            Array.isArray(listing.photos)
-                ? listing.photos
-                : listing.photo
-                    ? [listing.photo]
-                    : [];
-
-        const mainPhoto =
-            listingPhotos[0] || "";
-
-        return `
-            <a
-                class="profile-favorite-card"
-                href="listing.html?id=${encodeURIComponent(
-                    listing.id
-                )}"
-            >
-                ${
-                    mainPhoto
-                        ? `
-                            <img
-                                class="profile-favorite-photo"
-                                src="${escapeHtml(mainPhoto)}"
-                                alt="${escapeHtml(
-                                    listing.name ||
-                                    "Автомобіль"
-                                )}"
-                            >
-                        `
-                        : ""
+    try {
+        const [
+            favoritesResponse,
+            listingsResponse
+        ] = await Promise.all([
+            fetch(
+                "/api/market/favorites",
+                {
+                    headers: {
+                        Authorization:
+                            `Bearer ${token}`
+                    }
                 }
+            ),
 
-                <div class="profile-favorite-info">
-                    <strong>
-                        ${escapeHtml(
-                            listing.name ||
-                            "Автомобіль"
-                        )}
-                    </strong>
+            fetch(
+                "/api/market/listings"
+            )
+        ]);
 
-                    ${
-                        listing.year
-                            ? `
-                                <span>
+        const favoritesData =
+            await favoritesResponse.json();
+
+        const listingsData =
+            await listingsResponse.json();
+
+        if (!favoritesResponse.ok) {
+            throw new Error(
+                favoritesData.message ||
+                "Не вдалося завантажити обране."
+            );
+        }
+
+        if (!listingsResponse.ok) {
+            throw new Error(
+                listingsData.message ||
+                "Не вдалося завантажити оголошення."
+            );
+        }
+
+        const favoriteIds =
+            Array.isArray(
+                favoritesData.favoriteIds
+            )
+                ? favoritesData.favoriteIds.map(
+                    String
+                )
+                : [];
+
+        const listings =
+            Array.isArray(
+                listingsData.listings
+            )
+                ? listingsData.listings
+                : [];
+
+        const favoriteListings =
+            listings.filter(
+                (listing) =>
+                    favoriteIds.includes(
+                        String(listing.id)
+                    )
+            );
+
+        favoritesCount.textContent =
+            String(
+                favoriteListings.length
+            );
+
+        if (
+            favoriteListings.length === 0
+        ) {
+            favoritesList.innerHTML = `
+                <p class="profile-favorites-empty">
+                    Ви ще не додали оголошення в обране.
+                </p>
+            `;
+
+            return;
+        }
+
+        favoritesList.innerHTML =
+            favoriteListings
+                .map((listing) => {
+                    const listingPhotos =
+                        Array.isArray(
+                            listing.photos
+                        )
+                            ? listing.photos
+                            : listing.photo
+                                ? [
+                                    listing.photo
+                                ]
+                                : [];
+
+                    const mainPhoto =
+                        listingPhotos[0] ||
+                        "";
+
+                    const priceUsd =
+                        listing.price_usd ??
+                        listing.priceUsd ??
+                        null;
+
+                    return `
+                        <a
+                            class="profile-favorite-card"
+                            href="listing.html?id=${encodeURIComponent(
+                                listing.id
+                            )}"
+                        >
+                            ${
+                                mainPhoto
+                                    ? `
+                                        <img
+                                            class="profile-favorite-photo"
+                                            src="${escapeHtml(
+                                                mainPhoto
+                                            )}"
+                                            alt="${escapeHtml(
+                                                listing.name ||
+                                                "Автомобіль"
+                                            )}"
+                                        >
+                                    `
+                                    : ""
+                            }
+
+                            <div class="profile-favorite-info">
+                                <strong>
                                     ${escapeHtml(
-                                        String(listing.year)
-                                    )} рік
-                                </span>
-                            `
-                            : ""
-                    }
+                                        listing.name ||
+                                        "Автомобіль"
+                                    )}
+                                </strong>
 
-                    ${
-                        listing.priceUsd
-                            ? `
-                                <span>
-                                ${Number(listing.priceUsd || 0
-                                    ).toLocaleString("uk-UA")} $
-                                </span>
-                            `
-                            : ""
-                    }
-                </div>
-            </a>
+                                ${
+                                    listing.year
+                                        ? `
+                                            <span>
+                                                ${escapeHtml(
+                                                    String(
+                                                        listing.year
+                                                    )
+                                                )} рік
+                                            </span>
+                                        `
+                                        : ""
+                                }
+
+                                ${
+                                    priceUsd
+                                        ? `
+                                            <span>
+                                                ${Number(
+                                                    priceUsd
+                                                ).toLocaleString(
+                                                    "uk-UA"
+                                                )} $
+                                            </span>
+                                        `
+                                        : ""
+                                }
+                            </div>
+                        </a>
+                    `;
+                })
+                .join("");
+
+    } catch (error) {
+        console.error(
+            "Profile favorites load error:",
+            error
+        );
+
+        favoritesCount.textContent = "0";
+
+        favoritesList.innerHTML = `
+            <p class="profile-favorites-empty">
+                Не вдалося завантажити обране.
+            </p>
         `;
-    })
-    .join("");
-          
+    }
 }
-
 document.documentElement.style.visibility =
     "visible";
 
