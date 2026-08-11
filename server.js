@@ -125,6 +125,25 @@ await pool.query(`
 `);
 
 await pool.query(`
+    CREATE TABLE IF NOT EXISTS market_favorites (
+        user_id UUID NOT NULL
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+
+        listing_id UUID NOT NULL
+            REFERENCES market_listings(id)
+            ON DELETE CASCADE,
+
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+        PRIMARY KEY (
+            user_id,
+            listing_id
+        )
+    )
+`);
+
+await pool.query(`
     CREATE TABLE IF NOT EXISTS garage_cars (
         id UUID PRIMARY KEY,
 
@@ -1077,6 +1096,167 @@ app.delete(
                 ok: false,
                 message:
                     "Не вдалося видалити оголошення."
+            });
+        }
+    }
+);
+
+/* ===== ОБРАНІ ОГОЛОШЕННЯ ===== */
+
+app.get(
+    "/api/market/favorites",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const result =
+                await pool.query(
+                    `
+                    SELECT listing_id
+                    FROM market_favorites
+                    WHERE user_id = $1
+                    ORDER BY created_at DESC
+                    `,
+                    [
+                        req.user.userId
+                    ]
+                );
+
+            res.json({
+                ok: true,
+                favoriteIds:
+                    result.rows.map(
+                        (row) =>
+                            String(
+                                row.listing_id
+                            )
+                    )
+            });
+
+        } catch (error) {
+            console.error(
+                "Market favorites load error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити обране."
+            });
+        }
+    }
+);
+
+
+app.post(
+    "/api/market/favorites/:listingId",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const {
+                listingId
+            } = req.params;
+
+            const listingResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM market_listings
+                    WHERE id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        listingId
+                    ]
+                );
+
+            if (
+                listingResult.rows.length ===
+                0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Оголошення не знайдено."
+                });
+            }
+
+            await pool.query(
+                `
+                INSERT INTO market_favorites (
+                    user_id,
+                    listing_id
+                )
+                VALUES ($1, $2)
+                ON CONFLICT (
+                    user_id,
+                    listing_id
+                )
+                DO NOTHING
+                `,
+                [
+                    req.user.userId,
+                    listingId
+                ]
+            );
+
+            res.json({
+                ok: true,
+                listingId
+            });
+
+        } catch (error) {
+            console.error(
+                "Market favorite add error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося додати оголошення в обране."
+            });
+        }
+    }
+);
+
+
+app.delete(
+    "/api/market/favorites/:listingId",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const {
+                listingId
+            } = req.params;
+
+            await pool.query(
+                `
+                DELETE FROM market_favorites
+                WHERE user_id = $1
+                  AND listing_id = $2
+                `,
+                [
+                    req.user.userId,
+                    listingId
+                ]
+            );
+
+            res.json({
+                ok: true,
+                listingId
+            });
+
+        } catch (error) {
+            console.error(
+                "Market favorite delete error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося видалити оголошення з обраного."
             });
         }
     }

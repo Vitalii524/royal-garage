@@ -983,54 +983,58 @@ function getRatingCountLabel(
 const FAVORITES_STORAGE_KEY =
 `royalGarageFavoriteListings_${currentUser.id}`;
 
-
 let favoriteListingIds = [];
 
 
-try {
-    const storedFavorites =
-        JSON.parse(
-            localStorage.getItem(
-                FAVORITES_STORAGE_KEY
-            )
-        ) || [];
-
-
-    favoriteListingIds =
-        Array.isArray(storedFavorites)
-            ? storedFavorites.map(String)
-            : [];
-} catch (error) {
-    console.error(
-        "Не вдалося завантажити обране:",
-        error
-    );
-
-    favoriteListingIds = [];
-}
-
-
-function saveFavoriteListings() {
-    try {
-        localStorage.setItem(
-            FAVORITES_STORAGE_KEY,
-            JSON.stringify(
-                favoriteListingIds
-            )
+async function loadFavoriteListingsFromServer() {
+    const token =
+        localStorage.getItem(
+            "royalGarageToken"
         );
 
-        return true;
+    if (!token) {
+        favoriteListingIds = [];
+        return;
+    }
+
+    try {
+        const response =
+            await fetch(
+                "/api/market/favorites",
+                {
+                    headers: {
+                        Authorization:
+                            `Bearer ${token}`
+                    }
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити обране."
+            );
+        }
+
+        favoriteListingIds =
+            Array.isArray(
+                data.favoriteIds
+            )
+                ? data.favoriteIds.map(
+                    String
+                )
+                : [];
+
     } catch (error) {
         console.error(
-            "Не вдалося зберегти обране:",
+            "Market favorites load error:",
             error
         );
 
-        alert(
-            "Не вдалося зберегти оголошення в обране."
-        );
-
-        return false;
+        favoriteListingIds = [];
     }
 }
 
@@ -1042,34 +1046,85 @@ function isFavoriteListing(listingId) {
 }
 
 
-function toggleFavoriteListing(listingId) {
-    const normalizedId =
-        String(listingId);
-
-
-    if (
-        favoriteListingIds.includes(
-            normalizedId
-        )
-    ) {
-        favoriteListingIds =
-            favoriteListingIds.filter(
-                (id) =>
-                    id !== normalizedId
-            );
-    } else {
-        favoriteListingIds.push(
-            normalizedId
+async function toggleFavoriteListing(
+    listingId
+) {
+    const token =
+        localStorage.getItem(
+            "royalGarageToken"
         );
-    }
 
+    if (!token) {
+        alert(
+            "Спочатку увійдіть у профіль."
+        );
 
-    if (!saveFavoriteListings()) {
         return;
     }
 
+    const normalizedId =
+        String(listingId);
 
-    renderListings();
+    const isFavorite =
+        favoriteListingIds.includes(
+            normalizedId
+        );
+
+    try {
+        const response =
+            await fetch(
+                `/api/market/favorites/${encodeURIComponent(
+                    normalizedId
+                )}`,
+                {
+                    method:
+                        isFavorite
+                            ? "DELETE"
+                            : "POST",
+
+                    headers: {
+                        Authorization:
+                            `Bearer ${token}`
+                    }
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося змінити обране."
+            );
+        }
+
+        if (isFavorite) {
+            favoriteListingIds =
+                favoriteListingIds.filter(
+                    (id) =>
+                        id !==
+                        normalizedId
+                );
+        } else {
+            favoriteListingIds.push(
+                normalizedId
+            );
+        }
+
+        renderListings();
+
+    } catch (error) {
+        console.error(
+            "Market favorite toggle error:",
+            error
+        );
+
+        alert(
+            error.message ||
+            "Не вдалося змінити обране."
+        );
+    }
 }
 
 let cars = [];
@@ -4141,7 +4196,12 @@ updatePhotosCounter();
 
 loadUsdRate();
 
-renderListings();
+async function initializeMarket() {
+    await loadFavoriteListingsFromServer();
+    await loadMarketListings();
+}
+
+initializeMarket();
 
 
 /* =====================================================
