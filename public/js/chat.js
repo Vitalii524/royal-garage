@@ -1,7 +1,5 @@
 "use strict";
 
-const MESSAGES_STORAGE_KEY = "royalGarageMessages";
-const LISTINGS_STORAGE_KEY = "royalGarageMarketListings";
 
 const MAX_IMAGE_FILE_SIZE = 20 * 1024 * 1024;
 const MAX_VIDEO_FILE_SIZE = 1.5 * 1024 * 1024;
@@ -72,60 +70,6 @@ let isSendingMessage = false;
 let isFirstMessagesRender = true;
 let previousConversationSignature = "";
 let chatRefreshInterval = null;
-
-
-/* =========================================================
-   LOCAL STORAGE
-========================================================= */
-
-function readStorage(key) {
-    try {
-        const value =
-            localStorage.getItem(key);
-
-        if (!value) {
-            return [];
-        }
-
-        const parsedValue =
-            JSON.parse(value);
-
-        return Array.isArray(parsedValue)
-            ? parsedValue
-            : [];
-    } catch (error) {
-        console.error(
-            "Помилка читання даних:",
-            error
-        );
-
-        return [];
-    }
-}
-
-function saveStorage(key, value) {
-    try {
-        localStorage.setItem(
-            key,
-            JSON.stringify(value)
-        );
-
-        return true;
-    } catch (error) {
-        console.error(
-            "Помилка збереження даних:",
-            error
-        );
-
-        showFileError(
-            "У браузері недостатньо місця. " +
-            "Видаліть частину старих повідомлень " +
-            "або виберіть менший файл."
-        );
-
-        return false;
-    }
-}
 
 
 /* =========================================================
@@ -800,54 +744,59 @@ if (!currentUser) {
        ПРОЧИТАННЯ ПОВІДОМЛЕНЬ
     ===================================================== */
 
-    function markIncomingMessagesAsRead() {
+    async function markIncomingMessagesAsRead() {
         if (
             !chatPartnerId ||
+            !listing?.id ||
             document.hidden
         ) {
             return;
         }
-
-        const messages =
-            readStorage(
-                MESSAGES_STORAGE_KEY
-            );
-
-        let wasChanged = false;
-
-        const readAt =
-            new Date().toISOString();
-
-        messages.forEach(
-            (message) => {
-                const belongsToConversation =
-                    String(
-                        message.listingId
-                    ) ===
-                        String(listing.id) &&
-                    String(
-                        message.senderId
-                    ) ===
-                        String(chatPartnerId) &&
-                    String(
-                        message.receiverId
-                    ) ===
-                        String(currentUserId);
-
-                if (
-                    belongsToConversation &&
-                    !message.readAt
-                ) {
-                    message.readAt = readAt;
-                    wasChanged = true;
-                }
+    
+        try {
+            const token =
+                localStorage.getItem(
+                    "royalGarageToken"
+                );
+    
+            const response =
+                await fetch(
+                    "/api/chat/messages/read",
+                    {
+                        method: "PATCH",
+    
+                        headers: {
+                            "Content-Type":
+                                "application/json",
+    
+                            Authorization:
+                                `Bearer ${token}`
+                        },
+    
+                        body: JSON.stringify({
+                            listingId:
+                                listing.id,
+    
+                            partnerId:
+                                chatPartnerId
+                        })
+                    }
+                );
+    
+            const data =
+                await response.json();
+    
+            if (!response.ok) {
+                throw new Error(
+                    data.message ||
+                    "Не вдалося позначити повідомлення прочитаними."
+                );
             }
-        );
-
-        if (wasChanged) {
-            saveStorage(
-                MESSAGES_STORAGE_KEY,
-                messages
+    
+        } catch (error) {
+            console.error(
+                "Chat messages read update error:",
+                error
             );
         }
     }
@@ -856,111 +805,134 @@ if (!currentUser) {
     /* =====================================================
        ОТРИМАННЯ ДІАЛОГУ
     ===================================================== */
-
-    function getConversationMessages() {
-        const messages =
-            readStorage(
-                MESSAGES_STORAGE_KEY
-            );
-
-        return messages
-            .filter((message) => {
-                const sameListing =
-                    String(
-                        message.listingId
-                    ) ===
-                    String(listing.id);
-
-                const senderId =
-                    String(
-                        message.senderId
-                    );
-
-                const receiverId =
-                    String(
-                        message.receiverId
-                    );
-
-                const betweenUsers =
-                    (
-                        senderId ===
-                            currentUserId &&
-                        receiverId ===
-                            chatPartnerId
-                    ) ||
-                    (
-                        senderId ===
-                            chatPartnerId &&
-                        receiverId ===
-                            currentUserId
-                    );
-
-                return (
-                    sameListing &&
-                    betweenUsers
+    async function getConversationMessages() {
+        if (
+            !listing?.id ||
+            !chatPartnerId
+        ) {
+            return [];
+        }
+    
+        try {
+            const token =
+                localStorage.getItem(
+                    "royalGarageToken"
                 );
-            })
-            .sort(
-                (
-                    firstMessage,
-                    secondMessage
-                ) =>
-                    new Date(
-                        firstMessage.createdAt
-                    ) -
-                    new Date(
-                        secondMessage.createdAt
-                    )
+    
+            const response =
+                await fetch(
+                    `/api/chat/messages?listingId=${encodeURIComponent(
+                        listing.id
+                    )}&partnerId=${encodeURIComponent(
+                        chatPartnerId
+                    )}`,
+                    {
+                        headers: {
+                            Authorization:
+                                `Bearer ${token}`
+                        }
+                    }
+                );
+    
+            const data =
+                await response.json();
+    
+            if (!response.ok) {
+                throw new Error(
+                    data.message ||
+                    "Не вдалося завантажити повідомлення."
+                );
+            }
+    
+            return Array.isArray(data.messages)
+                ? data.messages.map(
+                    (message) => ({
+                        ...message,
+    
+                        listingId:
+                            message.listing_id ??
+                            message.listingId,
+    
+                        senderId:
+                            message.sender_id ??
+                            message.senderId,
+    
+                        receiverId:
+                            message.receiver_id ??
+                            message.receiverId,
+    
+                        readAt:
+                            message.read_at ??
+                            message.readAt,
+    
+                        editedAt:
+                            message.edited_at ??
+                            message.editedAt,
+    
+                        deletedAt:
+                            message.deleted_at ??
+                            message.deletedAt,
+    
+                        createdAt:
+                            message.created_at ??
+                            message.createdAt
+                    })
+                )
+                : [];
+    
+        } catch (error) {
+            console.error(
+                "Chat messages load error:",
+                error
             );
+    
+            return [];
+        }
     }
-
 
     /* =====================================================
        РЕДАГУВАННЯ
     ===================================================== */
-
-    function editMessage(messageId) {
+    async function editMessage(messageId) {
         closeAllMessageMenus();
-
-        const messages =
-            readStorage(
-                MESSAGES_STORAGE_KEY
-            );
-
+    
+        const conversation =
+            await getConversationMessages();
+    
         const message =
-            messages.find(
+            conversation.find(
                 (item) =>
                     String(item.id) ===
                     String(messageId)
             );
-
+    
         if (!message) {
             alert(
                 "Повідомлення не знайдено."
             );
-
+    
             return;
         }
-
+    
         if (
             String(message.senderId) !==
-            currentUserId
+            String(currentUserId)
         ) {
             alert(
                 "Можна редагувати лише власні повідомлення."
             );
-
+    
             return;
         }
-
+    
         if (message.deletedAt) {
             alert(
                 "Видалене повідомлення не можна редагувати."
             );
-
+    
             return;
         }
-
+    
         if (
             !message.text ||
             !message.text.trim()
@@ -968,128 +940,190 @@ if (!currentUser) {
             alert(
                 "У повідомленні немає тексту для редагування."
             );
-
+    
             return;
         }
-
+    
         const editedText =
             window.prompt(
                 "Редагування повідомлення:",
                 message.text
             );
-
+    
         if (editedText === null) {
             return;
         }
-
+    
         const normalizedText =
             editedText.trim();
-
+    
         if (!normalizedText) {
             alert(
                 "Повідомлення не може бути порожнім."
             );
-
+    
             return;
         }
-
+    
         if (
             normalizedText ===
             message.text.trim()
         ) {
             return;
         }
-
-        message.text =
-            normalizedText;
-
-        message.editedAt =
-            new Date().toISOString();
-
-        const wasSaved =
-            saveStorage(
-                MESSAGES_STORAGE_KEY,
-                messages
-            );
-
-        if (wasSaved) {
-            renderMessages({
+    
+        try {
+            const token =
+                localStorage.getItem(
+                    "royalGarageToken"
+                );
+    
+            const response =
+                await fetch(
+                    `/api/chat/messages/${encodeURIComponent(
+                        messageId
+                    )}`,
+                    {
+                        method: "PATCH",
+    
+                        headers: {
+                            "Content-Type":
+                                "application/json",
+    
+                            Authorization:
+                                `Bearer ${token}`
+                        },
+    
+                        body:
+                            JSON.stringify({
+                                text:
+                                    normalizedText
+                            })
+                    }
+                );
+    
+            const data =
+                await response.json();
+    
+            if (!response.ok) {
+                throw new Error(
+                    data.message ||
+                    "Не вдалося відредагувати повідомлення."
+                );
+            }
+    
+            await renderMessages({
                 forceRender: true,
                 preservePosition: true
             });
+    
+        } catch (error) {
+            console.error(
+                "Chat message edit error:",
+                error
+            );
+    
+            alert(
+                error.message ||
+                "Не вдалося відредагувати повідомлення."
+            );
         }
     }
-
-
     /* =====================================================
        ВИДАЛЕННЯ
     ===================================================== */
 
-    function deleteMessage(messageId) {
+    async function deleteMessage(messageId) {
         closeAllMessageMenus();
-
-        const messages =
-            readStorage(
-                MESSAGES_STORAGE_KEY
-            );
-
+    
+        const conversation =
+            await getConversationMessages();
+    
         const message =
-            messages.find(
+            conversation.find(
                 (item) =>
                     String(item.id) ===
                     String(messageId)
             );
-
+    
         if (!message) {
             alert(
                 "Повідомлення не знайдено."
             );
-
+    
             return;
         }
-
+    
         if (
             String(message.senderId) !==
-            currentUserId
+            String(currentUserId)
         ) {
             alert(
                 "Можна видаляти лише власні повідомлення."
             );
-
+    
             return;
         }
-
+    
         if (message.deletedAt) {
             return;
         }
-
+    
         const shouldDelete =
             window.confirm(
                 "Видалити це повідомлення?"
             );
-
+    
         if (!shouldDelete) {
             return;
         }
-
-        message.text = "";
-        message.attachment = null;
-        message.editedAt = null;
-
-        message.deletedAt =
-            new Date().toISOString();
-
-        const wasSaved =
-            saveStorage(
-                MESSAGES_STORAGE_KEY,
-                messages
-            );
-
-        if (wasSaved) {
-            renderMessages({
+    
+        try {
+            const token =
+                localStorage.getItem(
+                    "royalGarageToken"
+                );
+    
+            const response =
+                await fetch(
+                    `/api/chat/messages/${encodeURIComponent(
+                        messageId
+                    )}`,
+                    {
+                        method: "DELETE",
+    
+                        headers: {
+                            Authorization:
+                                `Bearer ${token}`
+                        }
+                    }
+                );
+    
+            const data =
+                await response.json();
+    
+            if (!response.ok) {
+                throw new Error(
+                    data.message ||
+                    "Не вдалося видалити повідомлення."
+                );
+            }
+    
+            await renderMessages({
                 forceRender: true,
                 preservePosition: true
             });
+    
+        } catch (error) {
+            console.error(
+                "Chat message delete error:",
+                error
+            );
+    
+            alert(
+                error.message ||
+                "Не вдалося видалити повідомлення."
+            );
         }
     }
 
@@ -1214,7 +1248,7 @@ if (!currentUser) {
        ВИВЕДЕННЯ ПОВІДОМЛЕНЬ
     ===================================================== */
 
-    function renderMessages(
+    async function renderMessages(
         options = {}
     ) {
         if (
@@ -1242,7 +1276,7 @@ if (!currentUser) {
         markIncomingMessagesAsRead();
 
         const conversation =
-            getConversationMessages();
+           await getConversationMessages();
 
         const conversationSignature =
             createConversationSignature(
@@ -1474,28 +1508,27 @@ if (!currentUser) {
     /* =====================================================
        НАДСИЛАННЯ
     ===================================================== */
-
     async function sendMessage(
         event
     ) {
         event.preventDefault();
-
+    
         if (
             isSendingMessage ||
             !chatPartnerId
         ) {
             return;
         }
-
+    
         clearFileError();
-
+    
         const text =
             chatMessageInput
                 ? chatMessageInput
                     .value
                     .trim()
                 : "";
-
+    
         if (
             !text &&
             !selectedAttachment
@@ -1503,91 +1536,110 @@ if (!currentUser) {
             showFileError(
                 "Напишіть повідомлення або додайте файл."
             );
-
+    
             return;
         }
-
+    
         isSendingMessage = true;
-
+    
         if (chatSubmitButton) {
             chatSubmitButton.disabled = true;
             chatSubmitButton.textContent =
                 "Надсилання...";
         }
-
+    
         try {
-            const messages =
-                readStorage(
-                    MESSAGES_STORAGE_KEY
+            const token =
+                localStorage.getItem(
+                    "royalGarageToken"
                 );
-
+    
             const newMessage = {
                 id: generateMessageId(),
                 listingId: listing.id,
-                senderId: currentUser.id,
                 receiverId: chatPartnerId,
                 text,
-                readAt: null,
-                editedAt: null,
-                deletedAt: null,
-                createdAt:
-                    new Date().toISOString()
+                attachment: null
             };
-
+    
             if (selectedAttachment) {
                 newMessage.attachment = {
                     type:
                         selectedAttachment.type,
-
+    
                     mimeType:
                         selectedAttachment.mimeType,
-
+    
                     name:
                         selectedAttachment.name,
-
+    
                     data:
                         selectedAttachment.data
                 };
             }
-
-            messages.push(newMessage);
-
-            const wasSaved =
-                saveStorage(
-                    MESSAGES_STORAGE_KEY,
-                    messages
+    
+            const response =
+                await fetch(
+                    "/api/chat/messages",
+                    {
+                        method: "POST",
+    
+                        headers: {
+                            "Content-Type":
+                                "application/json",
+    
+                            Authorization:
+                                `Bearer ${token}`
+                        },
+    
+                        body:
+                            JSON.stringify(
+                                newMessage
+                            )
+                    }
                 );
-
-            if (wasSaved) {
-                if (chatMessageInput) {
-                    chatMessageInput.value = "";
-
-                    chatMessageInput.style.height =
-                        "auto";
-                }
-
-                clearSelectedAttachment();
-
-                renderMessages({
-                    forceScrollBottom: true,
-                    forceRender: true
-                });
+    
+            const data =
+                await response.json();
+    
+            if (!response.ok) {
+                throw new Error(
+                    data.message ||
+                    "Не вдалося надіслати повідомлення."
+                );
             }
+    
+            if (chatMessageInput) {
+                chatMessageInput.value = "";
+    
+                chatMessageInput.style.height =
+                    "auto";
+            }
+    
+            clearSelectedAttachment();
+    
+            await renderMessages({
+                forceScrollBottom: true,
+                forceRender: true
+            });
+    
         } catch (error) {
             console.error(
                 "Помилка надсилання повідомлення:",
                 error
             );
-
+    
             showFileError(
+                error.message ||
                 "Не вдалося надіслати повідомлення."
             );
+    
         } finally {
             isSendingMessage = false;
-
+    
             if (chatSubmitButton) {
                 chatSubmitButton.disabled = false;
-
+    
                 chatSubmitButton.textContent =
                     "Надіслати";
             }
@@ -1654,18 +1706,6 @@ if (!currentUser) {
                 },
                 CHAT_REFRESH_INTERVAL
             );
-
-        window.addEventListener(
-            "storage",
-            (event) => {
-                if (
-                    event.key ===
-                    MESSAGES_STORAGE_KEY
-                ) {
-                    renderMessages();
-                }
-            }
-        );
 
         document.addEventListener(
             "visibilitychange",
