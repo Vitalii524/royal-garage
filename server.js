@@ -726,6 +726,66 @@ app.get(
 );
 
 app.get(
+    "/api/sellers/:sellerId/profile",
+    async (req, res) => {
+        try {
+            const { sellerId } =
+                req.params;
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        name,
+                        city,
+                        phone,
+                        telegram,
+                        profile_photo,
+                        show_phone,
+                        show_telegram,
+                        created_at
+                    FROM users
+                    WHERE id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        sellerId
+                    ]
+                );
+
+            if (
+                result.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Продавця не знайдено."
+                });
+            }
+
+            res.json({
+                ok: true,
+                seller:
+                    result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "Seller public profile load error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити профіль продавця."
+            });
+        }
+    }
+);
+
+app.get(
     "/api/sellers/:sellerId/reviews",
     async (req, res) => {
         try {

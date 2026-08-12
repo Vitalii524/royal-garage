@@ -4,15 +4,6 @@
    ROYAL GARAGE — SELLER.JS
    ========================= */
 
-const LISTINGS_KEY =
-    "royalGarageMarketListings";
-
-const SELLER_RATINGS_KEY =
-    "royalGarageSellerRatings";
-
-const SELLER_PROFILES_KEY =
-    "royalGarageSellerProfiles";
-
 const CURRENT_USER_KEY =
     "royalGarageCurrentUser";
 
@@ -261,7 +252,6 @@ const requestedListingId =
 ========================= */
 
 let listings = [];
-let ratings = {};
 let sellerProfiles = {};
 let currentUser = null;
 
@@ -269,12 +259,6 @@ async function loadSellerPage() {
     ratings =
     readJson(
         SELLER_RATINGS_KEY,
-        {}
-    );
-
-sellerProfiles =
-    readJson(
-        SELLER_PROFILES_KEY,
         {}
     );
 
@@ -415,16 +399,61 @@ currentUser =
         ) ||
         sellerListings[0];
 
+        let storedSellerProfile = {};
 
-    const storedSellerProfile =
-        sellerProfiles[sellerId] &&
-        typeof sellerProfiles[
-            sellerId
-        ] === "object"
-            ? sellerProfiles[
-                sellerId
-            ]
-            : {};
+        try {
+            const profileResponse =
+                await fetch(
+                    `/api/sellers/${encodeURIComponent(
+                        sellerId
+                    )}/profile`
+                );
+        
+            const profileData =
+                await profileResponse.json();
+        
+            if (!profileResponse.ok) {
+                throw new Error(
+                    profileData.message ||
+                    "Не вдалося завантажити профіль продавця."
+                );
+            }
+        
+            const serverSeller =
+                profileData.seller || {};
+        
+            storedSellerProfile = {
+                ...serverSeller,
+        
+                profilePhoto:
+                    serverSeller.profile_photo ||
+                    "",
+        
+                photo:
+                    serverSeller.profile_photo ||
+                    "",
+        
+                showPhone:
+                    Boolean(
+                        serverSeller.show_phone
+                    ),
+        
+                showTelegram:
+                    Boolean(
+                        serverSeller.show_telegram
+                    ),
+        
+                createdAt:
+                    serverSeller.created_at ||
+                    ""
+            };
+        
+        } catch (error) {
+            console.error(
+                "Seller profile load error:",
+                error
+            );
+        }
 
 
     const sellerProfile = {
@@ -446,7 +475,7 @@ currentUser =
         sellerProfile
     );
 
-    renderRating();
+   await renderRating();
 
     renderContacts(
         sellerProfile,
@@ -457,7 +486,7 @@ currentUser =
         sellerListings
     );
 
-    renderReviews();
+    await renderReviews();
 
     configureChatButton(
         mainListing
@@ -646,73 +675,73 @@ function renderVerification(
 /* =========================
    РЕЙТИНГ
    ========================= */
-
-function renderRating() {
-    const sellerRatingData =
-        ratings[sellerId] &&
-        typeof ratings[sellerId] ===
-            "object"
-                ? ratings[sellerId]
-                : {};
-
-    const votes =
-        sellerRatingData.votes &&
-        typeof sellerRatingData.votes ===
-            "object"
-                ? Object.values(
-                    sellerRatingData.votes
-                )
-                : [];
-
-    const validVotes =
-        votes
-            .map(Number)
-            .filter(
-                (rating) =>
-                    Number.isFinite(rating) &&
-                    rating >= 1 &&
-                    rating <= 5
-            );
-
+   async function renderRating() {
     if (
-        validVotes.length === 0
+        !elements.rating ||
+        !elements.ratingCount
     ) {
-        if (elements.rating) {
-            elements.rating.textContent =
-                "—";
-        }
-
-        if (elements.ratingCount) {
-            elements.ratingCount.textContent =
-                "Новий продавець";
-        }
-
         return;
     }
 
-    const total =
-        validVotes.reduce(
-            (sum, rating) =>
-                sum + rating,
-            0
-        );
+    try {
+        const response =
+            await fetch(
+                `/api/sellers/${encodeURIComponent(
+                    sellerId
+                )}/rating`
+            );
 
-    const average =
-        total / validVotes.length;
+        const data =
+            await response.json();
 
-    if (elements.rating) {
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити рейтинг продавця."
+            );
+        }
+
+        const average =
+            Number(
+                data.rating?.average || 0
+            );
+
+        const count =
+            Number(
+                data.rating?.count || 0
+            );
+
+        if (count === 0) {
+            elements.rating.textContent =
+                "—";
+
+            elements.ratingCount.textContent =
+                "Новий продавець";
+
+            return;
+        }
+
         elements.rating.textContent =
             average.toFixed(1);
-    }
 
-    if (elements.ratingCount) {
         elements.ratingCount.textContent =
             `· ${getRatingCountLabel(
-                validVotes.length
+                count
             )}`;
+
+    } catch (error) {
+        console.error(
+            "Seller rating load error:",
+            error
+        );
+
+        elements.rating.textContent =
+            "—";
+
+        elements.ratingCount.textContent =
+            "Новий продавець";
     }
 }
-
 
 /* =========================
    КОНТАКТИ
@@ -922,117 +951,111 @@ function renderListings(
 /* =========================
    ВІДГУКИ
    ========================= */
-
-function renderReviews() {
+   async function renderReviews() {
     if (!elements.reviews) {
         return;
     }
 
-    const sellerRatingData =
-        ratings[sellerId] &&
-        typeof ratings[sellerId] ===
-            "object"
-                ? ratings[sellerId]
-                : {};
-
-    const reviewsObject =
-        sellerRatingData.reviews &&
-        typeof sellerRatingData.reviews ===
-            "object"
-                ? sellerRatingData.reviews
-                : {};
-
-    const reviews =
-        Object.values(
-            reviewsObject
-        )
-            .filter(
-                (review) =>
-                    review &&
-                    String(
-                        review.text || ""
-                    ).trim()
-            )
-            .sort(
-                (
-                    firstReview,
-                    secondReview
-                ) =>
-                    new Date(
-                        secondReview.updatedAt ||
-                        0
-                    ) -
-                    new Date(
-                        firstReview.updatedAt ||
-                        0
-                    )
+    try {
+        const response =
+            await fetch(
+                `/api/sellers/${encodeURIComponent(
+                    sellerId
+                )}/reviews`
             );
 
-    if (
-        reviews.length === 0
-    ) {
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити відгуки продавця."
+            );
+        }
+
+        const reviews =
+            Array.isArray(
+                data.reviews
+            )
+                ? data.reviews
+                : [];
+
+        if (reviews.length === 0) {
+            elements.reviews.innerHTML = `
+                <p>
+                    Відгуків поки немає.
+                </p>
+            `;
+
+            return;
+        }
+
+        elements.reviews.innerHTML =
+            reviews
+                .map(
+                    (review) => `
+                        <article class="seller-public-review">
+
+                            <div class="seller-public-review-header">
+
+                                <strong>
+                                    ${escapeHtml(
+                                        review.user_name ||
+                                        "Користувач"
+                                    )}
+                                </strong>
+
+                                <span>
+                                    ${formatDate(
+                                        review.updated_at
+                                    )}
+                                </span>
+
+                            </div>
+
+                            <div class="seller-public-review-stars">
+                                ${[1, 2, 3, 4, 5]
+                                    .map(
+                                        (star) => `
+                                            <span class="${
+                                                star <=
+                                                Number(
+                                                    review.rating || 0
+                                                )
+                                                    ? "is-filled"
+                                                    : ""
+                                            }">
+                                                ★
+                                            </span>
+                                        `
+                                    )
+                                    .join("")}
+                            </div>
+
+                            <p>
+                                ${escapeHtml(
+                                    review.review || ""
+                                )}
+                            </p>
+
+                        </article>
+                    `
+                )
+                .join("");
+
+    } catch (error) {
+        console.error(
+            "Seller reviews load error:",
+            error
+        );
+
         elements.reviews.innerHTML = `
             <p>
-                Відгуків поки немає.
+                Не вдалося завантажити відгуки.
             </p>
         `;
-
-        return;
     }
-
-    elements.reviews.innerHTML =
-        reviews
-            .map(
-                (review) => `
-                    <article class="seller-public-review">
-
-                        <div class="seller-public-review-header">
-
-                            <strong>
-                                ${escapeHtml(
-                                    review.userName ||
-                                    "Користувач"
-                                )}
-                            </strong>
-
-                            <span>
-                                ${formatDate(
-                                    review.updatedAt
-                                )}
-                            </span>
-
-                        </div>
-
-                        <div class="seller-public-review-stars">
-                            ${[1, 2, 3, 4, 5]
-                                .map(
-                                    (star) => `
-                                        <span class="${
-                                            star <=
-                                            Number(
-                                                review.rating ||
-                                                0
-                                            )
-                                                ? "is-filled"
-                                                : ""
-                                        }">
-                                            ★
-                                        </span>
-                                    `
-                                )
-                                .join("")}
-                        </div>
-
-                        <p>
-                            ${escapeHtml(
-                                review.text
-                            )}
-                        </p>
-
-                    </article>
-                `
-            )
-            .join("");
 }
 
 
