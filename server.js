@@ -936,14 +936,12 @@ app.get(
         }
     }
 );
-
 app.post(
     "/api/chat/messages",
     requireAuth,
     async (req, res) => {
         try {
             const {
-                id,
                 listingId,
                 receiverId,
                 text,
@@ -951,7 +949,6 @@ app.post(
             } = req.body;
 
             if (
-                !id ||
                 !listingId ||
                 !receiverId
             ) {
@@ -961,6 +958,9 @@ app.post(
                         "Недостатньо даних для повідомлення."
                 });
             }
+
+            const messageId =
+                crypto.randomUUID();
 
             const result =
                 await pool.query(
@@ -984,7 +984,7 @@ app.post(
                     RETURNING *
                     `,
                     [
-                        id,
+                        messageId,
                         listingId,
                         req.user.userId,
                         receiverId,
@@ -1013,7 +1013,6 @@ app.post(
         }
     }
 );
-
 app.patch(
     "/api/chat/messages/read",
     requireAuth,
