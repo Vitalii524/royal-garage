@@ -642,17 +642,80 @@ function createMessageAttachment(
    ОГОЛОШЕННЯ
 ========================================================= */
 
-const listings =
-    readStorage(
-        LISTINGS_STORAGE_KEY
-    );
+let listing = null;
 
-const listing =
-    listings.find(
-        (item) =>
-            String(item.id) ===
-            String(listingId)
+try {
+    const response =
+        await fetch(
+            `/api/market/listings/${encodeURIComponent(
+                listingId
+            )}`
+        );
+
+    const data =
+        await response.json();
+
+    if (!response.ok) {
+        throw new Error(
+            data.message ||
+            "Не вдалося завантажити оголошення."
+        );
+    }
+
+    const item =
+        data.listing;
+
+    listing = {
+        ...item,
+
+        ownerId:
+            item.owner_id ??
+            item.ownerId,
+
+        sellerName:
+            item.seller_name ??
+            item.sellerName,
+
+        carId:
+            item.car_id ??
+            item.carId,
+
+        activePhotoIndex:
+            item.active_photo_index ??
+            item.activePhotoIndex ??
+            0,
+
+        powerType:
+            item.power_type ??
+            item.powerType,
+
+        powerValue:
+            item.power_value ??
+            item.powerValue,
+
+        priceUsd:
+            item.price_usd ??
+            item.priceUsd,
+
+        priceUah:
+            item.price_uah ??
+            item.priceUah,
+
+        createdAt:
+            item.created_at ??
+            item.createdAt,
+
+        updatedAt:
+            item.updated_at ??
+            item.updatedAt
+    };
+
+} catch (error) {
+    console.error(
+        "Chat listing load error:",
+        error
     );
+}
 
 if (chatBackLink) {
     chatBackLink.href = listingId
