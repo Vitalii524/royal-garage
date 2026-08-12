@@ -252,16 +252,10 @@ const requestedListingId =
 ========================= */
 
 let listings = [];
-let sellerProfiles = {};
 let currentUser = null;
 
 async function loadSellerPage() {
-    ratings =
-    readJson(
-        SELLER_RATINGS_KEY,
-        {}
-    );
-
+   
 currentUser =
     readJson(
         CURRENT_USER_KEY,
