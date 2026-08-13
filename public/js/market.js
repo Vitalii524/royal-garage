@@ -858,94 +858,91 @@ if (listingModel) {
    LOCAL STORAGE
 ===================================================== */
 
-const CARS_STORAGE_KEY =
-    `royalGarageCars_${currentUser.id}`;
-
-
-const MARKET_STORAGE_KEY =
-    "royalGarageMarketListings";
-    
-    const SELLER_RATINGS_KEY =
-    "royalGarageSellerRatings";
-
-
-function loadSellerRatings() {
-    try {
-        const storedRatings =
-            JSON.parse(
-                localStorage.getItem(
-                    SELLER_RATINGS_KEY
-                )
-            ) || {};
-
-        return (
-            storedRatings &&
-            typeof storedRatings === "object"
-        )
-            ? storedRatings
-            : {};
-    } catch (error) {
-        console.error(
-            "Не вдалося завантажити рейтинги продавців:",
-            error
-        );
-
-        return {};
-    }
-}
-
-
-function getSellerRatingData(
+async function getSellerRatingData(
     sellerId
 ) {
-    const ratings =
-        loadSellerRatings();
+    const normalizedSellerId =
+        String(
+            sellerId || ""
+        );
 
-    const sellerData =
-        ratings[
-            String(sellerId || "")
-        ];
-
-    const votes =
-        sellerData?.votes &&
-        typeof sellerData.votes === "object"
-            ? Object.values(
-                sellerData.votes
-            )
-                .map(Number)
-                .filter(
-                    (rating) =>
-                        Number.isFinite(
-                            rating
-                        ) &&
-                        rating >= 1 &&
-                        rating <= 5
-                )
-            : [];
-
-    if (votes.length === 0) {
+    if (!normalizedSellerId) {
         return {
             average: 0,
             count: 0
         };
     }
 
-    const total =
-        votes.reduce(
-            (sum, rating) =>
-                sum + rating,
-            0
+    if (
+        sellerRatingsCache.has(
+            normalizedSellerId
+        )
+    ) {
+        return sellerRatingsCache.get(
+            normalizedSellerId
+        );
+    }
+
+    try {
+        const response =
+            await fetch(
+                `/api/sellers/${
+                    encodeURIComponent(
+                        normalizedSellerId
+                    )
+                }/rating`
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити рейтинг."
+            );
+        }
+
+        const ratingData = {
+            average:
+                Number(
+                    data.rating?.average ||
+                    0
+                ),
+
+            count:
+                Number(
+                    data.rating?.count ||
+                    0
+                )
+        };
+
+        sellerRatingsCache.set(
+            normalizedSellerId,
+            ratingData
         );
 
-    return {
-        average:
-            total / votes.length,
+        return ratingData;
 
-        count:
-            votes.length
-    };
+    } catch (error) {
+        console.error(
+            "Market seller rating load error:",
+            error
+        );
+
+        const fallback = {
+            average: 0,
+            count: 0
+        };
+
+        sellerRatingsCache.set(
+            normalizedSellerId,
+            fallback
+        );
+
+        return fallback;
+    }
 }
-
 
 function getRatingCountLabel(
     count
@@ -979,9 +976,6 @@ function getRatingCountLabel(
 
     return `${value} оцінок`;
 }
-
-const FAVORITES_STORAGE_KEY =
-`royalGarageFavoriteListings_${currentUser.id}`;
 
 let favoriteListingIds = [];
 
@@ -1132,6 +1126,9 @@ let cars = [];
 
 let listings = [];
 
+const sellerRatingsCache =
+    new Map();
+
 async function loadMarketListings() {
     try {
         const response = await fetch(
@@ -1168,24 +1165,62 @@ async function loadMarketListings() {
 }
 
 
-try {
-    cars =
-        JSON.parse(
-            localStorage.getItem(
-                CARS_STORAGE_KEY
-            )
-        ) || [];
-} catch (error) {
-    console.error(
-        "Не вдалося завантажити автомобілі:",
-        error
-    );
+async function loadGarageCarsForMarket() {
+    const token =
+        localStorage.getItem(
+            "royalGarageToken"
+        );
 
-    cars = [];
+    if (!token) {
+        cars = [];
+        fillCarSelect();
+        return;
+    }
+
+    try {
+        const response =
+            await fetch(
+                "/api/garage/cars",
+                {
+                    headers: {
+                        Authorization:
+                            `Bearer ${token}`
+                    }
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити автомобілі."
+            );
+        }
+
+        cars =
+            Array.isArray(
+                data.cars
+            )
+                ? data.cars
+                : [];
+
+        fillCarSelect();
+
+    } catch (error) {
+        console.error(
+            "Market garage load error:",
+            error
+        );
+
+        cars = [];
+        fillCarSelect();
+    }
 }
 
-
 loadMarketListings();
+loadGarageCarsForMarket();
 
 /* =====================================================
    РЕЖИМ РЕДАГУВАННЯ
@@ -3025,7 +3060,7 @@ document.addEventListener(
    ВІДОБРАЖЕННЯ ОГОЛОШЕНЬ
 ===================================================== */
 
-function renderListings() {
+async function renderListings() {
     if (!marketListings) {
         return;
     }
@@ -3127,8 +3162,10 @@ function renderListings() {
     }
 
 
-    sortedListings.forEach(
-        (listing) => {
+   for (
+    const listing of
+    sortedListings) 
+        {
             const card =
                 document.createElement(
                     "article"
@@ -3203,7 +3240,7 @@ function renderListings() {
                 "";
             
             const sellerRating =
-                getSellerRatingData(
+             await getSellerRatingData(
                     sellerId
                 );
 
@@ -3442,7 +3479,6 @@ marketCardPhoto?.addEventListener(
                 card
             );
         }
-    );
 }
 
 
