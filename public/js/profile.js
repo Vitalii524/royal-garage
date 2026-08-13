@@ -3368,16 +3368,16 @@ async function renderProfileSellerReviews() {
 
                                 <strong>
                                     ${escapeHtml(
-                                        review.user_name ||
+                                        review.userName ||
                                         "Користувач"
                                     )}
                                 </strong>
 
                                 <span>
                                     ${
-                                        review.updated_at
+                                        review.updatedAt
                                             ? new Date(
-                                                review.updated_at
+                                                review.updatedAt
                                             ).toLocaleDateString(
                                                 "uk-UA"
                                             )
@@ -3410,7 +3410,7 @@ async function renderProfileSellerReviews() {
 
                             <p>
                                 ${escapeHtml(
-                                    review.review || ""
+                                    review.text || ""
                                 )}
                             </p>
 
