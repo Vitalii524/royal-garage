@@ -1219,7 +1219,6 @@ async function loadGarageCarsForMarket() {
     }
 }
 
-loadMarketListings();
 loadGarageCarsForMarket();
 
 /* =====================================================
