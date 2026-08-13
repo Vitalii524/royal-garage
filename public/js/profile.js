@@ -567,14 +567,10 @@ let cars = [];
 
 const globalOpenChatsButton =
     document.getElementById("globalOpenChatsButton");
-    function updateGlobalChatsButton() {
-        if (!globalOpenChatsButton) {
-            return;
-        }
-    
-        globalOpenChatsButton.hidden =
-            cars.length > 0;
-    }
+
+const profileUnreadCount =
+    document.getElementById( "profileUnreadCount" );
+       
 let selectedCarId =
     cars[0]?.id ?? null;
 
@@ -5132,6 +5128,20 @@ async function renderMyChats() {
                     ) === currentUserId &&
                     !message.readAt
             ).length;
+
+            if (profileUnreadCount) {
+                if (totalUnread > 0) {
+                    profileUnreadCount.textContent =
+                        totalUnread > 99
+                            ? "99+"
+                            : String(totalUnread);
+            
+                    profileUnreadCount.hidden = false;
+                } else {
+                    profileUnreadCount.textContent = "";
+                    profileUnreadCount.hidden = true;
+                }
+            }
 
         if (elements.openChatsButton) {
             elements.openChatsButton.innerHTML =
