@@ -754,6 +754,145 @@ app.get(
     }
 );
 
+app.post(
+    "/api/sellers/:sellerId/rating",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const { sellerId } =
+                req.params;
+
+            const reviewerId =
+                req.user.userId;
+
+            const rating =
+                Number(
+                    req.body.rating
+                );
+
+            const reviewProvided =
+                Object.prototype
+                    .hasOwnProperty.call(
+                        req.body,
+                        "review"
+                    );
+
+            const review =
+                reviewProvided
+                    ? String(
+                        req.body.review || ""
+                    )
+                        .trim()
+                        .slice(0, 1000)
+                    : null;
+
+            if (
+                String(sellerId) ===
+                String(reviewerId)
+            ) {
+                return res
+                    .status(400)
+                    .json({
+                        ok: false,
+                        message:
+                            "Не можна оцінювати самого себе."
+                    });
+            }
+
+            if (
+                !Number.isInteger(
+                    rating
+                ) ||
+                rating < 1 ||
+                rating > 5
+            ) {
+                return res
+                    .status(400)
+                    .json({
+                        ok: false,
+                        message:
+                            "Оцінка має бути від 1 до 5."
+                    });
+            }
+
+            const result =
+                await pool.query(
+                    `
+                    INSERT INTO seller_ratings (
+                        id,
+                        seller_id,
+                        reviewer_id,
+                        rating,
+                        review
+                    )
+                    VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        $4,
+                        COALESCE(
+                            $5,
+                            ''
+                        )
+                    )
+
+                    ON CONFLICT (
+                        seller_id,
+                        reviewer_id
+                    )
+                    DO UPDATE SET
+                        rating =
+                            EXCLUDED.rating,
+
+                        review =
+                            CASE
+                                WHEN $5::text
+                                    IS NULL
+                                THEN
+                                    seller_ratings.review
+                                ELSE
+                                    EXCLUDED.review
+                            END,
+
+                        updated_at =
+                            NOW()
+
+                    RETURNING
+                        rating,
+                        review,
+                        created_at AS "createdAt",
+                        updated_at AS "updatedAt"
+                    `,
+                    [
+                        crypto.randomUUID(),
+                        sellerId,
+                        reviewerId,
+                        rating,
+                        review
+                    ]
+                );
+
+            res.json({
+                ok: true,
+                rating:
+                    result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "Seller rating save error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося зберегти оцінку або відгук."
+            });
+        }
+    }
+);
+
 app.get(
     "/api/sellers/:sellerId/profile",
     async (req, res) => {
@@ -825,10 +964,11 @@ app.get(
                 await pool.query(
                     `
                     SELECT
-                        sr.rating,
-                        sr.review,
-                        sr.updated_at,
-                        u.name AS user_name
+                    sr.reviewer_id AS "userId",
+                    sr.rating,
+                    sr.review AS "text",
+                    sr.updated_at AS "updatedAt",
+                    u.name AS "userName"
                     FROM seller_ratings sr
                     JOIN users u
                         ON u.id = sr.reviewer_id

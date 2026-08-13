@@ -6,178 +6,163 @@ const MARKET_STORAGE_KEY =
 
     /* ===== РЕПУТАЦІЯ ПРОДАВЦІВ ===== */
 
-const SELLER_RATINGS_STORAGE_KEY =
-"royalGarageSellerRatings";
+    async function getSellerRatingData(
+        sellerId
+    ) {
+        const normalizedSellerId =
+            String(
+                sellerId || ""
+            );
+    
+        if (!normalizedSellerId) {
+            return {
+                average: 0,
+                count: 0
+            };
+        }
+    
+        try {
+            const response =
+                await fetch(
+                    `/api/sellers/${
+                        encodeURIComponent(
+                            normalizedSellerId
+                        )
+                    }/rating`
+                );
+    
+            const data =
+                await response.json();
+    
+            if (!response.ok) {
+                throw new Error(
+                    data.message ||
+                    "Не вдалося завантажити рейтинг продавця."
+                );
+            }
+    
+            return {
+                average:
+                    Number(
+                        data.rating?.average ||
+                        0
+                    ),
+    
+                count:
+                    Number(
+                        data.rating?.count ||
+                        0
+                    )
+            };
+    
+        } catch (error) {
+            console.error(
+                "Listing seller rating load error:",
+                error
+            );
+    
+            return {
+                average: 0,
+                count: 0
+            };
+        }
+    }
 
 
-function loadSellerRatings() {
-try {
-    const savedRatings =
-        JSON.parse(
+    async function saveSellerVote(
+        sellerId,
+        voterId,
+        rating
+    ) {
+        const normalizedSellerId =
+            String(
+                sellerId || ""
+            );
+    
+        const normalizedRating =
+            Number(rating);
+    
+        if (
+            !normalizedSellerId ||
+            !Number.isInteger(
+                normalizedRating
+            ) ||
+            normalizedRating < 1 ||
+            normalizedRating > 5
+        ) {
+            return false;
+        }
+    
+        const token =
             localStorage.getItem(
-                SELLER_RATINGS_STORAGE_KEY
-            )
-        );
-
-    return savedRatings &&
-        typeof savedRatings === "object"
-            ? savedRatings
-            : {};
-} catch (error) {
-    console.error(
-        "Не вдалося завантажити рейтинги продавців:",
-        error
-    );
-
-    return {};
-}
-}
-
-
-function saveSellerRatings(ratings) {
-try {
-    localStorage.setItem(
-        SELLER_RATINGS_STORAGE_KEY,
-        JSON.stringify(ratings)
-    );
-
-    return true;
-} catch (error) {
-    console.error(
-        "Не вдалося зберегти рейтинг продавця:",
-        error
-    );
-
-    alert(
-        "Не вдалося зберегти оцінку."
-    );
-
-    return false;
-}
-}
-
-
-function getSellerRatingData(sellerId) {
-const ratings =
-    loadSellerRatings();
-
-const sellerKey =
-    String(sellerId || "");
-
-const sellerRating =
-    ratings[sellerKey];
-
-if (
-    !sellerRating ||
-    typeof sellerRating !== "object"
-) {
-    return {
-        votes: {},
-        average: 0,
-        count: 0
-    };
-}
-
-const votes =
-    sellerRating.votes &&
-    typeof sellerRating.votes === "object"
-        ? sellerRating.votes
-        : {};
-
-const values =
-    Object.values(votes)
-        .map(Number)
-        .filter(
-            (value) =>
-                Number.isInteger(value) &&
-                value >= 1 &&
-                value <= 5
-        );
-
-const average =
-    values.length > 0
-        ? values.reduce(
-            (sum, value) =>
-                sum + value,
-            0
-        ) / values.length
-        : 0;
-
-return {
-    votes,
-    average,
-    count: values.length
-};
-}
-
-
-function saveSellerVote(
-sellerId,
-voterId,
-ratingValue
-) {
-const normalizedSellerId =
-    String(sellerId || "");
-
-const normalizedVoterId =
-    String(voterId || "");
-
-const normalizedRating =
-    Number(ratingValue);
-
-if (
-    !normalizedSellerId ||
-    !normalizedVoterId ||
-    !Number.isInteger(
-        normalizedRating
-    ) ||
-    normalizedRating < 1 ||
-    normalizedRating > 5
-) {
-    return false;
-}
-
-const ratings =
-    loadSellerRatings();
-
-const currentSellerRating =
-    ratings[normalizedSellerId] &&
-    typeof ratings[
-        normalizedSellerId
-    ] === "object"
-        ? ratings[
-            normalizedSellerId
-        ]
-        : {};
-
-const currentVotes =
-    currentSellerRating.votes &&
-    typeof currentSellerRating
-        .votes === "object"
-        ? currentSellerRating.votes
-        : {};
-
-currentVotes[
-    normalizedVoterId
-] = normalizedRating;
-
-ratings[
-    normalizedSellerId
-] = {
-    ...currentSellerRating,
-    votes: currentVotes,
-    updatedAt:
-        new Date().toISOString()
-};
-
-return saveSellerRatings(
-    ratings
-);
-}
+                "royalGarageToken"
+            );
+    
+        if (!token) {
+            alert(
+                "Сесія недійсна. Увійдіть повторно."
+            );
+    
+            return false;
+        }
+    
+        try {
+            const response =
+                await fetch(
+                    `/api/sellers/${
+                        encodeURIComponent(
+                            normalizedSellerId
+                        )
+                    }/rating`,
+                    {
+                        method: "POST",
+    
+                        headers: {
+                            "Content-Type":
+                                "application/json",
+    
+                            Authorization:
+                                `Bearer ${token}`
+                        },
+    
+                        body:
+                            JSON.stringify({
+                                rating:
+                                    normalizedRating
+                            })
+                    }
+                );
+    
+            const data =
+                await response.json();
+    
+            if (!response.ok) {
+                throw new Error(
+                    data.message ||
+                    "Не вдалося зберегти оцінку."
+                );
+            }
+    
+            return true;
+    
+        } catch (error) {
+            console.error(
+                "Seller vote save error:",
+                error
+            );
+    
+            alert(
+                error.message ||
+                "Не вдалося зберегти оцінку."
+            );
+    
+            return false;
+        }
+    }
 
 /* ===== ЗБЕРЕЖЕННЯ ВІДГУКУ ПРО ПРОДАВЦЯ ===== */
 
-function saveSellerReview(
+async function saveSellerReview(
     sellerId,
     voterId,
     voterName,
@@ -198,103 +183,141 @@ function saveSellerReview(
             .trim()
             .slice(0, 1000);
 
-            if (
-                normalizedSellerId ===
-                normalizedVoterId
-            ) {
-                return false;
-            }
+    if (
+        normalizedSellerId ===
+        normalizedVoterId
+    ) {
+        return false;
+    }
 
     if (
         !normalizedSellerId ||
         !normalizedVoterId ||
-        !Number.isInteger(normalizedRating) ||
+        !Number.isInteger(
+            normalizedRating
+        ) ||
         normalizedRating < 1 ||
         normalizedRating > 5
     ) {
         return false;
     }
 
-    const ratings =
-        loadSellerRatings();
+    const token =
+        localStorage.getItem(
+            "royalGarageToken"
+        );
 
-    const sellerData =
-        ratings[normalizedSellerId] &&
-        typeof ratings[normalizedSellerId] === "object"
-            ? ratings[normalizedSellerId]
-            : {};
+    if (!token) {
+        alert(
+            "Сесія недійсна. Увійдіть повторно."
+        );
 
-    const votes =
-        sellerData.votes &&
-        typeof sellerData.votes === "object"
-            ? sellerData.votes
-            : {};
+        return false;
+    }
 
-    const reviews =
-        sellerData.reviews &&
-        typeof sellerData.reviews === "object"
-            ? sellerData.reviews
-            : {};
+    try {
+        const response =
+            await fetch(
+                `/api/sellers/${
+                    encodeURIComponent(
+                        normalizedSellerId
+                    )
+                }/rating`,
+                {
+                    method: "POST",
 
-    votes[normalizedVoterId] =
-        normalizedRating;
+                    headers: {
+                        "Content-Type":
+                            "application/json",
 
-    reviews[normalizedVoterId] = {
-        userId: normalizedVoterId,
+                        Authorization:
+                            `Bearer ${token}`
+                    },
 
-        userName:
-            String(voterName || "Користувач")
-                .trim()
-                .slice(0, 80),
+                    body:
+                        JSON.stringify({
+                            rating:
+                                normalizedRating,
 
-        rating: normalizedRating,
+                            review:
+                                normalizedReviewText
+                        })
+                }
+            );
 
-        text: normalizedReviewText,
+        const data =
+            await response.json();
 
-        updatedAt:
-            new Date().toISOString()
-    };
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося зберегти відгук."
+            );
+        }
 
-    ratings[normalizedSellerId] = {
-        ...sellerData,
-        votes,
-        reviews,
-        updatedAt:
-            new Date().toISOString()
-    };
+        return true;
 
-    return saveSellerRatings(ratings);
+    } catch (error) {
+        console.error(
+            "Seller review save error:",
+            error
+        );
+
+        alert(
+            error.message ||
+            "Не вдалося зберегти відгук."
+        );
+
+        return false;
+    }
 }
 
-
-function getSellerReviews(sellerId) {
-    const ratings =
-        loadSellerRatings();
-
-    const sellerData =
-        ratings[String(sellerId || "")];
-
-    const reviews =
-        sellerData?.reviews &&
-        typeof sellerData.reviews === "object"
-            ? sellerData.reviews
-            : {};
-
-    return Object.values(reviews)
-        .filter(
-            (review) =>
-                review &&
-                typeof review === "object"
-        )
-        .sort(
-            (firstReview, secondReview) =>
-                new Date(
-                    secondReview.updatedAt || 0
-                ) -
-                new Date(
-                    firstReview.updatedAt || 0
-                )
+async function getSellerReviews(
+    sellerId
+) {
+    const normalizedSellerId =
+        String(
+            sellerId || ""
         );
+
+    if (!normalizedSellerId) {
+        return [];
+    }
+
+    try {
+        const response =
+            await fetch(
+                `/api/sellers/${
+                    encodeURIComponent(
+                        normalizedSellerId
+                    )
+                }/reviews`
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити відгуки продавця."
+            );
+        }
+
+        return Array.isArray(
+            data.reviews
+        )
+            ? data.reviews
+            : [];
+
+    } catch (error) {
+        console.error(
+            "Listing seller reviews load error:",
+            error
+        );
+
+        return [];
+    }
 }
 
 
@@ -531,22 +554,15 @@ if (!listing) {
         /* ===== ДАНІ РЕПУТАЦІЇ ПРОДАВЦЯ ===== */
 
 const sellerRatingData =
-getSellerRatingData(
+await getSellerRatingData(
     listingOwnerId
 );
 
 
-const currentUserVote =
-currentUserId
-    ? Number(
-        sellerRatingData.votes[
-            String(currentUserId)
-        ] || 0
-    )
-    : 0
+const currentUserVote = 0;
 
     const sellerReviews =
-    getSellerReviews(
+   await getSellerReviews(
         listingOwnerId
     );
 
@@ -1307,7 +1323,7 @@ sellerRatingButtons.forEach(
 (button) => {
     button.addEventListener(
         "click",
-        () => {
+        async () => {
             const user =
                 typeof getCurrentUser ===
                 "function"
@@ -1363,7 +1379,7 @@ sellerRatingButtons.forEach(
 
 
             const saved =
-                saveSellerVote(
+               await saveSellerVote(
                     listingOwnerId,
                     userId,
                     ratingValue
@@ -1407,7 +1423,7 @@ sellerRatingButtons.forEach(
 
 
             const updatedRatingData =
-                getSellerRatingData(
+              await  getSellerRatingData(
                     listingOwnerId
                 );
 
@@ -1550,7 +1566,7 @@ if (
 if (saveSellerReviewButton) {
     saveSellerReviewButton.addEventListener(
         "click",
-        () => {
+        async () => {
             const user =
                 typeof getCurrentUser ===
                 "function"
@@ -1621,15 +1637,15 @@ if (saveSellerReviewButton) {
             }
 
             const saved =
-                saveSellerReview(
-                    listingOwnerId,
-                    userId,
-                    user.name ||
-                        user.email ||
-                        "Користувач",
-                    selectedRating,
-                    reviewText
-                );
+            await saveSellerReview(
+                listingOwnerId,
+                userId,
+                user.name ||
+                    user.email ||
+                    "Користувач",
+                selectedRating,
+                reviewText
+            );
 
             if (!saved) {
                 return;
