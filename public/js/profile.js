@@ -9,12 +9,6 @@ document.documentElement.style.visibility = "hidden";
 const CURRENT_USER_KEY =
     "royalGarageCurrentUser";
 
-const MESSAGES_KEY =
-    "royalGarageMessages";
-
-const LISTINGS_KEY =
-    "royalGarageMarketListings";
-
 let currentUser = null;
 
 try {
@@ -38,35 +32,6 @@ if (!currentUser?.id) {
     throw new Error(
         "Користувач не авторизований."
     );
-}
-
-function getFavoritesStorageKey() {
-    return `royalGarageFavoriteListings_${currentUser.id}`;
-}
-
-
-function loadFavoriteListingIds() {
-    try {
-        const storedFavorites =
-            JSON.parse(
-                localStorage.getItem(
-                    getFavoritesStorageKey()
-                )
-            ) || [];
-
-        return Array.isArray(
-            storedFavorites
-        )
-            ? storedFavorites.map(String)
-            : [];
-    } catch (error) {
-        console.error(
-            "Не вдалося завантажити обране:",
-            error
-        );
-
-        return [];
-    }
 }
 
 async function renderFavoriteListings() {
@@ -290,9 +255,6 @@ async function renderFavoriteListings() {
 }
 document.documentElement.style.visibility =
     "visible";
-
-const STORAGE_KEY =
-    `royalGarageCars_${currentUser.id}`;
 
 const elements = {
     garageCarsList:
@@ -682,27 +644,6 @@ async function initializeGarageCars() {
 /* =========================
    ДОПОМІЖНІ ФУНКЦІЇ
    ========================= */
-
-function readJson(
-    key,
-    fallback = []
-) {
-    try {
-        const value =
-            localStorage.getItem(key);
-
-        return value
-            ? JSON.parse(value)
-            : fallback;
-    } catch (error) {
-        console.error(
-            `Помилка читання ${key}:`,
-            error
-        );
-
-        return fallback;
-    }
-}
 
 let sellerProfilePhotoData = "";
 
@@ -1312,100 +1253,6 @@ function getRatingCountLabel(
     return `${value} оцінок`;
 }
 
-function loadCars() {
-    const loadedCars =
-        readJson(
-            STORAGE_KEY,
-            []
-        );
-
-    if (!Array.isArray(loadedCars)) {
-        return [];
-    }
-
-    const uniqueCars = [];
-    const usedVinNumbers =
-        new Set();
-
-    loadedCars.forEach((car) => {
-        if (!car?.id) {
-            return;
-        }
-
-        const normalizedVin =
-            normalizeVin(car.vin);
-
-        if (
-            normalizedVin &&
-            usedVinNumbers.has(
-                normalizedVin
-            )
-        ) {
-            return;
-        }
-
-        if (normalizedVin) {
-            usedVinNumbers.add(
-                normalizedVin
-            );
-        }
-
-        if (
-            !Array.isArray(
-                car.services
-            )
-        ) {
-            car.services = [];
-        }
-
-        if (
-            !Array.isArray(
-                car.photos
-            )
-        ) {
-            car.photos =
-                car.photo
-                    ? [car.photo]
-                    : [];
-        }
-
-        if (
-            !Number.isInteger(
-                car.activePhotoIndex
-            )
-        ) {
-            car.activePhotoIndex = 0;
-        }
-
-        uniqueCars.push(car);
-    });
-
-    return uniqueCars;
-}
-
-function saveCars() {
-    try {
-        localStorage.setItem(
-            STORAGE_KEY,
-            JSON.stringify(cars)
-        );
-
-        return true;
-    } catch (error) {
-        console.error(
-            "Не вдалося зберегти гараж:",
-            error
-        );
-
-        alert(
-            "У браузері недостатньо місця. " +
-            "Спробуй видалити частину фотографій."
-        );
-
-        return false;
-    }
-}
-
 function createId() {
     if (crypto.randomUUID) {
         return crypto.randomUUID();
@@ -1960,19 +1807,59 @@ function renderCarGallery(
                 .appendChild(
                     thumbnail
                 );
-
-            thumbnailButton
+                thumbnailButton
                 .addEventListener(
                     "click",
-                    () => {
+                    async () => {
+                        const previousIndex =
+                            car.activePhotoIndex;
+            
+                        const previousPhoto =
+                            car.photo;
+            
                         car.activePhotoIndex =
                             index;
-
+            
                         car.photo =
                             photos[index];
-
-                        saveCars();
-                        renderSelectedCar();
+            
+                        try {
+                            const updatedCar =
+                                await updateGarageCarOnServer(
+                                    car.id,
+                                    {
+                                        activePhotoIndex:
+                                            car.activePhotoIndex
+                                    }
+                                );
+            
+                            if (updatedCar) {
+                                Object.assign(
+                                    car,
+                                    updatedCar
+                                );
+                            }
+            
+                            renderSelectedCar();
+                        } catch (error) {
+                            car.activePhotoIndex =
+                                previousIndex;
+            
+                            car.photo =
+                                previousPhoto;
+            
+                            console.error(
+                                "Garage main photo update error:",
+                                error
+                            );
+            
+                            renderSelectedCar();
+            
+                            alert(
+                                error.message ||
+                                "Не вдалося змінити головне фото."
+                            );
+                        }
                     }
                 );
 
@@ -1996,21 +1883,62 @@ function renderCarGallery(
             mainButton.title =
                 "Зробити головним фото";
 
-            mainButton.addEventListener(
-                "click",
-                (event) => {
-                    event.stopPropagation();
-
-                    car.activePhotoIndex =
-                        index;
-
-                    car.photo =
-                        photos[index];
-
-                    saveCars();
-                    renderSelectedCar();
-                }
-            );
+                mainButton.addEventListener(
+                    "click",
+                    async (event) => {
+                        event.stopPropagation();
+                
+                        const previousIndex =
+                            car.activePhotoIndex;
+                
+                        const previousPhoto =
+                            car.photo;
+                
+                        car.activePhotoIndex =
+                            index;
+                
+                        car.photo =
+                            photos[index];
+                
+                        try {
+                            const updatedCar =
+                                await updateGarageCarOnServer(
+                                    car.id,
+                                    {
+                                        activePhotoIndex:
+                                            car.activePhotoIndex
+                                    }
+                                );
+                
+                            if (updatedCar) {
+                                Object.assign(
+                                    car,
+                                    updatedCar
+                                );
+                            }
+                
+                            renderSelectedCar();
+                        } catch (error) {
+                            car.activePhotoIndex =
+                                previousIndex;
+                
+                            car.photo =
+                                previousPhoto;
+                
+                            console.error(
+                                "Garage main photo update error:",
+                                error
+                            );
+                
+                            renderSelectedCar();
+                
+                            alert(
+                                error.message ||
+                                "Не вдалося змінити головне фото."
+                            );
+                        }
+                    }
+                );
 
             const replaceInput =
                 document.createElement(
@@ -2064,23 +1992,61 @@ function renderCarGallery(
                     }
 
                     try {
-                        photos[index] =
-                            await compressImage(
-                                file
-                            );
+                        const previousPhotos =
+                            [...photos];
 
-                        car.photos =
-                            photos;
+                        const previousPhoto =
+                            car.photo;
 
-                        car.photo =
-                            photos[
-                                car.activePhotoIndex
-                            ] ||
-                            photos[0] ||
-                            "";
+                        try {
+                            photos[index] =
+                                await compressImage(
+                                    file
+                                );
 
-                        saveCars();
-                        renderSelectedCar();
+                            car.photos =
+                                photos;
+
+                            car.photo =
+                                photos[
+                                    car.activePhotoIndex
+                                ] ||
+                                photos[0] ||
+                                "";
+
+                            const updatedCar =
+                                await updateGarageCarOnServer(
+                                    car.id,
+                                    {
+                                        photos:
+                                            car.photos,
+
+                                        activePhotoIndex:
+                                            car.activePhotoIndex
+                                    }
+                                );
+
+                            if (updatedCar) {
+                                Object.assign(
+                                    car,
+                                    updatedCar
+                                );
+                            }
+
+                            renderSelectedCar();
+                        } catch (error) {
+                            car.photos =
+                                previousPhotos;
+
+                            car.photo =
+                                previousPhoto;
+
+                            renderSelectedCar();
+
+                            throw error;
+                        }
+
+
                     } catch (error) {
                         alert(
                             error.message
@@ -2109,59 +2075,110 @@ function renderCarGallery(
             deleteButton.title =
                 "Видалити фото";
 
-            deleteButton.addEventListener(
-                "click",
-                (event) => {
-                    event.stopPropagation();
-
-                    const confirmed =
-                        confirm(
-                            "Видалити це фото автомобіля?"
-                        );
-
-                    if (
-                        !confirmed
-                    ) {
-                        return;
-                    }
-
-                    photos.splice(
-                        index,
-                        1
-                    );
-
-                    if (
-                        car.activePhotoIndex >=
-                        photos.length
-                    ) {
-                        car.activePhotoIndex =
-                            Math.max(
-                                0,
-                                photos.length -
-                                    1
+                deleteButton.addEventListener(
+                    "click",
+                    async (event) => {
+                        event.stopPropagation();
+                
+                        const confirmed =
+                            confirm(
+                                "Видалити це фото автомобіля?"
                             );
-                    } else if (
-                        index <
-                        car.activePhotoIndex
-                    ) {
-                        car.activePhotoIndex -=
-                            1;
-                    }
-
-                    car.photos =
-                        photos;
-
-                    car.photo =
-                        photos[
+                
+                        if (!confirmed) {
+                            return;
+                        }
+                
+                        const previousPhotos =
+                            [...photos];
+                
+                        const previousIndex =
+                            car.activePhotoIndex;
+                
+                        const previousPhoto =
+                            car.photo;
+                
+                        photos.splice(
+                            index,
+                            1
+                        );
+                
+                        if (
+                            car.activePhotoIndex >=
+                            photos.length
+                        ) {
+                            car.activePhotoIndex =
+                                Math.max(
+                                    0,
+                                    photos.length - 1
+                                );
+                        } else if (
+                            index <
                             car.activePhotoIndex
-                        ] ||
-                        photos[0] ||
-                        "";
-
-                    saveCars();
-                    renderSelectedCar();
-                }
-            );
+                        ) {
+                            car.activePhotoIndex -=
+                                1;
+                        }
+                
+                        car.photos =
+                            photos;
+                
+                        car.photo =
+                            photos[
+                                car.activePhotoIndex
+                            ] ||
+                            photos[0] ||
+                            "";
+                
+                        try {
+                            const updatedCar =
+                                await updateGarageCarOnServer(
+                                    car.id,
+                                    {
+                                        photos:
+                                            car.photos,
+                
+                                        activePhotoIndex:
+                                            car.activePhotoIndex,
+                
+                                        photo:
+                                            car.photo
+                                    }
+                                );
+                
+                            if (updatedCar) {
+                                Object.assign(
+                                    car,
+                                    updatedCar
+                                );
+                            }
+                
+                            renderSelectedCar();
+                
+                        } catch (error) {
+                            car.photos =
+                                previousPhotos;
+                
+                            car.activePhotoIndex =
+                                previousIndex;
+                
+                            car.photo =
+                                previousPhoto;
+                
+                            renderSelectedCar();
+                
+                            console.error(
+                                "Garage photo delete error:",
+                                error
+                            );
+                
+                            alert(
+                                error.message ||
+                                "Не вдалося видалити фото."
+                            );
+                        }
+                    }
+                );
 
             photoItem.append(
                 thumbnailButton,
@@ -2199,7 +2216,7 @@ function findService(
     );
 }
 
-function deleteService(
+async function deleteService(
     serviceId
 ) {
     const car =
@@ -2218,8 +2235,15 @@ function deleteService(
         return;
     }
 
+    const previousServices =
+        Array.isArray(
+            car.services
+        )
+            ? [...car.services]
+            : [];
+
     car.services =
-        car.services.filter(
+        previousServices.filter(
             (service) =>
                 String(
                     service.id
@@ -2229,10 +2253,42 @@ function deleteService(
                 )
         );
 
-    saveCars();
-    age();
-}
+    try {
+        const updatedCar =
+            await updateGarageCarOnServer(
+                car.id,
+                {
+                    services:
+                        car.services
+                }
+            );
 
+        if (updatedCar) {
+            Object.assign(
+                car,
+                updatedCar
+            );
+        }
+
+        age();
+
+    } catch (error) {
+        car.services =
+            previousServices;
+
+        age();
+
+        console.error(
+            "Service delete error:",
+            error
+        );
+
+        alert(
+            error.message ||
+            "Не вдалося видалити запис обслуговування."
+        );
+    }
+}
 function deleteServicePhoto(
     serviceId,
     photoIndex
@@ -2268,16 +2324,88 @@ function deleteServicePhoto(
         return;
     }
 
-    photos.splice(
-        photoIndex,
-        1
-    );
-
-    service.photos =
-        photos;
-
-    saveCars();
-    age();
+    async function deleteServicePhoto(
+        serviceId,
+        photoIndex
+    ) {
+        const car =
+            getSelectedCar();
+    
+        if (!car) {
+            return;
+        }
+    
+        const service =
+            findService(
+                car,
+                serviceId
+            );
+    
+        if (!service) {
+            return;
+        }
+    
+        const photos =
+            getServicePhotos(
+                service
+            );
+    
+        const confirmed =
+            confirm(
+                "Видалити цю фотографію?"
+            );
+    
+        if (!confirmed) {
+            return;
+        }
+    
+        const previousPhotos =
+            [...photos];
+    
+        photos.splice(
+            photoIndex,
+            1
+        );
+    
+        service.photos =
+            photos;
+    
+        try {
+            const updatedCar =
+                await updateGarageCarOnServer(
+                    car.id,
+                    {
+                        services:
+                            car.services
+                    }
+                );
+    
+            if (updatedCar) {
+                Object.assign(
+                    car,
+                    updatedCar
+                );
+            }
+    
+            age();
+    
+        } catch (error) {
+            service.photos =
+                previousPhotos;
+    
+            age();
+    
+            console.error(
+                "Service photo delete error:",
+                error
+            );
+    
+            alert(
+                error.message ||
+                "Не вдалося видалити фотографію."
+            );
+        }
+    }
 }
 
 async function replaceServicePhoto(
@@ -2302,11 +2430,18 @@ async function replaceServicePhoto(
         return;
     }
 
+    const previousPhotos =
+        [
+            ...getServicePhotos(
+                service
+            )
+        ];
+
     try {
         const photos =
-            getServicePhotos(
-                service
-            );
+            [
+                ...previousPhotos
+            ];
 
         photos[photoIndex] =
             await compressImage(
@@ -2316,10 +2451,39 @@ async function replaceServicePhoto(
         service.photos =
             photos;
 
-        saveCars();
+        const updatedCar =
+            await updateGarageCarOnServer(
+                car.id,
+                {
+                    services:
+                        car.services
+                }
+            );
+
+        if (updatedCar) {
+            Object.assign(
+                car,
+                updatedCar
+            );
+        }
+
         age();
+
     } catch (error) {
-        alert(error.message);
+        service.photos =
+            previousPhotos;
+
+        age();
+
+        console.error(
+            "Service photo replace error:",
+            error
+        );
+
+        alert(
+            error.message ||
+            "Не вдалося замінити фотографію."
+        );
     }
 }
 
@@ -2383,13 +2547,108 @@ async function addServicePhotos(
                 )
             );
 
-        service.photos = [
-            ...oldPhotos,
-            ...newPhotos
-        ];
-
-        saveCars();
-        age();
+            async function addServicePhotos(
+                serviceId,
+                fileList
+            ) {
+                const car =
+                    getSelectedCar();
+            
+                if (!car) {
+                    return;
+                }
+            
+                const service =
+                    findService(
+                        car,
+                        serviceId
+                    );
+            
+                if (!service) {
+                    return;
+                }
+            
+                const files =
+                    Array.from(
+                        fileList || []
+                    );
+            
+                if (
+                    files.length === 0
+                ) {
+                    return;
+                }
+            
+                const oldPhotos =
+                    [
+                        ...getServicePhotos(
+                            service
+                        )
+                    ];
+            
+                if (
+                    oldPhotos.length +
+                        files.length >
+                    3
+                ) {
+                    alert(
+                        "До одного запису можна додати максимум 3 фото."
+                    );
+            
+                    return;
+                }
+            
+                try {
+                    const newPhotos =
+                        await Promise.all(
+                            files.map(
+                                (file) =>
+                                    compressImage(
+                                        file
+                                    )
+                            )
+                        );
+            
+                    service.photos = [
+                        ...oldPhotos,
+                        ...newPhotos
+                    ];
+            
+                    const updatedCar =
+                        await updateGarageCarOnServer(
+                            car.id,
+                            {
+                                services:
+                                    car.services
+                            }
+                        );
+            
+                    if (updatedCar) {
+                        Object.assign(
+                            car,
+                            updatedCar
+                        );
+                    }
+            
+                    age();
+            
+                } catch (error) {
+                    service.photos =
+                        oldPhotos;
+            
+                    age();
+            
+                    console.error(
+                        "Service photos add error:",
+                        error
+                    );
+            
+                    alert(
+                        error.message ||
+                        "Не вдалося додати фотографії."
+                    );
+                }
+            }
     } catch (error) {
         alert(error.message);
     }
@@ -4314,7 +4573,7 @@ function openCarEditor(car) {
 
 async function updateGarageCarOnServer(
     carId,
-    carData
+    carData = {}
 ) {
     const token =
         localStorage.getItem(
@@ -4326,6 +4585,77 @@ async function updateGarageCarOnServer(
             "Сесія недійсна. Увійдіть повторно."
         );
     }
+
+    const existingCar =
+        cars.find(
+            (car) =>
+                String(car.id) ===
+                String(carId)
+        );
+
+    if (!existingCar) {
+        throw new Error(
+            "Автомобіль не знайдено."
+        );
+    }
+
+    const payload = {
+        name:
+            existingCar.name || "",
+
+        year:
+            existingCar.year || null,
+
+        mileage:
+            existingCar.mileage ?? null,
+
+        engine:
+            existingCar.engine || "",
+
+        fuel:
+            existingCar.fuel || "",
+
+        transmission:
+            existingCar.transmission || "",
+
+        body:
+            existingCar.body || "",
+
+        drive:
+            existingCar.drive || "",
+
+        vin:
+            existingCar.vin || "",
+
+        plate:
+            existingCar.plate || "",
+
+        photo:
+            existingCar.photo || "",
+
+        photos:
+            Array.isArray(
+                existingCar.photos
+            )
+                ? existingCar.photos
+                : [],
+
+        activePhotoIndex:
+            Number.isInteger(
+                existingCar.activePhotoIndex
+            )
+                ? existingCar.activePhotoIndex
+                : 0,
+
+        services:
+            Array.isArray(
+                existingCar.services
+            )
+                ? existingCar.services
+                : [],
+
+        ...carData
+    };
 
     const response =
         await fetch(
@@ -4343,9 +4673,10 @@ async function updateGarageCarOnServer(
                         `Bearer ${token}`
                 },
 
-                body: JSON.stringify(
-                    carData
-                )
+                body:
+                    JSON.stringify(
+                        payload
+                    )
             }
         );
 
@@ -4781,10 +5112,6 @@ async function handleCarSubmit(
             }
         }
 
-    if (!saveCars()) {
-        return;
-    }
-
     resetCarForm();
 
     closeModal(
@@ -4970,6 +5297,14 @@ async function handleServiceSubmit(
         return;
     }
 
+    const previousServices =
+    structuredClone(
+        car.services
+    );
+
+const previousMileage =
+    car.mileage;
+
     if (
         editingServiceId &&
         oldService
@@ -5022,7 +5357,43 @@ async function handleServiceSubmit(
             mileage;
     }
 
-    if (!saveCars()) {
+    try {
+        const updatedCar =
+            await updateGarageCarOnServer(
+                car.id,
+                {
+                    services:
+                        car.services,
+    
+                    mileage:
+                        car.mileage
+                }
+            );
+    
+        if (updatedCar) {
+            Object.assign(
+                car,
+                updatedCar
+            );
+        }
+    
+    } catch (error) {
+        car.services =
+            previousServices;
+    
+        car.mileage =
+            previousMileage;
+    
+        console.error(
+            "Service save error:",
+            error
+        );
+    
+        alert(
+            error.message ||
+            "Не вдалося зберегти запис обслуговування."
+        );
+    
         return;
     }
 
@@ -5389,7 +5760,8 @@ async function renderMyChats() {
    ВІДКРИТТЯ ІСТОРІЇ
    З ОГОЛОШЕННЯ
    ========================= */
-   function openServiceHistoryFromUrl() {
+
+   async function openServiceHistoryFromUrl() {
     const params =
         new URLSearchParams(
             window.location.search
@@ -5408,85 +5780,384 @@ async function renderMyChats() {
         return;
     }
 
-    const listings =
-        readJson(
-            LISTINGS_KEY,
-            []
-        );
-
-    const listing =
-        listings.find(
-            (item) =>
-                String(item.id) ===
-                String(listingId)
-        );
-
-    if (!listing) {
-        alert(
-            "Оголошення не знайдено."
-        );
-
-        return;
-    }
-
-    const listingVin =
-        normalizeVin(
-            listing.vin
-        );
-
-    if (!listingVin) {
-        alert(
-            "В оголошенні не збережений VIN автомобіля."
-        );
-
-        return;
-    }
-
-    const listingOwnerId =
-        listing.ownerId ||
-        listing.userId ||
-        listing.sellerId ||
-        listing.ownerEmail ||
-        listing.email ||
-        "";
-
-    if (!listingOwnerId) {
-        alert(
-            "Не вдалося визначити власника автомобіля."
-        );
-
-        return;
-    }
-
-    const isOwner =
-        String(currentUser.id) ===
-        String(listingOwnerId);
-
-
-    /* ===== ВЛАСНИК АВТО ===== */
-
-    if (isOwner) {
-        const matchingCar =
-            cars.find(
-                (car) =>
-                    normalizeVin(
-                        car.vin
-                    ) ===
-                    listingVin
+    try {
+        const listingResponse =
+            await fetch(
+                `/api/market/listings/${
+                    encodeURIComponent(
+                        listingId
+                    )
+                }`
             );
 
-        if (!matchingCar) {
+        const listingData =
+            await listingResponse.json();
+
+        if (!listingResponse.ok) {
+            throw new Error(
+                listingData.message ||
+                "Оголошення не знайдено."
+            );
+        }
+
+        const listing =
+            listingData.listing;
+
+        const listingVin =
+            normalizeVin(
+                listing.vin
+            );
+
+        if (!listingVin) {
             alert(
-                `Автомобіль з VIN ${listingVin} не знайдений у вашому гаражі.`
+                "В оголошенні не збережений VIN автомобіля."
             );
 
             return;
         }
 
-        selectedCarId =
-            matchingCar.id;
+        const listingOwnerId =
+            listing.owner_id ??
+            listing.ownerId ??
+            "";
 
-        renderPage();
+        if (!listingOwnerId) {
+            alert(
+                "Не вдалося визначити власника автомобіля."
+            );
+
+            return;
+        }
+
+        const isOwner =
+            String(currentUser.id) ===
+            String(listingOwnerId);
+
+
+        /* ===== ВЛАСНИК АВТО ===== */
+
+        if (isOwner) {
+            const matchingCar =
+                cars.find(
+                    (car) =>
+                        normalizeVin(
+                            car.vin
+                        ) ===
+                        listingVin
+                );
+
+            if (!matchingCar) {
+                alert(
+                    `Автомобіль з VIN ${listingVin} не знайдений у вашому гаражі.`
+                );
+
+                return;
+            }
+
+            selectedCarId =
+                matchingCar.id;
+
+            renderPage();
+
+            openModal(
+                elements.historyModal
+            );
+
+            window.history.replaceState(
+                {},
+                document.title,
+                "profile.html"
+            );
+
+            return;
+        }
+
+
+        /* ===== ПОКУПЕЦЬ ===== */
+
+        const historyResponse =
+            await fetch(
+                `/api/garage/public-history/${
+                    encodeURIComponent(
+                        listingId
+                    )
+                }`
+            );
+
+        const historyData =
+            await historyResponse.json();
+
+        if (!historyResponse.ok) {
+            throw new Error(
+                historyData.message ||
+                "Історія обслуговування цього автомобіля недоступна."
+            );
+        }
+
+        const matchingCar =
+            historyData.car;
+
+        const publicServices =
+            Array.isArray(
+                matchingCar.services
+            )
+                ? [...matchingCar.services]
+                    .sort(
+                        (
+                            first,
+                            second
+                        ) =>
+                            String(
+                                second.date ||
+                                ""
+                            ).localeCompare(
+                                String(
+                                    first.date ||
+                                    ""
+                                )
+                            )
+                    )
+                : [];
+
+
+        if (
+            elements.serviceHistory
+        ) {
+            elements.serviceHistory
+                .querySelectorAll(
+                    ".service-card"
+                )
+                .forEach(
+                    (element) => {
+                        element.remove();
+                    }
+                );
+        }
+
+
+        if (
+            elements.noServiceMessage
+        ) {
+            elements.noServiceMessage.hidden =
+                publicServices.length > 0;
+
+            if (
+                publicServices.length === 0
+            ) {
+                elements.noServiceMessage.textContent =
+                    "Продавець ще не опублікував історію обслуговування цього автомобіля.";
+            }
+        }
+
+
+        if (
+            elements.serviceCount
+        ) {
+            elements.serviceCount.textContent =
+                String(
+                    publicServices.length
+                );
+        }
+
+
+        const publicTotalCost =
+            publicServices.reduce(
+                (
+                    total,
+                    service
+                ) =>
+                    total +
+                    Number(
+                        service.cost || 0
+                    ),
+                0
+            );
+
+
+        if (
+            elements.totalServiceCost
+        ) {
+            elements.totalServiceCost.textContent =
+                `${formatNumber(
+                    publicTotalCost
+                )} грн`;
+        }
+
+
+        if (
+            elements.currentMileage
+        ) {
+            elements.currentMileage.textContent =
+                `${formatNumber(
+                    matchingCar.mileage
+                )} км`;
+        }
+
+
+        publicServices.forEach(
+            (service) => {
+                const card =
+                    document.createElement(
+                        "article"
+                    );
+
+                card.className =
+                    "service-card";
+
+                card.innerHTML = `
+                    <div class="service-card-top">
+
+                        <div>
+                            <p class="service-date">
+                                ${formatDate(
+                                    service.date
+                                )}
+                            </p>
+
+                            <h3>
+                                ${escapeHtml(
+                                    service.title
+                                )}
+                            </h3>
+                        </div>
+
+                        <span class="service-visibility">
+                            Публічний
+                        </span>
+
+                    </div>
+
+                    <div class="service-details">
+
+                        <span>
+                            Пробіг:
+
+                            <strong>
+                                ${formatNumber(
+                                    service.mileage
+                                )} км
+                            </strong>
+                        </span>
+
+                        <span>
+                            Вартість:
+
+                            <strong>
+                                ${formatNumber(
+                                    service.cost
+                                )} грн
+                            </strong>
+                        </span>
+
+                    </div>
+
+                    ${
+                        service.station
+                            ? `
+                                <p>
+                                    <strong>
+                                        СТО:
+                                    </strong>
+
+                                    ${escapeHtml(
+                                        service.station
+                                    )}
+                                </p>
+                            `
+                            : ""
+                    }
+
+                    ${
+                        service.description
+                            ? `
+                                <p>
+                                    ${escapeHtml(
+                                        service.description
+                                    )}
+                                </p>
+                            `
+                            : ""
+                    }
+                `;
+
+
+                const photos =
+                    Array.isArray(
+                        service.photos
+                    )
+                        ? service.photos
+                        : [];
+
+                if (
+                    photos.length > 0
+                ) {
+                    const gallery =
+                        document.createElement(
+                            "div"
+                        );
+
+                    gallery.className =
+                        "service-photo-gallery";
+
+                    photos.forEach(
+                        (
+                            photo,
+                            photoIndex
+                        ) => {
+                            const photoItem =
+                                document.createElement(
+                                    "div"
+                                );
+
+                            photoItem.className =
+                                "service-photo-item";
+
+                            const image =
+                                document.createElement(
+                                    "img"
+                                );
+
+                            image.src =
+                                photo;
+
+                            image.alt =
+                                "Фото до запису";
+
+                            image.className =
+                                "service-photo";
+
+                            image.addEventListener(
+                                "click",
+                                () => {
+                                    openPhotoViewer(
+                                        photos,
+                                        photoIndex
+                                    );
+                                }
+                            );
+
+                            photoItem.appendChild(
+                                image
+                            );
+
+                            gallery.appendChild(
+                                photoItem
+                            );
+                        }
+                    );
+
+                    card.appendChild(
+                        gallery
+                    );
+                }
+
+                elements.serviceHistory
+                    ?.appendChild(
+                        card
+                    );
+            }
+        );
+
 
         openModal(
             elements.historyModal
@@ -5498,321 +6169,17 @@ async function renderMyChats() {
             "profile.html"
         );
 
-        return;
-    }
-
-
-    /* ===== ПОКУПЕЦЬ — ЧИТАЄМО ГАРАЖ ПРОДАВЦЯ ===== */
-
-    const sellerGarageKey =
-        `royalGarageCars_${listingOwnerId}`;
-
-    const sellerCars =
-        readJson(
-            sellerGarageKey,
-            []
+    } catch (error) {
+        console.error(
+            "Service history load error:",
+            error
         );
 
-    const matchingCar =
-        Array.isArray(sellerCars)
-            ? sellerCars.find(
-                (car) =>
-                    normalizeVin(
-                        car.vin
-                    ) ===
-                    listingVin
-            )
-            : null;
-
-    if (!matchingCar) {
         alert(
-            "Історія обслуговування цього автомобіля недоступна."
+            error.message ||
+            "Не вдалося завантажити історію обслуговування."
         );
-
-        return;
     }
-
-
-    /* ===== ТІЛЬКИ ПУБЛІЧНІ ЗАПИСИ ===== */
-
-    const publicServices =
-        Array.isArray(
-            matchingCar.services
-        )
-            ? matchingCar.services
-                .filter(
-                    (service) =>
-                        service.isPublic === true
-                )
-                .sort(
-                    (
-                        first,
-                        second
-                    ) =>
-                        String(
-                            second.date || ""
-                        ).localeCompare(
-                            String(
-                                first.date || ""
-                            )
-                        )
-                )
-            : [];
-
-
-    if (
-        elements.serviceHistory
-    ) {
-        elements.serviceHistory
-            .querySelectorAll(
-                ".service-card"
-            )
-            .forEach(
-                (element) => {
-                    element.remove();
-                }
-            );
-    }
-
-
-    if (
-        elements.noServiceMessage
-    ) {
-        elements.noServiceMessage.hidden =
-            publicServices.length > 0;
-
-        if (
-            publicServices.length === 0
-        ) {
-            elements.noServiceMessage.textContent =
-                "Продавець ще не опублікував історію обслуговування цього автомобіля.";
-        }
-    }
-
-
-    /* ===== СТАТИСТИКА ПУБЛІЧНОЇ ІСТОРІЇ ===== */
-
-    if (
-        elements.serviceCount
-    ) {
-        elements.serviceCount.textContent =
-            String(
-                publicServices.length
-            );
-    }
-
-    const publicTotalCost =
-        publicServices.reduce(
-            (
-                total,
-                service
-            ) =>
-                total +
-                Number(
-                    service.cost || 0
-                ),
-            0
-        );
-
-    if (
-        elements.totalServiceCost
-    ) {
-        elements.totalServiceCost.textContent =
-            `${formatNumber(
-                publicTotalCost
-            )} грн`;
-    }
-
-    if (
-        elements.currentMileage
-    ) {
-        elements.currentMileage.textContent =
-            `${formatNumber(
-                matchingCar.mileage
-            )} км`;
-    }
-
-
-    /* ===== ВІДОБРАЖЕННЯ ПУБЛІЧНИХ ЗАПИСІВ ===== */
-
-    publicServices.forEach(
-        (service) => {
-            const card =
-                document.createElement(
-                    "article"
-                );
-
-            card.className =
-                "service-card";
-
-            card.innerHTML = `
-                <div class="service-card-top">
-
-                    <div>
-                        <p class="service-date">
-                            ${formatDate(
-                                service.date
-                            )}
-                        </p>
-
-                        <h3>
-                            ${escapeHtml(
-                                service.title
-                            )}
-                        </h3>
-                    </div>
-
-                    <span class="service-visibility">
-                        Публічний
-                    </span>
-
-                </div>
-
-                <div class="service-details">
-
-                    <span>
-                        Пробіг:
-
-                        <strong>
-                            ${formatNumber(
-                                service.mileage
-                            )} км
-                        </strong>
-                    </span>
-
-                    <span>
-                        Вартість:
-
-                        <strong>
-                            ${formatNumber(
-                                service.cost
-                            )} грн
-                        </strong>
-                    </span>
-
-                </div>
-
-                ${
-                    service.station
-                        ? `
-                            <p>
-                                <strong>
-                                    СТО:
-                                </strong>
-
-                                ${escapeHtml(
-                                    service.station
-                                )}
-                            </p>
-                        `
-                        : ""
-                }
-
-                ${
-                    service.description
-                        ? `
-                            <p>
-                                ${escapeHtml(
-                                    service.description
-                                )}
-                            </p>
-                        `
-                        : ""
-                }
-            `;
-
-
-            /* ===== ПУБЛІЧНІ ФОТО ===== */
-
-            const photos =
-                Array.isArray(
-                    service.photos
-                )
-                    ? service.photos
-                    : [];
-
-            if (
-                photos.length > 0
-            ) {
-                const gallery =
-                    document.createElement(
-                        "div"
-                    );
-
-                gallery.className =
-                    "service-photo-gallery";
-
-                photos.forEach(
-                    (
-                        photo,
-                        photoIndex
-                    ) => {
-                        const photoItem =
-                            document.createElement(
-                                "div"
-                            );
-
-                        photoItem.className =
-                            "service-photo-item";
-
-                        const image =
-                            document.createElement(
-                                "img"
-                            );
-
-                        image.src =
-                            photo;
-
-                        image.alt =
-                            "Фото до запису";
-
-                        image.className =
-                            "service-photo";
-
-                        image.addEventListener(
-                            "click",
-                            () => {
-                                openPhotoViewer(
-                                    photos,
-                                    photoIndex
-                                );
-                            }
-                        );
-
-                        photoItem.appendChild(
-                            image
-                        );
-
-                        gallery.appendChild(
-                            photoItem
-                        );
-                    }
-                );
-
-                card.appendChild(
-                    gallery
-                );
-            }
-
-
-            elements.serviceHistory
-                ?.appendChild(
-                    card
-                );
-        }
-    );
-
-
-    openModal(
-        elements.historyModal
-    );
-
-
-    window.history.replaceState(
-        {},
-        document.title,
-        "profile.html"
-    );
 }
 
 /* =========================
@@ -6054,39 +6421,95 @@ elements.updateCarPhoto
             }
 
             try {
-                const newPhotos =
-                    await Promise.all(
-                        files.map(
-                            (file) =>
-                                compressImage(
-                                    file
-                                )
-                        )
-                    );
+                            const previousPhotos =
+                [...currentPhotos];
 
-                car.photos = [
-                    ...currentPhotos,
-                    ...newPhotos
+            const previousIndex =
+                car.activePhotoIndex;
+
+            const previousPhoto =
+                car.photo;
+
+            const newPhotos =
+                await Promise.all(
+                    files.map(
+                        (file) =>
+                            compressImage(
+                                file
+                            )
+                    )
+                );
+
+            car.photos = [
+                ...currentPhotos,
+                ...newPhotos
+            ];
+
+            if (
+                currentPhotos.length ===
+                0
+            ) {
+                car.activePhotoIndex =
+                    0;
+            } else {
+                car.activePhotoIndex =
+                    currentPhotos.length;
+            }
+
+            car.photo =
+                car.photos[
+                    car.activePhotoIndex
                 ];
 
-                if (
-                    currentPhotos.length ===
-                    0
-                ) {
-                    car.activePhotoIndex =
-                        0;
-                } else {
-                    car.activePhotoIndex =
-                        currentPhotos.length;
+            try {
+                const updatedCar =
+                    await updateGarageCarOnServer(
+                        car.id,
+                        {
+                            photos:
+                                car.photos,
+
+                            activePhotoIndex:
+                                car.activePhotoIndex,
+
+                            photo:
+                                car.photo
+                        }
+                    );
+
+                if (updatedCar) {
+                    Object.assign(
+                        car,
+                        updatedCar
+                    );
                 }
 
-                car.photo =
-                    car.photos[
-                        car.activePhotoIndex
-                    ];
-
-                saveCars();
                 renderPage();
+
+            } catch (error) {
+                car.photos =
+                    previousPhotos;
+
+                car.activePhotoIndex =
+                    previousIndex;
+
+                car.photo =
+                    previousPhoto;
+
+                renderPage();
+
+                console.error(
+                    "Garage photos add error:",
+                    error
+                );
+
+                alert(
+                    error.message ||
+                    "Не вдалося додати фото автомобіля."
+                );
+            }
+
+
             } catch (error) {
                 alert(
                     error.message
@@ -6207,18 +6630,6 @@ document.addEventListener(
     }
 );
 
-window.addEventListener(
-    "storage",
-    (event) => {
-        if (
-            event.key ===
-            MESSAGES_KEY
-        ) {
-            renderMyChats();
-        }
-    }
-);
-
 document.addEventListener(
     "visibilitychange",
     () => {
@@ -6247,7 +6658,7 @@ document.addEventListener(
 
     await renderProfileSellerReviews();
 
-    openServiceHistoryFromUrl();
+    await openServiceHistoryFromUrl();
 }
    
    initializeProfilePage();

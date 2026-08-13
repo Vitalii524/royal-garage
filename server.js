@@ -863,6 +863,130 @@ app.get(
 );
 
 app.get(
+    "/api/garage/public-history/:listingId",
+    async (req, res) => {
+        try {
+            const {
+                listingId
+            } = req.params;
+
+            const listingResult =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        owner_id,
+                        vin
+                    FROM market_listings
+                    WHERE id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        listingId
+                    ]
+                );
+
+            if (
+                listingResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Оголошення не знайдено."
+                });
+            }
+
+            const listing =
+                listingResult.rows[0];
+
+            const vin =
+                String(
+                    listing.vin || ""
+                )
+                    .trim()
+                    .toUpperCase();
+
+            if (!vin) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "VIN автомобіля не вказано."
+                });
+            }
+
+            const carResult =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        mileage,
+                        services
+                    FROM garage_cars
+                    WHERE owner_id = $1
+                      AND UPPER(TRIM(vin)) = $2
+                    LIMIT 1
+                    `,
+                    [
+                        listing.owner_id,
+                        vin
+                    ]
+                );
+
+            if (
+                carResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Історія обслуговування цього автомобіля недоступна."
+                });
+            }
+
+            const car =
+                carResult.rows[0];
+
+            const services =
+                Array.isArray(
+                    car.services
+                )
+                    ? car.services
+                        .filter(
+                            (service) =>
+                                service.isPublic ===
+                                true
+                        )
+                    : [];
+
+            res.json({
+                ok: true,
+
+                car: {
+                    id:
+                        car.id,
+
+                    mileage:
+                        car.mileage,
+
+                    services
+                }
+            });
+
+        } catch (error) {
+            console.error(
+                "Public service history load error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити історію обслуговування."
+            });
+        }
+    }
+);
+
+app.get(
     "/api/chat/conversations",
     requireAuth,
     async (req, res) => {
