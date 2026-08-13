@@ -5074,86 +5074,90 @@ function getLastMessageText(
 
     return "Нове повідомлення";
 }
-
-function renderMyChats() {
-    if (
-        !elements.myChatsList
-    ) {
+async function renderMyChats() {
+    if (!elements.myChatsList) {
         return;
     }
 
-    const messages =
-        readJson(
-            MESSAGES_KEY,
-            []
+    const token =
+        localStorage.getItem(
+            "royalGarageToken"
         );
 
-    const listings =
-        readJson(
-            LISTINGS_KEY,
-            []
-        );
+    if (!token) {
+        elements.myChatsList.innerHTML = `
+            <p>
+                Спочатку увійдіть у профіль.
+            </p>
+        `;
 
-    const currentUserId =
-        String(
-            currentUser.id
-        );
+        return;
+    }
 
-    const totalUnread =
-        messages.filter(
-            (message) =>
-                String(
-                    message.receiverId
-                ) ===
-                    currentUserId &&
-                !message.readAt
-        ).length;
+    try {
+        const response =
+            await fetch(
+                "/api/chat/conversations",
+                {
+                    headers: {
+                        Authorization:
+                            `Bearer ${token}`
+                    }
+                }
+            );
 
-    if (
-        elements.openChatsButton
-    ) {
-        elements.openChatsButton
-            .innerHTML =
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити чати."
+            );
+        }
+
+        const messages =
+            Array.isArray(data.messages)
+                ? data.messages
+                : [];
+
+        const currentUserId =
+            String(currentUser.id);
+
+        const totalUnread =
+            messages.filter(
+                (message) =>
+                    String(
+                        message.receiverId
+                    ) === currentUserId &&
+                    !message.readAt
+            ).length;
+
+        if (elements.openChatsButton) {
+            elements.openChatsButton.innerHTML =
                 totalUnread > 0
                     ? `
                         Мої чати
-
-                        <span
-                            class="chats-button-badge"
-                        >
+                        <span class="chats-button-badge">
                             ${
-                                totalUnread >
-                                99
+                                totalUnread > 99
                                     ? "99+"
                                     : totalUnread
                             }
                         </span>
                     `
                     : "Мої чати";
-    }
+        }
 
-    const conversations =
-        new Map();
+        const conversations =
+            new Map();
 
-    messages
-        .filter(
-            (message) =>
-                String(
-                    message.senderId
-                ) ===
-                    currentUserId ||
-                String(
-                    message.receiverId
-                ) ===
-                    currentUserId
-        )
-        .forEach(
+        messages.forEach(
             (message) => {
                 const otherUserId =
                     String(
                         message.senderId
-                    ) ===
-                        currentUserId
+                    ) === currentUserId
                         ? String(
                             message.receiverId
                         )
@@ -5162,27 +5166,10 @@ function renderMyChats() {
                         );
 
                 const key =
-                    `${
-                        message.listingId
-                    }_${
-                        otherUserId
-                    }`;
-
-                const previous =
-                    conversations.get(
-                        key
-                    );
+                    `${message.listingId}_${otherUserId}`;
 
                 if (
-                    !previous ||
-                    new Date(
-                        message.createdAt
-                    ) >
-                        new Date(
-                            previous
-                                .message
-                                .createdAt
-                        )
+                    !conversations.has(key)
                 ) {
                     conversations.set(
                         key,
@@ -5195,104 +5182,73 @@ function renderMyChats() {
             }
         );
 
-    if (
-        conversations.size ===
-        0
-    ) {
-        elements.myChatsList
-            .innerHTML = `
+        if (
+            conversations.size === 0
+        ) {
+            elements.myChatsList.innerHTML = `
                 <p>
                     Чатів поки немає.
                 </p>
             `;
 
-        return;
-    }
+            return;
+        }
 
-    elements.myChatsList
-        .innerHTML = "";
+        elements.myChatsList.innerHTML =
+            "";
 
-    [
-        ...conversations.values()
-    ]
-        .sort(
-            (
-                first,
-                second
-            ) =>
-                new Date(
-                    second
-                        .message
-                        .createdAt
-                ) -
-                new Date(
-                    first
-                        .message
-                        .createdAt
-                )
-        )
-        .forEach(
+        [
+            ...conversations.values()
+        ].forEach(
             ({
                 message,
                 otherUserId
             }) => {
-                const listing =
-                    listings.find(
-                        (item) =>
-                            String(
-                                item.id
-                            ) ===
-                            String(
-                                message
-                                    .listingId
-                            )
-                    );
+                const listingName =
+                    message.listingName ||
+                    "Оголошення";
+
+                const listingYear =
+                    message.listingYear ||
+                    "";
+
+                const title =
+                    listingYear
+                        ? `${listingName} (${listingYear})`
+                        : listingName;
+
+                const photos =
+                    Array.isArray(
+                        message.listingPhotos
+                    )
+                        ? message.listingPhotos
+                        : [];
+
+                const photo =
+                    photos[0] ||
+                    "";
 
                 const unreadCount =
                     messages.filter(
-                        (
-                            chatMessage
-                        ) =>
+                        (chatMessage) =>
                             String(
-                                chatMessage
-                                    .listingId
+                                chatMessage.listingId
                             ) ===
                                 String(
-                                    message
-                                        .listingId
+                                    message.listingId
                                 ) &&
                             String(
-                                chatMessage
-                                    .senderId
+                                chatMessage.senderId
                             ) ===
                                 String(
                                     otherUserId
                                 ) &&
                             String(
-                                chatMessage
-                                    .receiverId
+                                chatMessage.receiverId
                             ) ===
                                 currentUserId &&
-                            !chatMessage
-                                .readAt
+                            !chatMessage.readAt
                     ).length;
-
-                const title =
-                    listing
-                        ? `${
-                            listing.name
-                        } (${
-                            listing.year
-                        })`
-                        : "Оголошення";
-
-                const photo =
-                    listing
-                        ?.photos
-                        ?.[0] ||
-                    listing
-                        ?.photo ||
-                    "";
 
                 const messageDate =
                     new Date(
@@ -5301,8 +5257,7 @@ function renderMyChats() {
 
                 const formattedDate =
                     Number.isNaN(
-                        messageDate
-                            .getTime()
+                        messageDate.getTime()
                     )
                         ? ""
                         : messageDate
@@ -5311,13 +5266,10 @@ function renderMyChats() {
                                 {
                                     day:
                                         "2-digit",
-
                                     month:
                                         "2-digit",
-
                                     hour:
                                         "2-digit",
-
                                     minute:
                                         "2-digit"
                                 }
@@ -5334,8 +5286,7 @@ function renderMyChats() {
                 chatLink.href =
                     `chat.html?listingId=${
                         encodeURIComponent(
-                            message
-                                .listingId
+                            message.listingId
                         )
                     }&withUserId=${
                         encodeURIComponent(
@@ -5344,13 +5295,9 @@ function renderMyChats() {
                     }`;
 
                 chatLink.innerHTML = `
-                    <div
-                        class="chat-card-header"
-                    >
+                    <div class="chat-card-header">
 
-                        <div
-                            class="chat-avatar"
-                        >
+                        <div class="chat-avatar">
                             ${
                                 photo
                                     ? `
@@ -5365,21 +5312,15 @@ function renderMyChats() {
                             }
                         </div>
 
-                        <div
-                            class="chat-main"
-                        >
+                        <div class="chat-main">
 
-                            <div
-                                class="chat-title"
-                            >
+                            <div class="chat-title">
                                 ${escapeHtml(
                                     title
                                 )}
                             </div>
 
-                            <div
-                                class="chat-last-message"
-                            >
+                            <div class="chat-last-message">
                                 ${escapeHtml(
                                     getLastMessageText(
                                         message
@@ -5389,25 +5330,18 @@ function renderMyChats() {
 
                         </div>
 
-                        <div
-                            class="chat-card-side"
-                        >
+                        <div class="chat-card-side">
 
-                            <div
-                                class="chat-time"
-                            >
+                            <div class="chat-time">
                                 ${formattedDate}
                             </div>
 
                             ${
                                 unreadCount > 0
                                     ? `
-                                        <span
-                                            class="chat-unread-badge"
-                                        >
+                                        <span class="chat-unread-badge">
                                             ${
-                                                unreadCount >
-                                                99
+                                                unreadCount > 99
                                                     ? "99+"
                                                     : unreadCount
                                             }
@@ -5427,9 +5361,20 @@ function renderMyChats() {
                     );
             }
         );
+
+    } catch (error) {
+        console.error(
+            "Profile chats load error:",
+            error
+        );
+
+        elements.myChatsList.innerHTML = `
+            <p>
+                Не вдалося завантажити чати.
+            </p>
+        `;
+    }
 }
-
-
 /* =========================
    ВІДКРИТТЯ ІСТОРІЇ
    З ОГОЛОШЕННЯ

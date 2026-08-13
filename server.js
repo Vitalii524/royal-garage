@@ -863,6 +863,71 @@ app.get(
 );
 
 app.get(
+    "/api/chat/conversations",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const userId =
+                req.user.userId;
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        cm.id,
+                        cm.listing_id AS "listingId",
+                        cm.sender_id AS "senderId",
+                        cm.receiver_id AS "receiverId",
+                        cm.text,
+                        cm.attachment,
+                        cm.read_at AS "readAt",
+                        cm.edited_at AS "editedAt",
+                        cm.deleted_at AS "deletedAt",
+                        cm.created_at AS "createdAt",
+
+                        ml.name AS "listingName",
+                        ml.year AS "listingYear",
+                        ml.photos AS "listingPhotos"
+
+                    FROM chat_messages cm
+
+                    LEFT JOIN market_listings ml
+                        ON ml.id = cm.listing_id
+
+                    WHERE
+                        cm.sender_id = $1
+                        OR cm.receiver_id = $1
+
+                    ORDER BY
+                        cm.created_at DESC
+                    `,
+                    [
+                        userId
+                    ]
+                );
+
+            res.json({
+                ok: true,
+                messages:
+                    result.rows
+            });
+
+        } catch (error) {
+            console.error(
+                "Chat conversations load error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити список чатів."
+            });
+        }
+    }
+);
+
+app.get(
     "/api/chat/messages",
     requireAuth,
     async (req, res) => {
