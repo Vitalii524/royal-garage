@@ -6,33 +6,7 @@
 
 document.documentElement.style.visibility = "hidden";
 
-const CURRENT_USER_KEY =
-    "royalGarageCurrentUser";
-
 let currentUser = null;
-
-try {
-    currentUser = JSON.parse(
-        localStorage.getItem(
-            CURRENT_USER_KEY
-        )
-    );
-} catch (error) {
-    console.error(
-        "Помилка читання користувача:",
-        error
-    );
-}
-
-if (!currentUser?.id) {
-    window.location.replace(
-        "index.html"
-    );
-
-    throw new Error(
-        "Користувач не авторизований."
-    );
-}
 
 async function renderFavoriteListings() {
     const favoritesList =
@@ -549,6 +523,10 @@ async function loadProfileFromServer() {
         );
 
     if (!token) {
+        window.location.replace(
+            "index.html"
+        );
+
         return null;
     }
 
@@ -577,41 +555,60 @@ async function loadProfileFromServer() {
         const user =
             data.user;
 
-        currentUser.phone =
-            user.phone || "";
+        currentUser = {
+            id:
+                user.id,
 
-        currentUser.city =
-            user.city || "";
+            userId:
+                user.id,
 
-        currentUser.telegram =
-            user.telegram || "";
+            name:
+                user.name || "",
 
-        currentUser.profilePhoto =
-            user.profile_photo || "";
+            email:
+                user.email || "",
 
-        currentUser.showPhone =
-            Boolean(
-                user.show_phone
-            );
+            phone:
+                user.phone || "",
 
-        currentUser.showTelegram =
-            Boolean(
-                user.show_telegram
-            );
+            city:
+                user.city || "",
 
-        localStorage.setItem(
-            CURRENT_USER_KEY,
-            JSON.stringify(
-                currentUser
-            )
-        );
+            telegram:
+                user.telegram || "",
 
-        return user;
+            profilePhoto:
+                user.profile_photo || "",
+
+            showPhone:
+                Boolean(
+                    user.show_phone
+                ),
+
+            showTelegram:
+                Boolean(
+                    user.show_telegram
+                ),
+
+            accountType:
+                user.account_type ||
+                "user",
+
+            role:
+                user.role ||
+                "user"
+        };
+
+        return currentUser;
 
     } catch (error) {
         console.error(
             "Profile load request error:",
             error
+        );
+
+        window.location.replace(
+            "index.html"
         );
 
         return null;
@@ -755,13 +752,6 @@ const removeSellerProfilePhotoButton =
                     currentUser.profilePhoto =
                         sellerProfilePhotoData;
     
-                    localStorage.setItem(
-                        CURRENT_USER_KEY,
-                        JSON.stringify(
-                            currentUser
-                        )
-                    );
-    
                     const profileName =
                         document
                             .getElementById(
@@ -845,13 +835,6 @@ const removeSellerProfilePhotoButton =
                         sellerProfilePhotoData = "";
     
                         currentUser.profilePhoto = "";
-    
-                        localStorage.setItem(
-                            CURRENT_USER_KEY,
-                            JSON.stringify(
-                                currentUser
-                            )
-                        );
     
                         const profileName =
                             document
@@ -1078,13 +1061,6 @@ const removeSellerProfilePhotoButton =
                 Boolean(
                     data.user.show_telegram
                 );
-    
-            localStorage.setItem(
-                CURRENT_USER_KEY,
-                JSON.stringify(
-                    currentUser
-                )
-            );
     
             alert(
                 "Налаштування профілю продавця збережено."
@@ -3569,13 +3545,6 @@ if (changeAccountPhoneButton) {
     
                 currentUser.phone =
                     updatedUser.phone;
-    
-                localStorage.setItem(
-                    CURRENT_USER_KEY,
-                    JSON.stringify(
-                        currentUser
-                    )
-                );
     
                 const sellerPhoneInput =
                     document.getElementById(
