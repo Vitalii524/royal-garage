@@ -13,9 +13,8 @@ const CURRENT_USER_KEY =
 const SERVICE_HUB_ID =
     "service-hub-lviv";
 
-const SERVICE_HUB_OWNER_ID =
-    "0d57ad4b-d81f-482e-b6fb-1bd2c8075476";
-
+    const SERVICE_HUB_OWNER_ID =
+    "1357096e-fec9-436e-8e32-3be2e9ce5643";
 
 /* =========================
    STORAGE
