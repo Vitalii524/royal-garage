@@ -486,7 +486,7 @@ currentUser =
         mainListing
     );
 
-    configureHistoryButton(
+    await configureHistoryButton(
         mainListing
     );
 
@@ -1116,8 +1116,7 @@ function configureChatButton(
 /* =========================
    ПЛАТНА ІСТОРІЯ
    ========================= */
-
-function configureHistoryButton(
+   async function configureHistoryButton(
     mainListing
 ) {
     if (
@@ -1127,55 +1126,12 @@ function configureHistoryButton(
         return;
     }
 
-    const sellerGarageKey =
-        `royalGarageCars_${sellerId}`;
+    const listingId =
+        mainListing.id ||
+        mainListing.listingId ||
+        "";
 
-    const sellerCars =
-        readJson(
-            sellerGarageKey,
-            []
-        );
-
-    const listingVin =
-        String(
-            mainListing.vin || ""
-        )
-            .trim()
-            .toUpperCase();
-
-    const matchingCar =
-        Array.isArray(sellerCars)
-            ? sellerCars.find(
-                (car) =>
-                    String(
-                        car.vin || ""
-                    )
-                        .trim()
-                        .toUpperCase() ===
-                    listingVin
-            )
-            : null;
-
-    const publicServices =
-        Array.isArray(
-            matchingCar?.services
-        )
-            ? matchingCar.services.filter(
-                (service) =>
-                    service.isPublic ===
-                    true
-            )
-            : [];
-
-    /*
-        Не показуємо записи безкоштовно.
-        Показуємо тільки факт,
-        чи є доступна історія.
-    */
-
-    if (
-        publicServices.length === 0
-    ) {
+    if (!listingId) {
         elements.unlockHistoryButton.disabled =
             true;
 
@@ -1185,15 +1141,70 @@ function configureHistoryButton(
         return;
     }
 
-    elements.unlockHistoryButton.textContent =
-        "Відкрити історію за 50 грн";
+    try {
+        const response =
+            await fetch(
+                `/api/garage/public-history/${
+                    encodeURIComponent(
+                        listingId
+                    )
+                }`
+            );
 
-    elements.unlockHistoryButton.addEventListener(
-        "click",
-        () => {
-            alert(
-                "Підключення оплати 50 грн додамо наступним кроком. Історія поки залишається закритою."
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося перевірити історію обслуговування."
             );
         }
-    );
+
+        const publicServices =
+            Array.isArray(
+                data.car?.services
+            )
+                ? data.car.services
+                : [];
+
+        if (
+            publicServices.length === 0
+        ) {
+            elements.unlockHistoryButton.disabled =
+                true;
+
+            elements.unlockHistoryButton.textContent =
+                "Історія обслуговування відсутня";
+
+            return;
+        }
+
+        elements.unlockHistoryButton.disabled =
+            false;
+
+        elements.unlockHistoryButton.textContent =
+            "Відкрити історію за 50 грн";
+
+        elements.unlockHistoryButton.addEventListener(
+            "click",
+            () => {
+                alert(
+                    "Підключення оплати 50 грн додамо наступним кроком. Історія поки залишається закритою."
+                );
+            }
+        );
+
+    } catch (error) {
+        console.error(
+            "Seller public history check error:",
+            error
+        );
+
+        elements.unlockHistoryButton.disabled =
+            true;
+
+        elements.unlockHistoryButton.textContent =
+            "Історія обслуговування недоступна";
+    }
 }
