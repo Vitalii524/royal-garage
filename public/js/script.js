@@ -30,36 +30,166 @@ function closeModal() {
 }
 
 
-function registerUser() {
-    const name = document.getElementById("regName").value;
-    const email = document.getElementById("regEmail").value;
-    const password = document.getElementById("regPassword").value;
+async function registerUser() {
+    const name =
+        document.getElementById(
+            "regName"
+        ).value.trim();
 
-    if (!name || !email || !password) {
-        alert("Заповни всі поля");
+    const email =
+        document.getElementById(
+            "regEmail"
+        ).value.trim();
+
+    const password =
+        document.getElementById(
+            "regPassword"
+        ).value;
+
+    if (
+        !name ||
+        !email ||
+        !password
+    ) {
+        alert(
+            "Заповни всі поля"
+        );
+
         return;
     }
 
-    localStorage.setItem("royalUser", JSON.stringify({
-        name: name,
-        email: email
-    }));
+    try {
+        const response =
+            await fetch(
+                "/api/register",
+                {
+                    method: "POST",
 
-    alert("Реєстрація успішна, " + name + "!");
-    closeModal();
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            name,
+                            email,
+                            password
+                        })
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося зареєструватися."
+            );
+        }
+
+        alert(
+            `Реєстрація успішна, ${name}!`
+        );
+
+        closeModal();
+
+    } catch (error) {
+        console.error(
+            "Register error:",
+            error
+        );
+
+        alert(
+            error.message ||
+            "Не вдалося зареєструватися."
+        );
+    }
 }
 
 
-function loginUser() {
-    const user = JSON.parse(localStorage.getItem("royalUser"));
+async function loginUser() {
+    const email =
+        document.getElementById(
+            "loginEmail"
+        ).value.trim();
 
-    if (!user) {
-        alert("Спочатку зареєструйся");
+    const password =
+        document.getElementById(
+            "loginPassword"
+        ).value;
+
+    if (
+        !email ||
+        !password
+    ) {
+        alert(
+            "Введи email і пароль"
+        );
+
         return;
     }
 
-    alert("Вітаю, " + user.name + "!");
-    closeModal();
+    try {
+        const response =
+            await fetch(
+                "/api/login",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            email,
+                            password
+                        })
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося увійти."
+            );
+        }
+
+        if (data.token) {
+            localStorage.setItem(
+                "royalGarageToken",
+                data.token
+            );
+        }
+
+        alert(
+            `Вітаю, ${
+                data.user?.name ||
+                email
+            }!`
+        );
+
+        closeModal();
+
+        window.location.reload();
+
+    } catch (error) {
+        console.error(
+            "Login error:",
+            error
+        );
+
+        alert(
+            error.message ||
+            "Не вдалося увійти."
+        );
+    }
 }
 
 
@@ -187,131 +317,199 @@ function formatHomeNumber(value) {
         Number(value) || 0
     );
 }
-
-function renderHomeMarketListings() {
+async function renderHomeMarketListings() {
     const container =
-        document.getElementById("homeMarketListings");
+        document.getElementById(
+            "homeMarketListings"
+        );
 
     if (!container) {
         return;
     }
 
-    let listings = [];
-
     try {
-        listings = JSON.parse(
-            localStorage.getItem(
-                HOME_MARKET_STORAGE_KEY
+        const response =
+            await fetch(
+                "/api/market/listings"
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити оголошення."
+            );
+        }
+
+        const listings =
+            Array.isArray(
+                data.listings
             )
-        ) || [];
-    } catch (error) {
-        console.error(
-            "Помилка завантаження оголошень:",
-            error
-        );
-    }
-
-    const newestListings = [...listings]
-        .sort(
-            (first, second) =>
-                new Date(second.createdAt) -
-                new Date(first.createdAt)
-        )
-        .slice(0, 3);
-
-    if (newestListings.length === 0) {
-        container.innerHTML = `
-            <p class="empty-message">
-                Оголошень поки немає.
-            </p>
-        `;
-
-        return;
-    }
-
-    container.innerHTML = "";
-
-    newestListings.forEach((listing) => {
-        const photos = Array.isArray(listing.photos)
-            ? listing.photos
-            : listing.photo
-                ? [listing.photo]
+                ? data.listings
                 : [];
 
-        const activePhotoIndex =
-            Number.isInteger(listing.activePhotoIndex)
-                ? listing.activePhotoIndex
-                : 0;
+        const newestListings =
+            [...listings]
+                .sort(
+                    (
+                        first,
+                        second
+                    ) =>
+                        new Date(
+                            second.createdAt ||
+                            second.created_at ||
+                            0
+                        ) -
+                        new Date(
+                            first.createdAt ||
+                            first.created_at ||
+                            0
+                        )
+                )
+                .slice(0, 3);
 
-        const photo =
-            photos[activePhotoIndex] ||
-            photos[0] ||
-            "";
+        if (
+            newestListings.length === 0
+        ) {
+            container.innerHTML = `
+                <p class="empty-message">
+                    Оголошень поки немає.
+                </p>
+            `;
 
-        const card = document.createElement("a");
+            return;
+        }
 
-        card.className =
-            "home-market-card car-card";
+        container.innerHTML = "";
 
-        card.href =
-            `listing.html?id=${
-                encodeURIComponent(listing.id)
-            }`;
+        newestListings.forEach(
+            (listing) => {
+                const photos =
+                    Array.isArray(
+                        listing.photos
+                    )
+                        ? listing.photos
+                        : listing.photo
+                            ? [
+                                listing.photo
+                            ]
+                            : [];
 
-        card.innerHTML = `
-            ${
-                photo
-                    ? `
-                        <img
-                            class="home-market-photo"
-                            src="${photo}"
-                            alt="${escapeHomeHtml(
+                const activePhotoIndex =
+                    Number.isInteger(
+                        listing.activePhotoIndex
+                    )
+                        ? listing.activePhotoIndex
+                        : Number.isInteger(
+                            listing.active_photo_index
+                        )
+                            ? listing.active_photo_index
+                            : 0;
+
+                const photo =
+                    photos[
+                        activePhotoIndex
+                    ] ||
+                    photos[0] ||
+                    "";
+
+                const priceUsd =
+                    listing.priceUsd ??
+                    listing.price_usd ??
+                    0;
+
+                const card =
+                    document.createElement(
+                        "a"
+                    );
+
+                card.className =
+                    "home-market-card car-card";
+
+                card.href =
+                    `listing.html?id=${
+                        encodeURIComponent(
+                            listing.id
+                        )
+                    }`;
+
+                card.innerHTML = `
+                    ${
+                        photo
+                            ? `
+                                <img
+                                    class="home-market-photo"
+                                    src="${photo}"
+                                    alt="${escapeHomeHtml(
+                                        listing.name
+                                    )}"
+                                >
+                            `
+                            : `
+                                <div class="home-market-no-photo">
+                                    🚗
+                                </div>
+                            `
+                    }
+
+                    <div class="home-market-card-content">
+                        <h3>
+                            ${escapeHomeHtml(
                                 listing.name
-                            )}"
-                        >
-                    `
-                    : `
-                        <div class="home-market-no-photo">
-                            🚗
-                        </div>
-                    `
+                            )}
+                            (${escapeHomeHtml(
+                                listing.year
+                            )})
+                        </h3>
+
+                        <p class="home-market-price">
+                            ${formatHomeNumber(
+                                priceUsd
+                            )} $
+                        </p>
+
+                        <p>
+                            ${formatHomeNumber(
+                                listing.mileage
+                            )} км
+                            •
+                            ${escapeHomeHtml(
+                                listing.fuel ||
+                                "Пальне не вказано"
+                            )}
+                        </p>
+
+                        <p>
+                            📍
+                            ${escapeHomeHtml(
+                                listing.city ||
+                                "Місто не вказано"
+                            )}
+                        </p>
+                    </div>
+                `;
+
+                container.appendChild(
+                    card
+                );
             }
+        );
 
-            <div class="home-market-card-content">
-                <h3>
-                    ${escapeHomeHtml(listing.name)}
-                    (${escapeHomeHtml(listing.year)})
-                </h3>
+    } catch (error) {
+        console.error(
+            "Home market listings load error:",
+            error
+        );
 
-                <p class="home-market-price">
-                    ${formatHomeNumber(
-                        listing.priceUsd
-                    )} $
-                </p>
-
-                <p>
-                    ${formatHomeNumber(
-                        listing.mileage
-                    )} км
-                    •
-                    ${escapeHomeHtml(
-                        listing.fuel || "Пальне не вказано"
-                    )}
-                </p>
-
-                <p>
-                    📍
-                    ${escapeHomeHtml(
-                        listing.city || "Місто не вказано"
-                    )}
-                </p>
-            </div>
+        container.innerHTML = `
+            <p class="empty-message">
+                Не вдалося завантажити оголошення.
+            </p>
         `;
-
-        container.appendChild(card);
-    });
+    }
 }
-
 document.addEventListener(
     "DOMContentLoaded",
     renderHomeMarketListings
@@ -319,98 +517,127 @@ document.addEventListener(
 
 /* ===== ОСТАННІ ТЕМИ ФОРУМУ НА ГОЛОВНІЙ ===== */
 
-function renderHomeForumTopics() {
+async function renderHomeForumTopics() {
     const container =
-        document.getElementById("homeForumTopics");
+        document.getElementById(
+            "homeForumTopics"
+        );
 
     if (!container) {
         return;
     }
 
-    let topics = [];
-
     try {
-        topics = JSON.parse(
-            localStorage.getItem(
-                "royalGarageForumTopics"
+        const response =
+            await fetch(
+                "/api/forum/topics"
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити теми."
+            );
+        }
+
+        const topics =
+            Array.isArray(
+                data.topics
             )
-        ) || [];
+                ? data.topics
+                : [];
+
+        const newestTopics =
+            [...topics]
+                .sort(
+                    (
+                        first,
+                        second
+                    ) =>
+                        new Date(
+                            second.createdAt ||
+                            second.created_at ||
+                            0
+                        ) -
+                        new Date(
+                            first.createdAt ||
+                            first.created_at ||
+                            0
+                        )
+                )
+                .slice(0, 3);
+
+        if (
+            newestTopics.length === 0
+        ) {
+            container.innerHTML = `
+                <p class="empty-message">
+                    Тем форуму поки немає.
+                </p>
+            `;
+
+            return;
+        }
+
+        container.innerHTML = "";
+
+        newestTopics.forEach(
+            (topic) => {
+                const card =
+                    document.createElement(
+                        "a"
+                    );
+
+                card.className =
+                    "home-forum-topic";
+
+                card.href =
+                    `forum.html?topicId=${
+                        encodeURIComponent(
+                            topic.id
+                        )
+                    }`;
+
+                card.innerHTML = `
+                    <h3>
+                        ${escapeHomeHtml(
+                            topic.title ||
+                            "Без назви"
+                        )}
+                    </h3>
+
+                    <p>
+                        ${escapeHomeHtml(
+                            topic.authorName ||
+                            topic.author_name ||
+                            topic.userName ||
+                            topic.user_name ||
+                            "Користувач"
+                        )}
+                    </p>
+                `;
+
+                container.appendChild(
+                    card
+                );
+            }
+        );
+
     } catch (error) {
         console.error(
-            "Помилка завантаження тем форуму:",
+            "Home forum topics load error:",
             error
         );
-    }
 
-    const newestTopics = [...topics]
-        .sort(
-            (first, second) =>
-                new Date(second.createdAt || 0) -
-                new Date(first.createdAt || 0)
-        )
-        .slice(0, 3);
-
-    if (newestTopics.length === 0) {
         container.innerHTML = `
             <p class="empty-message">
-                Тем поки немає.
+                Не вдалося завантажити теми форуму.
             </p>
         `;
-
-        return;
     }
-
-    container.innerHTML = "";
-
-    newestTopics.forEach((topic) => {
-        const card =
-            document.createElement("div");
-
-        card.className = "topic-card";
-        card.tabIndex = 0;
-        card.setAttribute("role", "link");
-
-        const repliesCount =
-            Array.isArray(topic.replies)
-                ? topic.replies.length
-                : 0;
-
-        card.innerHTML = `
-            <h3>
-                ${escapeHomeHtml(topic.title)}
-            </h3>
-
-            <p>
-                ${escapeHomeHtml(topic.category)}
-                • ${repliesCount} відповідей
-            </p>
-
-            <p>
-                ${escapeHomeHtml(
-                    topic.text.length > 100
-                        ? `${topic.text.slice(0, 100)}…`
-                        : topic.text
-                )}
-            </p>
-        `;
-
-        const openForum = () => {
-            window.location.href = "forum.html";
-        };
-
-        card.addEventListener("click", openForum);
-
-        card.addEventListener("keydown", (event) => {
-            if (
-                event.key === "Enter" ||
-                event.key === " "
-            ) {
-                openForum();
-            }
-        });
-
-        container.appendChild(card);
-    });
 }
 
 document.addEventListener(
