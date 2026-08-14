@@ -609,8 +609,8 @@ async function renderHomeForumTopics() {
                         "a"
                     );
 
-                card.className =
-                    "home-forum-topic";
+                    card.className =
+                    "home-forum-topic car-card";
 
                 card.href =
                     `forum.html?topicId=${
