@@ -112,6 +112,22 @@ async function loadForumTopics() {
 
         renderForumTopics();
 
+        const urlParams =
+    new URLSearchParams(
+        window.location.search
+    );
+
+const topicId =
+    urlParams.get(
+        "topicId"
+    );
+
+if (topicId) {
+    openTopicView(
+        topicId
+    );
+}
+
     } catch (error) {
         console.error(
             "Не вдалося завантажити теми:",

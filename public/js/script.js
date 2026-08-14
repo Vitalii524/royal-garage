@@ -544,31 +544,49 @@ async function renderHomeForumTopics() {
         }
 
         const topics =
-            Array.isArray(
-                data.topics
-            )
-                ? data.topics
-                : [];
-
+        (data.topics || []).map(
+            (topic) => ({
+                id:
+                    topic.id,
+    
+                authorId:
+                    topic.user_id,
+    
+                authorName:
+                    topic.author_name,
+    
+                title:
+                    topic.title,
+    
+                category:
+                    topic.category,
+    
+                text:
+                    topic.content,
+    
+                createdAt:
+                    topic.created_at,
+    
+                replies:
+                    Array.isArray(
+                        topic.replies
+                    )
+                        ? topic.replies
+                        : []
+            })
+        );
         const newestTopics =
-            [...topics]
-                .sort(
-                    (
-                        first,
-                        second
-                    ) =>
-                        new Date(
-                            second.createdAt ||
-                            second.created_at ||
-                            0
-                        ) -
-                        new Date(
-                            first.createdAt ||
-                            first.created_at ||
-                            0
-                        )
-                )
-                .slice(0, 3);
+        [...topics]
+            .sort(
+                (first, second) =>
+                    new Date(
+                        second.createdAt
+                    ) -
+                    new Date(
+                        first.createdAt
+                    )
+            )
+            .slice(0, 3);
 
         if (
             newestTopics.length === 0
