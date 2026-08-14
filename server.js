@@ -2152,6 +2152,43 @@ app.delete(
     }
 );
 
+app.get(
+    "/api/debug/users",
+    async (req, res) => {
+        try {
+            const result =
+                await pool.query(`
+                    SELECT
+                        id,
+                        name,
+                        email,
+                        phone,
+                        account_type,
+                        role
+                    FROM users
+                    ORDER BY created_at ASC
+                `);
+
+            res.json({
+                ok: true,
+                users: result.rows
+            });
+
+        } catch (error) {
+            console.error(
+                "Debug users load error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити користувачів."
+            });
+        }
+    }
+);
+
 app.get("/api", (req, res) => {
     res.json({
         message: "Royal Garage API працює 🚗"
