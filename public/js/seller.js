@@ -104,28 +104,6 @@ const elements = {
    ДОПОМІЖНІ ФУНКЦІЇ
    ========================= */
 
-function readJson(
-    key,
-    fallback
-) {
-    try {
-        const storedValue =
-            localStorage.getItem(key);
-
-        return storedValue
-            ? JSON.parse(storedValue)
-            : fallback;
-    } catch (error) {
-        console.error(
-            `Помилка читання ${key}:`,
-            error
-        );
-
-        return fallback;
-    }
-}
-
-
 function escapeHtml(value) {
     return String(value ?? "")
         .replaceAll("&", "&amp;")
@@ -254,13 +232,51 @@ const requestedListingId =
 let listings = [];
 let currentUser = null;
 
+async function loadCurrentUser() {
+    const token =
+        localStorage.getItem(
+            "royalGarageToken"
+        );
+
+    if (!token) {
+        return null;
+    }
+
+    try {
+        const response =
+            await fetch(
+                "/api/profile",
+                {
+                    headers: {
+                        Authorization:
+                            `Bearer ${token}`
+                    }
+                }
+            );
+
+        if (!response.ok) {
+            return null;
+        }
+
+        const data =
+            await response.json();
+
+        return data.user || null;
+
+    } catch (error) {
+        console.error(
+            "Current user load error:",
+            error
+        );
+
+        return null;
+    }
+}
+
 async function loadSellerPage() {
    
-currentUser =
-    readJson(
-        CURRENT_USER_KEY,
-        null
-    );
+    currentUser =
+    await loadCurrentUser();
     try {
         const response =
             await fetch(
