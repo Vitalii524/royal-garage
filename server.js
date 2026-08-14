@@ -1084,17 +1084,23 @@ app.get(
 
             const car =
                 carResult.rows[0];
-
-            const services =
+                const services =
                 Array.isArray(
                     car.services
                 )
-                    ? car.services
-                        .filter(
-                            (service) =>
-                                service.isPublic ===
-                                true
-                        )
+                    ? car.services.filter(
+                        (service) => {
+                            const isPublic =
+                                service.isPublic;
+            
+                            return (
+                                isPublic === true ||
+                                isPublic === "true" ||
+                                isPublic === 1 ||
+                                isPublic === "1"
+                            );
+                        }
+                    )
                     : [];
 
             res.json({
