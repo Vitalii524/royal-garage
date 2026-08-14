@@ -1368,3 +1368,58 @@
         margin-top: 14px;
     }
 }
+
+/* ===== ПОЛІРОВКА ПОПУЛЯРНИХ МАРОК ===== */
+
+@media (max-width: 620px) {
+    .brands {
+        padding-top: 14px;
+    }
+
+    .brand-grid {
+        margin-top: 14px;
+        gap: 10px;
+    }
+
+    .brand-grid button {
+        min-height: 54px;
+        padding: 11px 8px;
+        border-radius: 12px;
+        font-size: 14px;
+    }
+}
+
+/* ===== FINAL MOBILE POLISH ===== */
+
+@media (max-width: 620px) {
+    .features {
+        gap: 4px;
+        padding: 10px 14px;
+        margin-bottom: 22px;
+    }
+
+    .feature {
+        padding: 16px 10px;
+    }
+
+    .feature span {
+        font-size: 28px;
+    }
+
+    .feature h3 {
+        margin: 6px 0;
+    }
+
+    .feature p {
+        margin: 0;
+        line-height: 1.35;
+    }
+
+    .back-to-top-button {
+        right: 10px;
+        bottom: 12px;
+        width: 42px;
+        height: 42px;
+        font-size: 24px;
+    }
+}
