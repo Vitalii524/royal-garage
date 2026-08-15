@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="uk">
+
 <head>
     <meta charset="UTF-8">
 
@@ -29,12 +30,15 @@
     >
 </head>
 
+
 <body>
 
 <header class="site-header">
+
     <div class="top-line">
 
         <div class="brand">
+
             <a
                 href="index.html"
                 aria-label="Royal Garage — головна"
@@ -44,12 +48,15 @@
                     alt="Royal Garage"
                 >
             </a>
+
         </div>
+
 
         <nav
             class="nav"
             aria-label="Головна навігація"
         >
+
             <a href="index.html">
                 Головна
             </a>
@@ -65,7 +72,9 @@
             <a href="profile.html">
                 Мій профіль
             </a>
+
         </nav>
+
 
         <div
             id="authArea"
@@ -73,10 +82,13 @@
         ></div>
 
     </div>
+
 </header>
 
 
+
 <main class="upholstery-page">
+
 
     <a
         href="index.html"
@@ -85,6 +97,11 @@
         ← Назад до Royal Garage
     </a>
 
+
+
+    <!-- =========================
+         ROYAL AUTO HERO
+         ========================= -->
 
     <section class="upholstery-hero">
 
@@ -99,8 +116,10 @@
             </h1>
 
             <p>
-                Автомобілі та аксесуари для вашого авто.
+                Автомобілі та аксесуари
+                для вашого авто.
             </p>
+
 
             <div class="upholstery-actions">
 
@@ -136,6 +155,112 @@
     </section>
 
 
+
+    <!-- =========================
+         ПАНЕЛЬ ВЛАСНИКА
+         ========================= -->
+
+    <section
+        id="royalAutoOwnerPanel"
+        class="upholstery-section"
+        hidden
+    >
+
+        <div class="upholstery-section-heading">
+
+            <p class="upholstery-label">
+                ПАНЕЛЬ ВЛАСНИКА
+            </p>
+
+            <h2>
+                Керування Royal Auto
+            </h2>
+
+            <p>
+                Цей блок бачить тільки
+                власник акаунта RoyalAuto.
+            </p>
+
+        </div>
+
+
+        <div class="upholstery-services-grid">
+
+            <button
+                type="button"
+                class="upholstery-service-card"
+                id="manageRoyalAutoCarsButton"
+            >
+
+                <span>
+                    🚘
+                </span>
+
+                <h3>
+                    Автомобілі
+                </h3>
+
+                <p>
+                    Керування автомобілями
+                    Royal Auto.
+                </p>
+
+            </button>
+
+
+            <button
+                type="button"
+                class="upholstery-service-card"
+                id="manageSeatCoversButton"
+            >
+
+                <span>
+                    🪡
+                </span>
+
+                <h3>
+                    Накидки
+                </h3>
+
+                <p>
+                    Керування накидками
+                    на сидіння.
+                </p>
+
+            </button>
+
+
+            <button
+                type="button"
+                class="upholstery-service-card"
+                id="managePillowsButton"
+            >
+
+                <span>
+                    👑
+                </span>
+
+                <h3>
+                    Подушечки
+                </h3>
+
+                <p>
+                    Керування подушечками
+                    Royal Auto.
+                </p>
+
+            </button>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =========================
+         НАПРЯМКИ
+         ========================= -->
+
     <section
         id="directions"
         class="upholstery-section"
@@ -156,39 +281,63 @@
 
         <div class="upholstery-services-grid">
 
+
             <a
                 href="#cars"
-                class="upholstery-service-card upholstery-service-link"
+                class="
+                    upholstery-service-card
+                    upholstery-service-link
+                "
             >
-                <span>🚘</span>
+
+                <span>
+                    🚘
+                </span>
 
                 <h3>
                     Автомобілі
                 </h3>
+
             </a>
+
 
 
             <a
                 href="#seat-covers"
-                class="upholstery-service-card upholstery-service-link"
+                class="
+                    upholstery-service-card
+                    upholstery-service-link
+                "
             >
-                <span>🪡</span>
+
+                <span>
+                    🪡
+                </span>
 
                 <h3>
                     Накидки на сидіння
                 </h3>
+
             </a>
+
 
 
             <a
                 href="#pillows"
-                class="upholstery-service-card upholstery-service-link"
+                class="
+                    upholstery-service-card
+                    upholstery-service-link
+                "
             >
-                <span>👑</span>
+
+                <span>
+                    👑
+                </span>
 
                 <h3>
                     Подушечки
                 </h3>
+
             </a>
 
         </div>
@@ -196,37 +345,79 @@
     </section>
 
 
+
+    <!-- =========================
+         ДЕТАЛЬНІ НАПРЯМКИ
+         ========================= -->
+
     <section class="upholstery-details-section">
 
+
         <article
-            id="cars"
-            class="upholstery-detail-card"
-        >
-            <div class="upholstery-detail-icon">
-                🚘
+        id="cars"
+        class="upholstery-detail-card royal-auto-cars-section"
+    >
+    
+        <div class="upholstery-detail-icon">
+            🚘
+        </div>
+    
+        <div class="royal-auto-cars-content">
+    
+            <p class="upholstery-label">
+                ROYAL AUTO
+            </p>
+    
+            <h2>
+                Автомобілі
+            </h2>
+    
+            <p>
+                Актуальні автомобілі
+                Royal Auto у продажу.
+            </p>
+    
+    
+            <div
+                id="royalAutoCarsLoading"
+                class="royal-auto-loading"
+            >
+                Завантаження автомобілів...
             </div>
-
-            <div>
-                <p class="upholstery-label">
-                    ROYAL AUTO
-                </p>
-
-                <h2>
-                    Автомобілі
-                </h2>
+    
+    
+            <div
+                id="royalAutoCarsEmpty"
+                class="royal-auto-empty"
+                hidden
+            >
+                Зараз немає активних
+                автомобілів у продажу.
             </div>
-        </article>
+    
+    
+            <div
+                id="royalAutoCarsGrid"
+                class="royal-auto-cars-grid"
+            ></div>
+    
+        </div>
+    
+    </article>
 
 
         <article
             id="seat-covers"
             class="upholstery-detail-card"
         >
+
             <div class="upholstery-detail-icon">
                 🪡
             </div>
 
+
             <div>
+
                 <p class="upholstery-label">
                     ROYAL AUTO
                 </p>
@@ -234,19 +425,30 @@
                 <h2>
                     Накидки на сидіння
                 </h2>
+
+                <p>
+                    Накидки та аксесуари
+                    для салону автомобіля.
+                </p>
+
             </div>
+
         </article>
+
 
 
         <article
             id="pillows"
             class="upholstery-detail-card"
         >
+
             <div class="upholstery-detail-icon">
                 👑
             </div>
 
+
             <div>
+
                 <p class="upholstery-label">
                     ROYAL AUTO
                 </p>
@@ -254,11 +456,23 @@
                 <h2>
                     Подушечки
                 </h2>
+
+                <p>
+                    Автомобільні подушечки
+                    Royal Auto.
+                </p>
+
             </div>
+
         </article>
 
     </section>
 
+
+
+    <!-- =========================
+         КОНТАКТИ
+         ========================= -->
 
     <section
         id="contacts"
@@ -266,6 +480,7 @@
     >
 
         <div>
+
             <p class="upholstery-label">
                 ROYAL AUTO
             </p>
@@ -273,10 +488,12 @@
             <h2>
                 Контакти
             </h2>
+
         </div>
 
 
         <div class="upholstery-contact-buttons">
+
 
             <a
                 href="https://t.me/Vitalik25675"
@@ -286,6 +503,7 @@
                 Telegram
             </a>
 
+
             <a
                 href="https://www.instagram.com/royalauto0077?igsh=Z2xtZjM3Z2U5bXR6"
                 target="_blank"
@@ -293,6 +511,7 @@
             >
                 Instagram
             </a>
+
 
             <button
                 type="button"
@@ -309,9 +528,11 @@
 </main>
 
 
+
 <footer class="footer">
 
     <div>
+
         <h3>
             Royal Garage
         </h3>
@@ -323,10 +544,12 @@
         <p>
             Створено командою Royal Auto
         </p>
+
     </div>
 
 
     <div>
+
         <h3>
             Навігація
         </h3>
@@ -346,13 +569,16 @@
         <a href="profile.html">
             Мій профіль
         </a>
+
     </div>
 
 </footer>
+
 
 
 <script src="js/auth.js"></script>
 <script src="js/handmade.js"></script>
 
 </body>
+
 </html>

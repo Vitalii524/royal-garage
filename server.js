@@ -242,6 +242,80 @@ await pool.query(`
     )
 `);
 
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS royal_auto_sections (
+        id UUID PRIMARY KEY,
+
+        owner_id UUID NOT NULL
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+
+        name VARCHAR(150) NOT NULL,
+
+        slug VARCHAR(150) NOT NULL,
+
+        description TEXT NOT NULL
+            DEFAULT '',
+
+        icon VARCHAR(50) NOT NULL
+            DEFAULT '👑',
+
+        active BOOLEAN NOT NULL
+            DEFAULT TRUE,
+
+        sort_order INTEGER NOT NULL
+            DEFAULT 0,
+
+        created_at TIMESTAMPTZ NOT NULL
+            DEFAULT NOW(),
+
+        updated_at TIMESTAMPTZ NOT NULL
+            DEFAULT NOW(),
+
+        UNIQUE (
+            owner_id,
+            slug
+        )
+    )
+`);
+
+
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS royal_auto_products (
+        id UUID PRIMARY KEY,
+
+        owner_id UUID NOT NULL
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+
+        section_id UUID NOT NULL
+            REFERENCES royal_auto_sections(id)
+            ON DELETE CASCADE,
+
+        name VARCHAR(200) NOT NULL,
+
+        description TEXT NOT NULL
+            DEFAULT '',
+
+        price_uah NUMERIC(12, 2),
+
+        photos JSONB NOT NULL
+            DEFAULT '[]'::jsonb,
+
+        active BOOLEAN NOT NULL
+            DEFAULT TRUE,
+
+        sort_order INTEGER NOT NULL
+            DEFAULT 0,
+
+        created_at TIMESTAMPTZ NOT NULL
+            DEFAULT NOW(),
+
+        updated_at TIMESTAMPTZ NOT NULL
+            DEFAULT NOW()
+    )
+`);
+
         console.log("Users table ready");
     } catch (error) {
         console.error("Database initialization error:", error);
@@ -2551,6 +2625,1324 @@ function requireAuth(req, res, next) {
         });
     }
 }
+
+/* =========================
+   ROYAL AUTO — ДОСТУП ВЛАСНИКА
+   ========================= */
+
+   const ROYAL_AUTO_OWNER_ID =
+   "32ce413e-9eb6-417a-b99a-77d9ca7c144a";
+
+
+function requireRoyalAutoOwner(
+   req,
+   res,
+   next
+) {
+   if (
+       !req.user ||
+       String(req.user.userId) !==
+       String(ROYAL_AUTO_OWNER_ID)
+   ) {
+       return res.status(403).json({
+           ok: false,
+           message:
+               "Немає доступу до керування Royal Auto."
+       });
+   }
+
+   next();
+}
+
+/* =========================
+   ROYAL AUTO — НАПРЯМКИ
+   ========================= */
+
+
+   async function ensureRoyalAutoDefaultSections() {
+
+    const ownerResult =
+        await pool.query(
+            `
+            SELECT id
+            FROM users
+            WHERE id = $1
+            LIMIT 1
+            `,
+            [
+                ROYAL_AUTO_OWNER_ID
+            ]
+        );
+
+
+    if (
+        ownerResult.rows.length === 0
+    ) {
+        return;
+    }
+
+
+    const defaultSections = [
+        {
+            name:
+                "Накидки на сидіння",
+            slug:
+                "seat-covers",
+            description:
+                "Накидки та аксесуари для салону автомобіля.",
+            icon:
+                "🪡",
+            sortOrder:
+                10
+        },
+        {
+            name:
+                "Подушечки",
+            slug:
+                "pillows",
+            description:
+                "Автомобільні подушечки Royal Auto.",
+            icon:
+                "👑",
+            sortOrder:
+                20
+        }
+    ];
+
+
+    for (
+        const section
+        of defaultSections
+    ) {
+
+        await pool.query(
+            `
+            INSERT INTO royal_auto_sections (
+                id,
+                owner_id,
+                name,
+                slug,
+                description,
+                icon,
+                active,
+                sort_order
+            )
+            VALUES (
+                $1,
+                $2,
+                $3,
+                $4,
+                $5,
+                $6,
+                TRUE,
+                $7
+            )
+            ON CONFLICT (
+                owner_id,
+                slug
+            )
+            DO NOTHING
+            `,
+            [
+                crypto.randomUUID(),
+                ROYAL_AUTO_OWNER_ID,
+                section.name,
+                section.slug,
+                section.description,
+                section.icon,
+                section.sortOrder
+            ]
+        );
+    }
+}
+
+
+
+/* =========================
+   ОТРИМАТИ НАПРЯМКИ
+   ========================= */
+
+app.get(
+    "/api/royal-auto/sections",
+    async (req, res) => {
+
+        try {
+
+            await ensureRoyalAutoDefaultSections();
+
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        name,
+                        slug,
+                        description,
+                        icon,
+                        active,
+                        sort_order AS "sortOrder",
+                        created_at AS "createdAt",
+                        updated_at AS "updatedAt"
+
+                    FROM royal_auto_sections
+
+                    WHERE owner_id = $1
+                      AND active = TRUE
+
+                    ORDER BY
+                        sort_order ASC,
+                        created_at ASC
+                    `,
+                    [
+                        ROYAL_AUTO_OWNER_ID
+                    ]
+                );
+
+
+            res.json({
+                ok: true,
+                sections:
+                    result.rows
+            });
+
+        } catch (error) {
+
+            console.error(
+                "Royal Auto sections load error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити напрямки Royal Auto."
+            });
+        }
+    }
+);
+
+
+
+/* =========================
+   ДОДАТИ НОВИЙ НАПРЯМОК
+   ========================= */
+
+app.post(
+    "/api/royal-auto/sections",
+    requireAuth,
+    requireRoyalAutoOwner,
+    async (req, res) => {
+
+        try {
+
+            const {
+                name,
+                description,
+                icon
+            } = req.body;
+
+
+            if (
+                !name ||
+                !String(name).trim()
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть назву напрямку."
+                });
+            }
+
+
+            let slug =
+                String(name)
+                    .trim()
+                    .toLowerCase()
+                    .normalize("NFKD")
+                    .replace(
+                        /[^\p{L}\p{N}]+/gu,
+                        "-"
+                    )
+                    .replace(
+                        /^-+|-+$/g,
+                        ""
+                    );
+
+
+            if (!slug) {
+                slug =
+                    `section-${Date.now()}`;
+            }
+
+
+            const id =
+                crypto.randomUUID();
+
+
+            const result =
+                await pool.query(
+                    `
+                    INSERT INTO royal_auto_sections (
+                        id,
+                        owner_id,
+                        name,
+                        slug,
+                        description,
+                        icon,
+                        active,
+                        sort_order
+                    )
+
+                    VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        $4,
+                        $5,
+                        $6,
+                        TRUE,
+                        (
+                            SELECT
+                                COALESCE(
+                                    MAX(sort_order),
+                                    0
+                                ) + 10
+
+                            FROM royal_auto_sections
+
+                            WHERE owner_id = $2
+                        )
+                    )
+
+                    RETURNING
+                        id,
+                        name,
+                        slug,
+                        description,
+                        icon,
+                        active,
+                        sort_order AS "sortOrder",
+                        created_at AS "createdAt"
+                    `,
+                    [
+                        id,
+                        ROYAL_AUTO_OWNER_ID,
+                        String(name).trim(),
+                        slug,
+                        String(
+                            description || ""
+                        ).trim(),
+                        String(
+                            icon || "👑"
+                        ).trim()
+                    ]
+                );
+
+
+            res.status(201).json({
+                ok: true,
+                section:
+                    result.rows[0]
+            });
+
+        } catch (error) {
+
+            if (
+                error.code ===
+                "23505"
+            ) {
+                return res.status(409).json({
+                    ok: false,
+                    message:
+                        "Такий напрямок уже існує."
+                });
+            }
+
+
+            console.error(
+                "Royal Auto section create error:",
+                error
+            );
+
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося додати напрямок."
+            });
+        }
+    }
+);
+
+/* =========================
+   ROYAL AUTO — РЕДАГУВАТИ НАПРЯМОК
+   ========================= */
+
+   app.patch(
+    "/api/royal-auto/sections/:sectionId",
+    requireAuth,
+    requireRoyalAutoOwner,
+    async (req, res) => {
+
+        try {
+
+            const {
+                sectionId
+            } = req.params;
+
+
+            const currentResult =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        name,
+                        description,
+                        icon,
+                        active,
+                        sort_order
+
+                    FROM royal_auto_sections
+
+                    WHERE
+                        id = $1
+                        AND owner_id = $2
+
+                    LIMIT 1
+                    `,
+                    [
+                        sectionId,
+                        ROYAL_AUTO_OWNER_ID
+                    ]
+                );
+
+
+            if (
+                currentResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Напрямок Royal Auto не знайдено."
+                });
+            }
+
+
+            const current =
+                currentResult.rows[0];
+
+
+            const {
+                name,
+                description,
+                icon,
+                active,
+                sortOrder
+            } = req.body;
+
+
+            const nextName =
+                name !== undefined
+                    ? String(name).trim()
+                    : current.name;
+
+
+            if (!nextName) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Назва напрямку не може бути порожньою."
+                });
+            }
+
+
+            const nextDescription =
+                description !== undefined
+                    ? String(description).trim()
+                    : current.description;
+
+
+            const nextIcon =
+                icon !== undefined
+                    ? String(icon).trim() || "👑"
+                    : current.icon;
+
+
+            const nextActive =
+                active !== undefined
+                    ? Boolean(active)
+                    : current.active;
+
+
+            let nextSortOrder =
+                current.sort_order;
+
+
+            if (
+                sortOrder !== undefined
+            ) {
+
+                const parsedSortOrder =
+                    Number(sortOrder);
+
+
+                if (
+                    !Number.isInteger(
+                        parsedSortOrder
+                    )
+                ) {
+                    return res.status(400).json({
+                        ok: false,
+                        message:
+                            "Неправильний порядок напрямку."
+                    });
+                }
+
+
+                nextSortOrder =
+                    parsedSortOrder;
+            }
+
+
+            const result =
+                await pool.query(
+                    `
+                    UPDATE royal_auto_sections
+
+                    SET
+                        name = $1,
+                        description = $2,
+                        icon = $3,
+                        active = $4,
+                        sort_order = $5,
+                        updated_at = NOW()
+
+                    WHERE
+                        id = $6
+                        AND owner_id = $7
+
+                    RETURNING
+                        id,
+                        name,
+                        slug,
+                        description,
+                        icon,
+                        active,
+
+                        sort_order
+                            AS "sortOrder",
+
+                        updated_at
+                            AS "updatedAt"
+                    `,
+                    [
+                        nextName,
+                        nextDescription,
+                        nextIcon,
+                        nextActive,
+                        nextSortOrder,
+                        sectionId,
+                        ROYAL_AUTO_OWNER_ID
+                    ]
+                );
+
+
+            res.json({
+                ok: true,
+                section:
+                    result.rows[0]
+            });
+
+        } catch (error) {
+
+            console.error(
+                "Royal Auto section update error:",
+                error
+            );
+
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося оновити напрямок Royal Auto."
+            });
+        }
+    }
+);
+
+/* =========================
+   ROYAL AUTO — ВИДАЛИТИ НАПРЯМОК
+   ========================= */
+
+   app.delete(
+    "/api/royal-auto/sections/:sectionId",
+    requireAuth,
+    requireRoyalAutoOwner,
+    async (req, res) => {
+
+        try {
+
+            const {
+                sectionId
+            } = req.params;
+
+
+            const result =
+                await pool.query(
+                    `
+                    DELETE FROM royal_auto_sections
+
+                    WHERE
+                        id = $1
+                        AND owner_id = $2
+
+                    RETURNING
+                        id,
+                        name
+                    `,
+                    [
+                        sectionId,
+                        ROYAL_AUTO_OWNER_ID
+                    ]
+                );
+
+
+            if (
+                result.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Напрямок Royal Auto не знайдено."
+                });
+            }
+
+
+            res.json({
+                ok: true,
+                message:
+                    "Напрямок та його товари успішно видалено.",
+                section:
+                    result.rows[0]
+            });
+
+        } catch (error) {
+
+            console.error(
+                "Royal Auto section delete error:",
+                error
+            );
+
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося видалити напрямок Royal Auto."
+            });
+        }
+    }
+);
+
+/* =========================
+   ROYAL AUTO — ТОВАРИ
+   ========================= */
+
+
+/* =========================
+   ОТРИМАТИ ТОВАРИ
+   ========================= */
+
+   app.get(
+    "/api/royal-auto/products",
+    async (req, res) => {
+
+        try {
+
+            await ensureRoyalAutoDefaultSections();
+
+            const {
+                sectionId
+            } = req.query;
+
+
+            const params = [
+                ROYAL_AUTO_OWNER_ID
+            ];
+
+
+            let sectionFilter = "";
+
+
+            if (sectionId) {
+                params.push(
+                    sectionId
+                );
+
+                sectionFilter =
+                    `
+                    AND rap.section_id = $2
+                    `;
+            }
+
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        rap.id,
+
+                        rap.section_id
+                            AS "sectionId",
+
+                        ras.name
+                            AS "sectionName",
+
+                        ras.slug
+                            AS "sectionSlug",
+
+                        rap.name,
+
+                        rap.description,
+
+                        rap.price_uah
+                            AS "priceUah",
+
+                        rap.photos,
+
+                        rap.active,
+
+                        rap.sort_order
+                            AS "sortOrder",
+
+                        rap.created_at
+                            AS "createdAt",
+
+                        rap.updated_at
+                            AS "updatedAt"
+
+                    FROM royal_auto_products rap
+
+                    INNER JOIN royal_auto_sections ras
+                        ON ras.id =
+                            rap.section_id
+
+                    WHERE
+                        rap.owner_id = $1
+
+                        AND rap.active = TRUE
+
+                        AND ras.active = TRUE
+
+                        ${sectionFilter}
+
+                    ORDER BY
+                        ras.sort_order ASC,
+                        rap.sort_order ASC,
+                        rap.created_at DESC
+                    `,
+                    params
+                );
+
+
+            res.json({
+                ok: true,
+                products:
+                    result.rows
+            });
+
+        } catch (error) {
+
+            console.error(
+                "Royal Auto products load error:",
+                error
+            );
+
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити товари Royal Auto."
+            });
+        }
+    }
+);
+
+
+
+/* =========================
+   ДОДАТИ ТОВАР
+   ========================= */
+
+app.post(
+    "/api/royal-auto/products",
+    requireAuth,
+    requireRoyalAutoOwner,
+    async (req, res) => {
+
+        try {
+
+            const {
+                sectionId,
+                name,
+                description,
+                priceUah,
+                photos
+            } = req.body;
+
+
+            if (!sectionId) {
+
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Оберіть напрямок."
+                });
+            }
+
+
+            if (
+                !name ||
+                !String(name).trim()
+            ) {
+
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть назву товару."
+                });
+            }
+
+
+            /* Перевіряємо напрямок */
+
+            const sectionResult =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        name
+
+                    FROM royal_auto_sections
+
+                    WHERE
+                        id = $1
+                        AND owner_id = $2
+
+                    LIMIT 1
+                    `,
+                    [
+                        sectionId,
+                        ROYAL_AUTO_OWNER_ID
+                    ]
+                );
+
+
+            if (
+                sectionResult.rows.length ===
+                0
+            ) {
+
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Напрямок Royal Auto не знайдено."
+                });
+            }
+
+
+            /* Ціна */
+
+            let normalizedPrice =
+                null;
+
+
+            if (
+                priceUah !== undefined &&
+                priceUah !== null &&
+                String(priceUah).trim() !== ""
+            ) {
+
+                normalizedPrice =
+                    Number(priceUah);
+
+
+                if (
+                    !Number.isFinite(
+                        normalizedPrice
+                    ) ||
+                    normalizedPrice < 0
+                ) {
+
+                    return res.status(400).json({
+                        ok: false,
+                        message:
+                            "Вкажіть правильну ціну."
+                    });
+                }
+            }
+
+
+            /* Фото */
+
+            const safePhotos =
+                Array.isArray(photos)
+                    ? photos
+                        .filter(Boolean)
+                        .slice(0, 20)
+                    : [];
+
+
+            const productId =
+                crypto.randomUUID();
+
+
+            const result =
+                await pool.query(
+                    `
+                    INSERT INTO royal_auto_products (
+                        id,
+                        owner_id,
+                        section_id,
+                        name,
+                        description,
+                        price_uah,
+                        photos,
+                        active,
+                        sort_order
+                    )
+
+                    VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        $4,
+                        $5,
+                        $6,
+                        $7,
+                        TRUE,
+                        (
+                            SELECT
+                                COALESCE(
+                                    MAX(sort_order),
+                                    0
+                                ) + 10
+
+                            FROM royal_auto_products
+
+                            WHERE
+                                owner_id = $2
+                                AND section_id = $3
+                        )
+                    )
+
+                    RETURNING
+                        id,
+
+                        section_id
+                            AS "sectionId",
+
+                        name,
+
+                        description,
+
+                        price_uah
+                            AS "priceUah",
+
+                        photos,
+
+                        active,
+
+                        sort_order
+                            AS "sortOrder",
+
+                        created_at
+                            AS "createdAt",
+
+                        updated_at
+                            AS "updatedAt"
+                    `,
+                    [
+                        productId,
+                        ROYAL_AUTO_OWNER_ID,
+                        sectionId,
+                        String(name).trim(),
+                        String(
+                            description || ""
+                        ).trim(),
+                        normalizedPrice,
+                        JSON.stringify(
+                            safePhotos
+                        )
+                    ]
+                );
+
+
+            res.status(201).json({
+                ok: true,
+                product:
+                    result.rows[0]
+            });
+
+        } catch (error) {
+
+            console.error(
+                "Royal Auto product create error:",
+                error
+            );
+
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося додати товар Royal Auto."
+            });
+        }
+    }
+);
+
+/* =========================
+   ROYAL AUTO — РЕДАГУВАТИ ТОВАР
+   ========================= */
+
+   app.patch(
+    "/api/royal-auto/products/:productId",
+    requireAuth,
+    requireRoyalAutoOwner,
+    async (req, res) => {
+
+        try {
+
+            const {
+                productId
+            } = req.params;
+
+
+            const currentResult =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        section_id,
+                        name,
+                        description,
+                        price_uah,
+                        photos,
+                        active
+
+                    FROM royal_auto_products
+
+                    WHERE
+                        id = $1
+                        AND owner_id = $2
+
+                    LIMIT 1
+                    `,
+                    [
+                        productId,
+                        ROYAL_AUTO_OWNER_ID
+                    ]
+                );
+
+
+            if (
+                currentResult.rows.length ===
+                0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Товар Royal Auto не знайдено."
+                });
+            }
+
+
+            const current =
+                currentResult.rows[0];
+
+
+            const {
+                sectionId,
+                name,
+                description,
+                priceUah,
+                photos,
+                active
+            } = req.body;
+
+
+            const nextSectionId =
+                sectionId !== undefined
+                    ? sectionId
+                    : current.section_id;
+
+
+            if (
+                sectionId !== undefined
+            ) {
+
+                const sectionResult =
+                    await pool.query(
+                        `
+                        SELECT id
+                        FROM royal_auto_sections
+
+                        WHERE
+                            id = $1
+                            AND owner_id = $2
+
+                        LIMIT 1
+                        `,
+                        [
+                            nextSectionId,
+                            ROYAL_AUTO_OWNER_ID
+                        ]
+                    );
+
+
+                if (
+                    sectionResult.rows.length ===
+                    0
+                ) {
+                    return res.status(404).json({
+                        ok: false,
+                        message:
+                            "Напрямок Royal Auto не знайдено."
+                    });
+                }
+            }
+
+
+            const nextName =
+                name !== undefined
+                    ? String(name).trim()
+                    : current.name;
+
+
+            if (!nextName) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Назва товару не може бути порожньою."
+                });
+            }
+
+
+            const nextDescription =
+                description !== undefined
+                    ? String(description).trim()
+                    : current.description;
+
+
+            let nextPrice =
+                current.price_uah;
+
+
+            if (
+                priceUah !== undefined
+            ) {
+
+                if (
+                    priceUah === null ||
+                    String(priceUah).trim() === ""
+                ) {
+                    nextPrice = null;
+
+                } else {
+
+                    nextPrice =
+                        Number(priceUah);
+
+
+                    if (
+                        !Number.isFinite(
+                            nextPrice
+                        ) ||
+                        nextPrice < 0
+                    ) {
+                        return res.status(400).json({
+                            ok: false,
+                            message:
+                                "Вкажіть правильну ціну."
+                        });
+                    }
+                }
+            }
+
+
+            const nextPhotos =
+                photos !== undefined
+                    ? (
+                        Array.isArray(photos)
+                            ? photos
+                                .filter(Boolean)
+                                .slice(0, 20)
+                            : []
+                    )
+                    : current.photos;
+
+
+            const nextActive =
+                active !== undefined
+                    ? Boolean(active)
+                    : current.active;
+
+
+            const result =
+                await pool.query(
+                    `
+                    UPDATE royal_auto_products
+
+                    SET
+                        section_id = $1,
+                        name = $2,
+                        description = $3,
+                        price_uah = $4,
+                        photos = $5,
+                        active = $6,
+                        updated_at = NOW()
+
+                    WHERE
+                        id = $7
+                        AND owner_id = $8
+
+                    RETURNING
+                        id,
+
+                        section_id
+                            AS "sectionId",
+
+                        name,
+
+                        description,
+
+                        price_uah
+                            AS "priceUah",
+
+                        photos,
+
+                        active,
+
+                        sort_order
+                            AS "sortOrder",
+
+                        created_at
+                            AS "createdAt",
+
+                        updated_at
+                            AS "updatedAt"
+                    `,
+                    [
+                        nextSectionId,
+                        nextName,
+                        nextDescription,
+                        nextPrice,
+                        JSON.stringify(
+                            nextPhotos
+                        ),
+                        nextActive,
+                        productId,
+                        ROYAL_AUTO_OWNER_ID
+                    ]
+                );
+
+
+            res.json({
+                ok: true,
+                product:
+                    result.rows[0]
+            });
+
+        } catch (error) {
+
+            console.error(
+                "Royal Auto product update error:",
+                error
+            );
+
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося оновити товар Royal Auto."
+            });
+        }
+    }
+);
+
+/* =========================
+   ROYAL AUTO — ВИДАЛИТИ ТОВАР
+   ========================= */
+
+   app.delete(
+    "/api/royal-auto/products/:productId",
+    requireAuth,
+    requireRoyalAutoOwner,
+    async (req, res) => {
+
+        try {
+
+            const {
+                productId
+            } = req.params;
+
+
+            const result =
+                await pool.query(
+                    `
+                    DELETE FROM royal_auto_products
+
+                    WHERE
+                        id = $1
+                        AND owner_id = $2
+
+                    RETURNING
+                        id,
+                        name
+                    `,
+                    [
+                        productId,
+                        ROYAL_AUTO_OWNER_ID
+                    ]
+                );
+
+
+            if (
+                result.rows.length ===
+                0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Товар Royal Auto не знайдено."
+                });
+            }
+
+
+            res.json({
+                ok: true,
+                message:
+                    "Товар успішно видалено.",
+                product:
+                    result.rows[0]
+            });
+
+        } catch (error) {
+
+            console.error(
+                "Royal Auto product delete error:",
+                error
+            );
+
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося видалити товар Royal Auto."
+            });
+        }
+    }
+);
 
 app.post(
     "/api/forum/topics",
