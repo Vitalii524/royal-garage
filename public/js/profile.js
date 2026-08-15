@@ -6732,3 +6732,133 @@ window.addEventListener(
 );
 
 updateBackToTopButton();
+
+const deleteAccountButton =
+    document.getElementById(
+        "deleteAccountButton"
+    );
+
+
+if (deleteAccountButton) {
+
+    deleteAccountButton.addEventListener(
+        "click",
+        async () => {
+
+            const confirmed =
+                confirm(
+                    "Ви впевнені, що хочете видалити акаунт?\n\n" +
+                    "Буде видалено ваш профіль і пов’язані з ним дані.\n\n" +
+                    "Цю дію неможливо скасувати."
+                );
+
+            if (!confirmed) {
+                return;
+            }
+
+
+            const confirmationText =
+                prompt(
+                    'Для підтвердження введіть слово:\nВИДАЛИТИ'
+                );
+
+            if (
+                confirmationText !==
+                "ВИДАЛИТИ"
+            ) {
+                alert(
+                    "Видалення акаунта скасовано."
+                );
+
+                return;
+            }
+
+
+            const token =
+                localStorage.getItem(
+                    "royalGarageToken"
+                );
+
+            if (!token) {
+                alert(
+                    "Сесія недійсна. Увійдіть повторно."
+                );
+
+                return;
+            }
+
+
+            try {
+
+                deleteAccountButton.disabled =
+                    true;
+
+                deleteAccountButton.textContent =
+                    "Видалення...";
+
+
+                const response =
+                    await fetch(
+                        "/api/account",
+                        {
+                            method:
+                                "DELETE",
+
+                            headers: {
+                                Authorization:
+                                    `Bearer ${token}`
+                            }
+                        }
+                    );
+
+
+                const data =
+                    await response.json();
+
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.message ||
+                        "Не вдалося видалити акаунт."
+                    );
+                }
+
+
+                localStorage.removeItem(
+                    "royalGarageToken"
+                );
+
+                localStorage.removeItem(
+                    "royalGarageCurrentUser"
+                );
+
+
+                alert(
+                    "Акаунт успішно видалено."
+                );
+
+
+                window.location.href =
+                    "index.html";
+
+            } catch (error) {
+
+                console.error(
+                    "Account delete request error:",
+                    error
+                );
+
+                alert(
+                    error.message ||
+                    "Не вдалося видалити акаунт."
+                );
+
+                deleteAccountButton.disabled =
+                    false;
+
+                deleteAccountButton.textContent =
+                    "Видалити акаунт";
+            }
+        }
+    );
+}

@@ -3226,6 +3226,61 @@ app.get(
     }
 );
 
+app.delete(
+    "/api/account",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const userId =
+                req.user.userId;
+
+            const result =
+                await pool.query(
+                    `
+                    DELETE FROM users
+                    WHERE id = $1
+                    RETURNING
+                        id,
+                        name,
+                        email
+                    `,
+                    [
+                        userId
+                    ]
+                );
+
+            if (
+                result.rows.length ===
+                0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Акаунт не знайдено."
+                });
+            }
+
+            res.json({
+                ok: true,
+                message:
+                    "Акаунт успішно видалено."
+            });
+
+        } catch (error) {
+            console.error(
+                "Account delete error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося видалити акаунт."
+            });
+        }
+    }
+);
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
