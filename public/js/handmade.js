@@ -554,3 +554,38 @@ if (copyPhoneButton) {
         }
     );
 }
+
+/* =========================
+   ПЛАВАЮЧА КНОПКА ЗВ'ЯЗКУ
+   ========================= */
+
+   const royalAutoContactFloat =
+   document.querySelector(
+       ".royal-auto-contact-float"
+   );
+
+
+function updateRoyalAutoContactFloat() {
+
+   if (!royalAutoContactFloat) {
+       return;
+   }
+
+
+   royalAutoContactFloat.classList.toggle(
+       "is-visible",
+       window.scrollY > 350
+   );
+}
+
+
+window.addEventListener(
+   "scroll",
+   updateRoyalAutoContactFloat,
+   {
+       passive: true
+   }
+);
+
+
+updateRoyalAutoContactFloat();
