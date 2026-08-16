@@ -40,6 +40,26 @@ async function initDatabase() {
     `);
 
     await pool.query(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id UUID PRIMARY KEY,
+
+        user_id UUID NOT NULL
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+
+        token_hash TEXT NOT NULL
+            UNIQUE,
+
+        expires_at TIMESTAMPTZ NOT NULL,
+
+        used_at TIMESTAMPTZ,
+
+        created_at TIMESTAMPTZ NOT NULL
+            DEFAULT NOW()
+    )
+`);
+
+    await pool.query(`
     CREATE TABLE IF NOT EXISTS forum_topics (
         id UUID PRIMARY KEY,
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -2528,6 +2548,345 @@ app.post("/api/login", async (req, res) => {
         });
     }
 });
+
+/* =========================
+   ВІДНОВЛЕННЯ ПАРОЛЯ
+   ========================= */
+
+   app.post(
+    "/api/forgot-password",
+    async (req, res) => {
+        try {
+            const email =
+                String(
+                    req.body.email || ""
+                )
+                    .trim()
+                    .toLowerCase();
+
+            if (!email) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Введи email."
+                });
+            }
+
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        email
+                    FROM users
+                    WHERE email = $1
+                    LIMIT 1
+                    `,
+                    [email]
+                );
+
+
+            /*
+             * Не повідомляємо сторонній людині,
+             * чи існує такий email.
+             */
+            if (
+                result.rows.length ===
+                0
+            ) {
+                return res.json({
+                    ok: true,
+                    message:
+                        "Якщо такий акаунт існує, інструкцію для відновлення створено."
+                });
+            }
+
+
+            const user =
+                result.rows[0];
+
+
+            const resetToken =
+                crypto
+                    .randomBytes(32)
+                    .toString("hex");
+
+
+            const tokenHash =
+                crypto
+                    .createHash("sha256")
+                    .update(resetToken)
+                    .digest("hex");
+
+
+            const expiresAt =
+                new Date(
+                    Date.now() +
+                    30 * 60 * 1000
+                );
+
+
+            await pool.query(
+                `
+                DELETE FROM password_reset_tokens
+                WHERE
+                    user_id = $1
+                    AND used_at IS NULL
+                `,
+                [user.id]
+            );
+
+
+            await pool.query(
+                `
+                INSERT INTO password_reset_tokens (
+                    id,
+                    user_id,
+                    token_hash,
+                    expires_at
+                )
+                VALUES (
+                    $1,
+                    $2,
+                    $3,
+                    $4
+                )
+                `,
+                [
+                    crypto.randomUUID(),
+                    user.id,
+                    tokenHash,
+                    expiresAt
+                ]
+            );
+
+
+            const resetUrl =
+                `${req.protocol}://${req.get("host")}` +
+                `/reset-password.html?token=${resetToken}`;
+
+
+            /*
+             * ТИМЧАСОВО ДЛЯ ТЕСТУ.
+             * Потім замінимо це
+             * надсиланням листа.
+             */
+            console.log(
+                "Password reset URL:",
+                resetUrl
+            );
+
+
+            res.json({
+                ok: true,
+                message:
+                    "Якщо такий акаунт існує, інструкцію для відновлення створено."
+            });
+
+        } catch (error) {
+            console.error(
+                "Forgot password error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося створити запит на відновлення пароля."
+            });
+        }
+    }
+);
+
+/* =========================
+   ВСТАНОВЛЕННЯ НОВОГО ПАРОЛЯ
+   ========================= */
+
+   app.post(
+    "/api/reset-password",
+    async (req, res) => {
+        const client =
+            await pool.connect();
+
+        try {
+            const token =
+                String(
+                    req.body.token || ""
+                ).trim();
+
+            const newPassword =
+                String(
+                    req.body.newPassword || ""
+                );
+
+
+            if (
+                !token ||
+                newPassword.length < 6
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Недійсні дані для зміни пароля."
+                });
+            }
+
+
+            const tokenHash =
+                crypto
+                    .createHash("sha256")
+                    .update(token)
+                    .digest("hex");
+
+
+            await client.query(
+                "BEGIN"
+            );
+
+
+            const tokenResult =
+                await client.query(
+                    `
+                    SELECT
+                        id,
+                        user_id,
+                        expires_at,
+                        used_at
+                    FROM password_reset_tokens
+                    WHERE token_hash = $1
+                    LIMIT 1
+                    FOR UPDATE
+                    `,
+                    [
+                        tokenHash
+                    ]
+                );
+
+
+            if (
+                tokenResult.rows.length ===
+                0
+            ) {
+                await client.query(
+                    "ROLLBACK"
+                );
+
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Посилання недійсне або вже не працює."
+                });
+            }
+
+
+            const resetData =
+                tokenResult.rows[0];
+
+
+            if (
+                resetData.used_at ||
+                new Date(
+                    resetData.expires_at
+                ).getTime() <
+                    Date.now()
+            ) {
+                await client.query(
+                    "ROLLBACK"
+                );
+
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Посилання прострочене або вже використане."
+                });
+            }
+
+
+            const passwordHash =
+                await bcrypt.hash(
+                    newPassword,
+                    12
+                );
+
+
+            await client.query(
+                `
+                UPDATE users
+                SET
+                    password_hash = $1,
+                    updated_at = NOW()
+                WHERE id = $2
+                `,
+                [
+                    passwordHash,
+                    resetData.user_id
+                ]
+            );
+
+
+            await client.query(
+                `
+                UPDATE password_reset_tokens
+                SET used_at = NOW()
+                WHERE id = $1
+                `,
+                [
+                    resetData.id
+                ]
+            );
+
+
+            await client.query(
+                `
+                DELETE FROM password_reset_tokens
+                WHERE
+                    user_id = $1
+                    AND id <> $2
+                `,
+                [
+                    resetData.user_id,
+                    resetData.id
+                ]
+            );
+
+
+            await client.query(
+                "COMMIT"
+            );
+
+
+            res.json({
+                ok: true,
+                message:
+                    "Пароль успішно змінено."
+            });
+
+
+        } catch (error) {
+
+            await client.query(
+                "ROLLBACK"
+            );
+
+            console.error(
+                "Reset password error:",
+                error
+            );
+
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося змінити пароль."
+            });
+
+        } finally {
+
+            client.release();
+        }
+    }
+);
 
 app.get("/api/forum/topics", async (req, res) => {
     try {

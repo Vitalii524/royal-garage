@@ -217,18 +217,67 @@ function createAuthModal() {
 
     document.body.appendChild(modal);
 
-    const forgotPasswordButton = document.getElementById("forgotPasswordButton");
+    const forgotPasswordButton =
+    document.getElementById(
+        "forgotPasswordButton"
+    );
 
 if (forgotPasswordButton) {
-  forgotPasswordButton.addEventListener("click", () => {
-    const email = prompt("Введіть email, який ви використовували під час реєстрації:");
+    forgotPasswordButton.addEventListener(
+        "click",
+        async () => {
 
-    if (!email) return;
+            const email =
+                prompt(
+                    "Введіть email, який ви використовували під час реєстрації:"
+                );
 
-    alert(
-      "Запит на відновлення пароля прийнято. Пізніше сюди підключимо надсилання листа."
+            if (!email) {
+                return;
+            }
+
+            try {
+
+                const response =
+                    await fetch(
+                        "/api/forgot-password",
+                        {
+                            method:
+                                "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify({
+                                    email
+                                })
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                alert(
+                    data.message ||
+                    "Запит на відновлення пароля створено."
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "Forgot password error:",
+                    error
+                );
+
+                alert(
+                    "Не вдалося створити запит на відновлення пароля."
+                );
+            }
+        }
     );
-  });
 }
 
     document.querySelectorAll(".toggle-password").forEach((button) => {
