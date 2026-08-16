@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Керування RoyalAuto | Royal Garage
+    </title>
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="images/favicon.png"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/styles.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/handmade.css"
+    >
+</head>
+
+
+<body>
+
+<header class="site-header">
+
+    <div class="top-line">
+
+        <div class="brand">
+            <a href="index.html">
+                <img
+                    src="images/royal-garage-logo.png"
+                    alt="Royal Garage"
+                >
+            </a>
+        </div>
+
+        <nav
+            class="nav"
+            aria-label="Головна навігація"
+        >
+            <a href="index.html">
+                Головна
+            </a>
+
+            <a href="market.html">
+                Авторинок
+            </a>
+
+            <a href="handmade.html">
+                RoyalAuto
+            </a>
+
+            <a href="profile.html">
+                Мій профіль
+            </a>
+        </nav>
+
+        <div
+            id="authArea"
+            class="auth-area"
+        ></div>
+
+    </div>
+
+</header>
+
+
+<main class="upholstery-page">
+
+    <a
+        href="handmade.html"
+        class="upholstery-back-link"
+    >
+        ← Назад до RoyalAuto
+    </a>
+
+
+    <section class="upholstery-section">
+
+        <div class="upholstery-section-heading">
+
+            <p class="upholstery-label">
+                ROYALAUTO
+            </p>
+
+            <h1>
+                Керування RoyalAuto
+            </h1>
+
+            <p>
+                Додавання та редагування
+                товарів, фото і напрямків.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         ДОДАТИ ТОВАР
+         ========================= -->
+
+    <section class="upholstery-section">
+
+        <div class="upholstery-section-heading">
+
+            <p class="upholstery-label">
+                ТОВАРИ
+            </p>
+
+            <h2>
+                Додати товар
+            </h2>
+
+        </div>
+
+
+        <form
+            id="royalAutoProductForm"
+            class="royal-auto-admin-form"
+        >
+
+            <label>
+                Категорія
+
+                <select
+                    id="royalAutoProductSection"
+                    required
+                >
+                    <option value="">
+                        Оберіть категорію
+                    </option>
+                </select>
+            </label>
+
+
+            <label>
+                Назва товару
+
+                <input
+                    type="text"
+                    id="royalAutoProductName"
+                    placeholder="Наприклад: Накидки Premium"
+                    required
+                >
+            </label>
+
+
+            <label>
+                Ціна, грн
+
+                <input
+                    type="number"
+                    id="royalAutoProductPrice"
+                    min="0"
+                    step="1"
+                    placeholder="2500"
+                >
+            </label>
+
+
+            <label>
+                Опис
+
+                <textarea
+                    id="royalAutoProductDescription"
+                    rows="5"
+                    placeholder="Опис товару..."
+                ></textarea>
+            </label>
+
+
+            <label>
+                Фото
+
+                <input
+                    type="file"
+                    id="royalAutoProductPhotos"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                >
+            </label>
+
+
+            <div
+                id="royalAutoPhotoPreview"
+                class="royal-auto-photo-preview"
+            ></div>
+
+
+            <button
+                type="submit"
+                class="upholstery-primary-button"
+            >
+                Зберегти товар
+            </button>
+
+        </form>
+
+    </section>
+
+
+    <!-- =========================
+         ТОВАРИ
+         ========================= -->
+
+    <section class="upholstery-section">
+
+        <div class="upholstery-section-heading">
+
+            <p class="upholstery-label">
+                ROYALAUTO
+            </p>
+
+            <h2>
+                Мої товари
+            </h2>
+
+        </div>
+
+
+        <div
+            id="royalAutoAdminProducts"
+            class="royal-auto-cars-grid"
+        >
+            Завантаження...
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         КАТЕГОРІЇ
+         ========================= -->
+
+    <section class="upholstery-section">
+
+        <div class="upholstery-section-heading">
+
+            <p class="upholstery-label">
+                КАТЕГОРІЇ
+            </p>
+
+            <h2>
+                Напрямки RoyalAuto
+            </h2>
+
+        </div>
+
+
+        <form
+            id="royalAutoSectionForm"
+            class="royal-auto-admin-form"
+        >
+
+            <label>
+                Назва категорії
+
+                <input
+                    type="text"
+                    id="royalAutoSectionName"
+                    placeholder="Наприклад: Килимки"
+                    required
+                >
+            </label>
+
+
+            <label>
+                Значок
+
+                <input
+                    type="text"
+                    id="royalAutoSectionIcon"
+                    placeholder="🚘"
+                    maxlength="10"
+                >
+            </label>
+
+
+            <label>
+                Опис
+
+                <textarea
+                    id="royalAutoSectionDescription"
+                    rows="4"
+                    placeholder="Короткий опис..."
+                ></textarea>
+            </label>
+
+
+            <button
+                type="submit"
+                class="upholstery-primary-button"
+            >
+                + Додати категорію
+            </button>
+
+        </form>
+
+
+        <div
+            id="royalAutoAdminSections"
+            class="upholstery-services-grid"
+        ></div>
+
+    </section>
+
+</main>
+
+
+<script src="js/auth.js"></script>
+<script src="js/royal-auto-admin.js"></script>
+
+</body>
+
+</html>

@@ -2768,9 +2768,6 @@ app.get(
 
         try {
 
-            await ensureRoyalAutoDefaultSections();
-
-
             const result =
                 await pool.query(
                     `
@@ -3258,8 +3255,6 @@ app.post(
     async (req, res) => {
 
         try {
-
-            await ensureRoyalAutoDefaultSections();
 
             const {
                 sectionId
