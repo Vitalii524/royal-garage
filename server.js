@@ -4,6 +4,20 @@ const { Pool } = require("pg");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
+const mailTransporter =
+    nodemailer.createTransport({
+        service: "gmail",
+
+        auth: {
+            user:
+                process.env.GMAIL_USER,
+
+            pass:
+                process.env.GMAIL_APP_PASSWORD
+        }
+    });
+
 const app = express();
 
 const pool = new Pool({
@@ -2660,6 +2674,59 @@ app.post("/api/login", async (req, res) => {
                     expiresAt
                 ]
             );
+
+            const appBaseUrl =
+    (
+        process.env.APP_BASE_URL ||
+        "https://royal-garage.onrender.com"
+    ).replace(/\/+$/, "");
+
+
+const resetUrl =
+    `${appBaseUrl}/reset-password.html?token=` +
+    encodeURIComponent(resetToken);
+
+
+await mailTransporter.sendMail({
+    from:
+        `"Royal Garage" <${process.env.GMAIL_USER}>`,
+
+    to:
+        user.email,
+
+    subject:
+        "Відновлення пароля — Royal Garage",
+
+    text:
+        `Ви запросили відновлення пароля Royal Garage.\n\n` +
+        `Перейдіть за посиланням:\n${resetUrl}\n\n` +
+        `Посилання діє 30 хвилин.\n` +
+        `Якщо це були не ви — просто проігноруйте цей лист.`,
+
+    html:
+        `
+        <h2>Royal Garage</h2>
+
+        <p>
+            Ви запросили відновлення пароля.
+        </p>
+
+        <p>
+            <a href="${resetUrl}">
+                Встановити новий пароль
+            </a>
+        </p>
+
+        <p>
+            Посилання діє 30 хвилин.
+        </p>
+
+        <p>
+            Якщо це були не ви —
+            просто проігноруйте цей лист.
+        </p>
+        `
+});
 
 
             res.json({
