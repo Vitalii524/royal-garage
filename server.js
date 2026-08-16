@@ -2861,19 +2861,30 @@ await mailTransporter.sendMail({
                 );
 
 
-            await client.query(
-                `
-                UPDATE users
-                SET
-                    password_hash = $1,
-                    updated_at = NOW()
-                WHERE id = $2
-                `,
-                [
-                    passwordHash,
-                    resetData.user_id
-                ]
-            );
+                const userResult =
+                await client.query(
+                    `
+                    UPDATE users
+                    SET
+                        password_hash = $1,
+                        updated_at = NOW()
+                    WHERE id = $2
+                    RETURNING
+                        id,
+                        name,
+                        email,
+                        phone,
+                        account_type,
+                        role
+                    `,
+                    [
+                        passwordHash,
+                        resetData.user_id
+                    ]
+                );
+            
+            const updatedUser =
+                userResult.rows[0];
 
 
             await client.query(
@@ -2906,11 +2917,54 @@ await mailTransporter.sendMail({
                 "COMMIT"
             );
 
+            const loginToken =
+    jwt.sign(
+        {
+            userId:
+                updatedUser.id,
+
+            role:
+                updatedUser.role ||
+                "user"
+        },
+
+        process.env.JWT_SECRET,
+
+        {
+            expiresIn: "7d"
+        }
+    );
 
             res.json({
                 ok: true,
+            
                 message:
-                    "Пароль успішно змінено."
+                    "Пароль успішно змінено.",
+            
+                token:
+                    loginToken,
+            
+                user: {
+                    id:
+                        updatedUser.id,
+            
+                    name:
+                        updatedUser.name,
+            
+                    email:
+                        updatedUser.email,
+            
+                    phone:
+                        updatedUser.phone || "",
+            
+                    accountType:
+                        updatedUser.account_type ||
+                        "user",
+            
+                    role:
+                        updatedUser.role ||
+                        "user"
+                }
             });
 
 

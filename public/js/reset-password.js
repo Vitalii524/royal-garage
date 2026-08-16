@@ -35,7 +35,6 @@ function showResetMessage(
     message,
     isError = false
 ) {
-
     if (!resetPasswordMessage) {
         return;
     }
@@ -51,7 +50,6 @@ function showResetMessage(
 
 
 if (!resetToken) {
-
     showResetMessage(
         "Посилання для відновлення пароля недійсне.",
         true
@@ -78,10 +76,7 @@ resetPasswordForm?.addEventListener(
             confirmPasswordInput.value;
 
 
-        if (
-            newPassword.length < 6
-        ) {
-
+        if (newPassword.length < 6) {
             showResetMessage(
                 "Пароль має містити щонайменше 6 символів.",
                 true
@@ -95,7 +90,6 @@ resetPasswordForm?.addEventListener(
             newPassword !==
             confirmPassword
         ) {
-
             showResetMessage(
                 "Паролі не співпадають.",
                 true
@@ -106,7 +100,6 @@ resetPasswordForm?.addEventListener(
 
 
         try {
-
             showResetMessage(
                 "Змінюємо пароль..."
             );
@@ -140,7 +133,6 @@ resetPasswordForm?.addEventListener(
 
 
             if (!response.ok) {
-
                 throw new Error(
                     data.message ||
                     "Не вдалося змінити пароль."
@@ -148,8 +140,31 @@ resetPasswordForm?.addEventListener(
             }
 
 
+            if (
+                !data.token ||
+                !data.user
+            ) {
+                throw new Error(
+                    "Пароль змінено, але не вдалося створити сесію."
+                );
+            }
+
+
+            localStorage.setItem(
+                "royalGarageToken",
+                data.token
+            );
+
+            localStorage.setItem(
+                "royalGarageCurrentUser",
+                JSON.stringify(
+                    data.user
+                )
+            );
+
+
             showResetMessage(
-                "Пароль успішно змінено. Тепер можна увійти."
+                "Пароль успішно змінено."
             );
 
 
@@ -158,17 +173,14 @@ resetPasswordForm?.addEventListener(
 
             setTimeout(
                 () => {
-
                     window.location.href =
-                        "index.html";
-
+                        "profile.html";
                 },
-                2000
+                1200
             );
 
 
         } catch (error) {
-
             console.error(
                 "Reset password error:",
                 error
