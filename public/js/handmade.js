@@ -498,7 +498,503 @@ async function loadRoyalAutoCars() {
 
 loadRoyalAutoCars();
 
+/* =========================
+   КАТЕГОРІЇ ТА ТОВАРИ
+   ROYALAUTO
+   ========================= */
 
+   const royalAutoDirectionsGrid =
+   document.getElementById(
+       "royalAutoDirectionsGrid"
+   );
+
+const royalAutoProductSections =
+   document.getElementById(
+       "royalAutoProductSections"
+   );
+
+
+function getRoyalAutoSectionAnchor(
+   section
+) {
+
+   const value =
+       section.slug ||
+       section.id ||
+       "category";
+
+   return (
+       "royal-auto-" +
+       String(value)
+           .replace(
+               /[^a-zA-Z0-9_-]/g,
+               "-"
+           )
+   );
+}
+
+
+function formatRoyalAutoProductPrice(
+   product
+) {
+
+   const price =
+       Number(
+           product.priceUah ??
+           product.price_uah
+       );
+
+
+   if (
+       Number.isFinite(price) &&
+       price > 0
+   ) {
+
+       return (
+           new Intl.NumberFormat(
+               "uk-UA"
+           ).format(price) +
+           " грн"
+       );
+   }
+
+
+   return "Ціна договірна";
+}
+
+
+function createRoyalAutoDirectionCard(
+   section
+) {
+
+   const link =
+       document.createElement(
+           "a"
+       );
+
+
+   link.href =
+       `#${getRoyalAutoSectionAnchor(
+           section
+       )}`;
+
+   link.className =
+       "upholstery-service-card upholstery-service-link";
+
+
+   const icon =
+       document.createElement(
+           "span"
+       );
+
+   icon.textContent =
+       section.icon ||
+       "👑";
+
+
+   const title =
+       document.createElement(
+           "h3"
+       );
+
+   title.textContent =
+       section.name;
+
+
+   link.append(
+       icon,
+       title
+   );
+
+
+   return link;
+}
+
+
+function createRoyalAutoProductCard(
+   product
+) {
+
+   const card =
+       document.createElement(
+           "div"
+       );
+
+   card.className =
+       "royal-auto-car-card";
+
+
+   const photos =
+       Array.isArray(
+           product.photos
+       )
+           ? product.photos
+           : [];
+
+
+   const photoBox =
+       document.createElement(
+           "div"
+       );
+
+   photoBox.className =
+       "royal-auto-car-photo";
+
+
+   if (photos[0]) {
+
+       const image =
+           document.createElement(
+               "img"
+           );
+
+       image.src =
+           photos[0];
+
+       image.alt =
+           product.name ||
+           "Товар RoyalAuto";
+
+       image.loading =
+           "lazy";
+
+
+       photoBox.appendChild(
+           image
+       );
+
+   } else {
+
+       const placeholder =
+           document.createElement(
+               "div"
+           );
+
+       placeholder.className =
+           "royal-auto-car-placeholder";
+
+       placeholder.textContent =
+           "👑";
+
+
+       photoBox.appendChild(
+           placeholder
+       );
+   }
+
+
+   const info =
+       document.createElement(
+           "div"
+       );
+
+   info.className =
+       "royal-auto-car-info";
+
+
+   const title =
+       document.createElement(
+           "h3"
+       );
+
+   title.textContent =
+       product.name ||
+       "Товар";
+
+
+   const price =
+       document.createElement(
+           "strong"
+       );
+
+   price.className =
+       "royal-auto-car-price";
+
+   price.textContent =
+       formatRoyalAutoProductPrice(
+           product
+       );
+
+
+   const description =
+       document.createElement(
+           "p"
+       );
+
+   description.textContent =
+       product.description ||
+       "";
+
+
+   info.append(
+       title,
+       price,
+       description
+   );
+
+
+   card.append(
+       photoBox,
+       info
+   );
+
+
+   return card;
+}
+
+
+function createRoyalAutoProductSection(
+   section,
+   products
+) {
+
+   const article =
+       document.createElement(
+           "article"
+       );
+
+
+   article.id =
+       getRoyalAutoSectionAnchor(
+           section
+       );
+
+   article.className =
+       "upholstery-detail-card royal-auto-cars-section";
+
+
+   const icon =
+       document.createElement(
+           "div"
+       );
+
+   icon.className =
+       "upholstery-detail-icon";
+
+   icon.textContent =
+       section.icon ||
+       "👑";
+
+
+   const content =
+       document.createElement(
+           "div"
+       );
+
+   content.className =
+       "royal-auto-cars-content";
+
+
+   const label =
+       document.createElement(
+           "p"
+       );
+
+   label.className =
+       "upholstery-label";
+
+   label.textContent =
+       "RoyalAuto";
+
+
+   const title =
+       document.createElement(
+           "h2"
+       );
+
+   title.textContent =
+       section.name;
+
+
+   const description =
+       document.createElement(
+           "p"
+       );
+
+   description.textContent =
+       section.description ||
+       "";
+
+
+   const grid =
+       document.createElement(
+           "div"
+       );
+
+   grid.className =
+       "royal-auto-cars-grid";
+
+
+   if (products.length === 0) {
+
+       const empty =
+           document.createElement(
+               "div"
+           );
+
+       empty.className =
+           "royal-auto-empty";
+
+       empty.textContent =
+           "У цій категорії поки немає товарів.";
+
+
+       content.append(
+           label,
+           title,
+           description,
+           empty
+       );
+
+   } else {
+
+       products.forEach(
+           (product) => {
+
+               grid.appendChild(
+                   createRoyalAutoProductCard(
+                       product
+                   )
+               );
+           }
+       );
+
+
+       content.append(
+           label,
+           title,
+           description,
+           grid
+       );
+   }
+
+
+   article.append(
+       icon,
+       content
+   );
+
+
+   return article;
+}
+
+
+async function loadRoyalAutoCatalog() {
+
+   if (
+       !royalAutoDirectionsGrid ||
+       !royalAutoProductSections
+   ) {
+       return;
+   }
+
+
+   try {
+
+       const [
+           sectionsResponse,
+           productsResponse
+       ] =
+           await Promise.all([
+               fetch(
+                   "/api/royal-auto/sections"
+               ),
+
+               fetch(
+                   "/api/royal-auto/products"
+               )
+           ]);
+
+
+       if (
+           !sectionsResponse.ok ||
+           !productsResponse.ok
+       ) {
+
+           throw new Error(
+               "Не вдалося завантажити каталог RoyalAuto."
+           );
+       }
+
+
+       const sectionsData =
+           await sectionsResponse.json();
+
+       const productsData =
+           await productsResponse.json();
+
+
+       const sections =
+           Array.isArray(
+               sectionsData.sections
+           )
+               ? sectionsData.sections
+               : [];
+
+
+       const products =
+           Array.isArray(
+               productsData.products
+           )
+               ? productsData.products
+               : [];
+
+
+       royalAutoProductSections.innerHTML =
+           "";
+
+
+       sections.forEach(
+           (section) => {
+
+               royalAutoDirectionsGrid.appendChild(
+                   createRoyalAutoDirectionCard(
+                       section
+                   )
+               );
+
+
+               const sectionProducts =
+                   products.filter(
+                       (product) => {
+
+                           const productSectionId =
+                               product.sectionId ??
+                               product.section_id;
+
+                           return (
+                               String(
+                                   productSectionId
+                               ) ===
+                               String(
+                                   section.id
+                               )
+                           );
+                       }
+                   );
+
+
+               royalAutoProductSections.appendChild(
+                   createRoyalAutoProductSection(
+                       section,
+                       sectionProducts
+                   )
+               );
+           }
+       );
+
+
+   } catch (error) {
+
+       console.error(
+           "RoyalAuto catalog load error:",
+           error
+       );
+   }
+}
+
+
+loadRoyalAutoCatalog();
 
 /* =========================
    КОПІЮВАННЯ ТЕЛЕФОНУ
