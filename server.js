@@ -2662,22 +2662,6 @@ app.post("/api/login", async (req, res) => {
             );
 
 
-            const resetUrl =
-                `${req.protocol}://${req.get("host")}` +
-                `/reset-password.html?token=${resetToken}`;
-
-
-            /*
-             * ТИМЧАСОВО ДЛЯ ТЕСТУ.
-             * Потім замінимо це
-             * надсиланням листа.
-             */
-            console.log(
-                "Password reset URL:",
-                resetUrl
-            );
-
-
             res.json({
                 ok: true,
                 message:

@@ -222,63 +222,16 @@ function createAuthModal() {
         "forgotPasswordButton"
     );
 
-if (forgotPasswordButton) {
-    forgotPasswordButton.addEventListener(
-        "click",
-        async () => {
-
-            const email =
-                prompt(
-                    "Введіть email, який ви використовували під час реєстрації:"
-                );
-
-            if (!email) {
-                return;
-            }
-
-            try {
-
-                const response =
-                    await fetch(
-                        "/api/forgot-password",
-                        {
-                            method:
-                                "POST",
-
-                            headers: {
-                                "Content-Type":
-                                    "application/json"
-                            },
-
-                            body:
-                                JSON.stringify({
-                                    email
-                                })
-                        }
-                    );
-
-                const data =
-                    await response.json();
-
+    if (forgotPasswordButton) {
+        forgotPasswordButton.addEventListener(
+            "click",
+            () => {
                 alert(
-                    data.message ||
-                    "Запит на відновлення пароля створено."
-                );
-
-            } catch (error) {
-
-                console.error(
-                    "Forgot password error:",
-                    error
-                );
-
-                alert(
-                    "Не вдалося створити запит на відновлення пароля."
+                    "Відновлення пароля через email зараз налаштовується."
                 );
             }
-        }
-    );
-}
+        );
+    }
 
     document.querySelectorAll(".toggle-password").forEach((button) => {
         button.addEventListener("click", () => {
