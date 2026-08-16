@@ -565,19 +565,31 @@ if (copyPhoneButton) {
    );
 
 
-function updateRoyalAutoContactFloat() {
+   function updateRoyalAutoContactFloat() {
 
-   if (!royalAutoContactFloat) {
-       return;
-   }
+    if (!royalAutoContactFloat) {
+        return;
+    }
 
 
-   royalAutoContactFloat.classList.toggle(
-       "is-visible",
-       window.scrollY > 350
-   );
+    const contacts =
+        document.getElementById(
+            "contacts"
+        );
+
+
+    const contactsVisible =
+        contacts &&
+        contacts.getBoundingClientRect().top <
+            window.innerHeight;
+
+
+    royalAutoContactFloat.classList.toggle(
+        "is-visible",
+        window.scrollY > 350 &&
+        !contactsVisible
+    );
 }
-
 
 window.addEventListener(
    "scroll",
