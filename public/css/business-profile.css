@@ -60,7 +60,6 @@
 }
 
 @media (max-width: 700px) {
-
     .business-logo-wrap {
         align-items: center;
     }
@@ -83,6 +82,11 @@
 .business-logo[hidden] {
     display: none !important;
 }
+
+
+/* =========================
+   BUSINESS EDIT FORM
+   ========================= */
 
 #businessEditSection .upholstery-actions {
     display: flex;
@@ -107,76 +111,8 @@
     box-sizing: border-box;
 }
 
-.business-contact-float {
-    position: fixed;
-    right: 22px;
-    bottom: 82px;
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    padding: 12px 18px;
-
-    border-radius: 999px;
-
-    background: #f3dfaa;
-    color: #071a3d;
-
-    font-weight: 700;
-    text-decoration: none;
-
-    z-index: 99999;
-
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-
-    transform: translateY(12px);
-
-    transition:
-        opacity 0.2s ease,
-        transform 0.2s ease,
-        visibility 0.2s ease;
-}
-
-.business-contact-float.is-visible {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transform: translateY(0);
-}
-
-@media (max-width: 700px) {
-    .business-contact-float {
-        right: 14px;
-        bottom: 72px;
-        padding: 10px 14px;
-        font-size: 14px;
-    }
-}
-
-@media (max-width: 700px) {
-
-    .business-contact-float {
-        display: flex !important;
-        position: fixed !important;
-        right: 14px !important;
-        bottom: 72px !important;
-
-        opacity: 1 !important;
-        visibility: visible !important;
-        pointer-events: auto !important;
-        transform: none !important;
-
-        z-index: 99999 !important;
-    }
-
-}
-
-
-
-    /* =========================
+/* =========================
    BUSINESS FLOATING BUTTONS
    ========================= */
 
@@ -195,7 +131,8 @@
 
     transition:
         opacity 0.2s ease,
-        transform 0.2s ease;
+        transform 0.2s ease,
+        visibility 0.2s ease;
 }
 
 
@@ -235,9 +172,12 @@
     width: 48px;
     height: 48px;
 
+    padding: 0;
+
     border-radius: 50%;
 
-    border: 1px solid
+    border:
+        1px solid
         rgba(214, 160, 58, 0.55);
 
     background: #f3dfaa;
@@ -245,6 +185,7 @@
 
     font-size: 24px;
     font-weight: 700;
+    line-height: 1;
 
     cursor: pointer;
 
@@ -259,10 +200,11 @@
 }
 
 
-/* MOBILE */
+/* =========================
+   MOBILE
+   ========================= */
 
 @media (max-width: 700px) {
-
     .business-contact-float {
         right: 14px;
         bottom: 72px;
@@ -280,5 +222,17 @@
         height: 44px;
 
         font-size: 22px;
+    }
+
+    #businessEditSection .upholstery-actions {
+        width: 100%;
+    }
+
+    #businessEditSection .upholstery-actions button {
+        width: 100%;
+    }
+
+    #businessEditForm {
+        max-width: 100%;
     }
 }
