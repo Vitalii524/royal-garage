@@ -83,3 +83,26 @@
 .business-logo[hidden] {
     display: none !important;
 }
+
+#businessEditSection .upholstery-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+#businessEditSection .upholstery-actions button {
+    width: auto;
+    flex: 0 0 auto;
+}
+
+#businessEditForm {
+    max-width: 700px;
+}
+
+#businessEditForm input,
+#businessEditForm textarea {
+    width: 100%;
+    box-sizing: border-box;
+}
