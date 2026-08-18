@@ -75,3 +75,11 @@
         font-size: 34px;
     }
 }
+
+.business-logo-placeholder[hidden] {
+    display: none !important;
+}
+
+.business-logo[hidden] {
+    display: none !important;
+}
