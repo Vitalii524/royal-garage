@@ -106,28 +106,27 @@
     width: 100%;
     box-sizing: border-box;
 }
-
 @media (max-width: 700px) {
 
     .royal-auto-contact-float {
-        display: flex !important;
-        position: fixed;
-        right: 16px;
-        bottom: 76px;
-        z-index: 9999;
+        position: fixed !important;
+        right: 16px !important;
+        bottom: 76px !important;
+        z-index: 9999 !important;
     }
 
     .royal-auto-contact-float.is-visible {
-        opacity: 1;
-        visibility: visible;
-        pointer-events: auto;
+        display: flex !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        transform: none !important;
     }
 
     #backToTopButton {
-        position: fixed;
-        right: 16px;
-        bottom: 16px;
-        z-index: 9999;
+        position: fixed !important;
+        right: 16px !important;
+        bottom: 16px !important;
+        z-index: 9999 !important;
     }
 }
-
