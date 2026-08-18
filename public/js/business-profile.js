@@ -904,4 +904,263 @@ async function loadBusinessProfile() {
 }
 
 
+
+
+const businessContactFloat =
+    document.querySelector(
+        ".royal-auto-contact-float"
+    );
+
+function updateBusinessContactFloat() {
+    if (!businessContactFloat) {
+        return;
+    }
+
+    const contacts =
+        document.getElementById(
+            "contacts"
+        );
+
+    const contactsVisible =
+        contacts &&
+        contacts
+            .getBoundingClientRect()
+            .top <
+            window.innerHeight;
+
+    businessContactFloat
+        .classList.toggle(
+            "is-visible",
+            window.scrollY > 350 &&
+            !contactsVisible
+        );
+}
+
+window.addEventListener(
+    "scroll",
+    updateBusinessContactFloat,
+    {
+        passive: true
+    }
+);
+
+/* =========================
+   BUSINESS LOGO UPLOAD
+   ========================= */
+
+   function compressBusinessLogo(file) {
+    return new Promise(
+        (resolve, reject) => {
+            const reader =
+                new FileReader();
+
+            reader.onload = () => {
+                const image =
+                    new Image();
+
+                image.onload = () => {
+                    const maxSize = 600;
+
+                    let width =
+                        image.width;
+
+                    let height =
+                        image.height;
+
+                    if (
+                        width > maxSize ||
+                        height > maxSize
+                    ) {
+                        const scale =
+                            Math.min(
+                                maxSize / width,
+                                maxSize / height
+                            );
+
+                        width =
+                            Math.round(
+                                width * scale
+                            );
+
+                        height =
+                            Math.round(
+                                height * scale
+                            );
+                    }
+
+                    const canvas =
+                        document.createElement(
+                            "canvas"
+                        );
+
+                    canvas.width =
+                        width;
+
+                    canvas.height =
+                        height;
+
+                    const context =
+                        canvas.getContext(
+                            "2d"
+                        );
+
+                    context.drawImage(
+                        image,
+                        0,
+                        0,
+                        width,
+                        height
+                    );
+
+                    const compressed =
+                        canvas.toDataURL(
+                            "image/jpeg",
+                            0.82
+                        );
+
+                    resolve(
+                        compressed
+                    );
+                };
+
+                image.onerror =
+                    () =>
+                        reject(
+                            new Error(
+                                "Не вдалося прочитати зображення."
+                            )
+                        );
+
+                image.src =
+                    reader.result;
+            };
+
+            reader.onerror =
+                () =>
+                    reject(
+                        new Error(
+                            "Не вдалося прочитати файл."
+                        )
+                    );
+
+            reader.readAsDataURL(
+                file
+            );
+        }
+    );
+}
+
+
+async function saveBusinessLogo(
+    logoData
+) {
+    const token =
+        getToken();
+
+    if (!token) {
+        return;
+    }
+
+    const response =
+        await fetch(
+            "/api/business/profile",
+            {
+                method: "PATCH",
+
+                headers: {
+                    "Content-Type":
+                        "application/json",
+
+                    Authorization:
+                        `Bearer ${token}`
+                },
+
+                body:
+                    JSON.stringify({
+                        logo:
+                            logoData
+                    })
+            }
+        );
+
+    const data =
+        await response.json();
+
+    if (!response.ok) {
+        throw new Error(
+            data.message ||
+            "Не вдалося зберегти логотип."
+        );
+    }
+
+    currentBusinessProfile = {
+        ...currentBusinessProfile,
+        ...data.profile
+    };
+
+    renderBusinessLogo(
+        data.profile.logo,
+        data.profile.name
+    );
+}
+
+
+if (businessElements.logoInput) {
+    businessElements
+        .logoInput
+        .addEventListener(
+            "change",
+            async (event) => {
+                const file =
+                    event.target
+                        .files?.[0];
+
+                if (!file) {
+                    return;
+                }
+
+                if (
+                    !file.type.startsWith(
+                        "image/"
+                    )
+                ) {
+                    alert(
+                        "Оберіть зображення."
+                    );
+
+                    return;
+                }
+
+                try {
+                    const logoData =
+                        await compressBusinessLogo(
+                            file
+                        );
+
+                    await saveBusinessLogo(
+                        logoData
+                    );
+
+                    alert(
+                        "Логотип збережено."
+                    );
+
+                } catch (error) {
+                    console.error(
+                        "Business logo upload error:",
+                        error
+                    );
+
+                    alert(
+                        error.message
+                    );
+                } finally {
+                    event.target.value =
+                        "";
+                }
+            }
+        );
+}
+
+updateBusinessContactFloat();
 loadBusinessProfile();

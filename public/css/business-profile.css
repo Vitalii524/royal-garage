@@ -1,0 +1,77 @@
+.business-logo-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.business-logo-image-wrap {
+    width: 150px;
+    height: 150px;
+    border-radius: 24px;
+    overflow: hidden;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(8, 40, 95, 0.95),
+            rgba(5, 18, 50, 0.95)
+        );
+
+    border:
+        1px solid
+        rgba(214, 160, 58, 0.55);
+
+    box-shadow:
+        0 14px 35px
+        rgba(0, 0, 0, 0.28);
+}
+
+.business-logo {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.business-logo-placeholder {
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: 2px;
+
+    color: #f0d18a;
+}
+
+#businessLogoUploadLabel {
+    width: fit-content;
+    cursor: pointer;
+}
+
+@media (max-width: 700px) {
+
+    .business-logo-wrap {
+        align-items: center;
+    }
+
+    .business-logo-image-wrap {
+        width: 120px;
+        height: 120px;
+        border-radius: 20px;
+    }
+
+    .business-logo-placeholder {
+        font-size: 34px;
+    }
+}
