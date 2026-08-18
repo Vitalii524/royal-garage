@@ -177,6 +177,11 @@ const businessElements = {
                 "businessEditDescription"
             ),
 
+            editServices:
+    document.getElementById(
+        "businessEditServices"
+    ),
+
 };
 
 
@@ -1248,6 +1253,21 @@ function fillBusinessEditForm() {
 
     businessElements.editDescription.value =
         currentBusinessProfile.description || "";
+
+        businessElements.editServices.value =
+    Array.isArray(
+        currentBusinessProfile.services
+    )
+        ? currentBusinessProfile.services
+            .map(
+                (service) =>
+                    typeof service === "string"
+                        ? service
+                        : service?.name || ""
+            )
+            .filter(Boolean)
+            .join("\n")
+        : "";
 }
 
 
@@ -1336,7 +1356,18 @@ businessElements.editForm
                     businessElements
                         .editDescription
                         .value
-                        .trim()
+                        .trim(),
+
+                services:
+                    businessElements
+                        .editServices
+                        .value
+                        .split("\n")
+                        .map(
+                            (service) =>
+                                service.trim()
+                        )
+                        .filter(Boolean)
             };
 
             try {
