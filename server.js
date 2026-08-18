@@ -2665,6 +2665,269 @@ app.get(
     }
 );
 
+app.get(
+    "/api/business/profile",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const ownerId =
+                req.user.userId;
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        bp.id,
+                        bp.owner_id AS "ownerId",
+                        bp.name,
+                        bp.logo,
+                        bp.city,
+                        bp.address,
+                        bp.phone,
+                        bp.telegram,
+                        bp.instagram,
+                        bp.description,
+                        bp.photos,
+                        bp.services,
+
+                        bt.id AS "businessTypeId",
+                        bt.code AS "businessTypeCode",
+                        bt.name AS "businessTypeName",
+
+                        sp.id AS "planId",
+                        sp.code AS "planCode",
+                        sp.name AS "planName",
+                        sp.price_uah AS "priceUah",
+                        sp.car_limit AS "carLimit",
+                        sp.has_crm AS "hasCrm",
+                        sp.has_map AS "hasMap"
+
+                    FROM business_profiles bp
+
+                    LEFT JOIN business_types bt
+                        ON bt.id =
+                            bp.business_type_id
+
+                    LEFT JOIN subscription_plans sp
+                        ON sp.id =
+                            bp.subscription_plan_id
+
+                    WHERE bp.owner_id = $1
+
+                    LIMIT 1
+                    `,
+                    [
+                        ownerId
+                    ]
+                );
+
+            if (
+                result.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Бізнес-профіль не знайдено."
+                });
+            }
+
+            res.json({
+                ok: true,
+                profile:
+                    result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "Business profile load error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити бізнес-профіль."
+            });
+        }
+    }
+);
+
+app.patch(
+    "/api/business/profile",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const ownerId =
+                req.user.userId;
+
+            const {
+                name,
+                logo,
+                city,
+                address,
+                phone,
+                telegram,
+                instagram,
+                description,
+                photos,
+                services
+            } = req.body;
+
+            const currentResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM business_profiles
+                    WHERE owner_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        ownerId
+                    ]
+                );
+
+            if (
+                currentResult.rows.length ===
+                0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Бізнес-профіль не знайдено."
+                });
+            }
+
+            const result =
+                await pool.query(
+                    `
+                    UPDATE business_profiles
+                    SET
+                        name =
+                            COALESCE(
+                                $2,
+                                name
+                            ),
+
+                        logo =
+                            COALESCE(
+                                $3,
+                                logo
+                            ),
+
+                        city =
+                            COALESCE(
+                                $4,
+                                city
+                            ),
+
+                        address =
+                            COALESCE(
+                                $5,
+                                address
+                            ),
+
+                        phone =
+                            COALESCE(
+                                $6,
+                                phone
+                            ),
+
+                        telegram =
+                            COALESCE(
+                                $7,
+                                telegram
+                            ),
+
+                        instagram =
+                            COALESCE(
+                                $8,
+                                instagram
+                            ),
+
+                        description =
+                            COALESCE(
+                                $9,
+                                description
+                            ),
+
+                        photos =
+                            COALESCE(
+                                $10::jsonb,
+                                photos
+                            ),
+
+                        services =
+                            COALESCE(
+                                $11::jsonb,
+                                services
+                            ),
+
+                        updated_at =
+                            NOW()
+
+                    WHERE owner_id = $1
+
+                    RETURNING
+                        id,
+                        owner_id AS "ownerId",
+                        name,
+                        logo,
+                        city,
+                        address,
+                        phone,
+                        telegram,
+                        instagram,
+                        description,
+                        photos,
+                        services,
+                        updated_at AS "updatedAt"
+                    `,
+                    [
+                        ownerId,
+                        name ?? null,
+                        logo ?? null,
+                        city ?? null,
+                        address ?? null,
+                        phone ?? null,
+                        telegram ?? null,
+                        instagram ?? null,
+                        description ?? null,
+
+                        Array.isArray(photos)
+                            ? JSON.stringify(
+                                photos
+                            )
+                            : null,
+
+                        Array.isArray(services)
+                            ? JSON.stringify(
+                                services
+                            )
+                            : null
+                    ]
+                );
+
+            res.json({
+                ok: true,
+                profile:
+                    result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "Business profile update error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося оновити бізнес-профіль."
+            });
+        }
+    }
+);
+
 app.post("/api/register", async (req, res) => {
     try {
         const {

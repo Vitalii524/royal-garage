@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Бізнес-профіль | Royal Garage
+    </title>
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="images/favicon.png"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/styles.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/handmade.css"
+    >
+</head>
+
+<body>
+
+<header class="site-header">
+
+    <div class="top-line">
+
+        <div class="brand">
+
+            <a
+                href="index.html"
+                aria-label="Royal Garage — головна"
+            >
+                <img
+                    src="images/royal-garage-logo.png"
+                    alt="Royal Garage"
+                >
+            </a>
+
+        </div>
+
+        <nav
+            class="nav"
+            aria-label="Головна навігація"
+        >
+
+            <a href="index.html">
+                Головна
+            </a>
+
+            <a href="forum.html">
+                Форум
+            </a>
+
+            <a href="market.html">
+                Авторинок
+            </a>
+
+            <a href="business-profile.html">
+                Мій бізнес
+            </a>
+
+        </nav>
+
+        <div
+            id="authArea"
+            class="auth-area"
+        ></div>
+
+    </div>
+
+</header>
+
+
+<main class="upholstery-page">
+
+    <a
+        href="index.html"
+        class="upholstery-back-link"
+    >
+        ← Назад до Royal Garage
+    </a>
+
+
+    <!-- =========================
+         BUSINESS HERO
+         ========================= -->
+
+    <section class="upholstery-hero">
+
+        <div class="upholstery-hero-content">
+
+            <div
+                id="businessLogoWrap"
+                class="business-logo-wrap"
+            >
+
+                <img
+                    id="businessLogo"
+                    class="business-logo"
+                    src=""
+                    alt="Логотип бізнесу"
+                    hidden
+                >
+
+                <div
+                    id="businessLogoPlaceholder"
+                    class="business-logo-placeholder"
+                >
+                    RG
+                </div>
+
+                <label
+                    id="businessLogoUploadLabel"
+                    class="upholstery-secondary-button"
+                >
+                    Додати логотип
+
+                    <input
+                        type="file"
+                        id="businessLogoInput"
+                        accept="image/jpeg,image/png,image/webp"
+                        hidden
+                    >
+                </label>
+
+            </div>
+
+
+            <p
+                id="businessTypeLabel"
+                class="upholstery-label"
+            >
+                Бізнес
+            </p>
+
+
+            <h1 id="businessName">
+                Назва бізнесу
+            </h1>
+
+
+            <p id="businessHeroDescription">
+                Профіль бізнесу в Royal Garage.
+            </p>
+
+
+            <div class="upholstery-actions">
+
+                <a
+                    href="#services"
+                    class="upholstery-primary-button"
+                >
+                    Переглянути послуги
+                </a>
+
+                <a
+                    href="#contacts"
+                    class="upholstery-secondary-button"
+                >
+                    Зв’язатися
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+        <!-- =========================
+         ПАНЕЛЬ ВЛАСНИКА
+         ========================= -->
+
+         <section
+         id="businessOwnerPanel"
+         class="upholstery-section"
+         hidden
+     >
+ 
+         <div class="upholstery-section-heading">
+ 
+             <p class="upholstery-label">
+                 ПАНЕЛЬ ВЛАСНИКА
+             </p>
+ 
+             <h2>
+                 Керування бізнес-профілем
+             </h2>
+ 
+             <p>
+                 Цей блок бачить тільки
+                 власник бізнес-акаунта.
+             </p>
+ 
+         </div>
+ 
+ 
+         <div class="upholstery-actions">
+ 
+             <button
+                 type="button"
+                 id="editBusinessProfileButton"
+                 class="upholstery-primary-button"
+             >
+                 ⚙️ Редагувати профіль
+             </button>
+ 
+             <a
+                 href="market.html"
+                 id="businessAddListingButton"
+                 class="upholstery-secondary-button"
+                 hidden
+             >
+                 🚘 Додати оголошення
+             </a>
+ 
+         </div>
+ 
+     </section>
+ 
+ 
+     <!-- =========================
+          ПРО КОМПАНІЮ
+          ========================= -->
+ 
+     <section
+         id="about"
+         class="upholstery-section"
+     >
+ 
+         <div class="upholstery-section-heading">
+ 
+             <p
+                 id="businessAboutLabel"
+                 class="upholstery-label"
+             >
+                 ПРО КОМПАНІЮ
+             </p>
+ 
+             <h2 id="businessAboutTitle">
+                 Про нас
+             </h2>
+ 
+         </div>
+ 
+ 
+         <div class="upholstery-detail-card">
+ 
+             <div class="upholstery-detail-icon">
+                 🏢
+             </div>
+ 
+             <div>
+ 
+                 <p
+                     id="businessDescription"
+                 >
+                     Опис компанії ще не додано.
+                 </p>
+ 
+                 <p>
+                     <strong>
+                         Місто:
+                     </strong>
+ 
+                     <span id="businessCity">
+                         Не вказано
+                     </span>
+                 </p>
+ 
+                 <p>
+                     <strong>
+                         Адреса:
+                     </strong>
+ 
+                     <span id="businessAddress">
+                         Не вказано
+                     </span>
+                 </p>
+ 
+                 <p>
+                     <strong>
+                         Тариф:
+                     </strong>
+ 
+                     <span id="businessPlanName">
+                         —
+                     </span>
+                 </p>
+ 
+             </div>
+ 
+         </div>
+ 
+     </section>
+ 
+ 
+     <!-- =========================
+          КОНТАКТИ
+          ========================= -->
+ 
+     <section
+         id="contacts"
+         class="upholstery-contact-section"
+     >
+ 
+         <div>
+ 
+             <p class="upholstery-label">
+                 КОНТАКТИ
+             </p>
+ 
+             <h2>
+                 Зв’язатися
+             </h2>
+ 
+         </div>
+ 
+ 
+         <div class="upholstery-contact-buttons">
+ 
+             <a
+                 id="businessTelegramLink"
+                 href="#"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 hidden
+             >
+                 Telegram
+             </a>
+ 
+ 
+             <a
+                 id="businessInstagramLink"
+                 href="#"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 hidden
+             >
+                 Instagram
+             </a>
+ 
+ 
+             <a
+                 id="businessPhoneLink"
+                 href="#"
+                 class="upholstery-phone-button"
+             >
+                 📞 Зателефонувати
+             </a>
+ 
+         </div>
+ 
+     </section>
+
+         <!-- =========================
+         ПОСЛУГИ / НАПРЯМКИ
+         ========================= -->
+
+    <section
+    id="services"
+    class="upholstery-section"
+>
+
+    <div class="upholstery-section-heading">
+
+        <p class="upholstery-label">
+            ПОСЛУГИ
+        </p>
+
+        <h2>
+            Наші послуги
+        </h2>
+
+        <p>
+            Послуги та напрямки роботи
+            цього бізнесу.
+        </p>
+
+    </div>
+
+
+    <div
+        id="businessServicesGrid"
+        class="upholstery-services-grid"
+    >
+
+        <p id="businessServicesEmpty">
+            Послуги ще не додано.
+        </p>
+
+    </div>
+
+</section>
+
+
+<!-- =========================
+     ФОТО РОБІТ
+     ========================= -->
+
+<section
+    id="gallery"
+    class="upholstery-section"
+>
+
+    <div class="upholstery-section-heading">
+
+        <p class="upholstery-label">
+            ФОТО РОБІТ
+        </p>
+
+        <h2>
+            Наші роботи
+        </h2>
+
+        <p>
+            Приклади виконаних робіт
+            та фото бізнесу.
+        </p>
+
+    </div>
+
+
+    <div
+        id="businessGallery"
+        class="royal-auto-cars-grid"
+    >
+
+        <p id="businessGalleryEmpty">
+            Фото робіт ще не додано.
+        </p>
+
+    </div>
+
+</section>
+
+
+<!-- =========================
+     АВТОМОБІЛІ БІЗНЕСУ
+     ========================= -->
+
+<section
+    id="businessCarsSection"
+    class="upholstery-details-section"
+    hidden
+>
+
+    <article
+        class="upholstery-detail-card royal-auto-cars-section"
+    >
+
+        <div class="upholstery-detail-icon">
+            🚘
+        </div>
+
+        <div class="royal-auto-cars-content">
+
+            <p class="upholstery-label">
+                АВТОМОБІЛІ
+            </p>
+
+            <h2>
+                Автомобілі у продажу
+            </h2>
+
+            <p>
+                Актуальні оголошення
+                цього бізнесу.
+            </p>
+
+
+            <div
+                id="businessCarsLoading"
+                class="royal-auto-loading"
+                hidden
+            >
+                Завантаження автомобілів...
+            </div>
+
+
+            <div
+                id="businessCarsEmpty"
+                class="royal-auto-empty"
+                hidden
+            >
+                Зараз немає активних
+                автомобілів у продажу.
+            </div>
+
+
+            <div
+                id="businessCarsGrid"
+                class="royal-auto-cars-grid"
+            ></div>
+
+        </div>
+
+    </article>
+
+</section>
+
+    <!-- =========================
+         FOOTER
+         ========================= -->
+
+        </main>
+
+
+        <footer class="footer">
+        
+            <div>
+        
+                <h3>
+                    Royal Garage
+                </h3>
+        
+                <p>
+                    Автоспільнота України
+                </p>
+        
+                <p>
+                    Бізнес-профілі Royal Garage
+                </p>
+        
+            </div>
+        
+        
+            <div>
+        
+                <h3>
+                    Навігація
+                </h3>
+        
+                <a href="index.html">
+                    Головна
+                </a>
+        
+                <a href="forum.html">
+                    Форум
+                </a>
+        
+                <a href="market.html">
+                    Авторинок
+                </a>
+        
+                <a href="businesses.html">
+                    Бізнеси
+                </a>
+        
+            </div>
+        
+        </footer>
+        
+        
+        <a
+            href="#contacts"
+            class="royal-auto-contact-float"
+        >
+            💬 Зв’язатися
+        </a>
+        
+        
+        <script src="js/auth.js"></script>
+        <script src="js/business-profile.js"></script>
+        
+        </body>
+        </html>
