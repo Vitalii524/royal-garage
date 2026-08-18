@@ -1257,24 +1257,36 @@ Boolean(
     }
 
 
-    /* ===== КНОПКА НОМЕРА ===== */
+  /* ===== КНОПКА ДЗВІНКА ===== */
 
-    const showPhoneButton =
-        document.getElementById(
-            "showPhoneButton"
-        );
+const showPhoneButton =
+document.getElementById(
+    "showPhoneButton"
+);
 
+if (showPhoneButton) {
+const phone =
+    String(listing.phone || "")
+        .replace(/[^\d+]/g, "");
 
-    if (showPhoneButton) {
-        showPhoneButton.addEventListener(
-            "click",
-            () => {
-                showPhoneButton.textContent =
-                    listing.phone ||
-                    "Номер не вказано";
-            }
-        );
-    }
+if (phone) {
+    showPhoneButton.textContent =
+        "📞 Зателефонувати";
+
+    showPhoneButton.addEventListener(
+        "click",
+        () => {
+            window.location.href =
+                `tel:${phone}`;
+        }
+    );
+} else {
+    showPhoneButton.textContent =
+        "Номер не вказано";
+
+    showPhoneButton.disabled = true;
+}
+}
 
     /* ===== ПРОФІЛЬ ПРОДАВЦЯ ===== */
 
