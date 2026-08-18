@@ -406,6 +406,63 @@ async function loadBusinessPlans(
     }
 }
 
+accountTypeSelect
+    ?.addEventListener(
+        "change",
+        async () => {
+            const isBusiness =
+                accountTypeSelect.value ===
+                "business";
+
+            businessFields
+                ?.classList.toggle(
+                    "hidden",
+                    !isBusiness
+                );
+
+            businessTypeSelect.required =
+                isBusiness;
+
+            businessPlanSelect.required =
+                isBusiness;
+
+            if (isBusiness) {
+                await loadBusinessTypes();
+            } else {
+                businessTypeSelect.value = "";
+
+                businessPlanSelect.innerHTML = `
+                    <option value="">
+                        Спочатку оберіть тип бізнесу
+                    </option>
+                `;
+            }
+        }
+    );
+
+businessTypeSelect
+    ?.addEventListener(
+        "change",
+        async () => {
+            const businessType =
+                businessTypeSelect.value;
+
+            if (!businessType) {
+                businessPlanSelect.innerHTML = `
+                    <option value="">
+                        Спочатку оберіть тип бізнесу
+                    </option>
+                `;
+
+                return;
+            }
+
+            await loadBusinessPlans(
+                businessType
+            );
+        }
+    );
+
     const forgotPasswordButton =
     document.getElementById(
         "forgotPasswordButton"
