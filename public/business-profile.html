@@ -222,6 +222,134 @@
              >
                  ⚙️ Редагувати профіль
              </button>
+
+             <!-- =========================
+     ФОРМА РЕДАГУВАННЯ ПРОФІЛЮ
+     ========================= -->
+
+<section
+id="businessEditSection"
+class="upholstery-section"
+hidden
+>
+
+<div class="upholstery-section-heading">
+
+    <p class="upholstery-label">
+        РЕДАГУВАННЯ
+    </p>
+
+    <h2>
+        Налаштування бізнес-профілю
+    </h2>
+
+</div>
+
+
+<form
+    id="businessEditForm"
+    class="royal-auto-admin-form"
+>
+
+    <label>
+        Назва бізнесу
+
+        <input
+            type="text"
+            id="businessEditName"
+            required
+        >
+    </label>
+
+
+    <label>
+        Місто
+
+        <input
+            type="text"
+            id="businessEditCity"
+            placeholder="Наприклад: Львів"
+        >
+    </label>
+
+
+    <label>
+        Адреса
+
+        <input
+            type="text"
+            id="businessEditAddress"
+            placeholder="Вулиця, номер"
+        >
+    </label>
+
+
+    <label>
+        Телефон
+
+        <input
+            type="tel"
+            id="businessEditPhone"
+            placeholder="+380..."
+        >
+    </label>
+
+
+    <label>
+        Telegram
+
+        <input
+            type="text"
+            id="businessEditTelegram"
+            placeholder="@username або посилання"
+        >
+    </label>
+
+
+    <label>
+        Instagram
+
+        <input
+            type="text"
+            id="businessEditInstagram"
+            placeholder="@username або посилання"
+        >
+    </label>
+
+
+    <label>
+        Опис бізнесу
+
+        <textarea
+            id="businessEditDescription"
+            rows="6"
+            placeholder="Коротко розкажіть про свій бізнес..."
+        ></textarea>
+    </label>
+
+
+    <div class="upholstery-actions">
+
+        <button
+            type="submit"
+            class="upholstery-primary-button"
+        >
+            Зберегти зміни
+        </button>
+
+        <button
+            type="button"
+            id="cancelBusinessEditButton"
+            class="upholstery-secondary-button"
+        >
+            Скасувати
+        </button>
+
+    </div>
+
+</form>
+
+</section>
  
              <a
                  href="market.html"

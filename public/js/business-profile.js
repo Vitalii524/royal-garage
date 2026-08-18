@@ -120,7 +120,63 @@ const businessElements = {
     carsEmpty:
         document.getElementById(
             "businessCarsEmpty"
-        )
+        ),
+
+        editButton:
+            document.getElementById(
+                "editBusinessProfileButton"
+            ),
+
+        editSection:
+            document.getElementById(
+                "businessEditSection"
+            ),
+
+        editForm:
+            document.getElementById(
+                "businessEditForm"
+            ),
+
+        cancelEditButton:
+            document.getElementById(
+                "cancelBusinessEditButton"
+            ),
+
+        editName:
+            document.getElementById(
+                "businessEditName"
+            ),
+
+        editCity:
+            document.getElementById(
+                "businessEditCity"
+            ),
+
+        editAddress:
+            document.getElementById(
+                "businessEditAddress"
+            ),
+
+        editPhone:
+            document.getElementById(
+                "businessEditPhone"
+            ),
+
+        editTelegram:
+            document.getElementById(
+                "businessEditTelegram"
+            ),
+
+        editInstagram:
+            document.getElementById(
+                "businessEditInstagram"
+            ),
+
+        editDescription:
+            document.getElementById(
+                "businessEditDescription"
+            ),
+
 };
 
 
@@ -1161,6 +1217,184 @@ if (businessElements.logoInput) {
             }
         );
 }
+
+function fillBusinessEditForm() {
+    if (!currentBusinessProfile) {
+        return;
+    }
+
+    businessElements.editName.value =
+        currentBusinessProfile.name || "";
+
+    businessElements.editCity.value =
+        currentBusinessProfile.city || "";
+
+    businessElements.editAddress.value =
+        currentBusinessProfile.address || "";
+
+    businessElements.editPhone.value =
+        currentBusinessProfile.phone || "";
+
+    businessElements.editTelegram.value =
+        currentBusinessProfile.telegram || "";
+
+    businessElements.editInstagram.value =
+        currentBusinessProfile.instagram || "";
+
+    businessElements.editDescription.value =
+        currentBusinessProfile.description || "";
+}
+
+
+businessElements.editButton
+    ?.addEventListener(
+        "click",
+        () => {
+            fillBusinessEditForm();
+
+            businessElements
+                .editSection
+                .hidden = false;
+
+            businessElements
+                .editSection
+                .scrollIntoView({
+                    behavior: "smooth",
+                    block: "start"
+                });
+        }
+    );
+
+
+businessElements.cancelEditButton
+    ?.addEventListener(
+        "click",
+        () => {
+            businessElements
+                .editSection
+                .hidden = true;
+        }
+    );
+
+
+businessElements.editForm
+    ?.addEventListener(
+        "submit",
+        async (event) => {
+            event.preventDefault();
+
+            const token =
+                getToken();
+
+            if (!token) {
+                return;
+            }
+
+            const profileData = {
+                name:
+                    businessElements
+                        .editName
+                        .value
+                        .trim(),
+
+                city:
+                    businessElements
+                        .editCity
+                        .value
+                        .trim(),
+
+                address:
+                    businessElements
+                        .editAddress
+                        .value
+                        .trim(),
+
+                phone:
+                    businessElements
+                        .editPhone
+                        .value
+                        .trim(),
+
+                telegram:
+                    businessElements
+                        .editTelegram
+                        .value
+                        .trim(),
+
+                instagram:
+                    businessElements
+                        .editInstagram
+                        .value
+                        .trim(),
+
+                description:
+                    businessElements
+                        .editDescription
+                        .value
+                        .trim()
+            };
+
+            try {
+                const response =
+                    await fetch(
+                        "/api/business/profile",
+                        {
+                            method: "PATCH",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+
+                                Authorization:
+                                    `Bearer ${token}`
+                            },
+
+                            body:
+                                JSON.stringify(
+                                    profileData
+                                )
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.message ||
+                        "Не вдалося зберегти профіль."
+                    );
+                }
+
+                currentBusinessProfile = {
+                    ...currentBusinessProfile,
+                    ...data.profile
+                };
+
+                renderBusinessProfile(
+                    currentBusinessProfile
+                );
+
+                businessElements
+                    .editSection
+                    .hidden = true;
+
+                alert(
+                    "Бізнес-профіль збережено."
+                );
+
+            } catch (error) {
+                console.error(
+                    "Business profile update error:",
+                    error
+                );
+
+                alert(
+                    error.message
+                );
+            }
+        }
+    );
 
 updateBusinessContactFloat();
 loadBusinessProfile();
