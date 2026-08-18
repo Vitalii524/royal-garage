@@ -964,7 +964,7 @@ async function loadBusinessProfile() {
 
 const businessContactFloat =
     document.querySelector(
-        ".royal-auto-contact-float"
+        ".business-contact-float"
     );
 
 function updateBusinessContactFloat() {
