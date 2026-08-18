@@ -1401,5 +1401,70 @@ businessElements.editForm
         }
     );
 
+    /* =========================
+   КНОПКА ВГОРУ
+   ========================= */
+
+let backToTopButton =
+document.getElementById(
+    "backToTopButton"
+);
+
+if (!backToTopButton) {
+backToTopButton =
+    document.createElement(
+        "button"
+    );
+
+backToTopButton.type =
+    "button";
+
+backToTopButton.id =
+    "backToTopButton";
+
+backToTopButton.className =
+    "back-to-top-button";
+
+backToTopButton.setAttribute(
+    "aria-label",
+    "Повернутися вгору"
+);
+
+backToTopButton.textContent =
+    "↑";
+
+document.body.appendChild(
+    backToTopButton
+);
+}
+
+function updateBackToTopButton() {
+backToTopButton
+    .classList.toggle(
+        "is-visible",
+        window.scrollY > 350
+    );
+}
+
+backToTopButton.addEventListener(
+"click",
+() => {
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+}
+);
+
+window.addEventListener(
+"scroll",
+updateBackToTopButton,
+{
+    passive: true
+}
+);
+
+updateBackToTopButton();
+
 updateBusinessContactFloat();
 loadBusinessProfile();
