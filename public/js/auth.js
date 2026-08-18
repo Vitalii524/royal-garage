@@ -731,6 +731,10 @@ async function registerUser(event) {
 
         saveCurrentUser(data.user);
 
+localStorage.setItem(
+    "royalGarageToken",
+    data.token
+);
         document
             .getElementById(
                 "registerForm"

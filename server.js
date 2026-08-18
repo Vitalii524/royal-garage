@@ -2873,10 +2873,38 @@ if (
                 );
             }
 
-        res.status(201).json({
-            ok: true,
-            user: result.rows[0]
-        });
+            const newUser =
+            result.rows[0];
+        
+        const token =
+            jwt.sign(
+                {
+                    userId: newUser.id,
+                    role:
+                        newUser.role || "user"
+                },
+                process.env.JWT_SECRET,
+                {
+                    expiresIn: "7d"
+                }
+            );
+
+            res.status(201).json({
+                ok: true,
+                token,
+                user: {
+                    id: newUser.id,
+                    name: newUser.name,
+                    email: newUser.email,
+                    phone:
+                        newUser.phone || "",
+                    accountType:
+                        newUser.account_type ||
+                        "user",
+                    role:
+                        newUser.role || "user"
+                }
+            });
     } catch (error) {
         console.error(
             "Registration error:",
