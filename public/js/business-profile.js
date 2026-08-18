@@ -977,12 +977,17 @@ function updateBusinessContactFloat() {
             "contacts"
         );
 
-    const contactsVisible =
-        contacts &&
+        const contactsRect =
         contacts
-            .getBoundingClientRect()
-            .top <
-            window.innerHeight;
+            ?.getBoundingClientRect();
+    
+    const contactsVisible =
+        Boolean(
+            contactsRect &&
+            contactsRect.top <
+                window.innerHeight &&
+            contactsRect.bottom > 0
+        );
 
     businessContactFloat
         .classList.toggle(
