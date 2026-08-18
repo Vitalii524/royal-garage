@@ -54,6 +54,251 @@ async function initDatabase() {
     `);
 
     await pool.query(`
+    CREATE TABLE IF NOT EXISTS business_types (
+        id UUID PRIMARY KEY,
+        code VARCHAR(60) UNIQUE NOT NULL,
+        name VARCHAR(120) NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+`);
+
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS subscription_plans (
+        id UUID PRIMARY KEY,
+        business_type_code VARCHAR(60) NOT NULL,
+        code VARCHAR(60) NOT NULL,
+        name VARCHAR(120) NOT NULL,
+        price_uah INTEGER NOT NULL DEFAULT 0,
+        car_limit INTEGER,
+        has_crm BOOLEAN NOT NULL DEFAULT FALSE,
+        has_map BOOLEAN NOT NULL DEFAULT FALSE,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+        UNIQUE (
+            business_type_code,
+            code
+        )
+    )
+`);
+
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS business_profiles (
+        id UUID PRIMARY KEY,
+
+        owner_id UUID UNIQUE NOT NULL
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+
+        business_type_id UUID
+            REFERENCES business_types(id),
+
+        subscription_plan_id UUID
+            REFERENCES subscription_plans(id),
+
+        name VARCHAR(160) NOT NULL,
+        logo TEXT,
+
+        city VARCHAR(100),
+        address VARCHAR(255),
+
+        phone VARCHAR(30),
+        telegram VARCHAR(100),
+        instagram VARCHAR(255),
+
+        description TEXT,
+
+        photos JSONB NOT NULL
+            DEFAULT '[]'::jsonb,
+
+        services JSONB NOT NULL
+            DEFAULT '[]'::jsonb,
+
+        created_at TIMESTAMPTZ NOT NULL
+            DEFAULT NOW(),
+
+        updated_at TIMESTAMPTZ NOT NULL
+            DEFAULT NOW()
+    )
+`);
+
+await pool.query(`
+    INSERT INTO business_types (
+        id,
+        code,
+        name
+    )
+    VALUES
+        (
+            '11111111-1111-1111-1111-111111111111',
+            'car_service',
+            'СТО / автосервіс'
+        ),
+        (
+            '22222222-2222-2222-2222-222222222222',
+            'car_dealer',
+            'Автомайданчик / продаж авто'
+        ),
+        (
+            '33333333-3333-3333-3333-333333333333',
+            'auto_shop',
+            'Магазин автотоварів'
+        ),
+        (
+            '44444444-4444-4444-4444-444444444444',
+            'detailing',
+            'Детейлінг'
+        ),
+        (
+            '55555555-5555-5555-5555-555555555555',
+            'tire_service',
+            'Шиномонтаж'
+        ),
+        (
+            '66666666-6666-6666-6666-666666666666',
+            'road_assistance',
+            'Евакуатор / допомога в дорозі'
+        ),
+        (
+            '77777777-7777-7777-7777-777777777777',
+            'other',
+            'Інше'
+        )
+    ON CONFLICT (code)
+    DO NOTHING
+`);
+
+await pool.query(`
+    INSERT INTO subscription_plans (
+        id,
+        business_type_code,
+        code,
+        name,
+        price_uah,
+        car_limit,
+        has_crm,
+        has_map
+    )
+    VALUES
+
+        (
+            'a1111111-1111-1111-1111-111111111111',
+            'car_service',
+            'business',
+            'Business',
+            500,
+            NULL,
+            FALSE,
+            FALSE
+        ),
+
+        (
+            'a2222222-2222-2222-2222-222222222222',
+            'car_service',
+            'pro',
+            'Pro',
+            2500,
+            NULL,
+            TRUE,
+            TRUE
+        ),
+
+        (
+            'b1111111-1111-1111-1111-111111111111',
+            'detailing',
+            'business',
+            'Business',
+            500,
+            NULL,
+            FALSE,
+            FALSE
+        ),
+
+        (
+            'b2222222-2222-2222-2222-222222222222',
+            'detailing',
+            'pro',
+            'Pro',
+            2500,
+            NULL,
+            TRUE,
+            TRUE
+        ),
+
+        (
+            'c1111111-1111-1111-1111-111111111111',
+            'car_dealer',
+            'business',
+            'Business',
+            500,
+            10,
+            FALSE,
+            FALSE
+        ),
+
+        (
+            'c2222222-2222-2222-2222-222222222222',
+            'car_dealer',
+            'business_plus',
+            'Business Plus',
+            1500,
+            40,
+            FALSE,
+            FALSE
+        ),
+
+        (
+            'c3333333-3333-3333-3333-333333333333',
+            'car_dealer',
+            'pro',
+            'Pro',
+            2500,
+            100,
+            FALSE,
+            FALSE
+        ),
+
+        (
+            'd1111111-1111-1111-1111-111111111111',
+            'auto_shop',
+            'business',
+            'Business',
+            500,
+            NULL,
+            FALSE,
+            FALSE
+        ),
+
+        (
+            'e1111111-1111-1111-1111-111111111111',
+            'tire_service',
+            'business',
+            'Business',
+            500,
+            NULL,
+            FALSE,
+            FALSE
+        ),
+
+        (
+            'f1111111-1111-1111-1111-111111111111',
+            'road_assistance',
+            'business',
+            'Business',
+            500,
+            NULL,
+            FALSE,
+            FALSE
+        )
+
+    ON CONFLICT (
+        business_type_code,
+        code
+    )
+    DO NOTHING
+`);
+
+    await pool.query(`
     CREATE TABLE IF NOT EXISTS password_reset_tokens (
         id UUID PRIMARY KEY,
 
@@ -2327,26 +2572,129 @@ app.get("/api/db-test", async (req, res) => {
     }
 });
 
+app.get(
+    "/api/business/types",
+    async (req, res) => {
+        try {
+            const result =
+                await pool.query(`
+                    SELECT
+                        id,
+                        code,
+                        name
+                    FROM business_types
+                    ORDER BY name ASC
+                `);
+
+            res.json({
+                ok: true,
+                types: result.rows
+            });
+
+        } catch (error) {
+            console.error(
+                "Business types load error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити типи бізнесу."
+            });
+        }
+    }
+);
+
+app.get(
+    "/api/business/plans",
+    async (req, res) => {
+        try {
+            const type =
+                String(
+                    req.query.type || ""
+                ).trim();
+
+            if (!type) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Не вказано тип бізнесу."
+                });
+            }
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        business_type_code AS "businessTypeCode",
+                        code,
+                        name,
+                        price_uah AS "priceUah",
+                        car_limit AS "carLimit",
+                        has_crm AS "hasCrm",
+                        has_map AS "hasMap"
+                    FROM subscription_plans
+                    WHERE business_type_code = $1
+                      AND is_active = TRUE
+                    ORDER BY price_uah ASC
+                    `,
+                    [
+                        type
+                    ]
+                );
+
+            res.json({
+                ok: true,
+                plans: result.rows
+            });
+
+        } catch (error) {
+            console.error(
+                "Business plans load error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити тарифи."
+            });
+        }
+    }
+);
+
 app.post("/api/register", async (req, res) => {
     try {
         const {
             name,
             email,
             phone,
-            password
+            password,
+            accountType,
+            businessType,
+            businessPlanId
         } = req.body;
 
-        if (
-            !name ||
-            !email ||
-            !phone ||
-            !password
-        ) {
-            return res.status(400).json({
-                ok: false,
-                message: "Заповни всі поля."
-            });
-        }
+        const normalizedAccountType =
+    accountType === "business"
+        ? "business"
+        : "user";
+
+if (
+    normalizedAccountType === "business" &&
+    (
+        !businessType ||
+        !businessPlanId
+    )
+) {
+    return res.status(400).json({
+        ok: false,
+        message:
+            "Оберіть тип бізнесу та тариф."
+    });
+}
 
         const normalizedEmail =
             String(email)
@@ -2405,7 +2753,7 @@ app.post("/api/register", async (req, res) => {
         const userId =
             crypto.randomUUID();
 
-        const result =
+            const result =
             await pool.query(
                 `
                 INSERT INTO users (
@@ -2423,7 +2771,7 @@ app.post("/api/register", async (req, res) => {
                     $3,
                     $4,
                     $5,
-                    'user',
+                    $6,
                     'user'
                 )
                 RETURNING
@@ -2440,9 +2788,90 @@ app.post("/api/register", async (req, res) => {
                     name.trim(),
                     normalizedEmail,
                     normalizedPhone,
-                    passwordHash
+                    passwordHash,
+                    normalizedAccountType
                 ]
             );
+
+            if (normalizedAccountType === "business") {
+                const businessTypeResult =
+                    await pool.query(
+                        `
+                        SELECT id
+                        FROM business_types
+                        WHERE code = $1
+                        LIMIT 1
+                        `,
+                        [
+                            businessType
+                        ]
+                    );
+            
+                if (
+                    businessTypeResult.rows.length === 0
+                ) {
+                    return res.status(400).json({
+                        ok: false,
+                        message:
+                            "Невідомий тип бізнесу."
+                    });
+                }
+            
+                const planResult =
+                    await pool.query(
+                        `
+                        SELECT id
+                        FROM subscription_plans
+                        WHERE id = $1
+                          AND business_type_code = $2
+                          AND is_active = TRUE
+                        LIMIT 1
+                        `,
+                        [
+                            businessPlanId,
+                            businessType
+                        ]
+                    );
+            
+                if (
+                    planResult.rows.length === 0
+                ) {
+                    return res.status(400).json({
+                        ok: false,
+                        message:
+                            "Невірний тариф для цього типу бізнесу."
+                    });
+                }
+            
+                await pool.query(
+                    `
+                    INSERT INTO business_profiles (
+                        id,
+                        owner_id,
+                        business_type_id,
+                        subscription_plan_id,
+                        name,
+                        phone
+                    )
+                    VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        $4,
+                        $5,
+                        $6
+                    )
+                    `,
+                    [
+                        crypto.randomUUID(),
+                        userId,
+                        businessTypeResult.rows[0].id,
+                        planResult.rows[0].id,
+                        name.trim(),
+                        normalizedPhone
+                    ]
+                );
+            }
 
         res.status(201).json({
             ok: true,

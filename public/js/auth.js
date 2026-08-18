@@ -160,6 +160,52 @@ function createAuthModal() {
     >
 </label>
 
+<label>
+    Тип акаунта
+
+    <select
+        id="registerAccountType"
+        required
+    >
+        <option value="user">
+            Звичайний користувач
+        </option>
+
+        <option value="business">
+            Бізнес
+        </option>
+    </select>
+</label>
+
+<div
+    id="businessRegistrationFields"
+    class="hidden"
+>
+    <label>
+        Тип бізнесу
+
+        <select
+            id="registerBusinessType"
+        >
+            <option value="">
+                Оберіть тип бізнесу
+            </option>
+        </select>
+    </label>
+
+    <label>
+        Тариф
+
+        <select
+            id="registerBusinessPlan"
+        >
+            <option value="">
+                Спочатку оберіть тип бізнесу
+            </option>
+        </select>
+    </label>
+</div>
+
                 <label>
                 Пароль
               
@@ -216,6 +262,149 @@ function createAuthModal() {
     `;
 
     document.body.appendChild(modal);
+
+    const accountTypeSelect =
+    document.getElementById(
+        "registerAccountType"
+    );
+
+const businessFields =
+    document.getElementById(
+        "businessRegistrationFields"
+    );
+
+const businessTypeSelect =
+    document.getElementById(
+        "registerBusinessType"
+    );
+
+const businessPlanSelect =
+    document.getElementById(
+        "registerBusinessPlan"
+    );
+
+async function loadBusinessTypes() {
+    try {
+        const response =
+            await fetch(
+                "/api/business/types"
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити типи бізнесу."
+            );
+        }
+
+        businessTypeSelect.innerHTML = `
+            <option value="">
+                Оберіть тип бізнесу
+            </option>
+        `;
+
+        data.types.forEach((type) => {
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+            option.value = type.code;
+            option.textContent = type.name;
+
+            businessTypeSelect.appendChild(
+                option
+            );
+        });
+
+    } catch (error) {
+        console.error(
+            "Business types load error:",
+            error
+        );
+    }
+}
+
+async function loadBusinessPlans(
+    businessType
+) {
+    businessPlanSelect.innerHTML = `
+        <option value="">
+            Завантаження...
+        </option>
+    `;
+
+    try {
+        const response =
+            await fetch(
+                `/api/business/plans?type=${encodeURIComponent(
+                    businessType
+                )}`
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити тарифи."
+            );
+        }
+
+        businessPlanSelect.innerHTML = `
+            <option value="">
+                Оберіть тариф
+            </option>
+        `;
+
+        data.plans.forEach((plan) => {
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+            option.value = plan.id;
+
+            let label =
+                `${plan.name} — ${plan.priceUah} грн/міс`;
+
+            if (plan.carLimit) {
+                label +=
+                    ` — до ${plan.carLimit} авто`;
+            }
+
+            if (plan.hasCrm) {
+                label += " — CRM";
+            }
+
+            if (plan.hasMap) {
+                label += " — карта";
+            }
+
+            option.textContent = label;
+
+            businessPlanSelect.appendChild(
+                option
+            );
+        });
+
+    } catch (error) {
+        console.error(
+            "Business plans load error:",
+            error
+        );
+
+        businessPlanSelect.innerHTML = `
+            <option value="">
+                Не вдалося завантажити тарифи
+            </option>
+        `;
+    }
+}
 
     const forgotPasswordButton =
     document.getElementById(
@@ -453,7 +642,22 @@ async function registerUser(event) {
                     name,
                     email,
                     phone,
-                    password
+                    password,
+                
+                    accountType:
+                        document.getElementById(
+                            "registerAccountType"
+                        )?.value || "user",
+                
+                    businessType:
+                        document.getElementById(
+                            "registerBusinessType"
+                        )?.value || "",
+                
+                    businessPlanId:
+                        document.getElementById(
+                            "registerBusinessPlan"
+                        )?.value || ""
                 })
             }
         );
