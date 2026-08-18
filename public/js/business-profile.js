@@ -1423,7 +1423,7 @@ backToTopButton.id =
     "backToTopButton";
 
 backToTopButton.className =
-    "back-to-top-button";
+    "business-back-to-top";
 
 backToTopButton.setAttribute(
     "aria-label",
@@ -1437,6 +1437,14 @@ document.body.appendChild(
     backToTopButton
 );
 }
+
+backToTopButton.classList.remove(
+    "back-to-top-button"
+);
+
+backToTopButton.classList.add(
+    "business-back-to-top"
+);
 
 function updateBackToTopButton() {
 backToTopButton
