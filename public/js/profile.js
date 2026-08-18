@@ -4812,15 +4812,19 @@ async function handleCarSubmit(
             .trim()
             .toUpperCase();
 
-    const photoInput =
-        document.getElementById(
-            "carPhoto"
-        );
-
-    const photoFile =
-        photoInput
-            ?.files?.[0];
-
+            const photoInput =
+            document.getElementById(
+                "carPhoto"
+            );
+        
+        const cameraPhotoInput =
+            document.getElementById(
+                "carCameraPhoto"
+            );
+        
+        const photoFile =
+            photoInput?.files?.[0] ||
+            cameraPhotoInput?.files?.[0];
     if (
         !name ||
         !year ||
@@ -6336,16 +6340,13 @@ elements.serviceForm
         handleServiceSubmit
     );
 
-elements.updateCarPhoto
-    ?.addEventListener(
-        "change",
-        async () => {
-            const files =
-                Array.from(
-                    elements
-                        .updateCarPhoto
-                        .files || []
-                );
+    async function handleCarPhotoFiles(
+        input
+    ) {
+        const files =
+            Array.from(
+                input?.files || []
+            );
 
             if (
                 files.length === 0
@@ -6361,10 +6362,9 @@ elements.updateCarPhoto
                     "Автомобіль не знайдено."
                 );
 
-                elements
-                    .updateCarPhoto
-                    .value = "";
-
+                if (input) {
+                    input.value = "";
+                }
                 return;
             }
 
@@ -6382,10 +6382,9 @@ elements.updateCarPhoto
                     "Можна додати максимум 6 фото автомобіля."
                 );
 
-                elements
-                    .updateCarPhoto
-                    .value = "";
-
+                if (input) {
+                    input.value = "";
+                }
                 return;
             }
 
@@ -6485,12 +6484,35 @@ elements.updateCarPhoto
                 );
             }
 
-            elements
-                .updateCarPhoto
-                .value = "";
+            if (input) {
+                input.value = "";
+            }
         }
+
+        elements.updateCarPhoto
+    ?.addEventListener(
+        "change",
+        () =>
+            handleCarPhotoFiles(
+                elements.updateCarPhoto
+            )
     );
 
+const updateCarCameraPhoto =
+    document.getElementById(
+        "updateCarCameraPhoto"
+    );
+
+updateCarCameraPhoto
+    ?.addEventListener(
+        "change",
+        () =>
+            handleCarPhotoFiles(
+                updateCarCameraPhoto
+            )
+    );
+
+            
 elements.previousCarPhoto
     ?.addEventListener(
         "click",
