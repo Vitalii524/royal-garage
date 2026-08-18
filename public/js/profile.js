@@ -5181,16 +5181,24 @@ async function handleServiceSubmit(
                 ?.checked
         );
 
-    const photoInput =
+        const photoInput =
         document.getElementById(
             "servicePhotos"
         );
-
-    const photoFiles =
-        Array.from(
-            photoInput
-                ?.files || []
+    
+    const cameraPhotoInput =
+        document.getElementById(
+            "serviceCameraPhoto"
         );
+    
+    const photoFiles = [
+        ...Array.from(
+            photoInput?.files || []
+        ),
+        ...Array.from(
+            cameraPhotoInput?.files || []
+        )
+    ];
 
     if (
         !title ||
