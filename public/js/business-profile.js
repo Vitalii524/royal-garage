@@ -1,4 +1,13 @@
 "use strict";
+if (window.location.hash) {
+    history.replaceState(
+        null,
+        "",
+        window.location.pathname
+    );
+
+    window.scrollTo(0, 0);
+}
 
 /* =========================
    BUSINESS PROFILE
@@ -177,10 +186,10 @@ const businessElements = {
                 "businessEditDescription"
             ),
 
-            editServices:
-    document.getElementById(
-        "businessEditServices"
-    ),
+        editServices:
+            document.getElementById(
+                "businessEditServices"
+            ),
 
 };
 
