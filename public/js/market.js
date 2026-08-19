@@ -2339,12 +2339,22 @@ async function prepareSelectedPhotos() {
             photoItem.type ===
             "file"
         ) {
+            if (photoItem.compressedSrc) {
+                preparedPhotos.push(
+                    photoItem.compressedSrc
+                );
+        
+                continue;
+            }
+        
             const compressedPhoto =
                 await compressPhoto(
                     photoItem.file
                 );
-
-
+        
+            photoItem.compressedSrc =
+                compressedPhoto;
+        
             preparedPhotos.push(
                 compressedPhoto
             );
