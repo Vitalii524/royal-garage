@@ -14,6 +14,7 @@ if (window.location.hash) {
    ========================= */
 
 let currentBusinessProfile = null;
+let businessEditPhotosData = [];
 
 const businessElements = {
     logo:
@@ -189,6 +190,16 @@ const businessElements = {
         editServices:
             document.getElementById(
                 "businessEditServices"
+            ),
+
+        editPhotos:
+            document.getElementById(
+                "businessEditPhotos"
+            ),
+
+        editPhotosPreview:
+            document.getElementById(
+                "businessEditPhotosPreview"
             ),
 
 };
@@ -1277,6 +1288,17 @@ function fillBusinessEditForm() {
             .filter(Boolean)
             .join("\n")
         : "";
+
+        businessEditPhotosData =
+    Array.isArray(
+        currentBusinessProfile.photos
+    )
+        ? [
+            ...currentBusinessProfile.photos
+        ]
+        : [];
+
+renderBusinessEditPhotosPreview();
 }
 
 
@@ -1376,7 +1398,9 @@ businessElements.editForm
                             (service) =>
                                 service.trim()
                         )
-                        .filter(Boolean)
+                        .filter(Boolean),
+                        photos:
+                 businessEditPhotosData
             };
 
             try {
@@ -1511,6 +1535,232 @@ updateBackToTopButton,
     passive: true
 }
 );
+
+function renderBusinessEditPhotosPreview() {
+    if (
+        !businessElements.editPhotosPreview
+    ) {
+        return;
+    }
+
+    businessElements
+        .editPhotosPreview
+        .innerHTML = "";
+
+    businessEditPhotosData.forEach(
+        (photo, index) => {
+            const item =
+                document.createElement(
+                    "div"
+                );
+
+            item.className =
+                "business-edit-photo-item";
+
+            const image =
+                document.createElement(
+                    "img"
+                );
+
+            image.src =
+                photo;
+
+            image.alt =
+                "Фото роботи";
+
+            const removeButton =
+                document.createElement(
+                    "button"
+                );
+
+            removeButton.type =
+                "button";
+
+            removeButton.textContent =
+                "✕";
+
+            removeButton.className =
+                "business-edit-photo-remove";
+
+            removeButton.addEventListener(
+                "click",
+                () => {
+                    businessEditPhotosData.splice(
+                        index,
+                        1
+                    );
+
+                    renderBusinessEditPhotosPreview();
+                }
+            );
+
+            item.append(
+                image,
+                removeButton
+            );
+
+            businessElements
+                .editPhotosPreview
+                .appendChild(
+                    item
+                );
+        }
+    );
+}
+
+
+async function compressBusinessPhoto(
+    file
+) {
+    return new Promise(
+        (resolve, reject) => {
+            const reader =
+                new FileReader();
+
+            reader.onload = () => {
+                const image =
+                    new Image();
+
+                image.onload = () => {
+                    const maxSize = 1200;
+
+                    let width =
+                        image.width;
+
+                    let height =
+                        image.height;
+
+                    if (
+                        width > maxSize ||
+                        height > maxSize
+                    ) {
+                        const scale =
+                            Math.min(
+                                maxSize / width,
+                                maxSize / height
+                            );
+
+                        width =
+                            Math.round(
+                                width * scale
+                            );
+
+                        height =
+                            Math.round(
+                                height * scale
+                            );
+                    }
+
+                    const canvas =
+                        document.createElement(
+                            "canvas"
+                        );
+
+                    canvas.width =
+                        width;
+
+                    canvas.height =
+                        height;
+
+                    const context =
+                        canvas.getContext(
+                            "2d"
+                        );
+
+                    context.drawImage(
+                        image,
+                        0,
+                        0,
+                        width,
+                        height
+                    );
+
+                    resolve(
+                        canvas.toDataURL(
+                            "image/jpeg",
+                            0.82
+                        )
+                    );
+                };
+
+                image.onerror = () =>
+                    reject(
+                        new Error(
+                            "Не вдалося прочитати фото."
+                        )
+                    );
+
+                image.src =
+                    reader.result;
+            };
+
+            reader.onerror = () =>
+                reject(
+                    new Error(
+                        "Не вдалося прочитати файл."
+                    )
+                );
+
+            reader.readAsDataURL(
+                file
+            );
+        }
+    );
+}
+
+
+businessElements.editPhotos
+    ?.addEventListener(
+        "change",
+        async (event) => {
+            const files =
+                Array.from(
+                    event.target.files || []
+                );
+
+            if (files.length === 0) {
+                return;
+            }
+
+            try {
+                for (
+                    const file of files
+                ) {
+                    if (
+                        !file.type.startsWith(
+                            "image/"
+                        )
+                    ) {
+                        continue;
+                    }
+
+                    const photoData =
+                        await compressBusinessPhoto(
+                            file
+                        );
+
+                    businessEditPhotosData.push(
+                        photoData
+                    );
+                }
+
+                renderBusinessEditPhotosPreview();
+
+            } catch (error) {
+                console.error(
+                    "Business photos error:",
+                    error
+                );
+
+                alert(
+                    error.message
+                );
+            } finally {
+                event.target.value =
+                    "";
+            }
+        }
+    );
 
 updateBackToTopButton();
 
