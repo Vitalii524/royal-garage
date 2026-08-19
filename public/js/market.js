@@ -4188,7 +4188,94 @@ if (listingForm) {
                 return;
             }
         
-            await loadMarketListings();
+            const createdListingId =
+    data.listing?.id;
+
+if (!createdListingId) {
+    alert(
+        "Оголошення створено, але не вдалося отримати його ID."
+    );
+
+    return;
+}
+
+const paymentResponse =
+    await fetch(
+        "/api/payments/liqpay/listing",
+        {
+            method: "POST",
+
+            headers: {
+                "Content-Type":
+                    "application/json",
+
+                Authorization:
+                    `Bearer ${token}`
+            },
+
+            body:
+                JSON.stringify({
+                    listingId:
+                        createdListingId
+                })
+        }
+    );
+
+const paymentData =
+    await paymentResponse.json();
+
+if (!paymentResponse.ok) {
+    alert(
+        paymentData.message ||
+        "Оголошення збережено, але не вдалося відкрити оплату."
+    );
+
+    return;
+}
+
+const form =
+    document.createElement(
+        "form"
+    );
+
+form.method = "POST";
+
+form.action =
+    paymentData.checkoutUrl;
+
+const dataInput =
+    document.createElement(
+        "input"
+    );
+
+dataInput.type = "hidden";
+dataInput.name = "data";
+dataInput.value =
+    paymentData.data;
+
+const signatureInput =
+    document.createElement(
+        "input"
+    );
+
+signatureInput.type = "hidden";
+signatureInput.name =
+    "signature";
+signatureInput.value =
+    paymentData.signature;
+
+form.append(
+    dataInput,
+    signatureInput
+);
+
+document.body.appendChild(
+    form
+);
+
+form.submit();
+
+return;
         
         } catch (error) {
             console.error(
@@ -4203,19 +4290,6 @@ if (listingForm) {
             return;
         }
 
-
-            alert(
-                "Оголошення успішно опубліковано."
-            );
-
-
-            hideListingModal();
-
-
-            resetListingForm();
-
-
-            renderListings();
         }
     );
 }

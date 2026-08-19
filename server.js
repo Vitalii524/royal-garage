@@ -450,6 +450,14 @@ await pool.query(`
 `);
 
 await pool.query(`
+    ALTER TABLE market_listings
+    ADD COLUMN IF NOT EXISTS status VARCHAR(30)
+        NOT NULL DEFAULT 'active',
+    ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ
+`);
+
+await pool.query(`
     CREATE TABLE IF NOT EXISTS market_favorites (
         user_id UUID NOT NULL
             REFERENCES users(id)
@@ -1995,8 +2003,13 @@ app.get(
                     description,
                     created_at AS "createdAt",
                     updated_at AS "updatedAt"
-                FROM market_listings
-                ORDER BY created_at DESC
+                    FROM market_listings
+                    WHERE status = 'active'
+                      AND (
+                          expires_at IS NULL
+                          OR expires_at > NOW()
+                      )
+                    ORDER BY created_at DESC
             `);
 
             res.json({
@@ -2148,12 +2161,15 @@ app.post(
                     city,
                     phone,
                     description
-                )
+                    status,
+                    published_at,
+                    expires_at
+              )
                 VALUES (
                     $1, $2, $3, $4, $5, $6, $7,
                     $8, $9, $10, $11, $12, $13,
                     $14, $15, $16, $17, $18,
-                    $19, $20, $21, $22, $23
+                    $19, $20, $21, $22, $23, $24, $25, $26
                 )
                 RETURNING *
                 `,
@@ -2190,7 +2206,10 @@ app.post(
                     priceUah || null,
                     city || "",
                     phone || "",
-                    description || ""
+                    description || "",
+                    "pending_payment",
+                    null,
+                    null
                 ]
             );
 
@@ -3113,6 +3132,157 @@ app.get(
 );
 
 /* =========================
+   LIQPAY — ОПЛАТА ОГОЛОШЕННЯ
+   150 грн / 28 днів
+   ========================= */
+
+   app.post(
+    "/api/payments/liqpay/listing",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const {
+                listingId
+            } = req.body;
+
+            if (!listingId) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Не вказано оголошення."
+                });
+            }
+
+            const listingResult =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        owner_id,
+                        name,
+                        year,
+                        status
+                    FROM market_listings
+                    WHERE id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        listingId
+                    ]
+                );
+
+            if (
+                listingResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Оголошення не знайдено."
+                });
+            }
+
+            const listing =
+                listingResult.rows[0];
+
+            if (
+                String(listing.owner_id) !==
+                String(req.user.userId)
+            ) {
+                return res.status(403).json({
+                    ok: false,
+                    message:
+                        "Немає доступу до цього оголошення."
+                });
+            }
+
+            const amount = 150;
+
+            const orderId =
+                `listing_${listingId}_${Date.now()}`;
+
+            const baseUrl =
+                "https://royal-garage.onrender.com";
+
+            const paymentData = {
+                public_key:
+                    LIQPAY_PUBLIC_KEY,
+
+                version:
+                    "7",
+
+                action:
+                    "pay",
+
+                amount,
+
+                currency:
+                    "UAH",
+
+                description:
+                    `Royal Garage — оголошення ${
+                        listing.name || ""
+                    } ${
+                        listing.year || ""
+                    }`.trim(),
+
+                order_id:
+                    orderId,
+
+                sandbox:
+                    1,
+
+                server_url:
+                    `${baseUrl}/api/payments/liqpay/callback`,
+
+                result_url:
+                    `${baseUrl}/market.html?listingPayment=return&listingId=${encodeURIComponent(
+                        listingId
+                    )}`
+            };
+
+            const data =
+                Buffer
+                    .from(
+                        JSON.stringify(
+                            paymentData
+                        )
+                    )
+                    .toString(
+                        "base64"
+                    );
+
+            const signature =
+                createLiqPaySignature(
+                    data
+                );
+
+            return res.json({
+                ok: true,
+
+                checkoutUrl:
+                    "https://www.liqpay.ua/api/3/checkout",
+
+                data,
+                signature,
+                listingId
+            });
+
+        } catch (error) {
+            console.error(
+                "Listing LiqPay create error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося створити оплату оголошення."
+            });
+        }
+    }
+);
+
+/* =========================
    LIQPAY — CALLBACK
    ========================= */
 
@@ -3232,6 +3402,111 @@ app.get(
 
                 return res.send("OK");
             }
+
+            /*
+    Оплата оголошення:
+    150 грн / 28 днів.
+*/
+
+if (
+    orderId.startsWith("listing_")
+) {
+    if (
+        amount !== 150 ||
+        currency !== "UAH"
+    ) {
+        console.error(
+            "LiqPay listing callback: invalid amount or currency",
+            {
+                orderId,
+                amount,
+                currency
+            }
+        );
+
+        return res
+            .status(400)
+            .send("Invalid amount");
+    }
+
+    const match =
+        orderId.match(
+            /^listing_([0-9a-f-]{36})_\d+$/i
+        );
+
+    if (!match) {
+        console.error(
+            "LiqPay listing callback: invalid order id",
+            orderId
+        );
+
+        return res
+            .status(400)
+            .send("Invalid order_id");
+    }
+
+    const listingId =
+        match[1];
+
+    const result =
+        await pool.query(
+            `
+            UPDATE market_listings
+            SET
+                status = 'active',
+
+                published_at =
+                    COALESCE(
+                        published_at,
+                        NOW()
+                    ),
+
+                expires_at =
+                    CASE
+                        WHEN expires_at > NOW()
+                        THEN
+                            expires_at +
+                            INTERVAL '28 days'
+                        ELSE
+                            NOW() +
+                            INTERVAL '28 days'
+                    END,
+
+                updated_at = NOW()
+
+            WHERE id = $1
+
+            RETURNING
+                id,
+                status,
+                published_at,
+                expires_at
+            `,
+            [
+                listingId
+            ]
+        );
+
+    if (
+        result.rows.length === 0
+    ) {
+        console.error(
+            "LiqPay listing callback: listing not found",
+            listingId
+        );
+
+        return res
+            .status(404)
+            .send("Listing not found");
+    }
+
+    console.log(
+        "LiqPay listing payment confirmed:",
+        listingId
+    );
+
+    return res.send("OK");
+}
 
             /*
                 Додаткова перевірка:
