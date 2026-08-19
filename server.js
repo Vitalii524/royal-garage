@@ -612,6 +612,66 @@ await pool.query(`
     )
 `);
 
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS service_history_purchases (
+        id UUID PRIMARY KEY,
+
+        user_id UUID NOT NULL
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+
+        listing_id UUID NOT NULL
+            REFERENCES market_listings(id)
+            ON DELETE CASCADE,
+
+        order_id TEXT UNIQUE NOT NULL,
+
+        amount_uah NUMERIC(10, 2) NOT NULL,
+
+        status VARCHAR(30) NOT NULL
+            DEFAULT 'pending',
+
+        paid_at TIMESTAMPTZ,
+
+        created_at TIMESTAMPTZ NOT NULL
+            DEFAULT NOW(),
+
+        UNIQUE (
+            user_id,
+            listing_id
+        )
+    )
+`);await pool.query(`
+CREATE TABLE IF NOT EXISTS service_history_purchases (
+    id UUID PRIMARY KEY,
+
+    user_id UUID NOT NULL
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    listing_id UUID NOT NULL
+        REFERENCES market_listings(id)
+        ON DELETE CASCADE,
+
+    order_id TEXT UNIQUE NOT NULL,
+
+    amount_uah NUMERIC(10, 2) NOT NULL,
+
+    status VARCHAR(30) NOT NULL
+        DEFAULT 'pending',
+
+    paid_at TIMESTAMPTZ,
+
+    created_at TIMESTAMPTZ NOT NULL
+        DEFAULT NOW(),
+
+    UNIQUE (
+        user_id,
+        listing_id
+    )
+)
+`);
+
         console.log("Users table ready");
     } catch (error) {
         console.error("Database initialization error:", error);
@@ -623,6 +683,12 @@ initDatabase();
 app.use(
     express.json({
         limit: "50mb"
+    })
+);
+
+app.use(
+    express.urlencoded({
+        extended: false
     })
 );
 
@@ -2835,6 +2901,516 @@ app.get(
                 ok: false,
                 message:
                     "Не вдалося створити платіж."
+            });
+        }
+    }
+);
+
+/* =========================
+   LIQPAY — ОПЛАТА ІСТОРІЇ АВТО
+   ========================= */
+
+   app.post(
+    "/api/payments/liqpay/history",
+    requireAuth,
+    async (req, res) => {
+        try {
+            if (
+                !LIQPAY_PUBLIC_KEY ||
+                !LIQPAY_PRIVATE_KEY
+            ) {
+                return res.status(500).json({
+                    ok: false,
+                    message:
+                        "LiqPay не налаштований на сервері."
+                });
+            }
+
+            const listingId =
+                String(
+                    req.body.listingId || ""
+                ).trim();
+
+            if (!listingId) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Не вказано автомобіль."
+                });
+            }
+
+            const listingResult =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        owner_id,
+                        name,
+                        year
+                    FROM market_listings
+                    WHERE id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        listingId
+                    ]
+                );
+
+            if (
+                listingResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Оголошення не знайдено."
+                });
+            }
+
+            const listing =
+                listingResult.rows[0];
+
+            if (
+                String(listing.owner_id) ===
+                String(req.user.userId)
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Власнику автомобіля оплата не потрібна."
+                });
+            }
+
+            const amount = 50;
+
+            const orderId =
+                `history_${listingId}_${req.user.userId}_${Date.now()}`;
+
+                await pool.query(
+                    `
+                    INSERT INTO service_history_purchases (
+                        id,
+                        user_id,
+                        listing_id,
+                        order_id,
+                        amount_uah,
+                        status
+                    )
+                    VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        $4,
+                        $5,
+                        'pending'
+                    )
+                    ON CONFLICT (
+                        user_id,
+                        listing_id
+                    )
+                    DO UPDATE SET
+                        order_id = EXCLUDED.order_id,
+                        amount_uah = EXCLUDED.amount_uah,
+                        status = 'pending',
+                        paid_at = NULL
+                    `,
+                    [
+                        crypto.randomUUID(),
+                        req.user.userId,
+                        listingId,
+                        orderId,
+                        amount
+                    ]
+                );
+
+            const baseUrl =
+                "https://royal-garage.onrender.com";
+
+            const paymentParams = {
+                public_key:
+                    LIQPAY_PUBLIC_KEY,
+
+                version: 7,
+
+                action: "pay",
+
+                amount:
+                    amount.toFixed(2),
+
+                currency:
+                    "UAH",
+
+                description:
+                    `Royal Garage — історія ${listing.name || "автомобіля"} ${listing.year || ""}`,
+
+                order_id:
+                    orderId,
+
+                language:
+                    "uk",
+
+                result_url:
+                    `${baseUrl}/listing.html?id=${encodeURIComponent(
+                        listingId
+                    )}&payment=return`,
+
+                server_url:
+                    `${baseUrl}/api/payments/liqpay/callback`
+            };
+
+            const data =
+                Buffer
+                    .from(
+                        JSON.stringify(
+                            paymentParams
+                        )
+                    )
+                    .toString(
+                        "base64"
+                    );
+
+            const signature =
+                createLiqPaySignature(
+                    data
+                );
+
+            res.json({
+                ok: true,
+
+                checkoutUrl:
+                    "https://www.liqpay.ua/api/3/checkout",
+
+                data,
+                signature,
+
+                orderId,
+
+                purchase: {
+                    type:
+                        "service_history",
+
+                    listingId,
+
+                    priceUah:
+                        amount
+                }
+            });
+
+        } catch (error) {
+            console.error(
+                "LiqPay history payment create error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося створити оплату історії."
+            });
+        }
+    }
+);
+
+/* =========================
+   LIQPAY — CALLBACK
+   ========================= */
+
+   app.post(
+    "/api/payments/liqpay/callback",
+    async (req, res) => {
+        try {
+            const data =
+                String(
+                    req.body.data || ""
+                );
+
+            const signature =
+                String(
+                    req.body.signature || ""
+                );
+
+            if (!data || !signature) {
+                return res
+                    .status(400)
+                    .send("Missing data");
+            }
+
+            const expectedSignature =
+                createLiqPaySignature(
+                    data
+                );
+
+            if (
+                signature !==
+                expectedSignature
+            ) {
+                console.error(
+                    "LiqPay callback: invalid signature"
+                );
+
+                return res
+                    .status(400)
+                    .send("Invalid signature");
+            }
+
+            let payment;
+
+            try {
+                payment =
+                    JSON.parse(
+                        Buffer
+                            .from(
+                                data,
+                                "base64"
+                            )
+                            .toString(
+                                "utf8"
+                            )
+                    );
+            } catch (error) {
+                console.error(
+                    "LiqPay callback decode error:",
+                    error
+                );
+
+                return res
+                    .status(400)
+                    .send("Invalid data");
+            }
+
+            const orderId =
+                String(
+                    payment.order_id || ""
+                );
+
+            const status =
+                String(
+                    payment.status || ""
+                );
+
+            const amount =
+                Number(
+                    payment.amount
+                );
+
+            const currency =
+                String(
+                    payment.currency || ""
+                ).toUpperCase();
+
+            if (!orderId) {
+                return res
+                    .status(400)
+                    .send("Missing order_id");
+            }
+
+            /*
+                У бойовому режимі:
+                success = успішна оплата.
+
+                У тестовому режимі:
+                sandbox = успішна тестова оплата.
+            */
+
+            const isPaid =
+                status === "success" ||
+                status === "sandbox";
+
+            if (!isPaid) {
+                await pool.query(
+                    `
+                    UPDATE service_history_purchases
+                    SET status = $1
+                    WHERE order_id = $2
+                    `,
+                    [
+                        status || "unknown",
+                        orderId
+                    ]
+                );
+
+                return res.send("OK");
+            }
+
+            /*
+                Додаткова перевірка:
+                історія коштує саме 50 грн.
+            */
+
+            if (
+                amount !== 50 ||
+                currency !== "UAH"
+            ) {
+                console.error(
+                    "LiqPay callback: invalid amount or currency",
+                    {
+                        orderId,
+                        amount,
+                        currency
+                    }
+                );
+
+                return res
+                    .status(400)
+                    .send(
+                        "Invalid amount"
+                    );
+            }
+
+            const result =
+                await pool.query(
+                    `
+                    UPDATE service_history_purchases
+                    SET
+                        status = 'paid',
+                        paid_at = NOW()
+                    WHERE order_id = $1
+                    RETURNING
+                        id,
+                        user_id,
+                        listing_id
+                    `,
+                    [
+                        orderId
+                    ]
+                );
+
+            if (
+                result.rows.length === 0
+            ) {
+                console.error(
+                    "LiqPay callback: order not found",
+                    orderId
+                );
+
+                return res
+                    .status(404)
+                    .send(
+                        "Order not found"
+                    );
+            }
+
+            console.log(
+                "LiqPay history payment confirmed:",
+                orderId
+            );
+
+            return res.send("OK");
+
+        } catch (error) {
+            console.error(
+                "LiqPay callback error:",
+                error
+            );
+
+            return res
+                .status(500)
+                .send(
+                    "Callback error"
+                );
+        }
+    }
+);
+
+/* =========================
+   ІСТОРІЯ — ПЕРЕВІРКА ДОСТУПУ
+   ========================= */
+
+   app.get(
+    "/api/garage/history-access/:listingId",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const {
+                listingId
+            } = req.params;
+
+            const userId =
+                req.user.userId;
+
+            const listingResult =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        owner_id
+                    FROM market_listings
+                    WHERE id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        listingId
+                    ]
+                );
+
+            if (
+                listingResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Оголошення не знайдено."
+                });
+            }
+
+            const listing =
+                listingResult.rows[0];
+
+            /*
+                Власник автомобіля
+                має безкоштовний доступ.
+            */
+
+            if (
+                String(listing.owner_id) ===
+                String(userId)
+            ) {
+                return res.json({
+                    ok: true,
+                    hasAccess: true,
+                    reason: "owner"
+                });
+            }
+
+            const purchaseResult =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        paid_at
+                    FROM service_history_purchases
+                    WHERE user_id = $1
+                      AND listing_id = $2
+                      AND status = 'paid'
+                    LIMIT 1
+                    `,
+                    [
+                        userId,
+                        listingId
+                    ]
+                );
+
+            const hasAccess =
+                purchaseResult.rows.length > 0;
+
+            return res.json({
+                ok: true,
+                hasAccess,
+                reason:
+                    hasAccess
+                        ? "paid"
+                        : "payment_required"
+            });
+
+        } catch (error) {
+            console.error(
+                "History access check error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося перевірити доступ до історії."
             });
         }
     }
