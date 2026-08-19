@@ -1011,14 +1011,14 @@ function renderListings(
 
                                 <strong>
                                     ${escapeHtml(
-                                        review.user_name ||
+                                        review.userName ||
                                         "Користувач"
                                     )}
                                 </strong>
 
                                 <span>
                                     ${formatDate(
-                                        review.updated_at
+                                        review.updatedAt
                                     )}
                                 </span>
 
@@ -1045,7 +1045,7 @@ function renderListings(
 
                             <p>
                                 ${escapeHtml(
-                                    review.review || ""
+                                    review.text || ""
                                 )}
                             </p>
 
