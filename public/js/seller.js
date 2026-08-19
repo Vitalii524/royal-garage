@@ -1132,11 +1132,12 @@ function configureChatButton(
 /* =========================
    ПЛАТНА ІСТОРІЯ
    ========================= */
+
    async function configureHistoryButton(
     mainListing
 ) {
     if (
-        !elements.unlockHistoryButton ||
+        !elements.serviceHistory ||
         !mainListing
     ) {
         return;
@@ -1148,79 +1149,362 @@ function configureChatButton(
         "";
 
     if (!listingId) {
-        elements.unlockHistoryButton.disabled =
-            true;
-
-        elements.unlockHistoryButton.textContent =
-            "Історія обслуговування відсутня";
-
         return;
     }
 
     try {
-        const response =
+        /*
+            Спочатку отримуємо
+            публічну історію авто.
+        */
+
+        const historyResponse =
             await fetch(
-                `/api/garage/public-history/${
-                    encodeURIComponent(
-                        listingId
-                    )
-                }`
+                `/api/garage/public-history/${encodeURIComponent(
+                    listingId
+                )}`
             );
 
-        const data =
-            await response.json();
+        const historyData =
+            await historyResponse.json();
 
-        if (!response.ok) {
+        if (!historyResponse.ok) {
             throw new Error(
-                data.message ||
-                "Не вдалося перевірити історію обслуговування."
+                historyData.message ||
+                "Не вдалося завантажити історію."
             );
         }
 
-        const publicServices =
+        const services =
             Array.isArray(
-                data.car?.services
+                historyData.car?.services
             )
-                ? data.car.services
+                ? historyData.car.services
                 : [];
 
-        if (
-            publicServices.length === 0
-        ) {
-            elements.unlockHistoryButton.disabled =
-                true;
-
-            elements.unlockHistoryButton.textContent =
-                "Історія обслуговування відсутня";
+        if (services.length === 0) {
+            elements.serviceHistory.innerHTML = `
+                <p>
+                    Історія обслуговування відсутня.
+                </p>
+            `;
 
             return;
         }
 
-        elements.unlockHistoryButton.disabled =
-            false;
+        const token =
+            localStorage.getItem(
+                "royalGarageToken"
+            );
 
-        elements.unlockHistoryButton.textContent =
-            "Відкрити історію за 50 грн";
+        /*
+            Якщо користувач не увійшов —
+            показуємо кнопку,
+            але оплату без входу не запускаємо.
+        */
 
-        elements.unlockHistoryButton.addEventListener(
-            "click",
-            () => {
-                alert(
-                    "Підключення оплати 50 грн додамо наступним кроком. Історія поки залишається закритою."
-                );
+        if (!token) {
+            if (
+                elements.unlockHistoryButton
+            ) {
+                elements.unlockHistoryButton.disabled =
+                    false;
+
+                elements.unlockHistoryButton.textContent =
+                    "🔒 Переглянути історію — 50 грн";
+
+                elements.unlockHistoryButton.onclick =
+                    () => {
+                        alert(
+                            "Увійдіть у профіль, щоб оплатити перегляд історії."
+                        );
+                    };
             }
-        );
+
+            return;
+        }
+
+        /*
+            Перевіряємо,
+            чи доступ уже оплачений.
+        */
+
+        const accessResponse =
+            await fetch(
+                `/api/garage/history-access/${encodeURIComponent(
+                    listingId
+                )}`,
+                {
+                    headers: {
+                        Authorization:
+                            `Bearer ${token}`
+                    }
+                }
+            );
+
+        const accessData =
+            await accessResponse.json();
+
+        if (!accessResponse.ok) {
+            throw new Error(
+                accessData.message ||
+                "Не вдалося перевірити доступ."
+            );
+        }
+
+        /*
+            ДОСТУП Є —
+            одразу показуємо історію.
+        */
+
+        if (accessData.hasAccess) {
+            elements.serviceHistory.innerHTML =
+                services
+                    .map(
+                        (service) => `
+                            <article class="service-card">
+
+                                <div class="service-card-top">
+
+                                    <div>
+                                        <p class="service-date">
+                                            ${formatDate(
+                                                service.date
+                                            )}
+                                        </p>
+
+                                        <h3>
+                                            ${escapeHtml(
+                                                service.title ||
+                                                "Обслуговування"
+                                            )}
+                                        </h3>
+                                    </div>
+
+                                </div>
+
+                                ${
+                                    service.mileage
+                                        ? `
+                                            <p>
+                                                <strong>
+                                                    Пробіг:
+                                                </strong>
+
+                                                ${Number(
+                                                    service.mileage
+                                                ).toLocaleString(
+                                                    "uk-UA"
+                                                )} км
+                                            </p>
+                                        `
+                                        : ""
+                                }
+
+                                ${
+                                    service.cost
+                                        ? `
+                                            <p>
+                                                <strong>
+                                                    Вартість:
+                                                </strong>
+
+                                                ${Number(
+                                                    service.cost
+                                                ).toLocaleString(
+                                                    "uk-UA"
+                                                )} грн
+                                            </p>
+                                        `
+                                        : ""
+                                }
+
+                                ${
+                                    service.station
+                                        ? `
+                                            <p>
+                                                <strong>
+                                                    СТО / майстер:
+                                                </strong>
+
+                                                ${escapeHtml(
+                                                    service.station
+                                                )}
+                                            </p>
+                                        `
+                                        : ""
+                                }
+
+                                ${
+                                    service.description
+                                        ? `
+                                            <p>
+                                                ${escapeHtml(
+                                                    service.description
+                                                )}
+                                            </p>
+                                        `
+                                        : ""
+                                }
+
+                                ${
+                                    Array.isArray(
+                                        service.photos
+                                    ) &&
+                                    service.photos.length > 0
+                                        ? `
+                                            <div class="service-photo-gallery">
+                                                ${service.photos
+                                                    .map(
+                                                        (
+                                                            photo
+                                                        ) => `
+                                                            <img
+                                                                src="${escapeHtml(
+                                                                    photo
+                                                                )}"
+                                                                alt="Фото обслуговування"
+                                                                class="service-photo"
+                                                            >
+                                                        `
+                                                    )
+                                                    .join("")}
+                                            </div>
+                                        `
+                                        : ""
+                                }
+
+                            </article>
+                        `
+                    )
+                    .join("");
+
+            return;
+        }
+
+        /*
+            ДОСТУПУ НЕМАЄ —
+            залишаємо оплату.
+        */
+
+        if (
+            elements.unlockHistoryButton
+        ) {
+            elements.unlockHistoryButton.disabled =
+                false;
+
+            elements.unlockHistoryButton.textContent =
+                "🔒 Переглянути історію — 50 грн";
+
+            elements.unlockHistoryButton.onclick =
+                async () => {
+                    try {
+                        const paymentResponse =
+                            await fetch(
+                                "/api/payments/liqpay/history",
+                                {
+                                    method:
+                                        "POST",
+
+                                    headers: {
+                                        "Content-Type":
+                                            "application/json",
+
+                                        Authorization:
+                                            `Bearer ${token}`
+                                    },
+
+                                    body:
+                                        JSON.stringify({
+                                            listingId
+                                        })
+                                }
+                            );
+
+                        const paymentData =
+                            await paymentResponse.json();
+
+                        if (!paymentResponse.ok) {
+                            throw new Error(
+                                paymentData.message ||
+                                "Не вдалося створити оплату."
+                            );
+                        }
+
+                        const form =
+                            document.createElement(
+                                "form"
+                            );
+
+                        form.method =
+                            "POST";
+
+                        form.action =
+                            paymentData.checkoutUrl;
+
+                        const dataInput =
+                            document.createElement(
+                                "input"
+                            );
+
+                        dataInput.type =
+                            "hidden";
+
+                        dataInput.name =
+                            "data";
+
+                        dataInput.value =
+                            paymentData.data;
+
+                        const signatureInput =
+                            document.createElement(
+                                "input"
+                            );
+
+                        signatureInput.type =
+                            "hidden";
+
+                        signatureInput.name =
+                            "signature";
+
+                        signatureInput.value =
+                            paymentData.signature;
+
+                        form.append(
+                            dataInput,
+                            signatureInput
+                        );
+
+                        document.body.appendChild(
+                            form
+                        );
+
+                        form.submit();
+
+                    } catch (error) {
+                        console.error(
+                            "Seller history payment error:",
+                            error
+                        );
+
+                        alert(
+                            error.message ||
+                            "Не вдалося відкрити оплату."
+                        );
+                    }
+                };
+        }
 
     } catch (error) {
         console.error(
-            "Seller public history check error:",
+            "Seller history error:",
             error
         );
 
-        elements.unlockHistoryButton.disabled =
-            true;
-
-        elements.unlockHistoryButton.textContent =
-            "Історія обслуговування недоступна";
+        elements.serviceHistory.innerHTML = `
+            <p>
+                Не вдалося завантажити історію обслуговування.
+            </p>
+        `;
     }
 }

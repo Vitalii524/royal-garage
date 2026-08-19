@@ -3048,10 +3048,12 @@ app.get(
                 language:
                     "uk",
 
-                result_url:
-                    `${baseUrl}/listing.html?id=${encodeURIComponent(
+                    result_url:
+                    `${baseUrl}/seller.html?sellerId=${encodeURIComponent(
+                        listing.owner_id
+                    )}&listingId=${encodeURIComponent(
                         listingId
-                    )}&payment=return`,
+                    )}#service-history`,
 
                 server_url:
                     `${baseUrl}/api/payments/liqpay/callback`
