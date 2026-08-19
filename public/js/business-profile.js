@@ -1313,6 +1313,10 @@ businessElements.editButton
                 .hidden = false;
 
             businessElements
+                .ownerPanel
+                .hidden = true;
+
+            businessElements
                 .editSection
                 .scrollIntoView({
                     behavior: "smooth",
@@ -1329,6 +1333,10 @@ businessElements.cancelEditButton
             businessElements
                 .editSection
                 .hidden = true;
+
+            businessElements
+                .ownerPanel
+                .hidden = false;
         }
     );
 
@@ -1447,6 +1455,10 @@ businessElements.editForm
                 businessElements
                     .editSection
                     .hidden = true;
+
+                businessElements
+                    .ownerPanel
+                    .hidden = false;
 
                 alert(
                     "Бізнес-профіль збережено."
