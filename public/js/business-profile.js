@@ -636,21 +636,6 @@ function renderBusinessTypeFeatures(
             addListingButton.hidden = false;
         }
 
-    console.log(
-        "BUSINESS PROFILE DATA:",
-        profile
-    );
-    
-    console.log(
-        "IS CAR DEALER:",
-        isCarDealer
-    );
-    
-    console.log(
-        "PROFILE OWNER ID:",
-        profile.ownerId
-    );
-
     loadBusinessCars(
         profile.ownerId
     );
@@ -660,15 +645,6 @@ function renderBusinessTypeFeatures(
 async function loadBusinessCars(
     ownerId
 ) {
-
-    console.log(
-        "LOAD BUSINESS CARS START:",
-        {
-            ownerId,
-            carsGridExists:
-                !!businessElements.carsGrid
-        }
-    );
 
     if (
         !businessElements.carsGrid ||
@@ -719,25 +695,6 @@ async function loadBusinessCars(
             )
                 ? data.listings
                 : [];
-
-                console.log(
-                    "BUSINESS OWNER ID:",
-                    ownerId
-                );
-                
-                console.log(
-                    "MARKET LISTINGS:",
-                    listings
-                );
-                
-                console.log(
-                    "MARKET OWNER IDS:",
-                    listings.map(
-                        (listing) =>
-                            listing.ownerId ??
-                            listing.owner_id
-                    )
-                );
 
         const businessListings =
             listings.filter(
