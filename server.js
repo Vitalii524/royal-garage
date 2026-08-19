@@ -20,6 +20,23 @@ const mailTransporter =
 
 const app = express();
 
+const LIQPAY_PUBLIC_KEY =
+    process.env.LIQPAY_PUBLIC_KEY;
+
+const LIQPAY_PRIVATE_KEY =
+    process.env.LIQPAY_PRIVATE_KEY;
+
+    function createLiqPaySignature(data) {
+        return crypto
+            .createHash("sha3-256")
+            .update(
+                LIQPAY_PRIVATE_KEY +
+                data +
+                LIQPAY_PRIVATE_KEY
+            )
+            .digest("base64");
+    }
+
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl:
@@ -2660,6 +2677,164 @@ app.get(
                 ok: false,
                 message:
                     "Не вдалося завантажити тарифи."
+            });
+        }
+    }
+);
+
+/* =========================
+   LIQPAY — СТВОРЕННЯ ПЛАТЕЖУ
+   ========================= */
+
+   app.post(
+    "/api/payments/liqpay/create",
+    requireAuth,
+    async (req, res) => {
+        try {
+            if (
+                !LIQPAY_PUBLIC_KEY ||
+                !LIQPAY_PRIVATE_KEY
+            ) {
+                return res.status(500).json({
+                    ok: false,
+                    message:
+                        "LiqPay не налаштований на сервері."
+                });
+            }
+
+            const planId =
+                String(
+                    req.body.planId || ""
+                ).trim();
+
+            if (!planId) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Не вибрано тариф."
+                });
+            }
+
+            const planResult =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        code,
+                        name,
+                        price_uah AS "priceUah"
+                    FROM subscription_plans
+                    WHERE id = $1
+                      AND is_active = TRUE
+                    LIMIT 1
+                    `,
+                    [
+                        planId
+                    ]
+                );
+
+            if (
+                planResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Тариф не знайдено."
+                });
+            }
+
+            const plan =
+                planResult.rows[0];
+
+            const amount =
+                Number(
+                    plan.priceUah
+                );
+
+            if (
+                !Number.isFinite(amount) ||
+                amount <= 0
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Для тарифу вказана неправильна ціна."
+                });
+            }
+
+            const orderId =
+                `rg_${req.user.userId}_${Date.now()}`;
+
+            const paymentParams = {
+                public_key:
+                    LIQPAY_PUBLIC_KEY,
+
+                version: 7,
+
+                action: "pay",
+
+                amount:
+                    amount.toFixed(2),
+
+                currency: "UAH",
+
+                description:
+                    `Royal Garage — ${plan.name}`,
+
+                order_id:
+                    orderId,
+
+                language: "uk"
+            };
+
+            const data =
+                Buffer
+                    .from(
+                        JSON.stringify(
+                            paymentParams
+                        )
+                    )
+                    .toString(
+                        "base64"
+                    );
+
+            const signature =
+                createLiqPaySignature(
+                    data
+                );
+
+            res.json({
+                ok: true,
+
+                checkoutUrl:
+                    "https://www.liqpay.ua/api/3/checkout",
+
+                data,
+                signature,
+                orderId,
+
+                plan: {
+                    id:
+                        plan.id,
+
+                    name:
+                        plan.name,
+
+                    priceUah:
+                        amount
+                }
+            });
+
+        } catch (error) {
+            console.error(
+                "LiqPay payment create error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося створити платіж."
             });
         }
     }
