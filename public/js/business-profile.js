@@ -1313,7 +1313,7 @@ businessElements.editButton
                 .hidden = false;
 
             businessElements
-                .ownerPanel
+                .editButton
                 .hidden = true;
 
             businessElements
@@ -1335,7 +1335,7 @@ businessElements.cancelEditButton
                 .hidden = true;
 
             businessElements
-                .ownerPanel
+                .editButton
                 .hidden = false;
         }
     );
@@ -1457,7 +1457,7 @@ businessElements.editForm
                     .hidden = true;
 
                 businessElements
-                    .ownerPanel
+                    .editButton
                     .hidden = false;
 
                 alert(
