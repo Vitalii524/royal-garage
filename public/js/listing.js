@@ -1763,10 +1763,10 @@ document.getElementById(
 if (serviceHistoryButton) {
 serviceHistoryButton.addEventListener(
     "click",
-    () => {
+    async () => {
         /*
-            Власник автомобіля бачить
-            свою історію безкоштовно.
+            Власник автомобіля
+            бачить історію безкоштовно.
         */
 
         if (isListingOwner) {
@@ -1778,11 +1778,6 @@ serviceHistoryButton.addEventListener(
             return;
         }
 
-        /*
-            Покупець переходить у профіль
-            продавця до платного блоку історії.
-        */
-
         if (!listingOwnerId) {
             alert(
                 "Не вдалося визначити продавця."
@@ -1791,16 +1786,170 @@ serviceHistoryButton.addEventListener(
             return;
         }
 
-        window.location.href =
-            `seller.html?sellerId=${encodeURIComponent(
-                listingOwnerId
-            )}&listingId=${encodeURIComponent(
-                listing.id
-            )}#service-history`;
+        const token =
+            localStorage.getItem(
+                "royalGarageToken"
+            );
+
+        if (!token) {
+            alert(
+                "Увійдіть у профіль, щоб переглянути історію автомобіля."
+            );
+
+            return;
+        }
+
+        try {
+            /*
+                Перевіряємо, чи історія
+                вже була оплачена.
+            */
+
+            const accessResponse =
+                await fetch(
+                    `/api/garage/history-access/${encodeURIComponent(
+                        listing.id
+                    )}`,
+                    {
+                        headers: {
+                            Authorization:
+                                `Bearer ${token}`
+                        }
+                    }
+                );
+
+            const accessData =
+                await accessResponse.json();
+
+            if (!accessResponse.ok) {
+                throw new Error(
+                    accessData.message ||
+                    "Не вдалося перевірити доступ."
+                );
+            }
+
+            /*
+                Уже оплачено —
+                відкриваємо історію.
+            */
+
+            if (accessData.hasAccess) {
+                window.location.href =
+                    `seller.html?sellerId=${encodeURIComponent(
+                        listingOwnerId
+                    )}&listingId=${encodeURIComponent(
+                        listing.id
+                    )}#service-history`;
+
+                return;
+            }
+
+            /*
+                Доступу немає —
+                створюємо оплату LiqPay.
+            */
+
+            const paymentResponse =
+                await fetch(
+                    "/api/payments/liqpay/history",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json",
+
+                            Authorization:
+                                `Bearer ${token}`
+                        },
+
+                        body:
+                            JSON.stringify({
+                                listingId:
+                                    listing.id
+                            })
+                    }
+                );
+
+            const paymentData =
+                await paymentResponse.json();
+
+            if (!paymentResponse.ok) {
+                throw new Error(
+                    paymentData.message ||
+                    "Не вдалося створити оплату."
+                );
+            }
+
+            /*
+                LiqPay Checkout приймає
+                data + signature через POST.
+            */
+
+            const form =
+                document.createElement(
+                    "form"
+                );
+
+            form.method =
+                "POST";
+
+            form.action =
+                paymentData.checkoutUrl;
+
+            const dataInput =
+                document.createElement(
+                    "input"
+                );
+
+            dataInput.type =
+                "hidden";
+
+            dataInput.name =
+                "data";
+
+            dataInput.value =
+                paymentData.data;
+
+            const signatureInput =
+                document.createElement(
+                    "input"
+                );
+
+            signatureInput.type =
+                "hidden";
+
+            signatureInput.name =
+                "signature";
+
+            signatureInput.value =
+                paymentData.signature;
+
+            form.append(
+                dataInput,
+                signatureInput
+            );
+
+            document.body.appendChild(
+                form
+            );
+
+            form.submit();
+
+        } catch (error) {
+            console.error(
+                "Service history payment error:",
+                error
+            );
+
+            alert(
+                error.message ||
+                "Не вдалося відкрити оплату."
+            );
+        }
     }
 );
 }
-
     /* ===== КНОПКА ПЕРЕВІРКИ VIN ===== */
 
     const checkVinButton =
