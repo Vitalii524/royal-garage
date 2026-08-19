@@ -874,6 +874,12 @@ function renderAuthArea() {
         return;
     }
 
+    const profileUrl =
+    currentUser.accountType === "business" ||
+    currentUser.account_type === "business"
+        ? "business-profile.html"
+        : "profile.html";
+
     authArea.innerHTML = `
         <div class="logged-user">
             <a href="profile.html">
