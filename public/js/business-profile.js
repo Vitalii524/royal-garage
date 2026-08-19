@@ -649,6 +649,16 @@ function renderBusinessTypeFeatures(
 async function loadBusinessCars(
     ownerId
 ) {
+
+    console.log(
+        "LOAD BUSINESS CARS START:",
+        {
+            ownerId,
+            carsGridExists:
+                !!businessElements.carsGrid
+        }
+    );
+
     if (
         !businessElements.carsGrid ||
         !ownerId
