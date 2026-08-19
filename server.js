@@ -2075,6 +2075,56 @@ app.get(
     }
 );
 
+app.get(
+    "/api/debug/latest-listing",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        name,
+                        status,
+                        published_at,
+                        expires_at,
+                        expires_at - published_at
+                            AS duration
+                    FROM market_listings
+                    WHERE owner_id = $1
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                    `,
+                    [
+                        req.user.userId
+                    ]
+                );
+
+            return res.json({
+                ok: true,
+                listing:
+                    result.rows[0] ||
+                    null
+            });
+
+        } catch (error) {
+            console.error(
+                "Debug latest listing error:",
+                error
+            );
+
+            return res
+                .status(500)
+                .json({
+                    ok: false,
+                    message:
+                        "Не вдалося перевірити оголошення."
+                });
+        }
+    }
+);
+
 app.post(
     "/api/market/listings",
     requireAuth,
