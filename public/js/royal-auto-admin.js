@@ -764,13 +764,13 @@ deleteButton.addEventListener(
                 }
             );
 
-            card.append(
-                icon,
-                title,
-                description,
-                editButton,
-                deleteButton
-            );
+          card.append(
+    icon,
+    title,
+    description,
+    editButton,
+    deleteButton
+);
 
 
             adminSections.appendChild(
