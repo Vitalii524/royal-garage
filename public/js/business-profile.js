@@ -699,6 +699,25 @@ async function loadBusinessCars(
                 ? data.listings
                 : [];
 
+                console.log(
+                    "BUSINESS OWNER ID:",
+                    ownerId
+                );
+                
+                console.log(
+                    "MARKET LISTINGS:",
+                    listings
+                );
+                
+                console.log(
+                    "MARKET OWNER IDS:",
+                    listings.map(
+                        (listing) =>
+                            listing.ownerId ??
+                            listing.owner_id
+                    )
+                );
+
         const businessListings =
             listings.filter(
                 (listing) =>
