@@ -2160,7 +2160,7 @@ app.post(
                     price_uah,
                     city,
                     phone,
-                    description
+                    description,
                     status,
                     published_at,
                     expires_at
