@@ -638,6 +638,21 @@ function renderBusinessTypeFeatures(
             !isCarDealer;
     }
 
+    console.log(
+        "BUSINESS PROFILE DATA:",
+        profile
+    );
+    
+    console.log(
+        "IS CAR DEALER:",
+        isCarDealer
+    );
+    
+    console.log(
+        "PROFILE OWNER ID:",
+        profile.ownerId
+    );
+
     if (isCarDealer) {
         loadBusinessCars(
             profile.ownerId
