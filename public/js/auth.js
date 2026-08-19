@@ -882,7 +882,7 @@ function renderAuthArea() {
 
     authArea.innerHTML = `
         <div class="logged-user">
-            <a href="profile.html">
+            <a href="${profileUrl}">
                 👤 ${escapeHtml(currentUser.name)}
             </a>
 
