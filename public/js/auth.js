@@ -880,6 +880,16 @@ function renderAuthArea() {
         ? "business-profile.html"
         : "profile.html";
 
+        const profileNavLink =
+    document.getElementById(
+        "profileNavLink"
+    );
+
+if (profileNavLink) {
+    profileNavLink.href =
+        profileUrl;
+}
+
     authArea.innerHTML = `
         <div class="logged-user">
             <a href="${profileUrl}">
