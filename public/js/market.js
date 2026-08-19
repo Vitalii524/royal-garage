@@ -2632,6 +2632,24 @@ if (openListingButton) {
     );
 }
 
+const marketUrlParams =
+    new URLSearchParams(
+        window.location.search
+    );
+
+if (
+    marketUrlParams.get("add") === "1" &&
+    openListingButton
+) {
+    openListingButton.click();
+
+    window.history.replaceState(
+        null,
+        "",
+        window.location.pathname
+    );
+}
+
 
 /* =====================================================
    КНОПКА ЗАКРИТТЯ
