@@ -621,22 +621,20 @@ function renderBusinessTypeFeatures(
     const isCarDealer =
         type === "car_dealer";
 
-    if (businessElements.carsSection) {
-        businessElements
-            .carsSection
-            .hidden =
-                !isCarDealer;
-    }
+        if (businessElements.carsSection) {
+            businessElements
+                .carsSection
+                .hidden = false;
+        }
 
     const addListingButton =
         document.getElementById(
             "businessAddListingButton"
         );
 
-    if (addListingButton) {
-        addListingButton.hidden =
-            !isCarDealer;
-    }
+        if (addListingButton) {
+            addListingButton.hidden = false;
+        }
 
     console.log(
         "BUSINESS PROFILE DATA:",
@@ -653,11 +651,9 @@ function renderBusinessTypeFeatures(
         profile.ownerId
     );
 
-    if (isCarDealer) {
-        loadBusinessCars(
-            profile.ownerId
-        );
-    }
+    loadBusinessCars(
+        profile.ownerId
+    );
 }
 
 
