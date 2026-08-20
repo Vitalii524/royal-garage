@@ -2177,6 +2177,102 @@ app.post(
             const id =
                 crypto.randomUUID();
 
+                let listingStatus =
+    "pending_payment";
+
+let publishedAt =
+    null;
+
+let expiresAt =
+    null;
+
+
+const businessPlanResult =
+    await pool.query(
+        `
+        SELECT
+            sp.car_limit AS "carLimit"
+
+        FROM business_profiles bp
+
+        JOIN business_types bt
+            ON bt.id =
+                bp.business_type_id
+
+        JOIN subscription_plans sp
+            ON sp.id =
+                bp.subscription_plan_id
+
+        WHERE bp.owner_id = $1
+          AND bt.code = 'car_dealer'
+          AND bp.subscription_expires_at > NOW()
+          AND sp.is_active = TRUE
+          AND sp.car_limit IS NOT NULL
+
+        LIMIT 1
+        `,
+        [
+            req.user.userId
+        ]
+    );
+
+
+if (
+    businessPlanResult.rows.length > 0
+) {
+    const carLimit =
+        Number(
+            businessPlanResult
+                .rows[0]
+                .carLimit
+        );
+
+
+    const activeListingsResult =
+        await pool.query(
+            `
+            SELECT
+                COUNT(*)::integer
+                    AS count
+
+            FROM market_listings
+
+            WHERE owner_id = $1
+              AND status = 'active'
+              AND (
+                    expires_at IS NULL
+                    OR expires_at > NOW()
+              )
+            `,
+            [
+                req.user.userId
+            ]
+        );
+
+
+    const activeListingsCount =
+        Number(
+            activeListingsResult
+                .rows[0]
+                .count || 0
+        );
+
+
+    if (
+        activeListingsCount <
+        carLimit
+    ) {
+        listingStatus =
+            "active";
+
+        publishedAt =
+            new Date();
+
+        expiresAt =
+            null;
+    }
+}
+
             const result = await pool.query(
                 `
                 INSERT INTO market_listings (
@@ -2249,9 +2345,9 @@ app.post(
                     city || "",
                     phone || "",
                     description || "",
-                    "pending_payment",
-                    null,
-                    null
+                    listingStatus,
+                    publishedAt,
+                    expiresAt
                 ]
             );
 
