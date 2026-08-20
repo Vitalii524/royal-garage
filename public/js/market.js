@@ -4211,6 +4211,26 @@ if (!createdListingId) {
     return;
 }
 
+const createdListing =
+    data.listing;
+
+if (
+    createdListing?.status === "active"
+) {
+    alert(
+        "Оголошення опубліковано в межах вашого бізнес-тарифу."
+    );
+
+    hideListingModal();
+
+    resetListingForm();
+
+    await loadMarketListings();
+
+    return;
+}
+
+
 const paymentResponse =
     await fetch(
         "/api/payments/liqpay/listing",
@@ -4233,8 +4253,10 @@ const paymentResponse =
         }
     );
 
+
 const paymentData =
     await paymentResponse.json();
+
 
 if (!paymentResponse.ok) {
     alert(
@@ -4245,36 +4267,48 @@ if (!paymentResponse.ok) {
     return;
 }
 
+
 const form =
     document.createElement(
         "form"
     );
 
-form.method = "POST";
+form.method =
+    "POST";
 
 form.action =
     paymentData.checkoutUrl;
+
 
 const dataInput =
     document.createElement(
         "input"
     );
 
-dataInput.type = "hidden";
-dataInput.name = "data";
+dataInput.type =
+    "hidden";
+
+dataInput.name =
+    "data";
+
 dataInput.value =
     paymentData.data;
+
 
 const signatureInput =
     document.createElement(
         "input"
     );
 
-signatureInput.type = "hidden";
+signatureInput.type =
+    "hidden";
+
 signatureInput.name =
     "signature";
+
 signatureInput.value =
     paymentData.signature;
+
 
 form.append(
     dataInput,
@@ -4288,6 +4322,8 @@ document.body.appendChild(
 form.submit();
 
 return;
+
+
         
         } catch (error) {
             console.error(
