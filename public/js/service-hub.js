@@ -920,10 +920,6 @@ const contactFloat =
         "serviceHubContactFloat"
     );
 
-const backToTopButton =
-    document.getElementById(
-        "serviceHubBackToTop"
-    );
 
 
 function updateFloatingButtons() {

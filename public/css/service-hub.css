@@ -341,8 +341,7 @@ p:not(.service-hub-label) {
    ПЛАВАЮЧІ КНОПКИ
    ========================= */
 
-.service-hub-contact-float,
-.service-hub-back-to-top {
+.service-hub-contact-float {
     position: fixed;
     z-index: 99999;
 
@@ -380,35 +379,9 @@ p:not(.service-hub-label) {
 }
 
 
-.service-hub-back-to-top {
-    right: 22px;
-    bottom: 22px;
-
-    width: 48px;
-    height: 48px;
-
-    padding: 0;
-
-    color: #071a3d;
-    background: #f3dfaa;
-
-    border:
-        1px solid
-        rgba(214, 160, 58, 0.55);
-
-    border-radius: 50%;
-
-    font-size: 24px;
-    font-weight: 700;
-
-    cursor: pointer;
-
-    transform: translateY(12px);
-}
 
 
-.service-hub-contact-float.is-visible,
-.service-hub-back-to-top.is-visible {
+.service-hub-contact-float.is-visible {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
@@ -495,15 +468,7 @@ p:not(.service-hub-label) {
         font-size: 14px;
     }
 
-    .service-hub-back-to-top {
-        right: 14px;
-        bottom: 14px;
 
-        width: 44px;
-        height: 44px;
-
-        font-size: 22px;
-    }
 }
 
 .service-hub-service-card {
