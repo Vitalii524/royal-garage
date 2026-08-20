@@ -140,6 +140,47 @@ await pool.query(`
 `);
 
 await pool.query(`
+    ALTER TABLE business_profiles
+    ADD COLUMN IF NOT EXISTS
+        subscription_started_at TIMESTAMPTZ
+`);
+
+await pool.query(`
+    ALTER TABLE business_profiles
+    ADD COLUMN IF NOT EXISTS
+        subscription_expires_at TIMESTAMPTZ
+`);
+
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS business_subscription_payments (
+        id UUID PRIMARY KEY,
+
+        owner_id UUID NOT NULL
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+
+        business_profile_id UUID NOT NULL
+            REFERENCES business_profiles(id)
+            ON DELETE CASCADE,
+
+        plan_id UUID NOT NULL
+            REFERENCES subscription_plans(id),
+
+        order_id TEXT UNIQUE NOT NULL,
+
+        amount_uah INTEGER NOT NULL,
+
+        status VARCHAR(30) NOT NULL
+            DEFAULT 'pending',
+
+        paid_at TIMESTAMPTZ,
+
+        created_at TIMESTAMPTZ NOT NULL
+            DEFAULT NOW()
+    )
+`);
+
+await pool.query(`
     INSERT INTO business_types (
         id,
         code,
@@ -2853,6 +2894,66 @@ app.get(
             const orderId =
                 `rg_${req.user.userId}_${Date.now()}`;
 
+                const businessProfileResult =
+    await pool.query(
+        `
+        SELECT
+            id,
+            owner_id
+        FROM business_profiles
+        WHERE owner_id = $1
+        LIMIT 1
+        `,
+        [
+            req.user.userId
+        ]
+    );
+
+if (
+    businessProfileResult.rows.length === 0
+) {
+    return res.status(404).json({
+        ok: false,
+        message:
+            "Бізнес-профіль не знайдено."
+    });
+}
+
+const businessProfile =
+    businessProfileResult.rows[0];
+
+
+await pool.query(
+    `
+    INSERT INTO business_subscription_payments (
+        id,
+        owner_id,
+        business_profile_id,
+        plan_id,
+        order_id,
+        amount_uah,
+        status
+    )
+    VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        'pending'
+    )
+    `,
+    [
+        crypto.randomUUID(),
+        req.user.userId,
+        businessProfile.id,
+        plan.id,
+        orderId,
+        Math.round(amount)
+    ]
+);
+
             const paymentParams = {
                 public_key:
                     LIQPAY_PUBLIC_KEY,
@@ -2869,10 +2970,20 @@ app.get(
                 description:
                     `Royal Garage — ${plan.name}`,
 
-                order_id:
+                    order_id:
                     orderId,
-
-                language: "uk"
+                
+                language:
+                    "uk",
+                
+                sandbox:
+                    1,
+                
+                server_url:
+                    "https://royal-garage.onrender.com/api/payments/liqpay/callback",
+                
+                result_url:
+                    "https://royal-garage.onrender.com/business-profile.html?payment=return"
             };
 
             const data =
@@ -3390,6 +3501,189 @@ app.get(
                 status === "success" ||
                 status === "sandbox";
 
+                if (
+                    orderId.startsWith("rg_")
+                ) {
+                    const paymentResult =
+                        await pool.query(
+                            `
+                            SELECT
+                                bsp.id,
+                                bsp.owner_id,
+                                bsp.business_profile_id,
+                                bsp.plan_id,
+                                bsp.amount_uah,
+                                bsp.status
+                
+                            FROM business_subscription_payments bsp
+                
+                            WHERE bsp.order_id = $1
+                
+                            LIMIT 1
+                            `,
+                            [
+                                orderId
+                            ]
+                        );
+                
+                    if (
+                        paymentResult.rows.length === 0
+                    ) {
+                        console.error(
+                            "Business payment not found:",
+                            orderId
+                        );
+                
+                        return res
+                            .status(404)
+                            .send(
+                                "Business payment not found"
+                            );
+                    }
+                
+                    const businessPayment =
+                        paymentResult.rows[0];
+                
+                
+                    if (!isPaid) {
+                        await pool.query(
+                            `
+                            UPDATE business_subscription_payments
+                
+                            SET status = $1
+                
+                            WHERE order_id = $2
+                            `,
+                            [
+                                status || "unknown",
+                                orderId
+                            ]
+                        );
+                
+                        return res.send("OK");
+                    }
+                
+                
+                    if (
+                        currency !== "UAH" ||
+                        Number(
+                            businessPayment.amount_uah
+                        ) !== amount
+                    ) {
+                        console.error(
+                            "Business payment amount mismatch:",
+                            {
+                                orderId,
+                                expected:
+                                    businessPayment.amount_uah,
+                                received:
+                                    amount,
+                                currency
+                            }
+                        );
+                
+                        return res
+                            .status(400)
+                            .send(
+                                "Invalid business payment amount"
+                            );
+                    }
+                
+                
+                    const client =
+                        await pool.connect();
+                
+                    try {
+                        await client.query(
+                            "BEGIN"
+                        );
+                
+                
+                        await client.query(
+                            `
+                            UPDATE business_subscription_payments
+                
+                            SET
+                                status = 'paid',
+                                paid_at = NOW()
+                
+                            WHERE order_id = $1
+                            `,
+                            [
+                                orderId
+                            ]
+                        );
+                
+                
+                        await client.query(
+                            `
+                            UPDATE business_profiles
+                
+                            SET
+                                subscription_plan_id = $1,
+                
+                                subscription_started_at =
+                                    CASE
+                                        WHEN subscription_expires_at > NOW()
+                                        THEN subscription_started_at
+                                        ELSE NOW()
+                                    END,
+                
+                                subscription_expires_at =
+                                    CASE
+                                        WHEN subscription_expires_at > NOW()
+                                        THEN
+                                            subscription_expires_at +
+                                            INTERVAL '30 days'
+                                        ELSE
+                                            NOW() +
+                                            INTERVAL '30 days'
+                                    END,
+                
+                                updated_at = NOW()
+                
+                            WHERE id = $2
+                              AND owner_id = $3
+                            `,
+                            [
+                                businessPayment.plan_id,
+                                businessPayment.business_profile_id,
+                                businessPayment.owner_id
+                            ]
+                        );
+                
+                
+                        await client.query(
+                            "COMMIT"
+                        );
+                
+                    } catch (error) {
+                        await client.query(
+                            "ROLLBACK"
+                        );
+                
+                        throw error;
+                
+                    } finally {
+                        client.release();
+                    }
+                
+                
+                    console.log(
+                        "Business subscription activated:",
+                        {
+                            orderId,
+                            ownerId:
+                                businessPayment.owner_id,
+                            planId:
+                                businessPayment.plan_id
+                        }
+                    );
+                
+                
+                    return res.send("OK");
+                }
+
             if (!isPaid) {
                 await pool.query(
                     `
@@ -3733,6 +4027,9 @@ app.get(
                         sp.has_crm AS "hasCrm",
                         sp.has_map AS "hasMap"
 
+                        bp.subscription_started_at AS "subscriptionStartedAt",
+                        bp.subscription_expires_at AS "subscriptionExpiresAt"
+
                     FROM business_profiles bp
 
                     LEFT JOIN business_types bt
@@ -3819,6 +4116,9 @@ app.get(
                         sp.car_limit AS "carLimit",
                         sp.has_crm AS "hasCrm",
                         sp.has_map AS "hasMap"
+
+                        bp.subscription_started_at AS "subscriptionStartedAt",
+                        bp.subscription_expires_at AS "subscriptionExpiresAt"
 
                     FROM business_profiles bp
 

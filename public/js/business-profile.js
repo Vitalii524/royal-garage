@@ -202,6 +202,21 @@ const businessElements = {
                 "businessEditPhotosPreview"
             ),
 
+        choosePlanButton:
+            document.getElementById(
+            "businessChoosePlanButton"
+        ),
+
+        mapButton:
+            document.getElementById(
+                "businessMapButton"
+            ),
+
+        crmButton:
+            document.getElementById(
+                "businessCrmButton"
+            ),
+
 };
 
 
@@ -914,6 +929,348 @@ function escapeBusinessHtml(
         );
 }
 
+function isBusinessSubscriptionActive() {
+    const expiresAt =
+        currentBusinessProfile
+            ?.subscriptionExpiresAt;
+
+    if (!expiresAt) {
+        return false;
+    }
+
+    return (
+        new Date(
+            expiresAt
+        ).getTime() >
+        Date.now()
+    );
+}
+
+
+function showBusinessProMessage(
+    featureName
+) {
+    alert(
+        `${featureName} доступний у тарифі Pro.\n\nОберіть Pro, щоб активувати цю функцію.`
+    );
+}
+
+
+businessElements
+    .mapButton
+    ?.addEventListener(
+        "click",
+        () => {
+            if (
+                !currentBusinessProfile
+                    ?.hasMap ||
+                !isBusinessSubscriptionActive()
+            ) {
+                showBusinessProMessage(
+                    "Google Maps"
+                );
+
+                return;
+            }
+
+            alert(
+                "Google Maps активний."
+            );
+        }
+    );
+
+
+businessElements
+    .crmButton
+    ?.addEventListener(
+        "click",
+        () => {
+            if (
+                !currentBusinessProfile
+                    ?.hasCrm ||
+                !isBusinessSubscriptionActive()
+            ) {
+                showBusinessProMessage(
+                    "CRM"
+                );
+
+                return;
+            }
+
+            alert(
+                "CRM активна."
+            );
+        }
+    );
+
+    
+    async function loadBusinessPlans() {
+        const businessTypeCode =
+            currentBusinessProfile
+                ?.businessTypeCode;
+    
+        if (!businessTypeCode) {
+            throw new Error(
+                "Не вдалося визначити тип бізнесу."
+            );
+        }
+    
+        const response =
+            await fetch(
+                `/api/business/plans?type=${encodeURIComponent(
+                    businessTypeCode
+                )}`
+            );
+    
+        const data =
+            await response.json();
+    
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити тарифи."
+            );
+        }
+    
+        return Array.isArray(
+            data.plans
+        )
+            ? data.plans
+            : [];
+    }
+    
+    
+    async function startBusinessPlanPayment(
+        plan
+    ) {
+        const token =
+            getToken();
+    
+        if (!token) {
+            alert(
+                "Потрібно увійти в акаунт."
+            );
+    
+            return;
+        }
+    
+        const response =
+            await fetch(
+                "/api/payments/liqpay/create",
+                {
+                    method: "POST",
+    
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+    
+                        Authorization:
+                            `Bearer ${token}`
+                    },
+    
+                    body:
+                        JSON.stringify({
+                            planId:
+                                plan.id
+                        })
+                }
+            );
+    
+        const data =
+            await response.json();
+    
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося створити оплату."
+            );
+        }
+    
+        const form =
+            document.createElement(
+                "form"
+            );
+    
+        form.method =
+            "POST";
+    
+        form.action =
+            data.checkoutUrl;
+    
+    
+        const dataInput =
+            document.createElement(
+                "input"
+            );
+    
+        dataInput.type =
+            "hidden";
+    
+        dataInput.name =
+            "data";
+    
+        dataInput.value =
+            data.data;
+    
+    
+        const signatureInput =
+            document.createElement(
+                "input"
+            );
+    
+        signatureInput.type =
+            "hidden";
+    
+        signatureInput.name =
+            "signature";
+    
+        signatureInput.value =
+            data.signature;
+    
+    
+        form.append(
+            dataInput,
+            signatureInput
+        );
+    
+        document.body.appendChild(
+            form
+        );
+    
+        form.submit();
+    }
+    
+    
+    async function chooseBusinessPlan() {
+        try {
+            const plans =
+                await loadBusinessPlans();
+    
+            if (
+                plans.length === 0
+            ) {
+                alert(
+                    "Для цього типу бізнесу тарифи ще не налаштовані."
+                );
+    
+                return;
+            }
+    
+            const text =
+                plans
+                    .map(
+                        (
+                            plan,
+                            index
+                        ) => {
+                            const features =
+                                [];
+    
+                            if (
+                                plan.hasCrm
+                            ) {
+                                features.push(
+                                    "CRM"
+                                );
+                            }
+    
+                            if (
+                                plan.hasMap
+                            ) {
+                                features.push(
+                                    "Google Maps"
+                                );
+                            }
+    
+                            if (
+                                Number.isFinite(
+                                    Number(
+                                        plan.carLimit
+                                    )
+                                )
+                            ) {
+                                features.push(
+                                    `${plan.carLimit} авто`
+                                );
+                            }
+    
+                            return (
+                                `${index + 1}. ` +
+                                `${plan.name} — ` +
+                                `${plan.priceUah} грн/міс` +
+                                (
+                                    features.length
+                                        ? ` (${features.join(", ")})`
+                                        : ""
+                                )
+                            );
+                        }
+                    )
+                    .join("\n");
+    
+            const answer =
+                prompt(
+                    `Оберіть тариф:\n\n${text}\n\nВведіть номер тарифу:`
+                );
+    
+            if (
+                answer === null
+            ) {
+                return;
+            }
+    
+            const planIndex =
+                Number(answer) - 1;
+    
+            if (
+                !Number.isInteger(
+                    planIndex
+                ) ||
+                !plans[planIndex]
+            ) {
+                alert(
+                    "Невірний номер тарифу."
+                );
+    
+                return;
+            }
+    
+            const selectedPlan =
+                plans[planIndex];
+    
+            const confirmed =
+                confirm(
+                    `Обрати тариф "${selectedPlan.name}" за ${selectedPlan.priceUah} грн/місяць?`
+                );
+    
+            if (!confirmed) {
+                return;
+            }
+    
+            await startBusinessPlanPayment(
+                selectedPlan
+            );
+    
+        } catch (error) {
+            console.error(
+                "Business plan choose error:",
+                error
+            );
+    
+            alert(
+                error.message ||
+                "Не вдалося відкрити оплату."
+            );
+        }
+    }
+    
+    
+    businessElements
+        .choosePlanButton
+        ?.addEventListener(
+            "click",
+            chooseBusinessPlan
+        );
 
 async function loadBusinessProfile() {
     const token =
