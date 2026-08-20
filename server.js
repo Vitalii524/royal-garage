@@ -4025,7 +4025,7 @@ app.get(
                         sp.price_uah AS "priceUah",
                         sp.car_limit AS "carLimit",
                         sp.has_crm AS "hasCrm",
-                        sp.has_map AS "hasMap"
+                        sp.has_map AS "hasMap",
 
                         bp.subscription_started_at AS "subscriptionStartedAt",
                         bp.subscription_expires_at AS "subscriptionExpiresAt"
@@ -4115,7 +4115,7 @@ app.get(
                         sp.price_uah AS "priceUah",
                         sp.car_limit AS "carLimit",
                         sp.has_crm AS "hasCrm",
-                        sp.has_map AS "hasMap"
+                        sp.has_map AS "hasMap",
 
                         bp.subscription_started_at AS "subscriptionStartedAt",
                         bp.subscription_expires_at AS "subscriptionExpiresAt"
