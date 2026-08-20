@@ -2645,59 +2645,6 @@ app.get(
     }
 );
 
-app.post(
-    "/api/debug/nazar-to-business",
-    requireAuth,
-    async (req, res) => {
-        try {
-            const nazarId =
-                "d2363e3d-4723-4755-9030-594cd3ccd6f0";
-
-            const result =
-                await pool.query(
-                    `
-                    UPDATE users
-                    SET account_type = 'business'
-                    WHERE id = $1
-                    RETURNING
-                        id,
-                        name,
-                        email,
-                        account_type,
-                        role
-                    `,
-                    [
-                        nazarId
-                    ]
-                );
-
-            if (result.rows.length === 0) {
-                return res.status(404).json({
-                    ok: false,
-                    message: "Nazar не знайдений."
-                });
-            }
-
-            res.json({
-                ok: true,
-                user: result.rows[0]
-            });
-
-        } catch (error) {
-            console.error(
-                "Nazar business update error:",
-                error
-            );
-
-            res.status(500).json({
-                ok: false,
-                message:
-                    "Не вдалося перевести Nazar у business."
-            });
-        }
-    }
-);
-
 app.get("/api", (req, res) => {
     res.json({
         message: "Royal Garage API працює 🚗"
