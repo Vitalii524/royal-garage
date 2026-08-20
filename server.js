@@ -3697,6 +3697,93 @@ if (
 );
 
 app.get(
+    "/api/business/profiles/:ownerId",
+    async (req, res) => {
+        try {
+            const {
+                ownerId
+            } = req.params;
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        bp.id,
+                        bp.owner_id AS "ownerId",
+                        bp.name,
+                        bp.logo,
+                        bp.city,
+                        bp.address,
+                        bp.phone,
+                        bp.telegram,
+                        bp.instagram,
+                        bp.description,
+                        bp.photos,
+                        bp.services,
+
+                        bt.id AS "businessTypeId",
+                        bt.code AS "businessTypeCode",
+                        bt.name AS "businessTypeName",
+
+                        sp.id AS "planId",
+                        sp.code AS "planCode",
+                        sp.name AS "planName",
+                        sp.price_uah AS "priceUah",
+                        sp.car_limit AS "carLimit",
+                        sp.has_crm AS "hasCrm",
+                        sp.has_map AS "hasMap"
+
+                    FROM business_profiles bp
+
+                    LEFT JOIN business_types bt
+                        ON bt.id =
+                            bp.business_type_id
+
+                    LEFT JOIN subscription_plans sp
+                        ON sp.id =
+                            bp.subscription_plan_id
+
+                    WHERE bp.owner_id = $1
+
+                    LIMIT 1
+                    `,
+                    [
+                        ownerId
+                    ]
+                );
+
+            if (
+                result.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Бізнес-профіль не знайдено."
+                });
+            }
+
+            res.json({
+                ok: true,
+                profile:
+                    result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "Public business profile load error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити бізнес-профіль."
+            });
+        }
+    }
+);
+
+app.get(
     "/api/business/profile",
     requireAuth,
     async (req, res) => {
