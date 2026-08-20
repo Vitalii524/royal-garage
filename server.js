@@ -2075,55 +2075,6 @@ app.get(
     }
 );
 
-app.get(
-    "/api/debug/latest-listing",
-    requireAuth,
-    async (req, res) => {
-        try {
-            const result =
-                await pool.query(
-                    `
-                    SELECT
-                        id,
-                        name,
-                        status,
-                        published_at,
-                        expires_at,
-                        expires_at - published_at
-                            AS duration
-                    FROM market_listings
-                    WHERE owner_id = $1
-                    ORDER BY created_at DESC
-                    LIMIT 1
-                    `,
-                    [
-                        req.user.userId
-                    ]
-                );
-
-            return res.json({
-                ok: true,
-                listing:
-                    result.rows[0] ||
-                    null
-            });
-
-        } catch (error) {
-            console.error(
-                "Debug latest listing error:",
-                error
-            );
-
-            return res
-                .status(500)
-                .json({
-                    ok: false,
-                    message:
-                        "Не вдалося перевірити оголошення."
-                });
-        }
-    }
-);
 
 app.post(
     "/api/market/listings",
@@ -2689,6 +2640,59 @@ app.get(
                 ok: false,
                 message:
                     "Не вдалося завантажити користувачів."
+            });
+        }
+    }
+);
+
+app.post(
+    "/api/debug/nazar-to-business",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const nazarId =
+                "d2363e3d-4723-4755-9030-594cd3ccd6f0";
+
+            const result =
+                await pool.query(
+                    `
+                    UPDATE users
+                    SET account_type = 'business'
+                    WHERE id = $1
+                    RETURNING
+                        id,
+                        name,
+                        email,
+                        account_type,
+                        role
+                    `,
+                    [
+                        nazarId
+                    ]
+                );
+
+            if (result.rows.length === 0) {
+                return res.status(404).json({
+                    ok: false,
+                    message: "Nazar не знайдений."
+                });
+            }
+
+            res.json({
+                ok: true,
+                user: result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "Nazar business update error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося перевести Nazar у business."
             });
         }
     }
