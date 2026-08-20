@@ -553,3 +553,55 @@ p:not(.service-hub-label) {
 
     object-fit: cover;
 }
+
+.service-hub-service-actions {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 10px;
+    margin-top: 18px;
+}
+
+
+.service-hub-service-actions button {
+    min-height: 40px;
+
+    padding: 0 14px;
+
+    border-radius: 10px;
+
+    font: inherit;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+
+.service-hub-delete-button {
+    color: #ffffff;
+
+    border:
+        1px solid
+        rgba(255, 110, 110, 0.45);
+
+    background:
+        rgba(160, 35, 35, 0.35);
+}
+
+
+.service-hub-delete-button:hover {
+    background:
+        rgba(190, 45, 45, 0.5);
+}
+
+
+@media (max-width: 620px) {
+
+    .service-hub-service-actions {
+        flex-direction: column;
+    }
+
+    .service-hub-service-actions button {
+        width: 100%;
+    }
+}
