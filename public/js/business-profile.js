@@ -77,6 +77,51 @@ const businessElements = {
             "businessPlanName"
         ),
 
+        planCurrent:
+        document.getElementById(
+            "businessPlanCurrent"
+        ),
+    
+    planUsageRow:
+        document.getElementById(
+            "businessPlanUsageRow"
+        ),
+    
+    planUsage:
+        document.getElementById(
+            "businessPlanUsage"
+        ),
+    
+    planExpires:
+        document.getElementById(
+            "businessPlanExpires"
+        ),
+    
+    planStatus:
+        document.getElementById(
+            "businessPlanStatus"
+        ),
+    
+    ratingAverage:
+        document.getElementById(
+            "businessRatingAverage"
+        ),
+    
+    ratingCount:
+        document.getElementById(
+            "businessRatingCount"
+        ),
+    
+    reviewsList:
+        document.getElementById(
+            "businessReviewsList"
+        ),
+    
+    reviewsEmpty:
+        document.getElementById(
+            "businessReviewsEmpty"
+        ),
+
     phoneLink:
         document.getElementById(
             "businessPhoneLink"
@@ -358,11 +403,297 @@ function renderBusinessProfile(
         profile.photos
     );
 
+    renderBusinessPlan(
+        profile
+    );
+    
+    loadBusinessReputation(
+        profile.ownerId
+    );
+    
+
     renderBusinessTypeFeatures(
         profile
     );
 }
 
+function renderBusinessPlan(
+    profile
+) {
+    if (
+        businessElements.planCurrent
+    ) {
+        businessElements
+            .planCurrent
+            .textContent =
+                profile.planName
+                    ? `${profile.planName} — ${profile.priceUah || 0} грн/міс`
+                    : "Тариф не визначено";
+    }
+
+    const carLimit =
+        Number(
+            profile.carLimit
+        );
+
+    if (
+        businessElements.planUsageRow
+    ) {
+        businessElements
+            .planUsageRow
+            .hidden =
+                !Number.isFinite(
+                    carLimit
+                ) ||
+                carLimit <= 0;
+    }
+
+    if (
+        businessElements.planUsage &&
+        Number.isFinite(carLimit) &&
+        carLimit > 0
+    ) {
+        businessElements
+            .planUsage
+            .textContent =
+                `0 / ${carLimit}`;
+    }
+
+    const expiresAt =
+        profile.subscriptionExpiresAt
+            ? new Date(
+                profile.subscriptionExpiresAt
+            )
+            : null;
+
+    const validDate =
+        expiresAt &&
+        !Number.isNaN(
+            expiresAt.getTime()
+        );
+
+    if (
+        businessElements.planExpires
+    ) {
+        businessElements
+            .planExpires
+            .textContent =
+                validDate
+                    ? expiresAt
+                        .toLocaleDateString(
+                            "uk-UA"
+                        )
+                    : "Не вказано";
+    }
+
+    const isActive =
+        Boolean(
+            validDate &&
+            expiresAt.getTime() >
+                Date.now()
+        );
+
+    if (
+        businessElements.planStatus
+    ) {
+        businessElements
+            .planStatus
+            .textContent =
+                isActive
+                    ? "✅ Активний"
+                    : "⚠️ Неактивний";
+    }
+}
+
+
+async function loadBusinessReputation(
+    ownerId
+) {
+    if (!ownerId) {
+        return;
+    }
+
+    try {
+        const [
+            ratingResponse,
+            reviewsResponse
+        ] = await Promise.all([
+            fetch(
+                `/api/sellers/${encodeURIComponent(
+                    ownerId
+                )}/rating`
+            ),
+
+            fetch(
+                `/api/sellers/${encodeURIComponent(
+                    ownerId
+                )}/reviews`
+            )
+        ]);
+
+        const ratingData =
+            await ratingResponse.json();
+
+        const reviewsData =
+            await reviewsResponse.json();
+
+        const average =
+            Number(
+                ratingData
+                    ?.rating
+                    ?.average || 0
+            );
+
+        const count =
+            Number(
+                ratingData
+                    ?.rating
+                    ?.count || 0
+            );
+
+        if (
+            businessElements
+                .ratingAverage
+        ) {
+            businessElements
+                .ratingAverage
+                .textContent =
+                    count > 0
+                        ? `⭐ ${average.toFixed(
+                            1
+                        )} із 5`
+                        : "Новий продавець";
+        }
+
+        if (
+            businessElements
+                .ratingCount
+        ) {
+            businessElements
+                .ratingCount
+                .textContent =
+                    count > 0
+                        ? `${count} ${
+                            count === 1
+                                ? "оцінка"
+                                : "оцінок"
+                        }`
+                        : "Оцінок ще немає.";
+        }
+
+        const reviews =
+            Array.isArray(
+                reviewsData.reviews
+            )
+                ? reviewsData.reviews
+                : [];
+
+        renderBusinessReviews(
+            reviews
+        );
+
+    } catch (error) {
+        console.error(
+            "Business reputation load error:",
+            error
+        );
+    }
+}
+
+
+function renderBusinessReviews(
+    reviews
+) {
+    if (
+        !businessElements
+            .reviewsList
+    ) {
+        return;
+    }
+
+    businessElements
+        .reviewsList
+        .innerHTML = "";
+
+    if (
+        businessElements
+            .reviewsEmpty
+    ) {
+        businessElements
+            .reviewsEmpty
+            .hidden =
+                reviews.length > 0;
+    }
+
+    reviews.forEach(
+        (review) => {
+            const card =
+                document.createElement(
+                    "div"
+                );
+
+            card.className =
+                "upholstery-detail-card";
+
+            const date =
+                review.updatedAt
+                    ? new Date(
+                        review.updatedAt
+                    )
+                    : null;
+
+            card.innerHTML = `
+                <div>
+                    <strong>
+                        ${escapeBusinessHtml(
+                            review.userName ||
+                            "Користувач"
+                        )}
+                    </strong>
+
+                    <p>
+                        ${"⭐".repeat(
+                            Math.max(
+                                0,
+                                Math.min(
+                                    5,
+                                    Number(
+                                        review.rating
+                                    ) || 0
+                                )
+                            )
+                        )}
+                    </p>
+
+                    <p>
+                        ${escapeBusinessHtml(
+                            review.text || ""
+                        )}
+                    </p>
+
+                    <small>
+                        ${
+                            date &&
+                            !Number.isNaN(
+                                date.getTime()
+                            )
+                                ? date.toLocaleDateString(
+                                    "uk-UA"
+                                )
+                                : ""
+                        }
+                    </small>
+                </div>
+            `;
+
+            businessElements
+                .reviewsList
+                .appendChild(
+                    card
+                );
+        }
+    );
+}
 
 function renderBusinessContacts(
     profile
@@ -720,6 +1051,26 @@ async function loadBusinessCars(
                     ) ===
                     String(ownerId)
             );
+
+            if (
+                businessElements.planUsage &&
+                currentBusinessProfile
+            ) {
+                const carLimit =
+                    Number(
+                        currentBusinessProfile.carLimit
+                    );
+            
+                if (
+                    Number.isFinite(carLimit) &&
+                    carLimit > 0
+                ) {
+                    businessElements
+                        .planUsage
+                        .textContent =
+                            `${businessListings.length} / ${carLimit}`;
+                }
+            }
 
         if (
             businessElements.carsLoading
