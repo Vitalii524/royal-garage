@@ -1905,6 +1905,10 @@ function getPhotoPreviewSource(
         photoItem.type ===
         "file"
     ) {
+        if (photoItem.compressedSrc) {
+            return photoItem.compressedSrc;
+        }
+    
         return URL.createObjectURL(
             photoItem.file
         );
@@ -1983,23 +1987,22 @@ function renderSelectedPhotos() {
             image.alt =
                 `Фото ${index + 1}`;
 
-
-            if (
-                photoItem.type ===
-                "file"
-            ) {
-                image.addEventListener(
-                    "load",
-                    () => {
-                        URL.revokeObjectURL(
-                            previewSource
-                        );
-                    },
-                    {
-                        once: true
-                    }
-                );
-            }
+                if (
+                    photoItem.type === "file" &&
+                    previewSource.startsWith("blob:")
+                ) {
+                    image.addEventListener(
+                        "load",
+                        () => {
+                            URL.revokeObjectURL(
+                                previewSource
+                            );
+                        },
+                        {
+                            once: true
+                        }
+                    );
+                }
 
 
             const mainBadge =
@@ -2116,7 +2119,7 @@ function renderSelectedPhotos() {
 if (listingPhotos) {
     listingPhotos.addEventListener(
         "change",
-        () => {
+       async () => {
             const newFiles =
                 Array.from(
                     listingPhotos.files ||
@@ -2163,22 +2166,36 @@ if (listingPhotos) {
                 );
 
 
-            acceptedFiles.forEach(
-                (file) => {
-                    selectedPhotos.push({
-                        type: "file",
-                        file
-                    });
+                for (const file of acceptedFiles) {
+                    try {
+                        const compressedSrc =
+                            await compressPhoto(file);
+                
+                        selectedPhotos.push({
+                            type: "file",
+                            file,
+                            compressedSrc
+                        });
+                
+                        updatePhotoCount();
+                        renderSelectedPhotos();
+                
+                    } catch (error) {
+                        console.error(
+                            "Photo prepare error:",
+                            file.name,
+                            error
+                        );
+                
+                        alert(
+                            `Не вдалося обробити фото: ${
+                                file.name || "невідомий файл"
+                            }`
+                        );
+                    }
                 }
-            );
-
-            updatePhotoCount();
-
-            listingPhotos.value =
-                "";
-
-
-            renderSelectedPhotos();
+                
+                listingPhotos.value = "";
         }
     );
 }
