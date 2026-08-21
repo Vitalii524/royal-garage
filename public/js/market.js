@@ -1276,6 +1276,8 @@ let selectedMainPhotoIndex = 0;
 
 let usdRate = null;
 
+let isListingSubmitting = false;
+
 
 /* =====================================================
    ДОПОМІЖНІ ФУНКЦІЇ
@@ -3523,6 +3525,7 @@ if (listingForm) {
         async (event) => {
             event.preventDefault();
 
+           
 
             const car =
                 cars.find(
@@ -3718,6 +3721,28 @@ if (listingForm) {
                 return;
             }
 
+            if (isListingSubmitting) {
+                return;
+            }
+            
+            isListingSubmitting = true;
+            
+            const submitButton =
+                getListingSubmitButton();
+            
+            const originalSubmitText =
+                submitButton?.textContent || "";
+            
+            if (submitButton) {
+                submitButton.disabled = true;
+            
+                submitButton.textContent =
+                    isEditMode
+                        ? "Зберігаємо..."
+                        : "Публікуємо...";
+            }
+
+
 
             let preparedPhotos = [];
 
@@ -3737,6 +3762,15 @@ if (listingForm) {
                         ? `Помилка фото: ${error.message}`
                         : "Не вдалося обробити одну з фотографій."
                 );
+
+                isListingSubmitting = false;
+                isListingSubmitting = false;
+
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.textContent =
+                        originalSubmitText;
+                }
 
 
                 return;
@@ -4324,17 +4358,25 @@ form.submit();
 return;
 
 
-        
+                
         } catch (error) {
             console.error(
                 "Market listing create request error:",
                 error
             );
-        
+
             alert(
                 "Не вдалося з’єднатися із сервером."
             );
-        
+
+            isListingSubmitting = false;
+
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.textContent =
+                    originalSubmitText;
+            }
+
             return;
         }
 
