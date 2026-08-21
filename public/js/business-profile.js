@@ -252,6 +252,11 @@ const businessElements = {
             "businessChoosePlanButton"
         ),
 
+        renewPlanButton:
+    document.getElementById(
+        "businessRenewPlanButton"
+    ),
+
         mapButton:
             document.getElementById(
                 "businessMapButton"
@@ -502,6 +507,15 @@ function renderBusinessPlan(
                 isActive
                     ? "✅ Активний"
                     : "⚠️ Неактивний";
+    }
+
+    if (
+        businessElements.renewPlanButton
+    ) {
+        businessElements
+            .renewPlanButton
+            .hidden =
+                !profile.planId;
     }
 }
 
@@ -1622,6 +1636,50 @@ businessElements
             "click",
             chooseBusinessPlan
         );
+
+        businessElements
+    .renewPlanButton
+    ?.addEventListener(
+        "click",
+        async () => {
+            if (
+                !currentBusinessProfile?.planId
+            ) {
+                alert(
+                    "Не вдалося визначити поточний тариф."
+                );
+
+                return;
+            }
+
+            const confirmed =
+                confirm(
+                    `Продовжити тариф "${currentBusinessProfile.planName}" за ${currentBusinessProfile.priceUah} грн на 30 днів?`
+                );
+
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+                await startBusinessPlanPayment({
+                    id:
+                        currentBusinessProfile
+                            .planId
+                });
+            } catch (error) {
+                console.error(
+                    "Business plan renew error:",
+                    error
+                );
+
+                alert(
+                    error.message ||
+                    "Не вдалося відкрити оплату."
+                );
+            }
+        }
+    );
 
 async function loadBusinessProfile() {
     const token =
