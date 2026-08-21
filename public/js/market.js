@@ -1835,6 +1835,26 @@ if (listingPrice) {
    ФОТОГРАФІЇ
 ===================================================== */
 
+function isImageFile(file) {
+    if (!file) {
+        return false;
+    }
+
+    if (
+        file.type &&
+        file.type.startsWith("image/")
+    ) {
+        return true;
+    }
+
+    const fileName =
+        String(file.name || "")
+            .toLowerCase();
+
+    return /\.(jpg|jpeg|png|webp|heic|heif)$/i
+        .test(fileName);
+}
+
 function updatePhotosCounter() {
     if (!listingPhotosCounter) {
         return;
@@ -2103,9 +2123,7 @@ if (listingPhotos) {
                     []
                 ).filter(
                     (file) =>
-                        file.type.startsWith(
-                            "image/"
-                        )
+                        isImageFile(file)
                 );
 
 
@@ -2169,122 +2187,76 @@ if (listingPhotos) {
 /* =====================================================
    СТИСНЕННЯ ФОТО
 ===================================================== */
+async function compressPhoto(file) {
+    if (!file) {
+        throw new Error(
+            "Файл фотографії не знайдено."
+        );
+    }
 
-function compressPhoto(file) {
-    return new Promise(
-        (
-            resolve,
-            reject
-        ) => {
-            const reader =
-                new FileReader();
+    if (!isImageFile(file)) {
+        throw new Error(
+            `Файл ${file.name || ""} не є зображенням.`
+        );
+    }
+
+    let bitmap = null;
+
+    try {
+        if (
+            typeof createImageBitmap ===
+            "function"
+        ) {
+            bitmap =
+                await createImageBitmap(
+                    file
+                );
+        }
+    } catch (error) {
+        console.warn(
+            "createImageBitmap failed:",
+            error
+        );
+
+        bitmap = null;
+    }
 
 
-            reader.onload =
-                () => {
+    let sourceImage = bitmap;
+
+
+    if (!sourceImage) {
+        sourceImage =
+            await new Promise(
+                (
+                    resolve,
+                    reject
+                ) => {
+                    const objectUrl =
+                        URL.createObjectURL(
+                            file
+                        );
+
                     const image =
                         new Image();
 
-
                     image.onload =
                         () => {
-                            const maxSize =
-                                1000;
-
-
-                            let width =
-                                image.width;
-
-
-                            let height =
-                                image.height;
-
-
-                            if (
-                                width >
-                                    height &&
-                                width >
-                                    maxSize
-                            ) {
-                                height =
-                                    Math.round(
-                                        height *
-                                        maxSize /
-                                        width
-                                    );
-
-
-                                width =
-                                    maxSize;
-                            } else if (
-                                height >
-                                maxSize
-                            ) {
-                                width =
-                                    Math.round(
-                                        width *
-                                        maxSize /
-                                        height
-                                    );
-
-
-                                height =
-                                    maxSize;
-                            }
-
-
-                            const canvas =
-                                document.createElement(
-                                    "canvas"
-                                );
-
-
-                            canvas.width =
-                                width;
-
-
-                            canvas.height =
-                                height;
-
-
-                            const context =
-                                canvas.getContext(
-                                    "2d"
-                                );
-
-
-                            if (!context) {
-                                reject(
-                                    new Error(
-                                        "Не вдалося обробити фото."
-                                    )
-                                );
-
-
-                                return;
-                            }
-
-
-                            context.drawImage(
-                                image,
-                                0,
-                                0,
-                                width,
-                                height
+                            URL.revokeObjectURL(
+                                objectUrl
                             );
 
-
                             resolve(
-                                canvas.toDataURL(
-                                    "image/jpeg",
-                                    0.7
-                                )
+                                image
                             );
                         };
 
-
                     image.onerror =
                         () => {
+                            URL.revokeObjectURL(
+                                objectUrl
+                            );
+
                             reject(
                                 new Error(
                                     `Не вдалося відкрити фото: ${file.name}`
@@ -2292,30 +2264,140 @@ function compressPhoto(file) {
                             );
                         };
 
-
                     image.src =
-                        reader.result;
-                };
-
-
-            reader.onerror =
-                () => {
-                    reject(
-                        new Error(
-                            `Не вдалося прочитати файл: ${file.name}`
-                        )
-                    );
-                };
-
-
-            reader.readAsDataURL(
-                file
+                        objectUrl;
+                }
             );
+    }
+
+
+    const originalWidth =
+        sourceImage.width;
+
+    const originalHeight =
+        sourceImage.height;
+
+
+    if (
+        !originalWidth ||
+        !originalHeight
+    ) {
+        if (
+            bitmap &&
+            typeof bitmap.close ===
+                "function"
+        ) {
+            bitmap.close();
         }
+
+        throw new Error(
+            `Не вдалося визначити розмір фото: ${file.name}`
+        );
+    }
+
+
+    const maxSize = 1000;
+
+    let width =
+        originalWidth;
+
+    let height =
+        originalHeight;
+
+
+    if (
+        width > maxSize ||
+        height > maxSize
+    ) {
+        const scale =
+            Math.min(
+                maxSize / width,
+                maxSize / height
+            );
+
+        width =
+            Math.round(
+                width * scale
+            );
+
+        height =
+            Math.round(
+                height * scale
+            );
+    }
+
+
+    const canvas =
+        document.createElement(
+            "canvas"
+        );
+
+    canvas.width =
+        width;
+
+    canvas.height =
+        height;
+
+
+    const context =
+        canvas.getContext(
+            "2d"
+        );
+
+
+    if (!context) {
+        if (
+            bitmap &&
+            typeof bitmap.close ===
+                "function"
+        ) {
+            bitmap.close();
+        }
+
+        throw new Error(
+            "Не вдалося обробити фото."
+        );
+    }
+
+
+    context.drawImage(
+        sourceImage,
+        0,
+        0,
+        width,
+        height
     );
+
+
+    const compressedPhoto =
+        canvas.toDataURL(
+            "image/jpeg",
+            0.72
+        );
+
+
+    if (
+        bitmap &&
+        typeof bitmap.close ===
+            "function"
+    ) {
+        bitmap.close();
+    }
+
+
+    if (
+        !compressedPhoto ||
+        compressedPhoto ===
+            "data:,"
+    ) {
+        throw new Error(
+            `Не вдалося стиснути фото: ${file.name}`
+        );
+    }
+
+
+    return compressedPhoto;
 }
-
-
 async function prepareSelectedPhotos() {
     const preparedPhotos = [];
 
