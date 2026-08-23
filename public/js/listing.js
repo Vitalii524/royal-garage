@@ -1250,6 +1250,14 @@ Boolean(
 
                                 <button
                                     type="button"
+                                    id="markListingSoldButton"
+                                    class="secondary-button"
+                                >
+                                    ✅ Продано
+                                </button>
+
+                                <button
+                                    type="button"
                                     id="deleteListingButton"
                                     class="secondary-button"
                                 >
@@ -2147,6 +2155,87 @@ serviceHistoryButton.addEventListener(
             }
         );
     }
+
+    /* ===== КНОПКА ПРОДАНО ===== */
+
+const markListingSoldButton =
+document.getElementById(
+    "markListingSoldButton"
+);
+
+if (markListingSoldButton) {
+markListingSoldButton.addEventListener(
+    "click",
+    async () => {
+        const shouldMarkSold =
+            window.confirm(
+                "Позначити цей автомобіль як проданий?"
+            );
+
+        if (!shouldMarkSold) {
+            return;
+        }
+
+        const token =
+            localStorage.getItem(
+                "royalGarageToken"
+            );
+
+        if (!token) {
+            alert(
+                "Сесія недійсна. Увійдіть повторно."
+            );
+
+            return;
+        }
+
+        try {
+            const response =
+                await fetch(
+                    `/api/market/listings/${encodeURIComponent(
+                        listing.id
+                    )}/sold`,
+                    {
+                        method: "PATCH",
+
+                        headers: {
+                            Authorization:
+                                `Bearer ${token}`
+                        }
+                    }
+                );
+
+            const data =
+                await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message ||
+                    "Не вдалося позначити автомобіль як проданий."
+                );
+            }
+
+            alert(
+                "Автомобіль позначено як проданий."
+            );
+
+            window.location.href =
+                "market.html";
+
+        } catch (error) {
+            console.error(
+                "Listing sold error:",
+                error
+            );
+
+            alert(
+                error.message ||
+                "Не вдалося позначити автомобіль як проданий."
+            );
+        }
+    }
+);
+}
 
     /* ===== КНОПКА ВИДАЛЕННЯ ===== */
 

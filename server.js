@@ -2757,6 +2757,71 @@ if (
     }
 );
 
+app.patch(
+    "/api/market/listings/:listingId/sold",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const {
+                listingId
+            } = req.params;
+
+            const result =
+                await pool.query(
+                    `
+                    UPDATE market_listings
+                    SET
+                        status = 'sold',
+                        sold_at = NOW(),
+                        updated_at = NOW()
+                    WHERE id = $1
+                      AND owner_id = $2
+                      AND status = 'active'
+                    RETURNING
+                        id,
+                        status,
+                        sold_at AS "soldAt",
+                        updated_at AS "updatedAt"
+                    `,
+                    [
+                        listingId,
+                        req.user.userId
+                    ]
+                );
+
+            if (
+                result.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Оголошення не знайдено, воно вже неактивне або у вас немає доступу."
+                });
+            }
+
+            return res.json({
+                ok: true,
+                listing:
+                    result.rows[0],
+                message:
+                    "Автомобіль позначено як проданий."
+            });
+
+        } catch (error) {
+            console.error(
+                "Market listing sold error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося позначити автомобіль як проданий."
+            });
+        }
+    }
+);
+
 app.delete(
     "/api/market/listings/:listingId",
     requireAuth,
