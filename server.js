@@ -2066,6 +2066,71 @@ app.get(
 );
 
 app.get(
+    "/api/businesses",
+    async (req, res) => {
+        try {
+            const type = String(req.query.type || "").trim();
+
+            if (!type) {
+                return res.status(400).json({
+                    ok: false,
+                    message: "Не вказано тип бізнесу."
+                });
+            }
+
+            const result = await pool.query(
+                `
+                SELECT
+                    bp.id,
+                    bp.business_name AS "businessName",
+                    bp.logo_url AS "logoUrl",
+                    bp.city,
+                    bp.address,
+                    bp.description,
+
+                    bt.code AS "businessTypeCode",
+                    bt.name AS "businessTypeName"
+
+                FROM business_profiles bp
+
+                JOIN business_types bt
+                    ON bt.id = bp.business_type_id
+
+                JOIN subscription_plans sp
+                    ON sp.id = bp.subscription_plan_id
+
+                WHERE
+                    bt.code = $1
+                    AND sp.is_active = TRUE
+                    AND bp.subscription_expires_at > NOW()
+
+                ORDER BY
+                    bp.business_name ASC
+                `,
+                [type]
+            );
+
+            res.json({
+                ok: true,
+                businesses: result.rows
+            });
+
+        } catch (error) {
+            console.error(
+                "Business list load error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити список бізнесів."
+            });
+        }
+    }
+);
+
+app.get(
     "/api/market/listings",
     async (req, res) => {
         try {

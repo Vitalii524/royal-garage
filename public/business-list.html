@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Бізнеси | Royal Garage</title>
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="images/favicon.png"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/styles.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
+</head>
+
+
+<body>
+
+<header class="site-header">
+
+    <div class="top-line">
+
+        <div class="brand">
+            <a href="index.html">
+                <img
+                    src="images/royal-garage-logo.png"
+                    alt="Royal Garage"
+                >
+            </a>
+        </div>
+
+
+        <nav class="nav">
+
+            <a href="index.html">
+                Головна
+            </a>
+
+            <a href="forum.html">
+                Форум
+            </a>
+
+            <a href="market.html">
+                Авторинок
+            </a>
+
+            <a
+                href="profile.html"
+                id="profileNavLink"
+            >
+                Мій профіль
+            </a>
+
+        </nav>
+
+
+        <div class="burger-menu">
+
+            <a
+                class="burger-button"
+                href="businesses.html"
+                aria-label="Каталог бізнесів"
+                title="Каталог бізнесів"
+            >
+                ☰
+            </a>
+
+        </div>
+
+
+        <div
+            id="authArea"
+            class="auth-area"
+        ></div>
+
+    </div>
+
+</header>
+
+
+
+<main class="business-directory">
+
+    <!-- НАЗАД -->
+
+    <a
+        href="businesses.html"
+        class="business-list-back"
+    >
+        <i class="fa-solid fa-arrow-left"></i>
+        Каталог бізнесів
+    </a>
+
+
+    <!-- НАЗВА КАТЕГОРІЇ -->
+
+    <section class="business-directory-hero">
+
+        <p class="business-directory-label">
+            ROYAL GARAGE
+        </p>
+
+        <h1 id="businessListTitle">
+            Завантаження...
+        </h1>
+
+        <p id="businessListDescription">
+            Зареєстровані бізнеси Royal Garage
+        </p>
+
+    </section>
+
+
+    <!-- СПИСОК БІЗНЕСІВ -->
+
+    <section
+        class="business-list"
+        id="businessList"
+    >
+    </section>
+
+
+    <!-- ЗАВАНТАЖЕННЯ -->
+
+    <section
+        class="business-list-message"
+        id="businessListLoading"
+    >
+        <p>
+            Завантаження бізнесів...
+        </p>
+    </section>
+
+
+    <!-- ЯКЩО НІЧОГО НЕМАЄ -->
+
+    <section
+        class="business-empty-state"
+        id="businessListEmpty"
+        hidden
+    >
+
+        <h2>
+            Бізнесів не знайдено
+        </h2>
+
+        <p>
+            У цій категорії поки немає
+            активних бізнесів.
+        </p>
+
+    </section>
+
+
+    <!-- ПОМИЛКА -->
+
+    <section
+        class="business-empty-state"
+        id="businessListError"
+        hidden
+    >
+
+        <h2>
+            Не вдалося завантажити список
+        </h2>
+
+        <p>
+            Спробуйте оновити сторінку.
+        </p>
+
+    </section>
+
+</main>
+
+
+
+<footer class="site-footer">
+
+    <p>
+        © 2026 Royal Garage. Усі права захищені.
+    </p>
+
+</footer>
+
+
+<script src="js/script.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/business-list.js"></script>
+
+</body>
+
+</html>

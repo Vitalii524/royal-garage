@@ -173,6 +173,135 @@
     opacity: 0.8;
 }
 
+/* ===== BUSINESS LIST ===== */
+
+.business-list-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    margin-bottom: 20px;
+
+    color: var(--gold-light);
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.business-list-back:hover {
+    color: var(--gold);
+}
+
+
+.business-list {
+    display: grid;
+    gap: 15px;
+}
+
+
+.business-list-card {
+    display: grid;
+    grid-template-columns: 90px 1fr auto;
+    align-items: center;
+    gap: 20px;
+
+    padding: 20px;
+
+    color: var(--white);
+    text-decoration: none;
+
+    background: linear-gradient(
+        180deg,
+        #0a2b55,
+        #061b35
+    );
+
+    border: 1px solid rgba(214, 160, 58, 0.35);
+    border-radius: 16px;
+
+    transition: 0.25s;
+}
+
+.business-list-card:hover {
+    border-color: var(--gold);
+    transform: translateY(-2px);
+}
+
+
+.business-list-logo {
+    display: grid;
+    place-items: center;
+
+    width: 90px;
+    height: 90px;
+
+    overflow: hidden;
+
+    color: var(--gold-light);
+    font-size: 32px;
+
+    background: rgba(255, 255, 255, 0.06);
+
+    border: 1px solid rgba(214, 160, 58, 0.25);
+    border-radius: 14px;
+}
+
+
+.business-list-logo img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+
+.business-list-info {
+    min-width: 0;
+}
+
+
+.business-list-info h2 {
+    margin: 0 0 8px;
+
+    color: var(--gold-light);
+}
+
+
+.business-list-location {
+    margin: 0 0 8px;
+
+    color: var(--white);
+}
+
+
+.business-list-location i {
+    margin-right: 5px;
+    color: var(--gold);
+}
+
+
+.business-list-description {
+    margin: 0;
+
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.5;
+}
+
+
+.business-list-arrow {
+    padding: 10px;
+
+    color: var(--gold);
+    font-size: 20px;
+}
+
+
+.business-list-message {
+    padding: 30px;
+
+    color: var(--white);
+    text-align: center;
+}
+
 
 /* ===== MOBILE ===== */
 
@@ -205,4 +334,24 @@
     .business-directory-info a {
         min-height: 60px;
     }
+
+    .business-list-card {
+        grid-template-columns: 70px 1fr auto;
+        gap: 12px;
+        padding: 15px;
+    }
+    
+    .business-list-logo {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .business-list-info h2 {
+        font-size: 18px;
+    }
+    
+    .business-list-description {
+        font-size: 14px;
+    }
+    
 }
