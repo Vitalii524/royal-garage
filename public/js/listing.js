@@ -730,6 +730,14 @@ Boolean(
                     }
                 </p>
 
+                                <button
+                    type="button"
+                    id="shareListingButton"
+                    class="secondary-button"
+                >
+                    🔗 Поділитися оголошенням
+                </button>
+
                 <p>
                     Опубліковано:
                     ${
@@ -1256,6 +1264,76 @@ Boolean(
         `;
     }
 
+    /* ===== ПОДІЛИТИСЯ ОГОЛОШЕННЯМ ===== */
+
+const shareListingButton =
+document.getElementById(
+    "shareListingButton"
+);
+
+if (shareListingButton) {
+shareListingButton.addEventListener(
+    "click",
+    async () => {
+        const shareUrl =
+            window.location.href;
+
+        const shareTitle =
+            `${listing.name || "Автомобіль"} ${
+                listing.year || ""
+            } — Royal Garage`
+                .trim();
+
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    title: shareTitle,
+                    text:
+                        `Перегляньте оголошення: ${shareTitle}`,
+                    url: shareUrl
+                });
+
+                return;
+            }
+
+            await navigator.clipboard.writeText(
+                shareUrl
+            );
+
+            const originalText =
+                shareListingButton.textContent;
+
+            shareListingButton.textContent =
+                "✓ Посилання скопійовано";
+
+            setTimeout(
+                () => {
+                    shareListingButton.textContent =
+                        originalText;
+                },
+                2000
+            );
+
+        } catch (error) {
+            if (
+                error.name ===
+                "AbortError"
+            ) {
+                return;
+            }
+
+            console.error(
+                "Listing share error:",
+                error
+            );
+
+            alert(
+                "Не вдалося поділитися оголошенням."
+            );
+        }
+    }
+);
+}
 
   /* ===== КНОПКА ДЗВІНКА ===== */
 
