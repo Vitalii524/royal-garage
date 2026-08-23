@@ -548,7 +548,8 @@ await pool.query(`
     ADD COLUMN IF NOT EXISTS status VARCHAR(30)
         NOT NULL DEFAULT 'active',
     ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ
+    ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS sold_at TIMESTAMPTZ
 `);
 
 await pool.query(`
