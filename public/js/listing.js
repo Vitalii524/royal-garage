@@ -1285,7 +1285,15 @@ shareListingButton.addEventListener(
                 .trim();
 
         try {
-            if (navigator.share) {
+                        const isMobileDevice =
+                /Android|iPhone|iPad|iPod/i.test(
+                    navigator.userAgent
+                );
+
+            if (
+                isMobileDevice &&
+                navigator.share
+            ) {
                 await navigator.share({
                     title: shareTitle,
                     text:
