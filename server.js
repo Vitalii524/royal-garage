@@ -2337,6 +2337,27 @@ app.post(
             const normalizedVin =
                 vinValidation.vin;
 
+                const duplicateVinResult =
+                    await pool.query(
+                        `
+                        SELECT id
+                        FROM market_listings
+                        WHERE UPPER(TRIM(vin)) = $1
+                        LIMIT 1
+                        `,
+                        [normalizedVin]
+                    );
+
+                if (
+                    duplicateVinResult.rows.length > 0
+                ) {
+                    return res.status(409).json({
+                        ok: false,
+                        message:
+                            "Оголошення з таким VIN-кодом уже існує."
+                    });
+                }
+
             const userResult = await pool.query(
                 `
                 SELECT name, email
@@ -2627,6 +2648,31 @@ app.patch(
 
             const normalizedVin =
                 vinValidation.vin;
+
+                const duplicateVinResult =
+    await pool.query(
+        `
+        SELECT id
+        FROM market_listings
+        WHERE UPPER(TRIM(vin)) = $1
+          AND id <> $2
+        LIMIT 1
+        `,
+        [
+            normalizedVin,
+            listingId
+        ]
+    );
+
+if (
+    duplicateVinResult.rows.length > 0
+) {
+    return res.status(409).json({
+        ok: false,
+        message:
+            "Інше оголошення з таким VIN-кодом уже існує."
+    });
+}
 
             const result = await pool.query(
                 `
