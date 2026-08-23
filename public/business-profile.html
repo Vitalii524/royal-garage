@@ -131,19 +131,6 @@
             
             </div>
 
-                <label
-                    id="businessLogoUploadLabel"
-                    class="upholstery-secondary-button"
-                >
-                    Додати логотип
-
-                    <input
-                        type="file"
-                        id="businessLogoInput"
-                        accept="image/jpeg,image/png,image/webp"
-                        hidden
-                    >
-                </label>
 
             </div>
 
@@ -188,74 +175,12 @@
 
     </section>
 
-        <!-- =========================
-         ПАНЕЛЬ ВЛАСНИКА
-         ========================= -->
-
-         <section
-         id="businessOwnerPanel"
-         class="upholstery-section"
-         hidden
-     >
- 
-         <div class="upholstery-section-heading">
- 
-             <p class="upholstery-label">
-                 ПАНЕЛЬ ВЛАСНИКА
-             </p>
- 
-             <h2>
-                 Керування бізнес-профілем
-             </h2>
- 
-             <p>
-                 Цей блок бачить тільки
-                 власник бізнес-акаунта.
-             </p>
- 
-         </div>
- 
- 
-         <div class="upholstery-actions">
- 
-             <button
-                 type="button"
-                 id="editBusinessProfileButton"
-                 class="upholstery-primary-button"
-             >
-                 ⚙️ Редагувати профіль
-             </button>
-
-             <button
-    type="button"
-    id="businessChoosePlanButton"
-    class="upholstery-secondary-button"
->
-    💳 Обрати тариф
-</button>
-
-<button
-    type="button"
-    id="businessMapButton"
-    class="upholstery-secondary-button"
->
-    📍 Google Maps
-</button>
-
-<button
-    type="button"
-    id="businessCrmButton"
-    class="upholstery-secondary-button"
->
-    🧾 Підключити CRM
-</button>
-
-             <!-- =========================
-     ФОРМА РЕДАГУВАННЯ ПРОФІЛЮ
+      <!-- =========================
+     ПАНЕЛЬ ВЛАСНИКА
      ========================= -->
 
 <section
-id="businessEditSection"
+id="businessOwnerPanel"
 class="upholstery-section"
 hidden
 >
@@ -263,260 +188,350 @@ hidden
 <div class="upholstery-section-heading">
 
     <p class="upholstery-label">
-        РЕДАГУВАННЯ
+        ПАНЕЛЬ ВЛАСНИКА
     </p>
 
     <h2>
-        Налаштування бізнес-профілю
+        Керування бізнес-профілем
     </h2>
+
+    <p>
+        Цей блок бачить тільки
+        власник бізнес-акаунта.
+    </p>
 
 </div>
 
 
-<form
-    id="businessEditForm"
-    class="royal-auto-admin-form"
+<div class="upholstery-actions">
+
+    <label
+        id="businessLogoUploadLabel"
+        class="upholstery-secondary-button"
+    >
+        Додати логотип
+
+        <input
+            type="file"
+            id="businessLogoInput"
+            accept="image/jpeg,image/png,image/webp"
+            hidden
+        >
+    </label>
+
+
+    <button
+        type="button"
+        id="editBusinessProfileButton"
+        class="upholstery-primary-button"
+    >
+        ⚙️ Редагувати профіль
+    </button>
+
+
+    <button
+        type="button"
+        id="businessChoosePlanButton"
+        class="upholstery-secondary-button"
+    >
+        💳 Обрати тариф
+    </button>
+
+
+    <button
+        type="button"
+        id="businessMapButton"
+        class="upholstery-secondary-button"
+    >
+        📍 Google Maps
+    </button>
+
+
+    <button
+        type="button"
+        id="businessCrmButton"
+        class="upholstery-secondary-button"
+    >
+        🧾 Підключити CRM
+    </button>
+
+</div>
+
+
+<!-- =========================
+     МІЙ ТАРИФ
+     ========================= -->
+
+<section
+    id="businessPlanSection"
+    class="upholstery-section"
 >
 
-    <label>
-        Назва бізнесу
+    <div class="upholstery-section-heading">
 
-        <input
-            type="text"
-            id="businessEditName"
-            required
-        >
-    </label>
+        <p class="upholstery-label">
+            МІЙ ТАРИФ
+        </p>
 
+        <h2>
+            Бізнес-пакет
+        </h2>
 
-    <label>
-        Місто
-
-        <input
-            type="text"
-            id="businessEditCity"
-            placeholder="Наприклад: Львів"
-        >
-    </label>
+    </div>
 
 
-    <label>
-        Адреса
+    <div class="upholstery-detail-card">
 
-        <input
-            type="text"
-            id="businessEditAddress"
-            placeholder="Вулиця, номер"
-        >
-    </label>
+        <div class="upholstery-detail-icon">
+            👑
+        </div>
 
+        <div>
 
-    <label>
-        Телефон
+            <p>
+                <strong>
+                    Тариф:
+                </strong>
 
-        <input
-            type="tel"
-            id="businessEditPhone"
-            placeholder="+380..."
-        >
-    </label>
+                <span id="businessPlanCurrent">
+                    —
+                </span>
+            </p>
 
 
-    <label>
-        Telegram
+            <p
+                id="businessPlanUsageRow"
+                hidden
+            >
+                <strong>
+                    Оголошення:
+                </strong>
 
-        <input
-            type="text"
-            id="businessEditTelegram"
-            placeholder="@username або посилання"
-        >
-    </label>
-
-
-    <label>
-        Instagram
-
-        <input
-            type="text"
-            id="businessEditInstagram"
-            placeholder="@username або посилання"
-        >
-    </label>
+                <span id="businessPlanUsage">
+                    0 / 0
+                </span>
+            </p>
 
 
-    <label>
-        Опис бізнесу
+            <p>
+                <strong>
+                    Діє до:
+                </strong>
 
-        <textarea
-            id="businessEditDescription"
-            rows="6"
-            placeholder="Коротко розкажіть про свій бізнес..."
-        ></textarea>
-    </label>
+                <span id="businessPlanExpires">
+                    —
+                </span>
+            </p>
 
-    <label>
-        Послуги
-    
-        <textarea
-            id="businessEditServices"
-            rows="5"
-            placeholder="Кожна послуга з нового рядка"
-        ></textarea>
-    
-        <small>
-            Наприклад:
-            Діагностика
-            Ремонт ходової
-            Шиномонтаж
-        </small>
-    </label>
 
-    <label>
-    Фото робіт
+            <p>
+                <strong>
+                    Статус:
+                </strong>
 
-    <input
-        type="file"
-        id="businessEditPhotos"
-        accept="image/jpeg,image/png,image/webp"
-        multiple
-    >
-</label>
+                <span id="businessPlanStatus">
+                    —
+                </span>
+            </p>
 
-<div
-    id="businessEditPhotosPreview"
-    class="business-edit-photos-preview"
-></div>
+        </div>
+
+    </div>
 
 
     <div class="upholstery-actions">
 
         <button
-            type="submit"
-            class="upholstery-primary-button"
-        >
-            Зберегти зміни
-        </button>
-
-        <button
             type="button"
-            id="cancelBusinessEditButton"
-            class="upholstery-secondary-button"
+            id="businessRenewPlanButton"
+            class="upholstery-primary-button"
+            hidden
         >
-            Скасувати
+            💳 Продовжити тариф
         </button>
 
     </div>
 
-</form>
-
 </section>
- 
-             <a
-                 href="market.html?add=1"
-                 id="businessAddListingButton"
-                 class="upholstery-secondary-button"
-                 hidden
-             >
-                 🚘 Додати оголошення
-             </a>
- 
-         </div>
- 
-     </section>
 
-     <!-- =========================
-     МІЙ ТАРИФ
+
+<!-- =========================
+     ФОРМА РЕДАГУВАННЯ ПРОФІЛЮ
      ========================= -->
 
 <section
-id="businessPlanSection"
-class="upholstery-section"
+    id="businessEditSection"
+    class="upholstery-section"
+    hidden
 >
-<div class="upholstery-section-heading">
 
-    <p class="upholstery-label">
-        МІЙ ТАРИФ
-    </p>
+    <div class="upholstery-section-heading">
 
-    <h2>
-        Бізнес-пакет
-    </h2>
-
-</div>
-
-
-<div class="upholstery-detail-card">
-
-    <div class="upholstery-detail-icon">
-        👑
-    </div>
-
-    <div>
-
-        <p>
-            <strong>
-                Тариф:
-            </strong>
-
-            <span id="businessPlanCurrent">
-                —
-            </span>
+        <p class="upholstery-label">
+            РЕДАГУВАННЯ
         </p>
 
-
-        <p
-            id="businessPlanUsageRow"
-            hidden
-        >
-            <strong>
-                Оголошення:
-            </strong>
-
-            <span id="businessPlanUsage">
-                0 / 0
-            </span>
-        </p>
-
-
-        <p>
-            <strong>
-                Діє до:
-            </strong>
-
-            <span id="businessPlanExpires">
-                —
-            </span>
-        </p>
-
-
-        <p>
-            <strong>
-                Статус:
-            </strong>
-
-            <span id="businessPlanStatus">
-                —
-            </span>
-        </p>
+        <h2>
+            Налаштування бізнес-профілю
+        </h2>
 
     </div>
 
-</div>
 
-<div class="upholstery-actions">
-
-    <button
-        type="button"
-        id="businessRenewPlanButton"
-        class="upholstery-primary-button"
-        hidden
+    <form
+        id="businessEditForm"
+        class="royal-auto-admin-form"
     >
-        💳 Продовжити тариф
-    </button>
 
-</div>
+        <label>
+            Назва бізнесу
+
+            <input
+                type="text"
+                id="businessEditName"
+                required
+            >
+        </label>
+
+
+        <label>
+            Місто
+
+            <input
+                type="text"
+                id="businessEditCity"
+                placeholder="Наприклад: Львів"
+            >
+        </label>
+
+
+        <label>
+            Адреса
+
+            <input
+                type="text"
+                id="businessEditAddress"
+                placeholder="Вулиця, номер"
+            >
+        </label>
+
+
+        <label>
+            Телефон
+
+            <input
+                type="tel"
+                id="businessEditPhone"
+                placeholder="+380..."
+            >
+        </label>
+
+
+        <label>
+            Telegram
+
+            <input
+                type="text"
+                id="businessEditTelegram"
+                placeholder="@username або посилання"
+            >
+        </label>
+
+
+        <label>
+            Instagram
+
+            <input
+                type="text"
+                id="businessEditInstagram"
+                placeholder="@username або посилання"
+            >
+        </label>
+
+
+        <label>
+            Опис бізнесу
+
+            <textarea
+                id="businessEditDescription"
+                rows="6"
+                placeholder="Коротко розкажіть про свій бізнес..."
+            ></textarea>
+        </label>
+
+
+        <label>
+            Послуги
+
+            <textarea
+                id="businessEditServices"
+                rows="5"
+                placeholder="Кожна послуга з нового рядка"
+            ></textarea>
+
+            <small>
+                Наприклад:
+                Діагностика
+                Ремонт ходової
+                Шиномонтаж
+            </small>
+        </label>
+
+
+        <label>
+            Фото робіт
+
+            <input
+                type="file"
+                id="businessEditPhotos"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+            >
+        </label>
+
+
+        <div
+            id="businessEditPhotosPreview"
+            class="business-edit-photos-preview"
+        ></div>
+
+
+        <div class="upholstery-actions">
+
+            <button
+                type="submit"
+                class="upholstery-primary-button"
+            >
+                Зберегти зміни
+            </button>
+
+
+            <button
+                type="button"
+                id="cancelBusinessEditButton"
+                class="upholstery-secondary-button"
+            >
+                Скасувати
+            </button>
+
+        </div>
+
+    </form>
 
 </section>
+
+
+<a
+    href="market.html?add=1"
+    id="businessAddListingButton"
+    class="upholstery-secondary-button"
+    hidden
+>
+    🚘 Додати оголошення
+</a>
+
+</section>
+
 
 
 <!-- =========================
