@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Каталог бізнесів | Royal Garage</title>
+
+    <link rel="icon" type="image/png" href="images/favicon.png">
+    <link rel="stylesheet" href="css/styles.css">
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
+</head>
+
+<body>
+
+<header class="site-header">
+
+    <div class="top-line">
+
+        <div class="brand">
+            <a href="index.html">
+                <img
+                    src="images/royal-garage-logo.png"
+                    alt="Royal Garage"
+                >
+            </a>
+        </div>
+
+        <nav class="nav">
+            <a href="index.html">Головна</a>
+            <a href="forum.html">Форум</a>
+            <a href="market.html">Авторинок</a>
+            <a
+                href="profile.html"
+                id="profileNavLink"
+            >
+                Мій профіль
+            </a>
+        </nav>
+
+        <div class="burger-menu">
+            <a
+                class="burger-button"
+                href="businesses.html"
+                aria-label="Каталог бізнесів"
+                title="Каталог бізнесів"
+            >
+                ☰
+            </a>
+        </div>
+
+        <div id="authArea" class="auth-area"></div>
+
+    </div>
+
+</header>
+
+
+<main class="business-directory">
+
+    <section class="business-directory-hero">
+
+        <p class="business-directory-label">
+            ROYAL GARAGE
+        </p>
+
+        <h1>Автобізнеси та послуги</h1>
+
+        <p>
+            Знайдіть потрібний сервіс або компанію
+            серед зареєстрованих партнерів Royal Garage.
+        </p>
+
+    </section>
+
+
+    <section
+        class="business-categories"
+        id="businessCategories"
+    >
+        <!-- Категорії бізнесів з'являться тут автоматично -->
+    </section>
+
+
+    <section
+        class="business-empty-state"
+        id="businessEmptyState"
+        hidden
+    >
+        <h2>Поки немає зареєстрованих бізнесів</h2>
+
+        <p>
+            Категорії з'являться автоматично,
+            коли до Royal Garage приєднаються
+            СТО, шиномонтажі, евакуатори,
+            автомайданчики та інші автобізнеси.
+        </p>
+    </section>
+
+
+    <section class="business-directory-info">
+
+        <a href="about.html">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>Про нас</span>
+        </a>
+
+        <a href="about.html#contacts">
+            <i class="fa-solid fa-envelope"></i>
+            <span>Контакти</span>
+        </a>
+
+        <a href="about.html#feedback">
+            <i class="fa-solid fa-comment-dots"></i>
+            <span>Зворотний зв'язок</span>
+        </a>
+
+    </section>
+
+</main>
+
+
+<footer class="site-footer">
+    <p>© 2026 Royal Garage. Усі права захищені.</p>
+</footer>
+
+
+<script src="js/script.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/businesses.js"></script>
+
+</body>
+</html>

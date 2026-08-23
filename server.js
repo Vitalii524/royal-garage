@@ -2014,6 +2014,58 @@ app.delete(
 );
 
 app.get(
+    "/api/businesses/categories",
+    async (req, res) => {
+        try {
+            const result = await pool.query(`
+                SELECT
+                    bt.code,
+                    bt.name,
+                    COUNT(bp.id)::integer AS "businessCount"
+
+                FROM business_types bt
+
+                JOIN business_profiles bp
+                    ON bp.business_type_id = bt.id
+
+                JOIN subscription_plans sp
+                    ON sp.id = bp.subscription_plan_id
+
+                WHERE
+                    sp.is_active = TRUE
+                    AND bp.subscription_expires_at > NOW()
+
+                GROUP BY
+                    bt.id,
+                    bt.code,
+                    bt.name
+
+                HAVING COUNT(bp.id) > 0
+
+                ORDER BY bt.name ASC
+            `);
+
+            res.json({
+                ok: true,
+                categories: result.rows
+            });
+
+        } catch (error) {
+            console.error(
+                "Business categories load error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити категорії бізнесів."
+            });
+        }
+    }
+);
+
+app.get(
     "/api/market/listings",
     async (req, res) => {
         try {

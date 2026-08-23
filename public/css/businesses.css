@@ -1,0 +1,208 @@
+/* ===== BUSINESS DIRECTORY ===== */
+
+.business-directory {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.business-directory-hero {
+    padding: 35px;
+    margin-bottom: 25px;
+
+    background: linear-gradient(
+        180deg,
+        #0a2b55,
+        #061b35
+    );
+
+    border: 1px solid rgba(214, 160, 58, 0.35);
+    border-radius: 18px;
+}
+
+.business-directory-label {
+    margin-bottom: 8px;
+
+    color: var(--gold);
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+.business-directory-hero h1 {
+    margin: 0 0 15px;
+
+    color: var(--gold-light);
+    font-size: 36px;
+}
+
+.business-directory-hero p {
+    margin: 0;
+
+    color: var(--white);
+    font-size: 18px;
+    line-height: 1.6;
+}
+
+
+/* ===== КАТЕГОРІЇ ===== */
+
+.business-categories {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+
+/* ===== ЯКЩО БІЗНЕСІВ НЕМАЄ ===== */
+
+.business-empty-state {
+    padding: 35px;
+    margin-bottom: 30px;
+
+    text-align: center;
+
+    background: linear-gradient(
+        180deg,
+        #0a2b55,
+        #061b35
+    );
+
+    border: 1px solid rgba(214, 160, 58, 0.3);
+    border-radius: 18px;
+}
+
+.business-empty-state h2 {
+    margin-top: 0;
+    color: var(--gold-light);
+}
+
+.business-empty-state p {
+    margin-bottom: 0;
+
+    color: var(--white);
+    line-height: 1.6;
+}
+
+
+/* ===== НИЖНЄ МЕНЮ ===== */
+
+.business-directory-info {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+
+    margin-top: 30px;
+    margin-bottom: 30px;
+}
+
+.business-directory-info a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+
+    min-height: 70px;
+    padding: 15px;
+
+    color: var(--white);
+    text-decoration: none;
+    font-weight: bold;
+
+    background: linear-gradient(
+        180deg,
+        #0a2b55,
+        #061b35
+    );
+
+    border: 1px solid rgba(214, 160, 58, 0.35);
+    border-radius: 12px;
+
+    transition: 0.25s;
+}
+
+.business-directory-info a:hover {
+    color: #061b35;
+    background: var(--gold);
+}
+
+
+/* ===== FOOTER ===== */
+
+.site-footer {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+
+    color: var(--white);
+    text-align: center;
+}
+
+.business-category-card {
+    display: block;
+    padding: 25px;
+
+    color: var(--white);
+    text-decoration: none;
+
+    background: linear-gradient(
+        180deg,
+        #0a2b55,
+        #061b35
+    );
+
+    border: 1px solid rgba(214, 160, 58, 0.35);
+    border-radius: 16px;
+
+    transition: 0.25s;
+}
+
+.business-category-card:hover {
+    border-color: var(--gold);
+    transform: translateY(-2px);
+}
+
+.business-category-card h2 {
+    margin: 0 0 8px;
+    color: var(--gold-light);
+}
+
+.business-category-card p {
+    margin: 0;
+    opacity: 0.8;
+}
+
+
+/* ===== MOBILE ===== */
+
+@media (max-width: 700px) {
+
+    .business-directory {
+        padding: 15px;
+    }
+
+    .business-directory-hero {
+        padding: 25px 20px;
+    }
+
+    .business-directory-hero h1 {
+        font-size: 28px;
+    }
+
+    .business-directory-hero p {
+        font-size: 16px;
+    }
+
+    .business-categories {
+        grid-template-columns: 1fr;
+    }
+
+    .business-directory-info {
+        grid-template-columns: 1fr;
+    }
+
+    .business-directory-info a {
+        min-height: 60px;
+    }
+}
