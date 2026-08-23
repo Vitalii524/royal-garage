@@ -158,8 +158,8 @@ function renderBusinesses(businesses) {
             "business-list-card";
 
 
-        card.href =
-            `business.html?id=${encodeURIComponent(
+            card.href =
+            `business-profile.html?id=${encodeURIComponent(
                 business.id
             )}`;
 
