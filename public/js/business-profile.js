@@ -1681,71 +1681,129 @@ businessElements
         }
     );
 
-async function loadBusinessProfile() {
-    const token =
-        getToken();
-
-    if (!token) {
-        window.location.href =
-            "index.html";
-
-        return;
-    }
-
-    try {
-        const response =
-            await fetch(
-                "/api/business/profile",
-                {
-                    headers: {
-                        Authorization:
-                            `Bearer ${token}`
-                    }
+    async function loadBusinessProfile() {
+        const params =
+            new URLSearchParams(
+                window.location.search
+            );
+    
+        const ownerId =
+            params.get("id");
+    
+        const token =
+            getToken();
+    
+        try {
+            let response;
+    
+            // Публічний перегляд чужого бізнес-профілю
+            if (ownerId) {
+                response =
+                    await fetch(
+                        `/api/business/profiles/${encodeURIComponent(
+                            ownerId
+                        )}`
+                    );
+            }
+    
+            // Власний бізнес-профіль
+            else {
+                if (!token) {
+                    window.location.href =
+                        "index.html";
+    
+                    return;
                 }
+    
+                response =
+                    await fetch(
+                        "/api/business/profile",
+                        {
+                            headers: {
+                                Authorization:
+                                    `Bearer ${token}`
+                            }
+                        }
+                    );
+            }
+    
+            const data =
+                await response.json();
+    
+            if (!response.ok) {
+                throw new Error(
+                    data.message ||
+                    "Не вдалося завантажити бізнес-профіль."
+                );
+            }
+    
+            renderBusinessProfile(
+                data.profile
             );
+    
+            const isOwnerView =
+                !ownerId;
 
-        const data =
-            await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                data.message ||
-                "Не вдалося завантажити бізнес-профіль."
+                if (businessElements.editButton) {
+                    businessElements.editButton.hidden =
+                        !isOwnerView;
+                }
+                
+                if (businessElements.editSection) {
+                    businessElements.editSection.hidden =
+                        true;
+                }
+                
+                if (businessElements.choosePlanButton) {
+                    businessElements.choosePlanButton.hidden =
+                        !isOwnerView;
+                }
+                
+                if (businessElements.renewPlanButton) {
+                    businessElements.renewPlanButton.hidden =
+                        !isOwnerView;
+                }
+                
+                if (businessElements.mapButton) {
+                    businessElements.mapButton.hidden =
+                        !isOwnerView;
+                }
+                
+                if (businessElements.crmButton) {
+                    businessElements.crmButton.hidden =
+                        !isOwnerView;
+                }
+    
+            if (
+                businessElements.ownerPanel
+            ) {
+                businessElements
+                    .ownerPanel
+                    .hidden =
+                        !isOwnerView;
+            }
+    
+            if (
+                businessElements
+                    .logoUploadLabel
+            ) {
+                businessElements
+                    .logoUploadLabel
+                    .hidden =
+                        !isOwnerView;
+            }
+    
+        } catch (error) {
+            console.error(
+                "Business profile load error:",
+                error
+            );
+    
+            alert(
+                error.message
             );
         }
-
-        renderBusinessProfile(
-            data.profile
-        );
-
-        if (
-            businessElements.ownerPanel
-        ) {
-            businessElements
-                .ownerPanel
-                .hidden = false;
-        }
-
-        if (
-            businessElements
-                .logoUploadLabel
-        ) {
-            businessElements
-                .logoUploadLabel
-                .hidden = false;
-        }
-
-    } catch (error) {
-        console.error(
-            "Business profile load error:",
-            error
-        );
-
-        alert(
-            error.message
-        );
     }
-}
 
 
 
