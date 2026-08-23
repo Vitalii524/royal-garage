@@ -276,6 +276,152 @@ function getToken() {
     );
 }
 
+/* =========================
+   BUSINESS FAVORITES
+   ========================= */
+
+   let favoriteListingIds = [];
+
+
+   async function loadBusinessFavorites() {
+       const token =
+           getToken();
+   
+       if (!token) {
+           favoriteListingIds = [];
+           return;
+       }
+   
+       try {
+           const response =
+               await fetch(
+                   "/api/market/favorites",
+                   {
+                       headers: {
+                           Authorization:
+                               `Bearer ${token}`
+                       }
+                   }
+               );
+   
+           const data =
+               await response.json();
+   
+           if (!response.ok) {
+               throw new Error(
+                   data.message ||
+                   "Не вдалося завантажити обране."
+               );
+           }
+   
+           favoriteListingIds =
+               Array.isArray(
+                   data.favoriteIds
+               )
+                   ? data.favoriteIds.map(
+                       String
+                   )
+                   : [];
+   
+       } catch (error) {
+           console.error(
+               "Business favorites load error:",
+               error
+           );
+   
+           favoriteListingIds = [];
+       }
+   }
+   
+   
+   function isBusinessFavoriteListing(
+       listingId
+   ) {
+       return favoriteListingIds.includes(
+           String(listingId)
+       );
+   }
+   
+   
+   async function toggleBusinessFavoriteListing(
+       listingId
+   ) {
+       const token =
+           getToken();
+   
+       if (!token) {
+           alert(
+               "Спочатку увійдіть у профіль."
+           );
+           return;
+       }
+   
+       const normalizedId =
+           String(listingId);
+   
+       const isFavorite =
+           isBusinessFavoriteListing(
+               normalizedId
+           );
+   
+       try {
+           const response =
+               await fetch(
+                   `/api/market/favorites/${encodeURIComponent(
+                       normalizedId
+                   )}`,
+                   {
+                       method:
+                           isFavorite
+                               ? "DELETE"
+                               : "POST",
+   
+                       headers: {
+                           Authorization:
+                               `Bearer ${token}`
+                       }
+                   }
+               );
+   
+           const data =
+               await response.json();
+   
+           if (!response.ok) {
+               throw new Error(
+                   data.message ||
+                   "Не вдалося змінити обране."
+               );
+           }
+   
+           if (isFavorite) {
+               favoriteListingIds =
+                   favoriteListingIds.filter(
+                       (id) =>
+                           id !== normalizedId
+                   );
+           } else {
+               favoriteListingIds.push(
+                   normalizedId
+               );
+           }
+   
+           return true;
+   
+       } catch (error) {
+           console.error(
+               "Business favorite toggle error:",
+               error
+           );
+   
+           alert(
+               error.message ||
+               "Не вдалося змінити обране."
+           );
+   
+           return false;
+       }
+   }
+
 
 function renderBusinessLogo(
     logo,
@@ -996,9 +1142,12 @@ function renderBusinessTypeFeatures(
             addListingButton.hidden = false;
         }
 
-    loadBusinessCars(
-        profile.ownerId
-    );
+        loadBusinessFavorites()
+        .then(() => {
+            loadBusinessCars(
+                profile.ownerId
+            );
+        });
 }
 
 
@@ -1181,6 +1330,74 @@ function createBusinessCarCard(
 
     photoBox.className =
         "royal-auto-car-photo";
+
+        const favoriteButton =
+    document.createElement(
+        "button"
+    );
+
+favoriteButton.type =
+    "button";
+
+favoriteButton.className =
+    "favorite-headlight-button";
+
+favoriteButton.setAttribute(
+    "aria-label",
+    "Додати в обране"
+);
+
+favoriteButton.innerHTML = `
+    <svg
+        viewBox="0 0 40 40"
+        aria-hidden="true"
+    >
+        <path
+            class="favorite-headlight-shape"
+            d="M14 8C21 5 30 7 34 12C36 15 36 25 34 28C30 33 21 35 14 32C10 30 8 26 8 20C8 14 10 10 14 8Z"
+        ></path>
+
+        <path
+            class="favorite-headlight-lines"
+            d="M3 14H12M1 22H11M3 30H12"
+        ></path>
+    </svg>
+`;
+
+favoriteButton.classList.toggle(
+    "is-active",
+    isBusinessFavoriteListing(
+        listing.id
+    )
+);
+
+favoriteButton.addEventListener(
+    "click",
+    async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const changed =
+            await toggleBusinessFavoriteListing(
+                listing.id
+            );
+
+        if (!changed) {
+            return;
+        }
+
+        favoriteButton.classList.toggle(
+            "is-active",
+            isBusinessFavoriteListing(
+                listing.id
+            )
+        );
+    }
+);
+
+photoBox.appendChild(
+    favoriteButton
+);
 
     if (photo) {
         const image =
