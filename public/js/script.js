@@ -854,3 +854,27 @@ return;
 
     modal.style.display = "flex";
 }
+
+const burgerButton = document.getElementById("burgerButton");
+const burgerDropdown = document.getElementById("burgerDropdown");
+
+if (burgerButton && burgerDropdown) {
+    burgerButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        burgerDropdown.hidden = !burgerDropdown.hidden;
+    });
+
+    burgerDropdown.addEventListener("click", (event) => {
+        event.stopPropagation();
+    });
+
+    document.addEventListener("click", () => {
+        burgerDropdown.hidden = true;
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+            burgerDropdown.hidden = true;
+        }
+    });
+}
