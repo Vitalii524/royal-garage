@@ -160,7 +160,7 @@ function renderBusinesses(businesses) {
 
             card.href =
             `business-profile.html?id=${encodeURIComponent(
-                business.id
+                business.ownerId
             )}`;
 
 

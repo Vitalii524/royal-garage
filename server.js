@@ -2082,6 +2082,7 @@ app.get(
                 `
                 SELECT
                     bp.id,
+                    bp.owner_id AS "ownerId",
                     bp.name AS "businessName",
                     bp.logo AS "logoUrl",
                     bp.city,
