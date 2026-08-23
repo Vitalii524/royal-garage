@@ -1290,31 +1290,62 @@ if (phone) {
 
     /* ===== ПРОФІЛЬ ПРОДАВЦЯ ===== */
 
-const openSellerProfileButton =
-document.getElementById(
-    "openSellerProfileButton"
-);
+    const openSellerProfileButton =
+    document.getElementById(
+        "openSellerProfileButton"
+    );
 
 if (openSellerProfileButton) {
-openSellerProfileButton.addEventListener(
-    "click",
-    () => {
-        if (!listingOwnerId) {
-            alert(
-                "Не вдалося визначити продавця."
-            );
+    openSellerProfileButton.addEventListener(
+        "click",
+        async () => {
+            if (!listingOwnerId) {
+                alert(
+                    "Не вдалося визначити продавця."
+                );
 
-            return;
+                return;
+            }
+
+            try {
+                const businessResponse =
+                    await fetch(
+                        `/api/business/profiles/${encodeURIComponent(
+                            listingOwnerId
+                        )}`
+                    );
+
+                if (businessResponse.ok) {
+                    window.location.href =
+                        `business-profile.html?id=${encodeURIComponent(
+                            listingOwnerId
+                        )}`;
+
+                    return;
+                }
+
+                window.location.href =
+                    `seller.html?sellerId=${encodeURIComponent(
+                        listingOwnerId
+                    )}&listingId=${encodeURIComponent(
+                        listing.id
+                    )}`;
+
+            } catch (error) {
+                console.error(
+                    "Seller profile type check error:",
+                    error
+                );
+
+                window.location.href =
+                    `seller.html?sellerId=${encodeURIComponent(
+                        listingOwnerId
+                    )}&listingId=${encodeURIComponent(
+                        listing.id
+                    )}`;
+            }
         }
-
-        window.location.href =
-            `seller.html?sellerId=${encodeURIComponent(
-                listingOwnerId
-            )}&listingId=${encodeURIComponent(
-                listing.id
-            )}`;
-    }
-);
+    );
 }
 
     /* ===== ОЦІНЮВАННЯ ПРОДАВЦЯ ===== */
