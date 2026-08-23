@@ -45,6 +45,59 @@ const pool = new Pool({
             : false
 });
 
+function normalizeVin(value) {
+    return String(value || "")
+        .trim()
+        .toUpperCase();
+}
+
+function validateVin(value) {
+    const vin =
+        normalizeVin(value);
+
+    if (!vin) {
+        return {
+            ok: false,
+            message:
+                "Вкажіть VIN-код автомобіля."
+        };
+    }
+
+    if (vin.length !== 17) {
+        return {
+            ok: false,
+            message:
+                "VIN-код повинен містити рівно 17 символів."
+        };
+    }
+
+    if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) {
+        return {
+            ok: false,
+            message:
+                "VIN-код містить недопустимі символи. Літери I, O та Q у VIN не використовуються."
+        };
+    }
+
+    /*
+        Відсікаємо очевидно фейкові VIN,
+        де весь код складається
+        з одного символу.
+    */
+    if (/^(.)\1{16}$/.test(vin)) {
+        return {
+            ok: false,
+            message:
+                "VIN-код виглядає некоректним."
+        };
+    }
+
+    return {
+        ok: true,
+        vin
+    };
+}
+
 async function initDatabase() {
     try {
         await pool.query(`
@@ -2270,6 +2323,20 @@ app.post(
                 });
             }
 
+                        const vinValidation =
+                validateVin(vin);
+
+            if (!vinValidation.ok) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        vinValidation.message
+                });
+            }
+
+            const normalizedVin =
+                vinValidation.vin;
+
             const userResult = await pool.query(
                 `
                 SELECT name, email
@@ -2436,7 +2503,7 @@ if (
                     carId || null,
                     name,
                     year || null,
-                    vin || null,
+                    normalizedVin,
                     JSON.stringify(
                         Array.isArray(photos)
                             ? photos
@@ -2547,6 +2614,20 @@ app.patch(
                 description
             } = req.body;
 
+                        const vinValidation =
+                validateVin(vin);
+
+            if (!vinValidation.ok) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        vinValidation.message
+                });
+            }
+
+            const normalizedVin =
+                vinValidation.vin;
+
             const result = await pool.query(
                 `
                 UPDATE market_listings
@@ -2579,7 +2660,7 @@ app.patch(
                     carId || null,
                     name || "",
                     year || null,
-                    vin || null,
+                    normalizedVin,
                     JSON.stringify(
                         Array.isArray(photos)
                             ? photos
