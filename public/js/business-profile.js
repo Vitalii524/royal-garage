@@ -422,6 +422,230 @@ function getToken() {
        }
    }
 
+   async function renderBusinessFavoriteListings() {
+    const favoritesList =
+        document.getElementById(
+            "businessFavoritesList"
+        );
+
+    const favoritesCount =
+        document.getElementById(
+            "businessFavoritesCount"
+        );
+
+    if (
+        !favoritesList ||
+        !favoritesCount
+    ) {
+        return;
+    }
+
+    const token =
+        getToken();
+
+    if (!token) {
+        favoritesCount.textContent =
+            "0";
+
+        favoritesList.innerHTML = `
+            <p class="profile-favorites-empty">
+                Увійдіть у профіль,
+                щоб переглянути обране.
+            </p>
+        `;
+
+        return;
+    }
+
+    try {
+        const [
+            favoritesResponse,
+            listingsResponse
+        ] = await Promise.all([
+            fetch(
+                "/api/market/favorites",
+                {
+                    headers: {
+                        Authorization:
+                            `Bearer ${token}`
+                    }
+                }
+            ),
+
+            fetch(
+                "/api/market/listings"
+            )
+        ]);
+
+        const favoritesData =
+            await favoritesResponse.json();
+
+        const listingsData =
+            await listingsResponse.json();
+
+        if (!favoritesResponse.ok) {
+            throw new Error(
+                favoritesData.message ||
+                "Не вдалося завантажити обране."
+            );
+        }
+
+        if (!listingsResponse.ok) {
+            throw new Error(
+                listingsData.message ||
+                "Не вдалося завантажити оголошення."
+            );
+        }
+
+        const favoriteIds =
+            Array.isArray(
+                favoritesData.favoriteIds
+            )
+                ? favoritesData.favoriteIds.map(
+                    String
+                )
+                : [];
+
+        const listings =
+            Array.isArray(
+                listingsData.listings
+            )
+                ? listingsData.listings
+                : [];
+
+        const favoriteListings =
+            listings.filter(
+                (listing) =>
+                    favoriteIds.includes(
+                        String(listing.id)
+                    )
+            );
+
+        favoritesCount.textContent =
+            String(
+                favoriteListings.length
+            );
+
+        if (
+            favoriteListings.length === 0
+        ) {
+            favoritesList.innerHTML = `
+                <p class="profile-favorites-empty">
+                    Ви ще не додали
+                    оголошення в обране.
+                </p>
+            `;
+
+            return;
+        }
+
+        favoritesList.innerHTML =
+            favoriteListings
+                .map((listing) => {
+                    const listingPhotos =
+                        Array.isArray(
+                            listing.photos
+                        )
+                            ? listing.photos
+                            : listing.photo
+                                ? [
+                                    listing.photo
+                                ]
+                                : [];
+
+                    const mainPhoto =
+                        listingPhotos[0] ||
+                        "";
+
+                    const priceUsd =
+                        listing.price_usd ??
+                        listing.priceUsd ??
+                        null;
+
+                    return `
+                        <a
+                            class="profile-favorite-card"
+                            href="listing.html?id=${encodeURIComponent(
+                                listing.id
+                            )}"
+                        >
+                            ${
+                                mainPhoto
+                                    ? `
+                                        <img
+                                            class="profile-favorite-photo"
+                                            src="${escapeBusinessHtml(
+                                                mainPhoto
+                                            )}"
+                                            alt="${escapeBusinessHtml(
+                                                listing.name ||
+                                                "Автомобіль"
+                                            )}"
+                                        >
+                                    `
+                                    : ""
+                            }
+
+                            <div class="profile-favorite-info">
+
+                                <strong>
+                                    ${escapeBusinessHtml(
+                                        listing.name ||
+                                        "Автомобіль"
+                                    )}
+                                </strong>
+
+                                ${
+                                    listing.year
+                                        ? `
+                                            <span>
+                                                ${escapeBusinessHtml(
+                                                    String(
+                                                        listing.year
+                                                    )
+                                                )} рік
+                                            </span>
+                                        `
+                                        : ""
+                                }
+
+                                ${
+                                    priceUsd
+                                        ? `
+                                            <span>
+                                                ${Number(
+                                                    priceUsd
+                                                ).toLocaleString(
+                                                    "uk-UA"
+                                                )} $
+                                            </span>
+                                        `
+                                        : ""
+                                }
+
+                            </div>
+                        </a>
+                    `;
+                })
+                .join("");
+
+    } catch (error) {
+        console.error(
+            "Business favorites render error:",
+            error
+        );
+
+        favoritesCount.textContent =
+            "0";
+
+        favoritesList.innerHTML = `
+            <p class="profile-favorites-empty">
+                Не вдалося завантажити обране.
+            </p>
+        `;
+    }
+}
+
 
 function renderBusinessLogo(
     logo,
@@ -1998,6 +2222,10 @@ businessElements
                     .ownerPanel
                     .hidden =
                         !isOwnerView;
+            }
+
+            if (isOwnerView) {
+                await renderBusinessFavoriteListings();
             }
     
             if (
