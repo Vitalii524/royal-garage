@@ -2082,8 +2082,8 @@ app.get(
                 `
                 SELECT
                     bp.id,
-                    bp.business_name AS "businessName",
-                    bp.logo_url AS "logoUrl",
+                    bp.name AS "businessName",
+                    bp.logo AS "logoUrl",
                     bp.city,
                     bp.address,
                     bp.description,
@@ -2105,7 +2105,7 @@ app.get(
                     AND bp.subscription_expires_at > NOW()
 
                 ORDER BY
-                    bp.business_name ASC
+                    bp.name ASC
                 `,
                 [type]
             );
