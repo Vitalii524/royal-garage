@@ -1235,3 +1235,9 @@
         min-width: 0;
     }
 }
+
+/* ===== ВІДСТУП ПІСЛЯ ВИДАЛЕННЯ АКАУНТА ===== */
+
+.account-danger-zone {
+    margin-bottom: 28px;
+}

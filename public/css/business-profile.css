@@ -332,3 +332,12 @@
         right: 6px;
     }
 }
+
+/* =========================
+   BUSINESS FAVORITES SPACING
+   ========================= */
+
+   #businessFavoritesList {
+    display: grid;
+    gap: 18px;
+}
