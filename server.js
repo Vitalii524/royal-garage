@@ -1,5 +1,6 @@
 const express = require("express");
 const path = require("path");
+const fs = require("fs");
 const { Pool } = require("pg");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
@@ -863,6 +864,411 @@ ${listingsXml}
 
             res.status(500).send(
                 "Sitemap generation error"
+            );
+        }
+    }
+);
+
+/* =========================
+   SEO СТОРІНКИ ОГОЛОШЕННЯ
+   ========================= */
+
+   function escapeSeoHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
+
+/* ===== ФОТО ДЛЯ OPEN GRAPH ===== */
+
+app.get(
+    "/seo/listing-image/:listingId",
+    async (req, res) => {
+        try {
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        photos,
+                        active_photo_index
+                    FROM market_listings
+                    WHERE id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.params.listingId
+                    ]
+                );
+
+            if (result.rows.length === 0) {
+                return res.status(404).end();
+            }
+
+            const listing =
+                result.rows[0];
+
+            const photos =
+                Array.isArray(listing.photos)
+                    ? listing.photos
+                    : [];
+
+            const index =
+                Number.isInteger(
+                    listing.active_photo_index
+                )
+                    ? listing.active_photo_index
+                    : 0;
+
+            const photo =
+                String(
+                    photos[index] ||
+                    photos[0] ||
+                    ""
+                );
+
+            /*
+                Якщо фото збережене як base64,
+                перетворюємо його на нормальне
+                зображення для Telegram/Facebook.
+            */
+
+            const dataImageMatch =
+                photo.match(
+                    /^data:(image\/(?:png|jpeg|jpg|webp));base64,(.+)$/i
+                );
+
+            if (dataImageMatch) {
+                const mimeType =
+                    dataImageMatch[1];
+
+                const imageBuffer =
+                    Buffer.from(
+                        dataImageMatch[2],
+                        "base64"
+                    );
+
+                res.set(
+                    "Content-Type",
+                    mimeType
+                );
+
+                res.set(
+                    "Cache-Control",
+                    "public, max-age=86400"
+                );
+
+                return res.send(
+                    imageBuffer
+                );
+            }
+
+            /*
+                Якщо фото вже має URL.
+            */
+
+            if (
+                /^https?:\/\//i.test(photo)
+            ) {
+                return res.redirect(photo);
+            }
+
+            /*
+                Якщо фото немає —
+                використовуємо логотип.
+            */
+
+            return res.redirect(
+                "/images/royal-garage-logo.png"
+            );
+
+        } catch (error) {
+            console.error(
+                "SEO listing image error:",
+                error
+            );
+
+            return res.status(500).end();
+        }
+    }
+);
+
+
+/* ===== SERVER-SIDE SEO ОГОЛОШЕННЯ ===== */
+
+app.get(
+    "/listing.html",
+    async (req, res) => {
+        const listingId =
+            String(
+                req.query.id || ""
+            ).trim();
+
+        const listingFile =
+            path.join(
+                __dirname,
+                "public",
+                "listing.html"
+            );
+
+        try {
+            let html =
+                await fs.promises.readFile(
+                    listingFile,
+                    "utf8"
+                );
+
+            if (!listingId) {
+                return res
+                    .status(400)
+                    .type("html")
+                    .send(html);
+            }
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        name,
+                        year,
+                        city,
+                        mileage,
+                        fuel,
+                        transmission,
+                        price_usd,
+                        description,
+                        status,
+                        expires_at
+                    FROM market_listings
+                    WHERE id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        listingId
+                    ]
+                );
+
+            if (result.rows.length === 0) {
+                html = html.replace(
+                    /<title>[\s\S]*?<\/title>/i,
+                    "<title>Оголошення не знайдено | Royal Garage</title>"
+                );
+
+                html = html.replace(
+                    "</head>",
+                    `
+<meta name="robots" content="noindex, follow">
+</head>`
+                );
+
+                return res
+                    .status(404)
+                    .type("html")
+                    .send(html);
+            }
+
+            const listing =
+                result.rows[0];
+
+            const name =
+                String(
+                    listing.name ||
+                    "Автомобіль"
+                ).trim();
+
+            const year =
+                String(
+                    listing.year || ""
+                ).trim();
+
+            const city =
+                String(
+                    listing.city || ""
+                ).trim();
+
+            const mileage =
+                Number(
+                    listing.mileage || 0
+                );
+
+            const priceUsd =
+                Number(
+                    listing.price_usd || 0
+                );
+
+            const title =
+                `${name}${
+                    year
+                        ? ` ${year}`
+                        : ""
+                }${
+                    city
+                        ? ` купити у ${city}`
+                        : " купити"
+                } — Royal Garage`;
+
+            const descriptionParts = [
+                `${name}${year ? ` ${year}` : ""} на продаж`,
+                mileage
+                    ? `${mileage.toLocaleString(
+                        "uk-UA"
+                    )} км`
+                    : "",
+                listing.fuel || "",
+                listing.transmission || "",
+                priceUsd
+                    ? `$${priceUsd.toLocaleString(
+                        "uk-UA"
+                    )}`
+                    : "",
+                city
+            ].filter(Boolean);
+
+            const description =
+                `${descriptionParts.join(
+                    ", "
+                )}. Royal Garage.`;
+
+            const canonical =
+                `https://royalgarage.com.ua/listing.html?id=${encodeURIComponent(
+                    listing.id
+                )}`;
+
+            const imageUrl =
+                `https://royalgarage.com.ua/seo/listing-image/${encodeURIComponent(
+                    listing.id
+                )}`;
+
+            const isActive =
+                listing.status === "active" &&
+                (
+                    !listing.expires_at ||
+                    new Date(
+                        listing.expires_at
+                    ) > new Date()
+                );
+
+            /*
+                Прибираємо старі динамічні
+                SEO-теги з шаблону.
+            */
+
+            html = html.replace(
+                /<title>[\s\S]*?<\/title>/i,
+                `<title>${escapeSeoHtml(
+                    title
+                )}</title>`
+            );
+
+            html = html.replace(
+                /<meta\s+name=["']description["'][^>]*>/i,
+                ""
+            );
+
+            html = html.replace(
+                /<meta\s+name=["']robots["'][^>]*>/i,
+                ""
+            );
+
+            /*
+                Вставляємо SEO безпосередньо
+                у HTML, який отримує бот.
+            */
+
+            const seoTags = `
+<meta
+    name="description"
+    content="${escapeSeoHtml(description)}"
+>
+
+<meta
+    name="robots"
+    content="${isActive
+        ? "index, follow"
+        : "noindex, follow"}"
+>
+
+<link
+    rel="canonical"
+    href="${escapeSeoHtml(canonical)}"
+>
+
+<meta
+    property="og:type"
+    content="product"
+>
+
+<meta
+    property="og:site_name"
+    content="Royal Garage"
+>
+
+<meta
+    property="og:title"
+    content="${escapeSeoHtml(title)}"
+>
+
+<meta
+    property="og:description"
+    content="${escapeSeoHtml(description)}"
+>
+
+<meta
+    property="og:url"
+    content="${escapeSeoHtml(canonical)}"
+>
+
+<meta
+    property="og:image"
+    content="${escapeSeoHtml(imageUrl)}"
+>
+
+<meta
+    property="og:locale"
+    content="uk_UA"
+>
+
+<meta
+    name="twitter:card"
+    content="summary_large_image"
+>
+
+<meta
+    name="twitter:title"
+    content="${escapeSeoHtml(title)}"
+>
+
+<meta
+    name="twitter:description"
+    content="${escapeSeoHtml(description)}"
+>
+
+<meta
+    name="twitter:image"
+    content="${escapeSeoHtml(imageUrl)}"
+>
+`;
+
+            html = html.replace(
+                "</head>",
+                `${seoTags}\n</head>`
+            );
+
+            return res
+                .type("html")
+                .send(html);
+
+        } catch (error) {
+            console.error(
+                "Listing SEO render error:",
+                error
+            );
+
+            return res.sendFile(
+                listingFile
             );
         }
     }
