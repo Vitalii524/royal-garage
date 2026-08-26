@@ -10,12 +10,6 @@ const currentUser =
         ? getCurrentUser()
         : null;
 
-
-if (!currentUser) {
-    window.location.href = "index.html";
-}
-
-
 /* =====================================================
    ОСНОВНІ ЕЛЕМЕНТИ СТОРІНКИ
 ===================================================== */
@@ -2732,6 +2726,21 @@ if (openListingButton) {
     openListingButton.addEventListener(
         "click",
         () => {
+            if (!currentUser) {
+                if (
+                    typeof openAuthModal ===
+                    "function"
+                ) {
+                    openAuthModal("login");
+                } else {
+                    alert(
+                        "Увійдіть у профіль, щоб додати оголошення."
+                    );
+                }
+
+                return;
+            }
+
             resetListingForm();
 
             fillBrandSelect();
@@ -2742,7 +2751,6 @@ if (openListingButton) {
         }
     );
 }
-
 
 
 
