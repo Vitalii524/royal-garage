@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+Disallow: /profile.html
+Disallow: /chat.html
+Disallow: /reset-password.html
+Disallow: /royal-auto-admin.html
+
+Sitemap: https://royalgarage.com.ua/sitemap.xml
