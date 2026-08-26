@@ -795,6 +795,79 @@ app.use(
     })
 );
 
+app.get(
+    "/sitemap.xml",
+    async (req, res) => {
+        try {
+            const result = await pool.query(`
+                SELECT
+                    id,
+                    updated_at
+                FROM market_listings
+                WHERE status = 'active'
+                  AND (
+                      expires_at IS NULL
+                      OR expires_at > NOW()
+                  )
+                ORDER BY updated_at DESC
+            `);
+
+            const baseUrl =
+                "https://royalgarage.com.ua";
+
+            const staticUrls = [
+                "/",
+                "/market.html",
+                "/forum.html",
+                "/businesses.html"
+            ];
+
+            const staticXml =
+                staticUrls
+                    .map(
+                        (url) => `
+    <url>
+        <loc>${baseUrl}${url}</loc>
+    </url>`
+                    )
+                    .join("");
+
+            const listingsXml =
+                result.rows
+                    .map(
+                        (listing) => `
+    <url>
+        <loc>${baseUrl}/listing.html?id=${listing.id}</loc>
+        <lastmod>${new Date(
+            listing.updated_at
+        ).toISOString()}</lastmod>
+    </url>`
+                    )
+                    .join("");
+
+            const sitemap =
+`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${staticXml}
+${listingsXml}
+</urlset>`;
+
+            res.type("application/xml");
+            res.send(sitemap);
+
+        } catch (error) {
+            console.error(
+                "Sitemap generation error:",
+                error
+            );
+
+            res.status(500).send(
+                "Sitemap generation error"
+            );
+        }
+    }
+);
+
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get(
