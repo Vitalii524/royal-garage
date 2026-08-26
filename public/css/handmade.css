@@ -1302,3 +1302,16 @@ transition:
         font-size: 15px;
     }
 }
+
+.royal-auto-hero-logo-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.royal-auto-hero-logo {
+    width: 180px;
+    max-width: 70%;
+    height: auto;
+    object-fit: contain;
+}
