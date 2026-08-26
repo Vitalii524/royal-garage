@@ -666,10 +666,26 @@ document.addEventListener(
 /* ===== МОДАЛЬНЕ ВІКНО ROYAL AUTO ATELIER ===== */
 
 function openAtelierModal() {
-    window.location.href =
-    "handmade.html";
+    const loader =
+        document.getElementById(
+            "royalLoader"
+        );
 
-return;
+    if (loader) {
+        loader.classList.remove(
+            "is-hidden"
+        );
+    }
+
+    setTimeout(
+        () => {
+            window.location.href =
+                "handmade.html";
+        },
+        300
+    );
+
+    return;
     const modal = document.getElementById("modal");
     const modalBody = document.getElementById("modalBody");
 
