@@ -836,12 +836,13 @@ app.get(
             const baseUrl =
                 "https://royalgarage.com.ua";
 
-            const staticUrls = [
-                "/",
-                "/market.html",
-                "/forum.html",
-                "/businesses.html"
-            ];
+                const staticUrls = [
+                    "/",
+                    "/market.html",
+                    "/forum.html",
+                    "/businesses.html",
+                    "/service-hub.html"
+                ];
 
             const staticXml =
                 staticUrls
