@@ -380,6 +380,153 @@ const listingId =
 
 let listings = [];
 
+/* ===== SEO ОГОЛОШЕННЯ ===== */
+
+function updateListingSeo(listing) {
+    if (!listing) {
+        return;
+    }
+
+    const name =
+        String(
+            listing.name ||
+            "Автомобіль"
+        ).trim();
+
+    const year =
+        String(
+            listing.year || ""
+        ).trim();
+
+    const city =
+        String(
+            listing.city || ""
+        ).trim();
+
+    const fuel =
+        String(
+            listing.fuel || ""
+        ).trim();
+
+    const transmission =
+        String(
+            listing.transmission || ""
+        ).trim();
+
+    const mileage =
+        Number(
+            listing.mileage || 0
+        );
+
+    const priceUsd =
+        Number(
+            listing.priceUsd ||
+            listing.price_usd ||
+            0
+        );
+
+    /* ===== TITLE ===== */
+
+    const titleParts = [
+        name,
+        year
+    ].filter(Boolean);
+
+    const title =
+        `${titleParts.join(" ")}${
+            city
+                ? ` купити у ${city}`
+                : " купити"
+        } — Royal Garage`;
+
+    document.title = title;
+
+
+    /* ===== DESCRIPTION ===== */
+
+    const descriptionParts = [
+        `${titleParts.join(" ")} на продаж`,
+        mileage
+            ? `${mileage.toLocaleString(
+                "uk-UA"
+            )} км`
+            : "",
+        fuel,
+        transmission,
+        priceUsd
+            ? `$${priceUsd.toLocaleString(
+                "uk-UA"
+            )}`
+            : "",
+        city
+    ].filter(Boolean);
+
+    const description =
+        `${descriptionParts.join(", ")}. Оголошення на Royal Garage.`;
+
+    let descriptionMeta =
+        document.querySelector(
+            'meta[name="description"]'
+        );
+
+    if (!descriptionMeta) {
+        descriptionMeta =
+            document.createElement(
+                "meta"
+            );
+
+        descriptionMeta.setAttribute(
+            "name",
+            "description"
+        );
+
+        document.head.appendChild(
+            descriptionMeta
+        );
+    }
+
+    descriptionMeta.setAttribute(
+        "content",
+        description
+    );
+
+
+    /* ===== CANONICAL ===== */
+
+    const canonicalUrl =
+        `https://royalgarage.com.ua/listing.html?id=${
+            encodeURIComponent(
+                listing.id
+            )
+        }`;
+
+    let canonical =
+        document.querySelector(
+            'link[rel="canonical"]'
+        );
+
+    if (!canonical) {
+        canonical =
+            document.createElement(
+                "link"
+            );
+
+        canonical.setAttribute(
+            "rel",
+            "canonical"
+        );
+
+        document.head.appendChild(
+            canonical
+        );
+    }
+
+    canonical.setAttribute(
+        "href",
+        canonicalUrl
+    );
+}
+
 
 /* ===== ЗАВАНТАЖЕННЯ ОГОЛОШЕННЯ З POSTGRESQL ===== */
 
@@ -447,6 +594,9 @@ async function loadListingPage() {
                     item.updated_at ??
                     item.updatedAt
             };
+
+            updateListingSeo(listing);
+            
         }
 
     } catch (error) {
