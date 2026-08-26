@@ -1,7 +1,7 @@
 {
     "name": "Royal Garage",
     "short_name": "Royal Garage",
-    "start_url": "/",
+    "start_url": "/index.html",
     "display": "standalone",
     "background_color": "#08101f",
     "theme_color": "#08101f",
