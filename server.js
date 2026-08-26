@@ -841,7 +841,8 @@ app.get(
                     "/market.html",
                     "/forum.html",
                     "/businesses.html",
-                    "/service-hub.html"
+                    "/service-hub.html",
+                    "/handmade.html"
                 ];
 
             const staticXml =
