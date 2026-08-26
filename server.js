@@ -800,18 +800,38 @@ app.get(
     "/sitemap.xml",
     async (req, res) => {
         try {
-            const result = await pool.query(`
-                SELECT
-                    id,
-                    updated_at
-                FROM market_listings
-                WHERE status = 'active'
-                  AND (
-                      expires_at IS NULL
-                      OR expires_at > NOW()
-                  )
-                ORDER BY updated_at DESC
-            `);
+            const listingsResult =
+                await pool.query(`
+                    SELECT
+                        id,
+                        updated_at
+                    FROM market_listings
+                    WHERE status = 'active'
+                      AND (
+                          expires_at IS NULL
+                          OR expires_at > NOW()
+                      )
+                    ORDER BY updated_at DESC
+                `);
+
+            const businessesResult =
+                await pool.query(`
+                    SELECT
+                        bp.owner_id,
+                        bp.updated_at
+                    FROM business_profiles bp
+
+                    JOIN subscription_plans sp
+                        ON sp.id =
+                            bp.subscription_plan_id
+
+                    WHERE
+                        sp.is_active = TRUE
+                        AND bp.subscription_expires_at > NOW()
+
+                    ORDER BY
+                        bp.updated_at DESC
+                `);
 
             const baseUrl =
                 "https://royalgarage.com.ua";
@@ -834,7 +854,7 @@ app.get(
                     .join("");
 
             const listingsXml =
-                result.rows
+                listingsResult.rows
                     .map(
                         (listing) => `
     <url>
@@ -846,15 +866,34 @@ app.get(
                     )
                     .join("");
 
+            const businessesXml =
+                businessesResult.rows
+                    .map(
+                        (business) => `
+    <url>
+        <loc>${baseUrl}/business-profile.html?id=${business.owner_id}</loc>
+        <lastmod>${new Date(
+            business.updated_at
+        ).toISOString()}</lastmod>
+    </url>`
+                    )
+                    .join("");
+
             const sitemap =
 `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${staticXml}
 ${listingsXml}
+${businessesXml}
 </urlset>`;
 
-            res.type("application/xml");
-            res.send(sitemap);
+            res.type(
+                "application/xml"
+            );
+
+            res.send(
+                sitemap
+            );
 
         } catch (error) {
             console.error(
@@ -862,13 +901,14 @@ ${listingsXml}
                 error
             );
 
-            res.status(500).send(
-                "Sitemap generation error"
-            );
+            res
+                .status(500)
+                .send(
+                    "Sitemap generation error"
+                );
         }
     }
 );
-
 /* =========================
    SEO СТОРІНКИ ОГОЛОШЕННЯ
    ========================= */
@@ -1269,6 +1309,462 @@ app.get(
 
             return res.sendFile(
                 listingFile
+            );
+        }
+    }
+);
+
+/* =========================
+   SEO БІЗНЕС-ПРОФІЛЮ
+   ========================= */
+
+
+/* ===== ФОТО / ЛОГО ДЛЯ OPEN GRAPH ===== */
+
+app.get(
+    "/seo/business-image/:ownerId",
+    async (req, res) => {
+        try {
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        logo,
+                        photos
+                    FROM business_profiles
+                    WHERE owner_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.params.ownerId
+                    ]
+                );
+
+            if (
+                result.rows.length === 0
+            ) {
+                return res
+                    .status(404)
+                    .end();
+            }
+
+            const business =
+                result.rows[0];
+
+            const photos =
+                Array.isArray(
+                    business.photos
+                )
+                    ? business.photos
+                    : [];
+
+            const image =
+                String(
+                    business.logo ||
+                    photos[0] ||
+                    ""
+                );
+
+            const dataImageMatch =
+                image.match(
+                    /^data:(image\/(?:png|jpeg|jpg|webp));base64,(.+)$/i
+                );
+
+            if (dataImageMatch) {
+                const mimeType =
+                    dataImageMatch[1];
+
+                const imageBuffer =
+                    Buffer.from(
+                        dataImageMatch[2],
+                        "base64"
+                    );
+
+                res.set(
+                    "Content-Type",
+                    mimeType
+                );
+
+                res.set(
+                    "Cache-Control",
+                    "public, max-age=86400"
+                );
+
+                return res.send(
+                    imageBuffer
+                );
+            }
+
+            if (
+                /^https?:\/\//i.test(
+                    image
+                )
+            ) {
+                return res.redirect(
+                    image
+                );
+            }
+
+            return res.redirect(
+                "/images/royal-garage-logo.png"
+            );
+
+        } catch (error) {
+            console.error(
+                "SEO business image error:",
+                error
+            );
+
+            return res
+                .status(500)
+                .end();
+        }
+    }
+);
+
+
+/* ===== SERVER-SIDE SEO БІЗНЕС-ПРОФІЛЮ ===== */
+
+app.get(
+    "/business-profile.html",
+    async (req, res) => {
+        const ownerId =
+            String(
+                req.query.id || ""
+            ).trim();
+
+        const businessFile =
+            path.join(
+                __dirname,
+                "public",
+                "business-profile.html"
+            );
+
+        try {
+            let html =
+                await fs.promises.readFile(
+                    businessFile,
+                    "utf8"
+                );
+
+            /*
+                business-profile.html без id —
+                це власний кабінет бізнесу.
+                Його Google індексувати не треба.
+            */
+
+            if (!ownerId) {
+                html =
+                    html.replace(
+                        /<meta\s+name=["']robots["'][^>]*>/i,
+                        ""
+                    );
+
+                html =
+                    html.replace(
+                        "</head>",
+                        `
+<meta
+    name="robots"
+    content="noindex, follow"
+>
+</head>`
+                    );
+
+                return res
+                    .type("html")
+                    .send(html);
+            }
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        bp.owner_id,
+                        bp.name,
+                        bp.city,
+                        bp.description,
+                        bp.subscription_expires_at,
+
+                        bt.name
+                            AS business_type_name,
+
+                        sp.is_active
+                            AS plan_is_active
+
+                    FROM business_profiles bp
+
+                    LEFT JOIN business_types bt
+                        ON bt.id =
+                            bp.business_type_id
+
+                    LEFT JOIN subscription_plans sp
+                        ON sp.id =
+                            bp.subscription_plan_id
+
+                    WHERE bp.owner_id = $1
+
+                    LIMIT 1
+                    `,
+                    [
+                        ownerId
+                    ]
+                );
+
+            if (
+                result.rows.length === 0
+            ) {
+                html =
+                    html.replace(
+                        /<title>[\s\S]*?<\/title>/i,
+                        "<title>Бізнес не знайдено | Royal Garage</title>"
+                    );
+
+                html =
+                    html.replace(
+                        "</head>",
+                        `
+<meta
+    name="robots"
+    content="noindex, follow"
+>
+</head>`
+                    );
+
+                return res
+                    .status(404)
+                    .type("html")
+                    .send(html);
+            }
+
+            const business =
+                result.rows[0];
+
+            const name =
+                String(
+                    business.name ||
+                    "Автобізнес"
+                ).trim();
+
+            const city =
+                String(
+                    business.city || ""
+                ).trim();
+
+            const businessType =
+                String(
+                    business.business_type_name ||
+                    "Автобізнес"
+                ).trim();
+
+            const businessDescription =
+                String(
+                    business.description || ""
+                )
+                    .replace(/\s+/g, " ")
+                    .trim();
+
+            const title =
+                `${name} — ${businessType}${
+                    city
+                        ? ` у ${city}`
+                        : ""
+                } | Royal Garage`;
+
+            let description =
+                `${name} — ${businessType}${
+                    city
+                        ? ` у місті ${city}`
+                        : ""
+                }.`;
+
+            if (businessDescription) {
+                description +=
+                    ` ${businessDescription}`;
+            } else {
+                description +=
+                    " Послуги, контакти та інформація про компанію на Royal Garage.";
+            }
+
+            description =
+                description
+                    .replace(/\s+/g, " ")
+                    .trim()
+                    .slice(0, 160);
+
+            const canonical =
+                `https://royalgarage.com.ua/business-profile.html?id=${encodeURIComponent(
+                    business.owner_id
+                )}`;
+
+            const imageUrl =
+                `https://royalgarage.com.ua/seo/business-image/${encodeURIComponent(
+                    business.owner_id
+                )}`;
+
+            const subscriptionExpiresAt =
+                business
+                    .subscription_expires_at
+                    ? new Date(
+                        business
+                            .subscription_expires_at
+                    )
+                    : null;
+
+            const isIndexable =
+                business.plan_is_active ===
+                    true &&
+                subscriptionExpiresAt &&
+                !Number.isNaN(
+                    subscriptionExpiresAt
+                        .getTime()
+                ) &&
+                subscriptionExpiresAt >
+                    new Date();
+
+            /*
+                Прибираємо стандартні SEO-теги,
+                щоб не було дублів.
+            */
+
+            html =
+                html.replace(
+                    /<title>[\s\S]*?<\/title>/i,
+                    `<title>${escapeSeoHtml(
+                        title
+                    )}</title>`
+                );
+
+            html =
+                html.replace(
+                    /<meta\s+name=["']description["'][^>]*>/i,
+                    ""
+                );
+
+            html =
+                html.replace(
+                    /<meta\s+name=["']robots["'][^>]*>/i,
+                    ""
+                );
+
+            html =
+                html.replace(
+                    /<link\s+rel=["']canonical["'][^>]*>/i,
+                    ""
+                );
+
+            const seoTags = `
+<meta
+    name="description"
+    content="${escapeSeoHtml(
+        description
+    )}"
+>
+
+<meta
+    name="robots"
+    content="${
+        isIndexable
+            ? "index, follow"
+            : "noindex, follow"
+    }"
+>
+
+<link
+    rel="canonical"
+    href="${escapeSeoHtml(
+        canonical
+    )}"
+>
+
+<meta
+    property="og:type"
+    content="website"
+>
+
+<meta
+    property="og:site_name"
+    content="Royal Garage"
+>
+
+<meta
+    property="og:title"
+    content="${escapeSeoHtml(
+        title
+    )}"
+>
+
+<meta
+    property="og:description"
+    content="${escapeSeoHtml(
+        description
+    )}"
+>
+
+<meta
+    property="og:url"
+    content="${escapeSeoHtml(
+        canonical
+    )}"
+>
+
+<meta
+    property="og:image"
+    content="${escapeSeoHtml(
+        imageUrl
+    )}"
+>
+
+<meta
+    property="og:locale"
+    content="uk_UA"
+>
+
+<meta
+    name="twitter:card"
+    content="summary_large_image"
+>
+
+<meta
+    name="twitter:title"
+    content="${escapeSeoHtml(
+        title
+    )}"
+>
+
+<meta
+    name="twitter:description"
+    content="${escapeSeoHtml(
+        description
+    )}"
+>
+
+<meta
+    name="twitter:image"
+    content="${escapeSeoHtml(
+        imageUrl
+    )}"
+>
+`;
+
+            html =
+                html.replace(
+                    "</head>",
+                    `${seoTags}\n</head>`
+                );
+
+            return res
+                .type("html")
+                .send(html);
+
+        } catch (error) {
+            console.error(
+                "Business profile SEO render error:",
+                error
+            );
+
+            return res.sendFile(
+                businessFile
             );
         }
     }

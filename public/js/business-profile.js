@@ -703,12 +703,130 @@ function renderBusinessLogo(
             initials || "RG";
 }
 
+function updateBusinessSeo(profile) {
+    if (!profile) {
+        return;
+    }
+
+    const name =
+        String(
+            profile.name ||
+            "Бізнес"
+        ).trim();
+
+    const city =
+        String(
+            profile.city || ""
+        ).trim();
+
+    const type =
+        String(
+            profile.businessTypeName ||
+            "Автобізнес"
+        ).trim();
+
+    const description =
+        String(
+            profile.description || ""
+        ).trim();
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    const ownerId =
+        params.get("id");
+
+    const titleParts = [
+        name,
+        city
+            ? `${type} у ${city}`
+            : type
+    ];
+
+    document.title =
+        `${titleParts.join(" — ")} | Royal Garage`;
+
+    let seoDescription =
+        `${name} — ${type}`;
+
+    if (city) {
+        seoDescription +=
+            ` у місті ${city}`;
+    }
+
+    if (description) {
+        seoDescription +=
+            `. ${description}`;
+    }
+
+    seoDescription =
+        seoDescription
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 160);
+
+    let metaDescription =
+        document.querySelector(
+            'meta[name="description"]'
+        );
+
+    if (!metaDescription) {
+        metaDescription =
+            document.createElement(
+                "meta"
+            );
+
+        metaDescription.name =
+            "description";
+
+        document.head.appendChild(
+            metaDescription
+        );
+    }
+
+    metaDescription.content =
+        seoDescription;
+
+    if (ownerId) {
+        const canonicalUrl =
+            `https://royalgarage.com.ua/business-profile.html?id=${encodeURIComponent(
+                ownerId
+            )}`;
+
+        let canonical =
+            document.querySelector(
+                'link[rel="canonical"]'
+            );
+
+        if (!canonical) {
+            canonical =
+                document.createElement(
+                    "link"
+                );
+
+            canonical.rel =
+                "canonical";
+
+            document.head.appendChild(
+                canonical
+            );
+        }
+
+        canonical.href =
+            canonicalUrl;
+    }
+}
+
 
 function renderBusinessProfile(
     profile
 ) {
     currentBusinessProfile =
         profile;
+
+        updateBusinessSeo(profile);
 
     if (businessElements.name) {
         businessElements.name.textContent =
