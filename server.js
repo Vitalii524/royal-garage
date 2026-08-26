@@ -5607,8 +5607,9 @@ app.get("/api/forum/topics", async (req, res) => {
     }
 });
 
-function requireAuth(req, res, next) {
-    const authHeader = req.headers.authorization || "";
+async function requireAuth(req, res, next) {
+    const authHeader =
+        req.headers.authorization || "";
 
     if (!authHeader.startsWith("Bearer ")) {
         return res.status(401).json({
@@ -5617,20 +5618,59 @@ function requireAuth(req, res, next) {
         });
     }
 
-    const token = authHeader.slice(7);
+    const token =
+        authHeader.slice(7);
 
     try {
-        const decoded = jwt.verify(
-            token,
-            process.env.JWT_SECRET
-        );
+        const decoded =
+            jwt.verify(
+                token,
+                process.env.JWT_SECRET
+            );
 
-        req.user = decoded;
+        const userResult =
+            await pool.query(
+                `
+                SELECT
+                    id,
+                    role,
+                    account_type
+                FROM users
+                WHERE id = $1
+                LIMIT 1
+                `,
+                [
+                    decoded.userId
+                ]
+            );
+
+        if (userResult.rows.length === 0) {
+            return res.status(401).json({
+                ok: false,
+                message:
+                    "Користувача не знайдено. Увійдіть повторно."
+            });
+        }
+
+        const user =
+            userResult.rows[0];
+
+        req.user = {
+            ...decoded,
+            userId: user.id,
+            role:
+                user.role || "user",
+            accountType:
+                user.account_type || "user"
+        };
+
         next();
+
     } catch (error) {
         return res.status(401).json({
             ok: false,
-            message: "Сесія недійсна або завершилась."
+            message:
+                "Сесія недійсна або завершилась."
         });
     }
 }
