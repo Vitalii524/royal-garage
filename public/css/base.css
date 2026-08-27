@@ -134,48 +134,136 @@ body {
 }
 
 
+/* ===== BURGER MENU ===== */
 
-/* ===== BURGER НА ТЕЛЕФОНІ ===== */
-
-@media (max-width: 700px) {
-
-    .top-line {
-        gap: 10px;
-    }
-
-    .burger-button {
-        width: 44px;
-        height: 44px;
-        font-size: 23px;
-    }
+.burger-menu {
+    display: none;
+    position: relative;
+    flex-shrink: 0;
 }
+
+.burger-button {
+    list-style: none;
+
+    display: grid;
+    place-items: center;
+
+    width: 48px;
+    height: 48px;
+    padding: 0;
+
+    color: var(--gold-light);
+
+    background: linear-gradient(
+        180deg,
+        #0a2b55,
+        #061b35
+    );
+
+    border: 1px solid rgba(214, 160, 58, 0.45);
+    border-radius: 10px;
+
+    font-size: 24px;
+    line-height: 1;
+
+    cursor: pointer;
+    user-select: none;
+
+    transition: 0.25s;
+}
+
+.burger-button::-webkit-details-marker {
+    display: none;
+}
+
+.burger-button:hover {
+    color: #061b35;
+    background: var(--gold);
+}
+
+
+/* ===== ВИПАДАЮЧЕ МЕНЮ ===== */
+
+.burger-dropdown {
+    position: absolute;
+
+    top: calc(100% + 10px);
+    left: 0;
+    right: auto;
+
+    width: 230px;
+    max-width: calc(100vw - 32px);
+
+    padding: 10px;
+
+    background: #061b35;
+
+    border: 1px solid rgba(214, 160, 58, 0.45);
+    border-radius: 12px;
+
+    box-shadow:
+        0 14px 35px
+        rgba(0, 0, 0, 0.45);
+
+    z-index: 1000;
+}
+
+.burger-dropdown a {
+    display: block;
+
+    padding: 12px 14px;
+
+    color: var(--white);
+    text-decoration: none;
+    font-weight: 700;
+
+    border-radius: 8px;
+}
+
+.burger-dropdown a:hover {
+    color: #061b35;
+    background: var(--gold);
+}
+
 
 /* ===== СПІЛЬНА ЗОЛОТА КНОПКА ===== */
 
 .gold-btn {
     padding: 14px 24px;
+
     color: #160f04;
+
     background: linear-gradient(
         180deg,
         var(--gold-light),
         var(--gold)
     );
+
     border: none;
     border-radius: 8px;
+
     cursor: pointer;
+
     font-weight: bold;
     text-transform: uppercase;
 }
+
 
 /* ===== ПІДВАЛ САЙТУ ===== */
 
 .footer {
     display: flex;
     justify-content: center;
+
     gap: 120px;
+
     padding: 35px 20px;
+
     background: #030814;
-    border-top: 1px solid rgba(214, 160, 58, 0.3);
+
+    border-top:
+        1px solid
+        rgba(214, 160, 58, 0.3);
 }
 
 .footer h3 {
@@ -184,7 +272,9 @@ body {
 
 .footer a {
     display: block;
+
     margin: 8px 0;
+
     color: var(--muted);
     text-decoration: none;
 }
@@ -193,34 +283,141 @@ body {
     color: var(--gold-light);
 }
 
+
 /* ===== МОБІЛЬНА ВЕРСІЯ ===== */
 
 @media (max-width: 900px) {
+
+    .site-header {
+        padding: 14px 16px 20px;
+    }
+
+
+    /* ШАПКА */
+
     .top-line {
-        flex-direction: column;
+        display: grid;
+
+        grid-template-columns:
+            auto
+            auto
+            1fr;
+
+        align-items: center;
+
+        width: 100%;
+
+        column-gap: 6px;
+    }
+
+
+    /* ЛОГО */
+
+    .brand {
+        grid-column: 1;
+
+        margin: 0;
+        margin-left: 32px;
     }
 
     .brand img {
-        width: 160px;
+        display: block;
+
+        width: 68px;
+        height: auto;
     }
+
+
+    /* ДЕСКТОПНЕ МЕНЮ ХОВАЄМО */
 
     .nav {
-        flex-wrap: wrap;
+        display: none;
     }
 
-    .nav a {
-        width: 45%;
-        text-align: center;
+
+    /* БУРГЕР */
+
+    .burger-menu {
+        display: block;
+
+        grid-column: 2;
+
+        justify-self: start;
+
+        margin: 0;
     }
 
-    .auth-buttons {
-        width: 100%;
-        justify-content: center;
+    .burger-button {
+        width: 38px;
+        height: 38px;
+
+        font-size: 20px;
     }
+
+
+    /* ВХІД / РЕЄСТРАЦІЯ */
+
+    .auth-area {
+        grid-column: 3;
+
+        display: flex;
+
+        width: auto;
+
+        gap: 5px;
+
+        justify-self: end;
+
+        margin: 0 10px 0 0;
+    }
+
+    .auth-header-button {
+        padding: 8px 9px;
+
+        font-size: 11px;
+        line-height: 1;
+
+        white-space: nowrap;
+    }
+
+
+    /* АВТОРИЗОВАНИЙ КОРИСТУВАЧ */
+
+    .logged-user {
+        display: flex;
+        align-items: center;
+
+        gap: 5px;
+    }
+
+    .logged-user a {
+        font-size: 11px;
+    }
+
+    .logout-button {
+        padding: 8px 9px;
+
+        font-size: 11px;
+    }
+
+
+    /* FOOTER */
 
     .footer {
         flex-direction: column;
+
         gap: 20px;
+
         text-align: center;
     }
+}
+
+.site-footer {
+    width: 100%;
+    padding: 24px 16px;
+    margin-top: 40px;
+
+    text-align: center;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.65);
 }

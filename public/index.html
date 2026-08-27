@@ -102,16 +102,22 @@
     <div class="top-line">
 
         <div class="brand">
-            <img
-                src="images/royal-garage-logo.png"
-                alt="Royal Garage"
+            <a
+                href="index.html"
+                aria-label="Royal Garage — головна"
             >
+                <img
+                    src="images/royal-garage-logo.png"
+                    alt="Royal Garage"
+                >
+            </a>
         </div>
 
         <nav class="nav">
             <a href="index.html">Головна</a>
             <a href="forum.html">Форум</a>
             <a href="market.html">Авторинок</a>
+            <a href="businesses.html">Партнери</a>
             <a
                 href="profile.html"
                 id="profileNavLink"
@@ -120,16 +126,50 @@
             </a>
         </nav>
 
-        <div class="burger-menu">
-            <a
+        <details class="burger-menu">
+
+            <summary
                 class="burger-button"
-                href="businesses.html"
-                aria-label="Відкрити каталог бізнесів"
-                title="Каталог бізнесів"
+                aria-label="Відкрити меню"
+                title="Меню"
             >
                 ☰
-            </a>
-        </div>
+            </summary>
+        
+            <nav
+                class="burger-dropdown"
+                aria-label="Мобільне меню"
+            >
+                <a href="index.html">
+                    Головна
+                </a>
+        
+                <a href="forum.html">
+                    Форум
+                </a>
+        
+                <a href="market.html">
+                    Авторинок
+                </a>
+        
+                <a href="businesses.html">
+                    Партнери
+                </a>
+        
+                <a href="handmade.html">
+                    RoyalAuto
+                </a>
+        
+                <a href="service-hub.html">
+                    Service Hub
+                </a>
+        
+                <a href="profile.html">
+                    Мій профіль
+                </a>
+            </nav>
+        
+        </details>
 
         <div id="authArea" class="auth-area"></div>
 
@@ -419,8 +459,8 @@
         <a href="index.html">Головна</a>
         <a href="forum.html">Форум</a>
         <a href="market.html">Авторинок</a>
+        <a href="businesses.html">Партнери</a>
         <a href="profile.html">Мій профіль</a>
-
     </div>
 
 </footer>
