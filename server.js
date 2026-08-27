@@ -923,6 +923,11 @@ ${businessesXml}
         .replace(/>/g, "&gt;");
 }
 
+function safeSeoJson(data) {
+    return JSON.stringify(data)
+        .replace(/</g, "\\u003c");
+}
+
 
 /* ===== ФОТО ДЛЯ OPEN GRAPH ===== */
 
@@ -1100,6 +1105,11 @@ app.get(
                 );
 
                 html = html.replace(
+                    /<meta\s+name=["']robots["'][^>]*>/i,
+                    ""
+                );
+
+                html = html.replace(
                     "</head>",
                     `
 <meta name="robots" content="noindex, follow">
@@ -1192,6 +1202,97 @@ app.get(
                         listing.expires_at
                     ) > new Date()
                 );
+
+                const vehicleSchema = {
+                    "@context": "https://schema.org",
+                    "@type": "Vehicle",
+                
+                    "@id":
+                        `${canonical}#vehicle`,
+                
+                    "name":
+                        `${name}${year ? ` ${year}` : ""}`,
+                
+                    "url":
+                        canonical,
+                
+                    "image": [
+                        imageUrl
+                    ],
+                
+                    "description":
+                        description,
+                
+                    ...(year
+                        ? {
+                            "vehicleModelDate":
+                                year
+                        }
+                        : {}),
+                
+                    ...(mileage
+                        ? {
+                            "mileageFromOdometer": {
+                                "@type":
+                                    "QuantitativeValue",
+                
+                                "value":
+                                    mileage,
+                
+                                "unitCode":
+                                    "KMT"
+                            }
+                        }
+                        : {}),
+                
+                    ...(listing.fuel
+                        ? {
+                            "fuelType":
+                                String(
+                                    listing.fuel
+                                )
+                        }
+                        : {}),
+                
+                    ...(listing.transmission
+                        ? {
+                            "vehicleTransmission":
+                                String(
+                                    listing.transmission
+                                )
+                        }
+                        : {}),
+                
+                    ...(priceUsd
+                        ? {
+                            "offers": {
+                                "@type":
+                                    "Offer",
+                
+                                "url":
+                                    canonical,
+                
+                                "priceCurrency":
+                                    "USD",
+                
+                                "price":
+                                    priceUsd,
+                
+                                "availability":
+                                    isActive
+                                        ? "https://schema.org/InStock"
+                                        : "https://schema.org/OutOfStock"
+                            }
+                        }
+                        : {})
+                };
+                
+                const vehicleSchemaJson =
+                    safeSeoJson(
+                        vehicleSchema
+                    );
+
+                
 
             /*
                 Прибираємо старі динамічні
@@ -1292,6 +1393,10 @@ app.get(
     name="twitter:image"
     content="${escapeSeoHtml(imageUrl)}"
 >
+
+<script type="application/ld+json">
+${vehicleSchemaJson}
+</script>
 `;
 
             html = html.replace(
@@ -1482,11 +1587,24 @@ app.get(
                 await pool.query(
                     `
                     SELECT
-                        bp.owner_id,
-                        bp.name,
-                        bp.city,
-                        bp.description,
-                        bp.subscription_expires_at,
+
+                    bp.owner_id,
+                
+                    bp.name,
+                
+                    bp.city,
+                
+                    bp.address,
+                
+                    bp.phone,
+                
+                    bp.telegram,
+                
+                    bp.instagram,
+                
+                    bp.description,
+                
+                    bp.subscription_expires_at,
 
                         bt.name
                             AS business_type_name,
@@ -1603,6 +1721,78 @@ app.get(
                 `https://royalgarage.com.ua/seo/business-image/${encodeURIComponent(
                     business.owner_id
                 )}`;
+
+                const businessSameAs = [
+                    business.telegram,
+                    business.instagram
+                ]
+                    .map(
+                        (value) =>
+                            String(value || "").trim()
+                    )
+                    .filter(
+                        (value) =>
+                            /^https?:\/\//i.test(value)
+                    );
+                
+                const businessSchema = {
+                    "@context": "https://schema.org",
+                    "@type": "AutomotiveBusiness",
+                
+                    "@id": `${canonical}#business`,
+                
+                    "name": name,
+                    "url": canonical,
+                    "image": imageUrl,
+                    "description": description,
+                
+                    ...(city || business.address
+                        ? {
+                            "address": {
+                                "@type": "PostalAddress",
+                
+                                ...(business.address
+                                    ? {
+                                        "streetAddress":
+                                            String(
+                                                business.address
+                                            )
+                                    }
+                                    : {}),
+                
+                                ...(city
+                                    ? {
+                                        "addressLocality":
+                                            city
+                                    }
+                                    : {}),
+                
+                                "addressCountry": "UA"
+                            }
+                        }
+                        : {}),
+                
+                    ...(business.phone
+                        ? {
+                            "telephone":
+                                String(
+                                    business.phone
+                                )
+                        }
+                        : {}),
+                
+                    ...(businessSameAs.length
+                        ? {
+                            "sameAs":
+                                businessSameAs
+                        }
+                        : {})
+                };
+                
+                const businessSchemaJson =
+                    safeSeoJson(
+                        businessSchema
+                    );
 
             const subscriptionExpiresAt =
                 business
@@ -1747,6 +1937,11 @@ app.get(
         imageUrl
     )}"
 >
+
+<script type="application/ld+json">
+${businessSchemaJson}
+</script>
+
 `;
 
             html =
