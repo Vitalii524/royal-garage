@@ -122,6 +122,14 @@ function createAuthModal() {
 </button>
                 <p class="auth-error" id="loginError"></p>
 
+                <button
+                    type="button"
+                    class="forgot-password-btn hidden"
+                    id="resendVerificationButton"
+                >
+                    Надіслати лист повторно
+                </button>
+
                 <button class="gold-btn" type="submit">
                     Увійти
                 </button>
@@ -525,6 +533,79 @@ businessTypeSelect
         );
     }
 
+    const resendVerificationButton =
+    document.getElementById(
+        "resendVerificationButton"
+    );
+
+if (resendVerificationButton) {
+    resendVerificationButton.addEventListener(
+        "click",
+        async () => {
+            const email =
+                document
+                    .getElementById(
+                        "loginEmail"
+                    )
+                    ?.value
+                    .trim()
+                    .toLowerCase();
+
+            if (!email) {
+                alert(
+                    "Введіть email."
+                );
+                return;
+            }
+
+            resendVerificationButton.disabled =
+                true;
+
+            try {
+                const response =
+                    await fetch(
+                        "/api/resend-verification-email",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify({
+                                    email
+                                })
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                alert(
+                    data.message ||
+                    "Лист для підтвердження надіслано."
+                );
+
+            } catch (error) {
+                console.error(
+                    "Resend verification error:",
+                    error
+                );
+
+                alert(
+                    "Не вдалося повторно надіслати лист."
+                );
+
+            } finally {
+                resendVerificationButton.disabled =
+                    false;
+            }
+        }
+    );
+}
+
     document.querySelectorAll(".toggle-password").forEach((button) => {
         button.addEventListener("click", () => {
           const inputId = button.dataset.target;
@@ -662,6 +743,16 @@ async function registerUser(event) {
 
     errorElement.textContent = "";
 
+    const resendVerificationButton =
+    document.getElementById(
+        "resendVerificationButton"
+    );
+
+resendVerificationButton
+    ?.classList.add(
+        "hidden"
+    );
+
     if (name.length < 2) {
         errorElement.textContent =
             "Ім’я повинно містити щонайменше 2 символи.";
@@ -729,20 +820,29 @@ async function registerUser(event) {
             return;
         }
 
-        saveCurrentUser(data.user);
-
-localStorage.setItem(
-    "royalGarageToken",
-    data.token
-);
         document
-            .getElementById(
-                "registerForm"
-            )
-            .reset();
+        .getElementById(
+            "registerForm"
+        )
+        .reset();
+    
+    alert(
+        data.message ||
+        "Реєстрація успішна. Перевірте пошту та підтвердьте email."
+    );
+    
+    switchAuthTab("login");
+    
+    const loginEmail =
+        document.getElementById(
+            "loginEmail"
+        );
+    
+    if (loginEmail) {
+        loginEmail.value =
+            data.user?.email || "";
+    }
 
-        closeAuthModal();
-        renderAuthArea();
     } catch (error) {
         console.error(
             "Registration request error:",
@@ -794,12 +894,22 @@ async function loginUser(event) {
         const data =
             await response.json();
 
-        if (!response.ok) {
-            errorElement.textContent =
-                data.message ||
-                "Не вдалося увійти.";
-            return;
-        }
+            if (!response.ok) {
+                errorElement.textContent =
+                    data.message ||
+                    "Не вдалося увійти.";
+            
+                if (
+                    response.status === 403
+                ) {
+                    resendVerificationButton
+                        ?.classList.remove(
+                            "hidden"
+                        );
+                }
+            
+                return;
+            }
 
         saveCurrentUser(data.user);
 

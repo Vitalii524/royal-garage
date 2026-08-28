@@ -125,6 +125,14 @@ async function initDatabase() {
     `);
 
     await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS
+        email_verified BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN IF NOT EXISTS
+        phone_verified BOOLEAN NOT NULL DEFAULT FALSE
+`);
+
+    await pool.query(`
     CREATE TABLE IF NOT EXISTS business_types (
         id UUID PRIMARY KEY,
         code VARCHAR(60) UNIQUE NOT NULL,
@@ -408,6 +416,25 @@ await pool.query(`
         code
     )
     DO NOTHING
+`);
+
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS email_verification_tokens (
+        id UUID PRIMARY KEY,
+
+        user_id UUID NOT NULL
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+
+        token_hash TEXT NOT NULL UNIQUE,
+
+        expires_at TIMESTAMPTZ NOT NULL,
+
+        used_at TIMESTAMPTZ,
+
+        created_at TIMESTAMPTZ NOT NULL
+            DEFAULT NOW()
+    )
 `);
 
     await pool.query(`
@@ -6023,7 +6050,8 @@ if (
                     phone,
                     password_hash,
                     account_type,
-                    role
+                    role,
+                    email_verified
                 )
                 VALUES (
                     $1,
@@ -6032,16 +6060,18 @@ if (
                     $4,
                     $5,
                     $6,
-                    'user'
+                    'user',
+                    FALSE
                 )
                 RETURNING
-                    id,
-                    name,
-                    email,
-                    phone,
-                    account_type,
-                    role,
-                    created_at
+                id,
+                name,
+                email,
+                phone,
+                account_type,
+                role,
+                email_verified,
+                created_at
                 `,
                 [
                     userId,
@@ -6135,36 +6165,143 @@ if (
 
             const newUser =
             result.rows[0];
-        
-        const token =
-            jwt.sign(
-                {
-                    userId: newUser.id,
-                    role:
-                        newUser.role || "user"
-                },
-                process.env.JWT_SECRET,
-                {
-                    expiresIn: "7d"
-                }
-            );
 
-            res.status(201).json({
-                ok: true,
-                token,
-                user: {
-                    id: newUser.id,
-                    name: newUser.name,
-                    email: newUser.email,
-                    phone:
-                        newUser.phone || "",
-                    accountType:
-                        newUser.account_type ||
-                        "user",
-                    role:
-                        newUser.role || "user"
-                }
-            });
+            const verificationToken =
+    crypto
+        .randomBytes(32)
+        .toString("hex");
+
+const verificationTokenHash =
+    crypto
+        .createHash("sha256")
+        .update(verificationToken)
+        .digest("hex");
+
+const verificationExpiresAt =
+    new Date(
+        Date.now() +
+        24 * 60 * 60 * 1000
+    );
+
+await pool.query(
+    `
+    DELETE FROM email_verification_tokens
+    WHERE
+        user_id = $1
+        AND used_at IS NULL
+    `,
+    [
+        newUser.id
+    ]
+);
+
+await pool.query(
+    `
+    INSERT INTO email_verification_tokens (
+        id,
+        user_id,
+        token_hash,
+        expires_at
+    )
+    VALUES (
+        $1,
+        $2,
+        $3,
+        $4
+    )
+    `,
+    [
+        crypto.randomUUID(),
+        newUser.id,
+        verificationTokenHash,
+        verificationExpiresAt
+    ]
+);
+
+const verificationUrl =
+    `https://royalgarage.com.ua/api/verify-email?token=` +
+    encodeURIComponent(
+        verificationToken
+    );
+
+try {
+    await mailTransporter.sendMail({
+        from:
+            `"Royal Garage" <${process.env.GMAIL_USER}>`,
+
+        to:
+            newUser.email,
+
+        subject:
+            "Підтвердження email — Royal Garage",
+
+        text:
+            `Вітаємо у Royal Garage!\n\n` +
+            `Підтвердьте вашу email-адресу:\n${verificationUrl}\n\n` +
+            `Посилання діє 24 години.`,
+
+        html:
+            `
+            <h2>Royal Garage</h2>
+
+            <p>
+                Дякуємо за реєстрацію.
+            </p>
+
+            <p>
+                Натисніть кнопку, щоб підтвердити email:
+            </p>
+
+            <p>
+                <a href="${verificationUrl}">
+                    Підтвердити email
+                </a>
+            </p>
+
+            <p>
+                Посилання діє 24 години.
+            </p>
+            `
+    });
+} catch (mailError) {
+    console.error(
+        "Verification email error:",
+        mailError
+    );
+}
+        
+res.status(201).json({
+    ok: true,
+
+    requiresEmailVerification: true,
+
+    message:
+        "Реєстрація успішна. Перевірте пошту та підтвердьте email.",
+
+    user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+
+        phone:
+            newUser.phone || "",
+
+        accountType:
+            newUser.account_type ||
+            "user",
+
+        role:
+            newUser.role ||
+            "user",
+
+        emailVerified:
+            Boolean(
+                newUser.email_verified
+            )
+    }
+});
+
+
     } catch (error) {
         console.error(
             "Registration error:",
@@ -6178,6 +6315,388 @@ if (
         });
     }
 });
+
+app.get(
+    "/api/verify-email",
+    async (req, res) => {
+        const token =
+            String(
+                req.query.token || ""
+            ).trim();
+
+        if (!token) {
+            return res
+                .status(400)
+                .type("html")
+                .send(`
+                    <h2>Royal Garage</h2>
+                    <p>Посилання для підтвердження недійсне.</p>
+                `);
+        }
+
+        const tokenHash =
+            crypto
+                .createHash("sha256")
+                .update(token)
+                .digest("hex");
+
+        const client =
+            await pool.connect();
+
+        try {
+            await client.query(
+                "BEGIN"
+            );
+
+            const tokenResult =
+                await client.query(
+                    `
+                    SELECT
+                        id,
+                        user_id
+                    FROM email_verification_tokens
+                    WHERE
+                        token_hash = $1
+                        AND used_at IS NULL
+                        AND expires_at > NOW()
+                    LIMIT 1
+                    FOR UPDATE
+                    `,
+                    [
+                        tokenHash
+                    ]
+                );
+
+            if (
+                tokenResult.rows.length === 0
+            ) {
+                await client.query(
+                    "ROLLBACK"
+                );
+
+                return res
+                    .status(400)
+                    .type("html")
+                    .send(`
+                        <h2>Royal Garage</h2>
+                        <p>
+                            Посилання недійсне або термін його дії завершився.
+                        </p>
+                    `);
+            }
+
+            const verification =
+                tokenResult.rows[0];
+
+            await client.query(
+                `
+                UPDATE users
+                SET
+                    email_verified = TRUE,
+                    updated_at = NOW()
+                WHERE id = $1
+                `,
+                [
+                    verification.user_id
+                ]
+            );
+
+            await client.query(
+                `
+                UPDATE email_verification_tokens
+                SET used_at = NOW()
+                WHERE id = $1
+                `,
+                [
+                    verification.id
+                ]
+            );
+
+            await client.query(
+                "COMMIT"
+            );
+
+            return res
+                .type("html")
+                .send(`
+                    <!doctype html>
+                    <html lang="uk">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta
+                            name="viewport"
+                            content="width=device-width, initial-scale=1"
+                        >
+                        <title>Email підтверджено | Royal Garage</title>
+                    </head>
+
+                    <body
+                        style="
+                            font-family: Arial, sans-serif;
+                            text-align: center;
+                            padding: 50px 20px;
+                        "
+                    >
+                        <h1>Royal Garage</h1>
+
+                        <h2>✅ Email підтверджено</h2>
+
+                        <p>
+                            Вашу email-адресу успішно підтверджено.
+                        </p>
+
+                        <p>
+                            <a href="https://royalgarage.com.ua/">
+                                Перейти на Royal Garage
+                            </a>
+                        </p>
+                    </body>
+                    </html>
+                `);
+
+        } catch (error) {
+
+            try {
+                await client.query(
+                    "ROLLBACK"
+                );
+            } catch {}
+
+            console.error(
+                "Email verification error:",
+                error
+            );
+
+            return res
+                .status(500)
+                .type("html")
+                .send(`
+                    <h2>Royal Garage</h2>
+                    <p>
+                        Не вдалося підтвердити email.
+                    </p>
+                `);
+
+        } finally {
+            client.release();
+        }
+    }
+);
+
+app.post(
+    "/api/resend-verification-email",
+    async (req, res) => {
+        try {
+            const email =
+                String(
+                    req.body.email || ""
+                )
+                    .trim()
+                    .toLowerCase();
+
+            if (!email) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Введіть email."
+                });
+            }
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        email,
+                        email_verified
+                    FROM users
+                    WHERE email = $1
+                    LIMIT 1
+                    `,
+                    [
+                        email
+                    ]
+                );
+
+            /*
+             * Не повідомляємо стороннім,
+             * чи існує такий акаунт.
+             */
+            if (
+                result.rows.length === 0
+            ) {
+                return res.json({
+                    ok: true,
+                    message:
+                        "Якщо акаунт існує, лист для підтвердження надіслано."
+                });
+            }
+
+            const user =
+                result.rows[0];
+
+            if (user.email_verified) {
+                return res.json({
+                    ok: true,
+                    message:
+                        "Цей email уже підтверджено."
+                });
+            }
+
+            const recentToken =
+                await pool.query(
+                    `
+                    SELECT created_at
+                    FROM email_verification_tokens
+                    WHERE
+                        user_id = $1
+                        AND used_at IS NULL
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                    `,
+                    [
+                        user.id
+                    ]
+                );
+
+            if (
+                recentToken.rows.length > 0
+            ) {
+                const createdAt =
+                    new Date(
+                        recentToken.rows[0].created_at
+                    ).getTime();
+
+                const oneMinuteAgo =
+                    Date.now() -
+                    60 * 1000;
+
+                if (
+                    createdAt > oneMinuteAgo
+                ) {
+                    return res.status(429).json({
+                        ok: false,
+                        message:
+                            "Зачекайте хвилину перед повторним надсиланням."
+                    });
+                }
+            }
+
+            const verificationToken =
+                crypto
+                    .randomBytes(32)
+                    .toString("hex");
+
+            const tokenHash =
+                crypto
+                    .createHash("sha256")
+                    .update(
+                        verificationToken
+                    )
+                    .digest("hex");
+
+            const expiresAt =
+                new Date(
+                    Date.now() +
+                    24 * 60 * 60 * 1000
+                );
+
+            await pool.query(
+                `
+                DELETE FROM email_verification_tokens
+                WHERE
+                    user_id = $1
+                    AND used_at IS NULL
+                `,
+                [
+                    user.id
+                ]
+            );
+
+            await pool.query(
+                `
+                INSERT INTO email_verification_tokens (
+                    id,
+                    user_id,
+                    token_hash,
+                    expires_at
+                )
+                VALUES (
+                    $1,
+                    $2,
+                    $3,
+                    $4
+                )
+                `,
+                [
+                    crypto.randomUUID(),
+                    user.id,
+                    tokenHash,
+                    expiresAt
+                ]
+            );
+
+            const verificationUrl =
+                `https://royalgarage.com.ua/api/verify-email?token=` +
+                encodeURIComponent(
+                    verificationToken
+                );
+
+            await mailTransporter.sendMail({
+                from:
+                    `"Royal Garage" <${process.env.GMAIL_USER}>`,
+
+                to:
+                    user.email,
+
+                subject:
+                    "Підтвердження email — Royal Garage",
+
+                text:
+                    `Підтвердьте вашу email-адресу:\n\n` +
+                    `${verificationUrl}\n\n` +
+                    `Посилання діє 24 години.`,
+
+                html:
+                    `
+                    <h2>Royal Garage</h2>
+
+                    <p>
+                        Підтвердьте вашу email-адресу.
+                    </p>
+
+                    <p>
+                        <a href="${verificationUrl}">
+                            Підтвердити email
+                        </a>
+                    </p>
+
+                    <p>
+                        Посилання діє 24 години.
+                    </p>
+                    `
+            });
+
+            return res.json({
+                ok: true,
+                message:
+                    "Новий лист для підтвердження надіслано."
+            });
+
+        } catch (error) {
+            console.error(
+                "Resend verification email error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося повторно надіслати лист."
+            });
+        }
+    }
+);
 
 app.post("/api/login", async (req, res) => {
     try {
@@ -6202,15 +6721,16 @@ app.post("/api/login", async (req, res) => {
             await pool.query(
                 `
                 SELECT
-                    id,
-                    name,
-                    email,
-                    phone,
-                    password_hash,
-                    account_type,
-                    role,
-                    created_at
-                FROM users
+                id,
+                name,
+                email,
+                phone,
+                password_hash,
+                account_type,
+                role,
+                email_verified,
+                created_at
+            FROM users
                 WHERE email = $1
                 LIMIT 1
                 `,
@@ -6238,6 +6758,14 @@ app.post("/api/login", async (req, res) => {
                 ok: false,
                 message:
                     "Неправильний email або пароль."
+            });
+        }
+
+        if (!user.email_verified) {
+            return res.status(403).json({
+                ok: false,
+                message:
+                    "Підтвердьте email. Ми надіслали посилання на вашу пошту."
             });
         }
 
