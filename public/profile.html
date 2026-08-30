@@ -150,29 +150,85 @@
 
     <section class="account-settings-section">
         <h2>Налаштування акаунта</h2>
-    
-        <div class="account-settings-row">
-            <span>Email</span>
-            <strong id="accountEmail">
-                —
-            </strong>
-        </div>
-    
-        <div class="account-settings-row">
-            <span>Телефон</span>
-            <strong id="accountPhone">
-                —
-            </strong>
-        </div>
-    
-        <button
-            type="button"
-            class="gold-btn"
-            id="changeAccountPhoneButton"
-        >
-            Змінити номер телефону
-        </button>
-    </section>
+        
+            <div class="account-settings-row">
+                <span>Email</span>
+        
+                <div>
+                    <strong id="accountEmail">
+                        —
+                    </strong>
+        
+                    <span id="accountEmailStatus">
+                        —
+                    </span>
+                </div>
+            </div>
+        
+            <div class="account-settings-row">
+                <span>Телефон</span>
+        
+                <div>
+                    <strong id="accountPhone">
+                        —
+                    </strong>
+        
+                    <span id="accountPhoneStatus">
+                        —
+                    </span>
+                </div>
+            </div>
+        
+            <button
+                type="button"
+                class="gold-btn"
+                id="verifyAccountPhoneButton"
+                hidden
+            >
+                Підтвердити номер
+            </button>
+        
+            <div
+                id="phoneVerificationBlock"
+                hidden
+            >
+                <p>
+                    Введіть 6-значний код із SMS
+                </p>
+        
+                <input
+                    type="text"
+                    id="phoneVerificationCode"
+                    inputmode="numeric"
+                    maxlength="6"
+                    placeholder="000000"
+                    autocomplete="one-time-code"
+                >
+        
+                <button
+                    type="button"
+                    class="gold-btn"
+                    id="confirmPhoneVerificationButton"
+                >
+                    Підтвердити
+                </button>
+        
+                <button
+                    type="button"
+                    id="resendPhoneVerificationButton"
+                >
+                    Надіслати код повторно
+                </button>
+            </div>
+        
+            <button
+                type="button"
+                class="gold-btn"
+                id="changeAccountPhoneButton"
+            >
+                Змінити номер телефону
+            </button>
+        </section>
 
     <div class="account-danger-zone">
 

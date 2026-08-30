@@ -909,104 +909,44 @@ document
         "click",
         addServiceHubService
     );
+    document
+    .getElementById(
+        "serviceHubMapButton"
+    )
+    ?.addEventListener(
+        "click",
+        () => {
+            if (
+                !isServiceHubOwner()
+            ) {
+                return;
+            }
 
-    function isSubscriptionActive() {
-        const expiresAt =
-            currentServiceHubProfile
-                ?.subscriptionExpiresAt;
-    
-        if (!expiresAt) {
-            return false;
+            alert(
+                "Google Maps доступний для SERVICE HUB LVIV."
+            );
         }
-    
-        return (
-            new Date(expiresAt).getTime() >
-            Date.now()
-        );
-    }
-    
-    
-    function showProMessage(
-        featureName
-    ) {
-        alert(
-            `${featureName} доступний у тарифі Pro.\n\nОберіть Pro, щоб активувати цю функцію.`
-        );
-    }
-    
-    
-    document
-        .getElementById(
-            "serviceHubMapButton"
-        )
-        ?.addEventListener(
-            "click",
-            () => {
-                if (
-                    !isServiceHubOwner()
-                ) {
-                    return;
-                }
-    
-                const hasMap =
-                    Boolean(
-                        currentServiceHubProfile
-                            ?.hasMap
-                    );
-    
-                if (
-                    !hasMap ||
-                    !isSubscriptionActive()
-                ) {
-                    showProMessage(
-                        "Google Maps"
-                    );
-    
-                    return;
-                }
-    
-                alert(
-                    "Google Maps активний. Наступним кроком додамо поле для точної локації."
-                );
+    );
+
+
+document
+    .getElementById(
+        "serviceHubCrmButton"
+    )
+    ?.addEventListener(
+        "click",
+        () => {
+            if (
+                !isServiceHubOwner()
+            ) {
+                return;
             }
-        );
-    
-    
-    document
-        .getElementById(
-            "serviceHubCrmButton"
-        )
-        ?.addEventListener(
-            "click",
-            () => {
-                if (
-                    !isServiceHubOwner()
-                ) {
-                    return;
-                }
-    
-                const hasCrm =
-                    Boolean(
-                        currentServiceHubProfile
-                            ?.hasCrm
-                    );
-    
-                if (
-                    !hasCrm ||
-                    !isSubscriptionActive()
-                ) {
-                    showProMessage(
-                        "CRM"
-                    );
-    
-                    return;
-                }
-    
-                alert(
-                    "CRM активна. Наступним кроком підключимо саму CRM."
-                );
-            }
-        );
+
+            alert(
+                "CRM доступна для SERVICE HUB LVIV."
+            );
+        }
+    );
 
 /* =========================
    FLOATING BUTTONS

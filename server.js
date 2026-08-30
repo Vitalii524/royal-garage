@@ -19,6 +19,84 @@ const mailTransporter =
         }
     });
 
+    const ALPHASMS_API_KEY =
+    process.env.ALPHASMS_API_KEY;
+
+const ALPHASMS_SENDER =
+    process.env.ALPHASMS_SENDER;
+
+async function sendVerificationSms(
+    phone,
+    code
+) {
+    if (
+        !ALPHASMS_API_KEY ||
+        !ALPHASMS_SENDER
+    ) {
+        throw new Error(
+            "AlphaSMS environment variables are missing."
+        );
+    }
+
+    const response =
+        await fetch(
+            "https://alphasms.ua/api/json.php",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body: JSON.stringify({
+                    auth:
+                        ALPHASMS_API_KEY,
+
+                    data: [
+                        {
+                            type: "sms",
+
+                            id:
+                                crypto.randomInt(
+                                    100000,
+                                    999999999
+                                ),
+
+                            phone:
+                                Number(phone),
+
+                            sms_signature:
+                                ALPHASMS_SENDER,
+
+                            sms_message:
+                                `Royal Garage: код підтвердження ${code}. Код діє 10 хвилин.`
+                        }
+                    ]
+                })
+            }
+        );
+
+    const data =
+        await response.json();
+
+    const smsResult =
+        data?.data?.[0];
+
+    if (
+        !data?.success ||
+        !smsResult?.success
+    ) {
+        throw new Error(
+            smsResult?.error ||
+            data?.error ||
+            "SMS sending failed."
+        );
+    }
+
+    return smsResult.data;
+}
+
 const app = express();
 
 const LIQPAY_PUBLIC_KEY =
@@ -429,6 +507,30 @@ await pool.query(`
         token_hash TEXT NOT NULL UNIQUE,
 
         expires_at TIMESTAMPTZ NOT NULL,
+
+        used_at TIMESTAMPTZ,
+
+        created_at TIMESTAMPTZ NOT NULL
+            DEFAULT NOW()
+    )
+`);
+
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS phone_verification_codes (
+        id UUID PRIMARY KEY,
+
+        user_id UUID NOT NULL
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+
+        phone VARCHAR(20) NOT NULL,
+
+        code_hash TEXT NOT NULL,
+
+        expires_at TIMESTAMPTZ NOT NULL,
+
+        attempts INTEGER NOT NULL
+            DEFAULT 0,
 
         used_at TIMESTAMPTZ,
 
@@ -3677,6 +3779,42 @@ if (
         expiresAt =
             null;
     }
+}
+
+/*
+    SERVICE HUB LVIV —
+    безкоштовне розміщення оголошень
+*/
+if (
+    String(req.user.userId) ===
+    "d2363e3d-4723-4755-9030-594cd3ccd6f0"
+) {
+    listingStatus =
+        "active";
+
+    publishedAt =
+        new Date();
+
+    expiresAt =
+        null;
+}
+
+/*
+    ROYAL AUTO —
+    безкоштовне розміщення оголошень
+*/
+if (
+    String(req.user.userId) ===
+    "32ce413e-9eb6-417a-b99a-77d9ca7c144a"
+) {
+    listingStatus =
+        "active";
+
+    publishedAt =
+        new Date();
+
+    expiresAt =
+        null;
 }
 
             const result = await pool.query(
@@ -7375,6 +7513,449 @@ async function requireAuth(req, res, next) {
     }
 }
 
+app.post(
+    "/api/phone/send-code",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const userResult =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        phone,
+                        phone_verified
+                    FROM users
+                    WHERE id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.user.userId
+                    ]
+                );
+
+            if (
+                userResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Користувача не знайдено."
+                });
+            }
+
+            const user =
+                userResult.rows[0];
+
+            if (user.phone_verified) {
+                return res.json({
+                    ok: true,
+                    alreadyVerified: true,
+                    message:
+                        "Номер телефону вже підтверджено."
+                });
+            }
+
+            const phone =
+                String(
+                    user.phone || ""
+                ).replace(/\D/g, "");
+
+            if (!/^380\d{9}$/.test(phone)) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Некоректний номер телефону."
+                });
+            }
+
+            const recentResult =
+                await pool.query(
+                    `
+                    SELECT created_at
+                    FROM phone_verification_codes
+                    WHERE
+                        user_id = $1
+                        AND used_at IS NULL
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                    `,
+                    [
+                        user.id
+                    ]
+                );
+
+            if (
+                recentResult.rows.length > 0
+            ) {
+                const createdAt =
+                    new Date(
+                        recentResult.rows[0]
+                            .created_at
+                    ).getTime();
+
+                if (
+                    Date.now() - createdAt <
+                    60 * 1000
+                ) {
+                    return res.status(429).json({
+                        ok: false,
+                        message:
+                            "Зачекайте хвилину перед повторним надсиланням коду."
+                    });
+                }
+            }
+
+            const code =
+                String(
+                    crypto.randomInt(
+                        100000,
+                        1000000
+                    )
+                );
+
+            const codeHash =
+                crypto
+                    .createHash("sha256")
+                    .update(code)
+                    .digest("hex");
+
+            const expiresAt =
+                new Date(
+                    Date.now() +
+                    10 * 60 * 1000
+                );
+
+            await pool.query(
+                `
+                DELETE FROM phone_verification_codes
+                WHERE
+                    user_id = $1
+                    AND used_at IS NULL
+                `,
+                [
+                    user.id
+                ]
+            );
+
+            const verificationId =
+                crypto.randomUUID();
+
+            await pool.query(
+                `
+                INSERT INTO phone_verification_codes (
+                    id,
+                    user_id,
+                    phone,
+                    code_hash,
+                    expires_at
+                )
+                VALUES (
+                    $1,
+                    $2,
+                    $3,
+                    $4,
+                    $5
+                )
+                `,
+                [
+                    verificationId,
+                    user.id,
+                    phone,
+                    codeHash,
+                    expiresAt
+                ]
+            );
+
+            try {
+                await sendVerificationSms(
+                    phone,
+                    code
+                );
+            } catch (smsError) {
+
+                await pool.query(
+                    `
+                    DELETE FROM phone_verification_codes
+                    WHERE id = $1
+                    `,
+                    [
+                        verificationId
+                    ]
+                );
+
+                throw smsError;
+            }
+
+            return res.json({
+                ok: true,
+                message:
+                    "Код підтвердження надіслано на ваш номер телефону."
+            });
+
+        } catch (error) {
+            console.error(
+                "Phone verification send error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося надіслати код підтвердження."
+            });
+        }
+    }
+);
+
+app.post(
+    "/api/phone/verify-code",
+    requireAuth,
+    async (req, res) => {
+        const code =
+            String(
+                req.body.code || ""
+            )
+                .replace(/\D/g, "");
+
+        if (!/^\d{6}$/.test(code)) {
+            return res.status(400).json({
+                ok: false,
+                message:
+                    "Введіть 6-значний код."
+            });
+        }
+
+        const client =
+            await pool.connect();
+
+        try {
+            await client.query(
+                "BEGIN"
+            );
+
+            const codeResult =
+                await client.query(
+                    `
+                    SELECT
+                        id,
+                        user_id,
+                        phone,
+                        code_hash,
+                        expires_at,
+                        attempts
+                    FROM phone_verification_codes
+                    WHERE
+                        user_id = $1
+                        AND used_at IS NULL
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                    FOR UPDATE
+                    `,
+                    [
+                        req.user.userId
+                    ]
+                );
+
+            if (
+                codeResult.rows.length === 0
+            ) {
+                await client.query(
+                    "ROLLBACK"
+                );
+
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Активного коду підтвердження немає."
+                });
+            }
+
+            const verification =
+                codeResult.rows[0];
+
+            if (
+                new Date(
+                    verification.expires_at
+                ).getTime() <
+                Date.now()
+            ) {
+                await client.query(
+                    `
+                    UPDATE phone_verification_codes
+                    SET used_at = NOW()
+                    WHERE id = $1
+                    `,
+                    [
+                        verification.id
+                    ]
+                );
+
+                await client.query(
+                    "COMMIT"
+                );
+
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Код прострочений. Надішліть новий код."
+                });
+            }
+
+            if (
+                Number(
+                    verification.attempts
+                ) >= 5
+            ) {
+                await client.query(
+                    `
+                    UPDATE phone_verification_codes
+                    SET used_at = NOW()
+                    WHERE id = $1
+                    `,
+                    [
+                        verification.id
+                    ]
+                );
+
+                await client.query(
+                    "COMMIT"
+                );
+
+                return res.status(429).json({
+                    ok: false,
+                    message:
+                        "Забагато неправильних спроб. Надішліть новий код."
+                });
+            }
+
+            const codeHash =
+                crypto
+                    .createHash("sha256")
+                    .update(code)
+                    .digest("hex");
+
+            if (
+                codeHash !==
+                verification.code_hash
+            ) {
+                const nextAttempts =
+                    Number(
+                        verification.attempts
+                    ) + 1;
+
+                await client.query(
+                    `
+                    UPDATE phone_verification_codes
+                    SET
+                        attempts = $1,
+                        used_at =
+                            CASE
+                                WHEN $1 >= 5
+                                THEN NOW()
+                                ELSE used_at
+                            END
+                    WHERE id = $2
+                    `,
+                    [
+                        nextAttempts,
+                        verification.id
+                    ]
+                );
+
+                await client.query(
+                    "COMMIT"
+                );
+
+                return res.status(400).json({
+                    ok: false,
+
+                    message:
+                        nextAttempts >= 5
+                            ? "Забагато неправильних спроб. Надішліть новий код."
+                            : "Неправильний код."
+                });
+            }
+
+            const userResult =
+                await client.query(
+                    `
+                    UPDATE users
+                    SET
+                        phone_verified = TRUE,
+                        updated_at = NOW()
+                    WHERE
+                        id = $1
+                        AND phone = $2
+                    RETURNING id
+                    `,
+                    [
+                        req.user.userId,
+                        verification.phone
+                    ]
+                );
+
+            if (
+                userResult.rows.length === 0
+            ) {
+                await client.query(
+                    "ROLLBACK"
+                );
+
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Номер телефону було змінено. Надішліть новий код."
+                });
+            }
+
+            await client.query(
+                `
+                UPDATE phone_verification_codes
+                SET used_at = NOW()
+                WHERE id = $1
+                `,
+                [
+                    verification.id
+                ]
+            );
+
+            await client.query(
+                "COMMIT"
+            );
+
+            return res.json({
+                ok: true,
+                phoneVerified: true,
+                message:
+                    "Номер телефону успішно підтверджено."
+            });
+
+        } catch (error) {
+
+            try {
+                await client.query(
+                    "ROLLBACK"
+                );
+            } catch {}
+
+            console.error(
+                "Phone verification error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося підтвердити номер телефону."
+            });
+
+        } finally {
+            client.release();
+        }
+    }
+);
+
 /* =========================
    ROYAL AUTO — ДОСТУП ВЛАСНИКА
    ========================= */
@@ -9204,6 +9785,16 @@ app.patch(
                                 phone
                             ),
 
+                            phone_verified =
+                            CASE
+                                WHEN
+                                    $1 IS NOT NULL
+                                    AND $1 <> phone
+                                THEN FALSE
+                                ELSE phone_verified
+                            ,
+                    
+
                         city =
                             COALESCE(
                                 $2,
@@ -9244,6 +9835,7 @@ app.patch(
                         name,
                         email,
                         phone,
+                        phone_verified,
                         city,
                         telegram,
                         profile_photo,
@@ -9310,18 +9902,20 @@ app.get(
                 await pool.query(
                     `
                     SELECT
-                        id,
-                        name,
-                        email,
-                        phone,
-                        city,
-                        telegram,
-                        profile_photo,
-                        show_phone,
-                        show_telegram,
-                        account_type,
-                        role
-                    FROM users
+                    id,
+                    name,
+                    email,
+                    phone,
+                    email_verified,
+                    phone_verified,
+                    city,
+                    telegram,
+                    profile_photo,
+                    show_phone,
+                    show_telegram,
+                    account_type,
+                    role
+                FROM users
                     WHERE id = $1
                     LIMIT 1
                     `,

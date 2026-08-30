@@ -571,6 +571,16 @@ async function loadProfileFromServer() {
             phone:
                 user.phone || "",
 
+            emailVerified:
+                    Boolean(
+                        user.email_verified
+                    ),
+
+            phoneVerified:
+                    Boolean(
+                        user.phone_verified
+                    ),
+
             city:
                 user.city || "",
 
@@ -3425,7 +3435,7 @@ function normalizePhone(value) {
 }
 
 function renderAccountSettings() {
-    
+
     const accountEmail =
         document.getElementById(
             "accountEmail"
@@ -3436,27 +3446,316 @@ function renderAccountSettings() {
             "accountPhone"
         );
 
-        const changeAccountPhoneButton =
-    document.getElementById(
-        "changeAccountPhoneButton"
-    );
+    const accountEmailStatus =
+        document.getElementById(
+            "accountEmailStatus"
+        );
 
-if (changeAccountPhoneButton) {
-    changeAccountPhoneButton.textContent =
-        currentUser.phone
-            ? "Змінити номер телефону"
-            : "Додати номер телефону";
-}
+    const accountPhoneStatus =
+        document.getElementById(
+            "accountPhoneStatus"
+        );
+
+    const verifyAccountPhoneButton =
+        document.getElementById(
+            "verifyAccountPhoneButton"
+        );
+
+    const phoneVerificationBlock =
+        document.getElementById(
+            "phoneVerificationBlock"
+        );
+
+    const changeAccountPhoneButton =
+        document.getElementById(
+            "changeAccountPhoneButton"
+        );
+
 
     if (accountEmail) {
         accountEmail.textContent =
             currentUser.email || "—";
     }
 
+
+    if (accountEmailStatus) {
+        accountEmailStatus.textContent =
+            currentUser.emailVerified
+                ? "✅ Підтверджено"
+                : "⚠ Не підтверджено";
+    }
+
+
     if (accountPhone) {
         accountPhone.textContent =
             currentUser.phone || "—";
     }
+
+
+    if (accountPhoneStatus) {
+        accountPhoneStatus.textContent =
+            currentUser.phoneVerified
+                ? "✅ Підтверджено"
+                : "⚠ Не підтверджено";
+    }
+
+
+    if (verifyAccountPhoneButton) {
+        verifyAccountPhoneButton.hidden =
+            !currentUser.phone ||
+            currentUser.phoneVerified;
+    }
+
+
+    if (
+        phoneVerificationBlock &&
+        currentUser.phoneVerified
+    ) {
+        phoneVerificationBlock.hidden =
+            true;
+    }
+
+
+    if (changeAccountPhoneButton) {
+        changeAccountPhoneButton.textContent =
+            currentUser.phone
+                ? "Змінити номер телефону"
+                : "Додати номер телефону";
+    }
+}
+
+async function sendPhoneVerificationCode() {
+    const token =
+        localStorage.getItem(
+            "royalGarageToken"
+        );
+
+    if (!token) {
+        alert(
+            "Сесія недійсна. Увійдіть повторно."
+        );
+        return;
+    }
+
+    const verifyButton =
+        document.getElementById(
+            "verifyAccountPhoneButton"
+        );
+
+    const resendButton =
+        document.getElementById(
+            "resendPhoneVerificationButton"
+        );
+
+    try {
+        if (verifyButton) {
+            verifyButton.disabled = true;
+        }
+
+        if (resendButton) {
+            resendButton.disabled = true;
+        }
+
+        const response =
+            await fetch(
+                "/api/phone/send-code",
+                {
+                    method: "POST",
+
+                    headers: {
+                        Authorization:
+                            `Bearer ${token}`
+                    }
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося надіслати код."
+            );
+        }
+
+        alert(
+            data.message ||
+            "Код надіслано."
+        );
+
+        const verificationBlock =
+            document.getElementById(
+                "phoneVerificationBlock"
+            );
+
+        if (verificationBlock) {
+            verificationBlock.hidden =
+                false;
+        }
+
+        document
+            .getElementById(
+                "phoneVerificationCode"
+            )
+            ?.focus();
+
+    } catch (error) {
+        console.error(
+            "Phone verification send error:",
+            error
+        );
+
+        alert(
+            error.message ||
+            "Не вдалося надіслати код."
+        );
+
+    } finally {
+        if (verifyButton) {
+            verifyButton.disabled = false;
+        }
+
+        if (resendButton) {
+            resendButton.disabled = false;
+        }
+    }
+}
+
+
+const verifyAccountPhoneButton =
+    document.getElementById(
+        "verifyAccountPhoneButton"
+    );
+
+if (verifyAccountPhoneButton) {
+    verifyAccountPhoneButton
+        .addEventListener(
+            "click",
+            sendPhoneVerificationCode
+        );
+}
+
+
+const resendPhoneVerificationButton =
+    document.getElementById(
+        "resendPhoneVerificationButton"
+    );
+
+if (resendPhoneVerificationButton) {
+    resendPhoneVerificationButton
+        .addEventListener(
+            "click",
+            sendPhoneVerificationCode
+        );
+}
+
+const confirmPhoneVerificationButton =
+    document.getElementById(
+        "confirmPhoneVerificationButton"
+    );
+
+if (confirmPhoneVerificationButton) {
+    confirmPhoneVerificationButton
+        .addEventListener(
+            "click",
+            async () => {
+                const codeInput =
+                    document.getElementById(
+                        "phoneVerificationCode"
+                    );
+
+                const code =
+                    String(
+                        codeInput?.value || ""
+                    )
+                        .replace(/\D/g, "");
+
+                if (!/^\d{6}$/.test(code)) {
+                    alert(
+                        "Введіть 6-значний код."
+                    );
+                    return;
+                }
+
+                const token =
+                    localStorage.getItem(
+                        "royalGarageToken"
+                    );
+
+                if (!token) {
+                    alert(
+                        "Сесія недійсна. Увійдіть повторно."
+                    );
+                    return;
+                }
+
+                confirmPhoneVerificationButton.disabled =
+                    true;
+
+                try {
+                    const response =
+                        await fetch(
+                            "/api/phone/verify-code",
+                            {
+                                method: "POST",
+
+                                headers: {
+                                    "Content-Type":
+                                        "application/json",
+
+                                    Authorization:
+                                        `Bearer ${token}`
+                                },
+
+                                body:
+                                    JSON.stringify({
+                                        code
+                                    })
+                            }
+                        );
+
+                    const data =
+                        await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(
+                            data.message ||
+                            "Не вдалося підтвердити номер."
+                        );
+                    }
+
+                    currentUser.phoneVerified =
+                        true;
+
+                    if (codeInput) {
+                        codeInput.value = "";
+                    }
+
+                    renderAccountSettings();
+
+                    alert(
+                        data.message ||
+                        "Номер телефону підтверджено."
+                    );
+
+                } catch (error) {
+                    console.error(
+                        "Phone verification confirm error:",
+                        error
+                    );
+
+                    alert(
+                        error.message ||
+                        "Не вдалося підтвердити номер."
+                    );
+
+                } finally {
+                    confirmPhoneVerificationButton.disabled =
+                        false;
+                }
+            }
+        );
 }
 
 const changeAccountPhoneButton =
