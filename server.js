@@ -294,6 +294,12 @@ await pool.query(`
 await pool.query(`
     ALTER TABLE business_profiles
     ADD COLUMN IF NOT EXISTS
+        complimentary_subscription BOOLEAN NOT NULL DEFAULT FALSE
+`);
+
+await pool.query(`
+    ALTER TABLE business_profiles
+    ADD COLUMN IF NOT EXISTS
         business_content_type VARCHAR(20) NOT NULL DEFAULT 'services',
     ADD COLUMN IF NOT EXISTS
         work_schedule JSONB NOT NULL DEFAULT '{}'::jsonb
@@ -566,6 +572,18 @@ await pool.query(`
     UPDATE subscription_plans
     SET has_map = TRUE
     WHERE business_type_code <> 'road_assistance'
+`);
+
+await pool.query(`
+    UPDATE business_profiles
+    SET
+        business_type_id = '11111111-1111-1111-1111-111111111111',
+        business_content_type = 'services',
+        subscription_plan_id = 'a2222222-2222-2222-2222-222222222222',
+        complimentary_subscription = TRUE,
+        subscription_started_at = COALESCE(subscription_started_at, NOW()),
+        updated_at = NOW()
+    WHERE owner_id = 'd2363e3d-4723-4755-9030-594cd3ccd6f0'
 `);
 
 await pool.query(`
@@ -1031,7 +1049,10 @@ app.get(
 
                     WHERE
                         sp.is_active = TRUE
-                        AND bp.subscription_expires_at > NOW()
+                        AND (
+                            bp.complimentary_subscription = TRUE
+                            OR bp.subscription_expires_at > NOW()
+                        )
                         AND u.email_verified = TRUE
                         AND u.phone_verified = TRUE
 
@@ -1812,6 +1833,8 @@ app.get(
                 
                     bp.subscription_expires_at,
 
+                    bp.complimentary_subscription,
+
                         bt.name
                             AS business_type_name,
 
@@ -2015,18 +2038,18 @@ app.get(
                     )
                     : null;
 
-            const isIndexable =
-                business.plan_is_active ===
-                    true &&
-                business.email_verified === true &&
-                business.phone_verified === true &&
-                subscriptionExpiresAt &&
-                !Number.isNaN(
-                    subscriptionExpiresAt
-                        .getTime()
-                ) &&
-                subscriptionExpiresAt >
-                    new Date();
+                    const isIndexable =
+                    business.plan_is_active === true &&
+                    business.email_verified === true &&
+                    business.phone_verified === true &&
+                    (
+                        business.complimentary_subscription === true ||
+                        (
+                            subscriptionExpiresAt &&
+                            !Number.isNaN(subscriptionExpiresAt.getTime()) &&
+                            subscriptionExpiresAt > new Date()
+                        )
+                    );
 
             /*
                 Прибираємо стандартні SEO-теги,
@@ -3476,7 +3499,10 @@ app.get(
 
                 WHERE
                     sp.is_active = TRUE
-                    AND bp.subscription_expires_at > NOW()
+                    AND (
+                        bp.complimentary_subscription = TRUE
+                        OR bp.subscription_expires_at > NOW()
+                    )
                     AND u.email_verified = TRUE
                     AND u.phone_verified = TRUE
 
@@ -3551,7 +3577,10 @@ app.get(
                 WHERE
                     bt.code = $1
                     AND sp.is_active = TRUE
-                    AND bp.subscription_expires_at > NOW()
+                    AND (
+                        bp.complimentary_subscription = TRUE
+                        OR bp.subscription_expires_at > NOW()
+                    )
                     AND u.email_verified = TRUE
                     AND u.phone_verified = TRUE
 
@@ -6024,19 +6053,25 @@ async function loadPrivateBusinessProfile(ownerId) {
             bp.subscription_expires_at AS "subscriptionExpiresAt",
 
             CASE
-                WHEN sp.is_active = TRUE
-                 AND bp.subscription_expires_at > NOW()
-                THEN 'active'
-                ELSE 'inactive'
+            WHEN sp.is_active = TRUE
+             AND (
+                 bp.complimentary_subscription = TRUE
+                 OR bp.subscription_expires_at > NOW()
+             )
+            THEN 'active'
+            ELSE 'inactive'
             END AS "subscriptionStatus",
 
             CASE
-                WHEN u.email_verified = TRUE
-                 AND u.phone_verified = TRUE
-                 AND sp.is_active = TRUE
-                 AND bp.subscription_expires_at > NOW()
-                THEN 'active'
-                ELSE 'draft'
+            WHEN u.email_verified = TRUE
+             AND u.phone_verified = TRUE
+             AND sp.is_active = TRUE
+             AND (
+                 bp.complimentary_subscription = TRUE
+                 OR bp.subscription_expires_at > NOW()
+             )
+            THEN 'active'
+            ELSE 'draft'
             END AS "profileStatus",
 
             COALESCE(
@@ -6162,7 +6197,10 @@ async function loadPublicBusinessProfile(ownerId) {
           AND u.email_verified = TRUE
           AND u.phone_verified = TRUE
           AND sp.is_active = TRUE
-          AND bp.subscription_expires_at > NOW()
+          AND (
+            bp.complimentary_subscription = TRUE
+            OR bp.subscription_expires_at > NOW()
+          )
         LIMIT 1
         `,
         [ownerId]
@@ -7254,7 +7292,10 @@ app.post("/api/login", async (req, res) => {
                     bp.subscription_plan_id AS "planId",
                     (
                         sp.is_active = TRUE
-                        AND bp.subscription_expires_at > NOW()
+                        AND (
+                            bp.complimentary_subscription = TRUE
+                            OR bp.subscription_expires_at > NOW()
+                        )
                     ) AS "subscriptionActive"
                 FROM business_profiles bp
                 JOIN subscription_plans sp ON sp.id = bp.subscription_plan_id
