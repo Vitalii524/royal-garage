@@ -565,7 +565,7 @@ await pool.query(`
 await pool.query(`
     UPDATE subscription_plans
     SET has_map = TRUE
-    WHERE business_type_code = 'car_dealer'
+    WHERE business_type_code <> 'road_assistance'
 `);
 
 await pool.query(`
