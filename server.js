@@ -563,6 +563,12 @@ await pool.query(`
 `);
 
 await pool.query(`
+    UPDATE subscription_plans
+    SET has_map = TRUE
+    WHERE business_type_code = 'car_dealer'
+`);
+
+await pool.query(`
     CREATE TABLE IF NOT EXISTS email_verification_tokens (
         id UUID PRIMARY KEY,
 
