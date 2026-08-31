@@ -292,6 +292,72 @@ await pool.query(`
 `);
 
 await pool.query(`
+    ALTER TABLE business_profiles
+    ADD COLUMN IF NOT EXISTS
+        business_content_type VARCHAR(20) NOT NULL DEFAULT 'services',
+    ADD COLUMN IF NOT EXISTS
+        work_schedule JSONB NOT NULL DEFAULT '{}'::jsonb
+`);
+
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS business_services (
+        id UUID PRIMARY KEY,
+        business_id UUID NOT NULL
+            REFERENCES business_profiles(id)
+            ON DELETE CASCADE,
+        title VARCHAR(160) NOT NULL,
+        description TEXT,
+        price_from NUMERIC(12, 2),
+        photos JSONB NOT NULL DEFAULT '[]'::jsonb,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+`);
+
+await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_business_services_business
+    ON business_services (business_id, sort_order, created_at)
+`);
+
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS business_products (
+        id UUID PRIMARY KEY,
+        business_id UUID NOT NULL
+            REFERENCES business_profiles(id)
+            ON DELETE CASCADE,
+        title VARCHAR(160) NOT NULL,
+        description TEXT,
+        price NUMERIC(12, 2),
+        photos JSONB NOT NULL DEFAULT '[]'::jsonb,
+        active BOOLEAN NOT NULL DEFAULT TRUE,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+`);
+
+await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_business_products_business
+    ON business_products (business_id, active, sort_order, created_at)
+`);
+
+await pool.query(`
+    UPDATE business_profiles bp
+    SET business_content_type = CASE bt.code
+        WHEN 'car_service' THEN 'services'
+        WHEN 'detailing' THEN 'services'
+        WHEN 'tire_service' THEN 'services'
+        WHEN 'road_assistance' THEN 'services'
+        WHEN 'auto_shop' THEN 'products'
+        WHEN 'car_dealer' THEN 'cars'
+        ELSE COALESCE(NULLIF(bp.business_content_type, ''), 'services')
+    END
+    FROM business_types bt
+    WHERE bt.id = bp.business_type_id
+`);
+
+await pool.query(`
     CREATE TABLE IF NOT EXISTS business_subscription_payments (
         id UUID PRIMARY KEY,
 
@@ -954,9 +1020,14 @@ app.get(
                         ON sp.id =
                             bp.subscription_plan_id
 
+                    JOIN users u
+                        ON u.id = bp.owner_id
+
                     WHERE
                         sp.is_active = TRUE
                         AND bp.subscription_expires_at > NOW()
+                        AND u.email_verified = TRUE
+                        AND u.phone_verified = TRUE
 
                     ORDER BY
                         bp.updated_at DESC
@@ -1739,7 +1810,10 @@ app.get(
                             AS business_type_name,
 
                         sp.is_active
-                            AS plan_is_active
+                            AS plan_is_active,
+
+                        u.email_verified,
+                        u.phone_verified
 
                     FROM business_profiles bp
 
@@ -1750,6 +1824,9 @@ app.get(
                     LEFT JOIN subscription_plans sp
                         ON sp.id =
                             bp.subscription_plan_id
+
+                    LEFT JOIN users u
+                        ON u.id = bp.owner_id
 
                     WHERE bp.owner_id = $1
 
@@ -1935,6 +2012,8 @@ app.get(
             const isIndexable =
                 business.plan_is_active ===
                     true &&
+                business.email_verified === true &&
+                business.phone_verified === true &&
                 subscriptionExpiresAt &&
                 !Number.isNaN(
                     subscriptionExpiresAt
@@ -3386,9 +3465,14 @@ app.get(
                 JOIN subscription_plans sp
                     ON sp.id = bp.subscription_plan_id
 
+                JOIN users u
+                    ON u.id = bp.owner_id
+
                 WHERE
                     sp.is_active = TRUE
                     AND bp.subscription_expires_at > NOW()
+                    AND u.email_verified = TRUE
+                    AND u.phone_verified = TRUE
 
                 GROUP BY
                     bt.id,
@@ -3455,10 +3539,15 @@ app.get(
                 JOIN subscription_plans sp
                     ON sp.id = bp.subscription_plan_id
 
+                JOIN users u
+                    ON u.id = bp.owner_id
+
                 WHERE
                     bt.code = $1
                     AND sp.is_active = TRUE
                     AND bp.subscription_expires_at > NOW()
+                    AND u.email_verified = TRUE
+                    AND u.phone_verified = TRUE
 
                 ORDER BY
                     bp.name ASC
@@ -4787,7 +4876,164 @@ await pool.query(
    LIQPAY — ОПЛАТА ІСТОРІЇ АВТО
    ========================= */
 
-   app.post(
+   
+/* =========================
+   LIQPAY — ПЕРША ОПЛАТА ПІСЛЯ РЕЄСТРАЦІЇ БІЗНЕСУ
+   Токен дозволяє тільки створити перший платіж.
+   ========================= */
+app.post(
+    "/api/payments/liqpay/business-registration",
+    async (req, res) => {
+        try {
+            if (!LIQPAY_PUBLIC_KEY || !LIQPAY_PRIVATE_KEY) {
+                return res.status(500).json({
+                    ok: false,
+                    message: "LiqPay не налаштований на сервері."
+                });
+            }
+
+            const registrationPaymentToken =
+                String(req.body.registrationPaymentToken || "").trim();
+
+            if (!registrationPaymentToken) {
+                return res.status(401).json({
+                    ok: false,
+                    message: "Сесія оплати відсутня. Зареєструйте бізнес повторно."
+                });
+            }
+
+            let decoded;
+            try {
+                decoded = jwt.verify(
+                    registrationPaymentToken,
+                    process.env.JWT_SECRET
+                );
+            } catch {
+                return res.status(401).json({
+                    ok: false,
+                    message: "Сесія першої оплати завершилась."
+                });
+            }
+
+            if (
+                decoded.scope !== "business_registration_payment" ||
+                !decoded.userId ||
+                !decoded.planId
+            ) {
+                return res.status(403).json({
+                    ok: false,
+                    message: "Недійсна сесія оплати."
+                });
+            }
+
+            const result = await pool.query(
+                `
+                SELECT
+                    bp.id AS "businessProfileId",
+                    bp.owner_id AS "ownerId",
+                    sp.id AS "planId",
+                    sp.name AS "planName",
+                    sp.price_uah AS "priceUah"
+                FROM business_profiles bp
+                JOIN subscription_plans sp
+                    ON sp.id = bp.subscription_plan_id
+                JOIN users u
+                    ON u.id = bp.owner_id
+                WHERE bp.owner_id = $1
+                  AND sp.id = $2
+                  AND sp.is_active = TRUE
+                  AND u.account_type = 'business'
+                  AND (
+                      bp.subscription_expires_at IS NULL
+                      OR bp.subscription_expires_at <= NOW()
+                  )
+                LIMIT 1
+                `,
+                [decoded.userId, decoded.planId]
+            );
+
+            if (!result.rows.length) {
+                return res.status(400).json({
+                    ok: false,
+                    message: "Першу оплату вже виконано або тариф більше недоступний."
+                });
+            }
+
+            const row = result.rows[0];
+            const amount = Number(row.priceUah);
+
+            if (!Number.isFinite(amount) || amount <= 0) {
+                return res.status(400).json({
+                    ok: false,
+                    message: "Для тарифу вказана неправильна ціна."
+                });
+            }
+
+            const orderId = `rg_reg_${decoded.userId}_${Date.now()}`;
+
+            await pool.query(
+                `
+                INSERT INTO business_subscription_payments (
+                    id,
+                    owner_id,
+                    business_profile_id,
+                    plan_id,
+                    order_id,
+                    amount_uah,
+                    status
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+                `,
+                [
+                    crypto.randomUUID(),
+                    decoded.userId,
+                    row.businessProfileId,
+                    row.planId,
+                    orderId,
+                    Math.round(amount)
+                ]
+            );
+
+            const paymentParams = {
+                public_key: LIQPAY_PUBLIC_KEY,
+                version: 7,
+                action: "pay",
+                amount: amount.toFixed(2),
+                currency: "UAH",
+                description: `Royal Garage — ${row.planName}`,
+                order_id: orderId,
+                language: "uk",
+                sandbox: 1,
+                server_url:
+                    "https://royal-garage.onrender.com/api/payments/liqpay/callback",
+                result_url:
+                    "https://royalgarage.com.ua/index.html?businessPayment=return"
+            };
+
+            const data = Buffer
+                .from(JSON.stringify(paymentParams))
+                .toString("base64");
+
+            const signature = createLiqPaySignature(data);
+
+            return res.json({
+                ok: true,
+                checkoutUrl: "https://www.liqpay.ua/api/3/checkout",
+                data,
+                signature,
+                orderId
+            });
+        } catch (error) {
+            console.error("Business registration payment create error:", error);
+            return res.status(500).json({
+                ok: false,
+                message: "Не вдалося створити першу оплату бізнесу."
+            });
+        }
+    }
+);
+
+app.post(
     "/api/payments/liqpay/history",
     requireAuth,
     async (req, res) => {
@@ -5734,91 +5980,210 @@ if (
     }
 );
 
+
+async function loadPrivateBusinessProfile(ownerId) {
+    const result = await pool.query(
+        `
+        SELECT
+            bp.id,
+            bp.owner_id AS "ownerId",
+            bp.name,
+            bp.logo,
+            bp.city,
+            bp.address,
+            bp.phone,
+            bp.telegram,
+            bp.instagram,
+            bp.description,
+            bp.business_content_type AS "businessContentType",
+            bp.work_schedule AS "workSchedule",
+
+            bt.id AS "businessTypeId",
+            bt.code AS "businessTypeCode",
+            bt.name AS "businessTypeName",
+
+            u.email,
+            u.email_verified AS "emailVerified",
+            u.phone_verified AS "phoneVerified",
+
+            sp.id AS "planId",
+            sp.code AS "planCode",
+            sp.name AS "planName",
+            sp.price_uah AS "priceUah",
+            sp.car_limit AS "carLimit",
+            sp.has_crm AS "hasCrm",
+            sp.has_map AS "hasMap",
+
+            bp.subscription_started_at AS "subscriptionStartedAt",
+            bp.subscription_expires_at AS "subscriptionExpiresAt",
+
+            CASE
+                WHEN sp.is_active = TRUE
+                 AND bp.subscription_expires_at > NOW()
+                THEN 'active'
+                ELSE 'inactive'
+            END AS "subscriptionStatus",
+
+            CASE
+                WHEN u.email_verified = TRUE
+                 AND u.phone_verified = TRUE
+                 AND sp.is_active = TRUE
+                 AND bp.subscription_expires_at > NOW()
+                THEN 'active'
+                ELSE 'draft'
+            END AS "profileStatus",
+
+            COALESCE(
+                (
+                    SELECT json_agg(
+                        json_build_object(
+                            'id', bs.id,
+                            'title', bs.title,
+                            'description', bs.description,
+                            'priceFrom', bs.price_from,
+                            'photos', bs.photos
+                        )
+                        ORDER BY bs.sort_order ASC, bs.created_at ASC
+                    )
+                    FROM business_services bs
+                    WHERE bs.business_id = bp.id
+                ),
+                '[]'::json
+            ) AS services,
+
+            COALESCE(
+                (
+                    SELECT json_agg(
+                        json_build_object(
+                            'id', pr.id,
+                            'title', pr.title,
+                            'description', pr.description,
+                            'price', pr.price,
+                            'photos', pr.photos
+                        )
+                        ORDER BY pr.sort_order ASC, pr.created_at ASC
+                    )
+                    FROM business_products pr
+                    WHERE pr.business_id = bp.id
+                      AND pr.active = TRUE
+                ),
+                '[]'::json
+            ) AS products
+
+        FROM business_profiles bp
+        JOIN users u
+            ON u.id = bp.owner_id
+        LEFT JOIN business_types bt
+            ON bt.id = bp.business_type_id
+        LEFT JOIN subscription_plans sp
+            ON sp.id = bp.subscription_plan_id
+        WHERE bp.owner_id = $1
+        LIMIT 1
+        `,
+        [ownerId]
+    );
+
+    return result.rows[0] || null;
+}
+
+async function loadPublicBusinessProfile(ownerId) {
+    const result = await pool.query(
+        `
+        SELECT
+            bp.id,
+            bp.owner_id AS "ownerId",
+            bp.name,
+            bp.logo,
+            bp.city,
+            bp.address,
+            bp.phone,
+            bp.telegram,
+            bp.instagram,
+            bp.description,
+            bp.business_content_type AS "businessContentType",
+            bp.work_schedule AS "workSchedule",
+
+            bt.code AS "businessTypeCode",
+            bt.name AS "businessTypeName",
+
+            sp.has_map AS "mapEnabled",
+
+            COALESCE(
+                (
+                    SELECT json_agg(
+                        json_build_object(
+                            'id', bs.id,
+                            'title', bs.title,
+                            'description', bs.description,
+                            'priceFrom', bs.price_from,
+                            'photos', bs.photos
+                        )
+                        ORDER BY bs.sort_order ASC, bs.created_at ASC
+                    )
+                    FROM business_services bs
+                    WHERE bs.business_id = bp.id
+                ),
+                '[]'::json
+            ) AS services,
+
+            COALESCE(
+                (
+                    SELECT json_agg(
+                        json_build_object(
+                            'id', pr.id,
+                            'title', pr.title,
+                            'description', pr.description,
+                            'price', pr.price,
+                            'photos', pr.photos
+                        )
+                        ORDER BY pr.sort_order ASC, pr.created_at ASC
+                    )
+                    FROM business_products pr
+                    WHERE pr.business_id = bp.id
+                      AND pr.active = TRUE
+                ),
+                '[]'::json
+            ) AS products
+
+        FROM business_profiles bp
+        JOIN users u
+            ON u.id = bp.owner_id
+        JOIN business_types bt
+            ON bt.id = bp.business_type_id
+        JOIN subscription_plans sp
+            ON sp.id = bp.subscription_plan_id
+        WHERE bp.owner_id = $1
+          AND u.email_verified = TRUE
+          AND u.phone_verified = TRUE
+          AND sp.is_active = TRUE
+          AND bp.subscription_expires_at > NOW()
+        LIMIT 1
+        `,
+        [ownerId]
+    );
+
+    return result.rows[0] || null;
+}
+
 app.get(
     "/api/business/profiles/:ownerId",
     async (req, res) => {
         try {
-            const {
-                ownerId
-            } = req.params;
+            const profile = await loadPublicBusinessProfile(req.params.ownerId);
 
-            const result =
-                await pool.query(
-                    `
-                    SELECT
-                        bp.id,
-                        bp.owner_id AS "ownerId",
-                        bp.name,
-                        bp.logo,
-                        bp.city,
-                        bp.address,
-                        bp.phone,
-                        bp.telegram,
-                        bp.instagram,
-                        bp.description,
-                        bp.photos,
-                        bp.services,
-
-                        bt.id AS "businessTypeId",
-                        bt.code AS "businessTypeCode",
-                        bt.name AS "businessTypeName",
-
-                        sp.id AS "planId",
-                        sp.code AS "planCode",
-                        sp.name AS "planName",
-                        sp.price_uah AS "priceUah",
-                        sp.car_limit AS "carLimit",
-                        sp.has_crm AS "hasCrm",
-                        sp.has_map AS "hasMap",
-
-                        bp.subscription_started_at AS "subscriptionStartedAt",
-                        bp.subscription_expires_at AS "subscriptionExpiresAt"
-
-                    FROM business_profiles bp
-
-                    LEFT JOIN business_types bt
-                        ON bt.id =
-                            bp.business_type_id
-
-                    LEFT JOIN subscription_plans sp
-                        ON sp.id =
-                            bp.subscription_plan_id
-
-                    WHERE bp.owner_id = $1
-
-                    LIMIT 1
-                    `,
-                    [
-                        ownerId
-                    ]
-                );
-
-            if (
-                result.rows.length === 0
-            ) {
+            if (!profile) {
                 return res.status(404).json({
                     ok: false,
-                    message:
-                        "Бізнес-профіль не знайдено."
+                    message: "Бізнес-профіль не знайдено або він ще не активований."
                 });
             }
 
-            res.json({
-                ok: true,
-                profile:
-                    result.rows[0]
-            });
-
+            return res.json({ ok: true, profile });
         } catch (error) {
-            console.error(
-                "Public business profile load error:",
-                error
-            );
-
-            res.status(500).json({
+            console.error("Public business profile load error:", error);
+            return res.status(500).json({
                 ok: false,
-                message:
-                    "Не вдалося завантажити бізнес-профіль."
+                message: "Не вдалося завантажити бізнес-профіль."
             });
         }
     }
@@ -5829,86 +6194,27 @@ app.get(
     requireAuth,
     async (req, res) => {
         try {
-            const ownerId =
-                req.user.userId;
-
-            const result =
-                await pool.query(
-                    `
-                    SELECT
-                        bp.id,
-                        bp.owner_id AS "ownerId",
-                        bp.name,
-                        bp.logo,
-                        bp.city,
-                        bp.address,
-                        bp.phone,
-                        bp.telegram,
-                        bp.instagram,
-                        bp.description,
-                        bp.photos,
-                        bp.services,
-
-                        bt.id AS "businessTypeId",
-                        bt.code AS "businessTypeCode",
-                        bt.name AS "businessTypeName",
-
-                        sp.id AS "planId",
-                        sp.code AS "planCode",
-                        sp.name AS "planName",
-                        sp.price_uah AS "priceUah",
-                        sp.car_limit AS "carLimit",
-                        sp.has_crm AS "hasCrm",
-                        sp.has_map AS "hasMap",
-
-                        bp.subscription_started_at AS "subscriptionStartedAt",
-                        bp.subscription_expires_at AS "subscriptionExpiresAt"
-
-                    FROM business_profiles bp
-
-                    LEFT JOIN business_types bt
-                        ON bt.id =
-                            bp.business_type_id
-
-                    LEFT JOIN subscription_plans sp
-                        ON sp.id =
-                            bp.subscription_plan_id
-
-                    WHERE bp.owner_id = $1
-
-                    LIMIT 1
-                    `,
-                    [
-                        ownerId
-                    ]
-                );
-
-            if (
-                result.rows.length === 0
-            ) {
-                return res.status(404).json({
+            if (req.user.accountType !== "business") {
+                return res.status(403).json({
                     ok: false,
-                    message:
-                        "Бізнес-профіль не знайдено."
+                    message: "Це не бізнес-акаунт."
                 });
             }
 
-            res.json({
-                ok: true,
-                profile:
-                    result.rows[0]
-            });
+            const profile = await loadPrivateBusinessProfile(req.user.userId);
+            if (!profile) {
+                return res.status(404).json({
+                    ok: false,
+                    message: "Бізнес-профіль не знайдено."
+                });
+            }
 
+            return res.json({ ok: true, profile });
         } catch (error) {
-            console.error(
-                "Business profile load error:",
-                error
-            );
-
-            res.status(500).json({
+            console.error("Business profile load error:", error);
+            return res.status(500).json({
                 ok: false,
-                message:
-                    "Не вдалося завантажити бізнес-профіль."
+                message: "Не вдалося завантажити бізнес-профіль."
             });
         }
     }
@@ -5919,8 +6225,24 @@ app.patch(
     requireAuth,
     async (req, res) => {
         try {
-            const ownerId =
-                req.user.userId;
+            if (req.user.accountType !== "business") {
+                return res.status(403).json({ ok: false, message: "Це не бізнес-акаунт." });
+            }
+
+            const current = await pool.query(
+                `
+                SELECT bp.id, bt.code AS "businessTypeCode"
+                FROM business_profiles bp
+                JOIN business_types bt ON bt.id = bp.business_type_id
+                WHERE bp.owner_id = $1
+                LIMIT 1
+                `,
+                [req.user.userId]
+            );
+
+            if (!current.rows.length) {
+                return res.status(404).json({ ok: false, message: "Бізнес-профіль не знайдено." });
+            }
 
             const {
                 name,
@@ -5931,166 +6253,335 @@ app.patch(
                 telegram,
                 instagram,
                 description,
-                photos,
-                services
+                businessContentType,
+                workSchedule
             } = req.body;
 
-            const currentResult =
-                await pool.query(
-                    `
-                    SELECT id
-                    FROM business_profiles
-                    WHERE owner_id = $1
-                    LIMIT 1
-                    `,
-                    [
-                        ownerId
-                    ]
-                );
+            const allowedContentTypes = new Set(["services", "products", "both"]);
+            let nextContentType = null;
 
-            if (
-                currentResult.rows.length ===
-                0
-            ) {
-                return res.status(404).json({
-                    ok: false,
-                    message:
-                        "Бізнес-профіль не знайдено."
-                });
+            if (current.rows[0].businessTypeCode === "other" && businessContentType != null) {
+                if (!allowedContentTypes.has(String(businessContentType))) {
+                    return res.status(400).json({
+                        ok: false,
+                        message: "Невірний тип контенту бізнесу."
+                    });
+                }
+                nextContentType = String(businessContentType);
             }
 
-            const result =
-                await pool.query(
-                    `
-                    UPDATE business_profiles
-                    SET
-                        name =
-                            COALESCE(
-                                $2,
-                                name
-                            ),
-
-                        logo =
-                            COALESCE(
-                                $3,
-                                logo
-                            ),
-
-                        city =
-                            COALESCE(
-                                $4,
-                                city
-                            ),
-
-                        address =
-                            COALESCE(
-                                $5,
-                                address
-                            ),
-
-                        phone =
-                            COALESCE(
-                                $6,
-                                phone
-                            ),
-
-                        telegram =
-                            COALESCE(
-                                $7,
-                                telegram
-                            ),
-
-                        instagram =
-                            COALESCE(
-                                $8,
-                                instagram
-                            ),
-
-                        description =
-                            COALESCE(
-                                $9,
-                                description
-                            ),
-
-                        photos =
-                            COALESCE(
-                                $10::jsonb,
-                                photos
-                            ),
-
-                        services =
-                            COALESCE(
-                                $11::jsonb,
-                                services
-                            ),
-
-                        updated_at =
-                            NOW()
-
-                    WHERE owner_id = $1
-
-                    RETURNING
-                        id,
-                        owner_id AS "ownerId",
-                        name,
-                        logo,
-                        city,
-                        address,
-                        phone,
-                        telegram,
-                        instagram,
-                        description,
-                        photos,
-                        services,
-                        updated_at AS "updatedAt"
-                    `,
-                    [
-                        ownerId,
-                        name ?? null,
-                        logo ?? null,
-                        city ?? null,
-                        address ?? null,
-                        phone ?? null,
-                        telegram ?? null,
-                        instagram ?? null,
-                        description ?? null,
-
-                        Array.isArray(photos)
-                            ? JSON.stringify(
-                                photos
-                            )
-                            : null,
-
-                        Array.isArray(services)
-                            ? JSON.stringify(
-                                services
-                            )
-                            : null
-                    ]
-                );
-
-            res.json({
-                ok: true,
-                profile:
-                    result.rows[0]
-            });
-
-        } catch (error) {
-            console.error(
-                "Business profile update error:",
-                error
+            await pool.query(
+                `
+                UPDATE business_profiles
+                SET
+                    name = COALESCE($2, name),
+                    logo = COALESCE($3, logo),
+                    city = COALESCE($4, city),
+                    address = COALESCE($5, address),
+                    phone = COALESCE($6, phone),
+                    telegram = COALESCE($7, telegram),
+                    instagram = COALESCE($8, instagram),
+                    description = COALESCE($9, description),
+                    business_content_type = COALESCE($10, business_content_type),
+                    work_schedule = COALESCE($11::jsonb, work_schedule),
+                    updated_at = NOW()
+                WHERE owner_id = $1
+                `,
+                [
+                    req.user.userId,
+                    name == null ? null : String(name).trim(),
+                    logo == null ? null : String(logo),
+                    city == null ? null : String(city).trim(),
+                    address == null ? null : String(address).trim(),
+                    phone == null ? null : String(phone).replace(/\D/g, ""),
+                    telegram == null ? null : String(telegram).trim(),
+                    instagram == null ? null : String(instagram).trim(),
+                    description == null ? null : String(description).trim(),
+                    nextContentType,
+                    workSchedule && typeof workSchedule === "object"
+                        ? JSON.stringify(workSchedule)
+                        : null
+                ]
             );
 
-            res.status(500).json({
+            const profile = await loadPrivateBusinessProfile(req.user.userId);
+            return res.json({ ok: true, profile });
+        } catch (error) {
+            console.error("Business profile update error:", error);
+            return res.status(500).json({
                 ok: false,
-                message:
-                    "Не вдалося оновити бізнес-профіль."
+                message: "Не вдалося оновити бізнес-профіль."
             });
         }
     }
 );
 
+async function getOwnedBusinessId(ownerId) {
+    const result = await pool.query(
+        `SELECT id FROM business_profiles WHERE owner_id = $1 LIMIT 1`,
+        [ownerId]
+    );
+    return result.rows[0]?.id || null;
+}
+
+app.post(
+    "/api/business/services",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const businessId = await getOwnedBusinessId(req.user.userId);
+            if (!businessId) {
+                return res.status(404).json({ ok: false, message: "Бізнес-профіль не знайдено." });
+            }
+
+            const title = String(req.body.title || "").trim();
+            if (!title) {
+                return res.status(400).json({ ok: false, message: "Вкажіть назву послуги." });
+            }
+
+            const photos = Array.isArray(req.body.photos) ? req.body.photos.slice(0, 6) : [];
+            const priceFrom = req.body.priceFrom == null || req.body.priceFrom === ""
+                ? null
+                : Number(req.body.priceFrom);
+
+            const result = await pool.query(
+                `
+                INSERT INTO business_services (
+                    id, business_id, title, description, price_from, photos
+                )
+                VALUES ($1, $2, $3, $4, $5, $6::jsonb)
+                RETURNING
+                    id,
+                    title,
+                    description,
+                    price_from AS "priceFrom",
+                    photos
+                `,
+                [
+                    crypto.randomUUID(),
+                    businessId,
+                    title,
+                    String(req.body.description || "").trim(),
+                    Number.isFinite(priceFrom) && priceFrom >= 0 ? priceFrom : null,
+                    JSON.stringify(photos)
+                ]
+            );
+
+            return res.status(201).json({ ok: true, service: result.rows[0] });
+        } catch (error) {
+            console.error("Business service create error:", error);
+            return res.status(500).json({ ok: false, message: "Не вдалося додати послугу." });
+        }
+    }
+);
+
+app.patch(
+    "/api/business/services/:serviceId",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const title = String(req.body.title || "").trim();
+            if (!title) {
+                return res.status(400).json({ ok: false, message: "Вкажіть назву послуги." });
+            }
+
+            const photos = Array.isArray(req.body.photos) ? req.body.photos.slice(0, 6) : [];
+            const priceFrom = req.body.priceFrom == null || req.body.priceFrom === ""
+                ? null
+                : Number(req.body.priceFrom);
+
+            const result = await pool.query(
+                `
+                UPDATE business_services bs
+                SET
+                    title = $3,
+                    description = $4,
+                    price_from = $5,
+                    photos = $6::jsonb,
+                    updated_at = NOW()
+                FROM business_profiles bp
+                WHERE bs.business_id = bp.id
+                  AND bp.owner_id = $1
+                  AND bs.id = $2
+                RETURNING
+                    bs.id,
+                    bs.title,
+                    bs.description,
+                    bs.price_from AS "priceFrom",
+                    bs.photos
+                `,
+                [
+                    req.user.userId,
+                    req.params.serviceId,
+                    title,
+                    String(req.body.description || "").trim(),
+                    Number.isFinite(priceFrom) && priceFrom >= 0 ? priceFrom : null,
+                    JSON.stringify(photos)
+                ]
+            );
+
+            if (!result.rows.length) {
+                return res.status(404).json({ ok: false, message: "Послугу не знайдено." });
+            }
+            return res.json({ ok: true, service: result.rows[0] });
+        } catch (error) {
+            console.error("Business service update error:", error);
+            return res.status(500).json({ ok: false, message: "Не вдалося оновити послугу." });
+        }
+    }
+);
+
+app.delete(
+    "/api/business/services/:serviceId",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const result = await pool.query(
+                `
+                DELETE FROM business_services bs
+                USING business_profiles bp
+                WHERE bs.business_id = bp.id
+                  AND bp.owner_id = $1
+                  AND bs.id = $2
+                RETURNING bs.id
+                `,
+                [req.user.userId, req.params.serviceId]
+            );
+            if (!result.rows.length) {
+                return res.status(404).json({ ok: false, message: "Послугу не знайдено." });
+            }
+            return res.json({ ok: true });
+        } catch (error) {
+            console.error("Business service delete error:", error);
+            return res.status(500).json({ ok: false, message: "Не вдалося видалити послугу." });
+        }
+    }
+);
+
+app.post(
+    "/api/business/products",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const businessId = await getOwnedBusinessId(req.user.userId);
+            if (!businessId) {
+                return res.status(404).json({ ok: false, message: "Бізнес-профіль не знайдено." });
+            }
+
+            const title = String(req.body.title || "").trim();
+            if (!title) {
+                return res.status(400).json({ ok: false, message: "Вкажіть назву товару." });
+            }
+
+            const photos = Array.isArray(req.body.photos) ? req.body.photos.slice(0, 6) : [];
+            const price = req.body.price == null || req.body.price === "" ? null : Number(req.body.price);
+
+            const result = await pool.query(
+                `
+                INSERT INTO business_products (
+                    id, business_id, title, description, price, photos
+                )
+                VALUES ($1, $2, $3, $4, $5, $6::jsonb)
+                RETURNING id, title, description, price, photos
+                `,
+                [
+                    crypto.randomUUID(),
+                    businessId,
+                    title,
+                    String(req.body.description || "").trim(),
+                    Number.isFinite(price) && price >= 0 ? price : null,
+                    JSON.stringify(photos)
+                ]
+            );
+
+            return res.status(201).json({ ok: true, product: result.rows[0] });
+        } catch (error) {
+            console.error("Business product create error:", error);
+            return res.status(500).json({ ok: false, message: "Не вдалося додати товар." });
+        }
+    }
+);
+
+app.patch(
+    "/api/business/products/:productId",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const title = String(req.body.title || "").trim();
+            if (!title) {
+                return res.status(400).json({ ok: false, message: "Вкажіть назву товару." });
+            }
+
+            const photos = Array.isArray(req.body.photos) ? req.body.photos.slice(0, 6) : [];
+            const price = req.body.price == null || req.body.price === "" ? null : Number(req.body.price);
+
+            const result = await pool.query(
+                `
+                UPDATE business_products pr
+                SET
+                    title = $3,
+                    description = $4,
+                    price = $5,
+                    photos = $6::jsonb,
+                    updated_at = NOW()
+                FROM business_profiles bp
+                WHERE pr.business_id = bp.id
+                  AND bp.owner_id = $1
+                  AND pr.id = $2
+                RETURNING pr.id, pr.title, pr.description, pr.price, pr.photos
+                `,
+                [
+                    req.user.userId,
+                    req.params.productId,
+                    title,
+                    String(req.body.description || "").trim(),
+                    Number.isFinite(price) && price >= 0 ? price : null,
+                    JSON.stringify(photos)
+                ]
+            );
+
+            if (!result.rows.length) {
+                return res.status(404).json({ ok: false, message: "Товар не знайдено." });
+            }
+            return res.json({ ok: true, product: result.rows[0] });
+        } catch (error) {
+            console.error("Business product update error:", error);
+            return res.status(500).json({ ok: false, message: "Не вдалося оновити товар." });
+        }
+    }
+);
+
+app.delete(
+    "/api/business/products/:productId",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const result = await pool.query(
+                `
+                DELETE FROM business_products pr
+                USING business_profiles bp
+                WHERE pr.business_id = bp.id
+                  AND bp.owner_id = $1
+                  AND pr.id = $2
+                RETURNING pr.id
+                `,
+                [req.user.userId, req.params.productId]
+            );
+            if (!result.rows.length) {
+                return res.status(404).json({ ok: false, message: "Товар не знайдено." });
+            }
+            return res.json({ ok: true });
+        } catch (error) {
+            console.error("Business product delete error:", error);
+            return res.status(500).json({ ok: false, message: "Не вдалося видалити товар." });
+        }
+    }
+);
+
+
 app.post("/api/register", async (req, res) => {
+    const client = await pool.connect();
+
     try {
         const {
             name,
@@ -6099,358 +6590,224 @@ app.post("/api/register", async (req, res) => {
             password,
             accountType,
             businessType,
-            businessPlanId
+            businessPlanId,
+            businessContentType
         } = req.body;
 
-        const normalizedAccountType =
-    accountType === "business"
-        ? "business"
-        : "user";
+        const normalizedAccountType = accountType === "business" ? "business" : "user";
+        const normalizedEmail = String(email || "").trim().toLowerCase();
+        const normalizedPhone = String(phone || "").replace(/\D/g, "");
+        const cleanName = String(name || "").trim();
 
-if (
-    normalizedAccountType === "business" &&
-    (
-        !businessType ||
-        !businessPlanId
-    )
-) {
-    return res.status(400).json({
-        ok: false,
-        message:
-            "Оберіть тип бізнесу та тариф."
-    });
-}
-
-        const normalizedEmail =
-            String(email)
-                .trim()
-                .toLowerCase();
-
-        const normalizedPhone =
-            String(phone)
-                .replace(/\D/g, "");
-
+        if (cleanName.length < 2) {
+            return res.status(400).json({ ok: false, message: "Ім’я повинно містити щонайменше 2 символи." });
+        }
+        if (!normalizedEmail || !normalizedEmail.includes("@")) {
+            return res.status(400).json({ ok: false, message: "Введіть правильний email." });
+        }
         if (!/^380\d{9}$/.test(normalizedPhone)) {
-            return res.status(400).json({
-                ok: false,
-                message:
-                    "Введи правильний український номер телефону."
-            });
+            return res.status(400).json({ ok: false, message: "Введи правильний український номер телефону." });
+        }
+        if (String(password || "").length < 6) {
+            return res.status(400).json({ ok: false, message: "Пароль повинен містити щонайменше 6 символів." });
         }
 
-        if (password.length < 6) {
-            return res.status(400).json({
-                ok: false,
-                message:
-                    "Пароль повинен містити щонайменше 6 символів."
-            });
-        }
+        let businessTypeRow = null;
+        let planRow = null;
+        let resolvedContentType = null;
 
-        const existingUser =
-            await pool.query(
+        if (normalizedAccountType === "business") {
+            if (!businessType || !businessPlanId) {
+                return res.status(400).json({ ok: false, message: "Оберіть тип бізнесу та тариф." });
+            }
+
+            const typeResult = await client.query(
+                `SELECT id, code FROM business_types WHERE code = $1 LIMIT 1`,
+                [String(businessType)]
+            );
+            if (!typeResult.rows.length) {
+                return res.status(400).json({ ok: false, message: "Невідомий тип бізнесу." });
+            }
+            businessTypeRow = typeResult.rows[0];
+
+            const planResult = await client.query(
                 `
-                SELECT id
-                FROM users
-                WHERE email = $1
-                   OR phone = $2
+                SELECT id, code, name, price_uah
+                FROM subscription_plans
+                WHERE id = $1
+                  AND business_type_code = $2
+                  AND is_active = TRUE
                 LIMIT 1
                 `,
+                [String(businessPlanId), String(businessType)]
+            );
+            if (!planResult.rows.length) {
+                return res.status(400).json({ ok: false, message: "Невірний тариф для цього типу бізнесу." });
+            }
+            planRow = planResult.rows[0];
+
+            if (["car_service", "detailing", "tire_service", "road_assistance"].includes(businessTypeRow.code)) {
+                resolvedContentType = "services";
+            } else if (businessTypeRow.code === "auto_shop") {
+                resolvedContentType = "products";
+            } else if (businessTypeRow.code === "car_dealer") {
+                resolvedContentType = "cars";
+            } else {
+                const allowed = new Set(["services", "products", "both"]);
+                if (!allowed.has(String(businessContentType || ""))) {
+                    return res.status(400).json({
+                        ok: false,
+                        message: "Для типу «Інше» оберіть: послуги, товари або обидва варіанти."
+                    });
+                }
+                resolvedContentType = String(businessContentType);
+            }
+        }
+
+        await client.query("BEGIN");
+
+        const existingUser = await client.query(
+            `SELECT id FROM users WHERE email = $1 OR phone = $2 LIMIT 1`,
+            [normalizedEmail, normalizedPhone]
+        );
+        if (existingUser.rows.length) {
+            await client.query("ROLLBACK");
+            return res.status(409).json({
+                ok: false,
+                message: "Користувач із таким email або номером телефону вже зареєстрований."
+            });
+        }
+
+        const passwordHash = await bcrypt.hash(String(password), 12);
+        const userId = crypto.randomUUID();
+
+        const userResult = await client.query(
+            `
+            INSERT INTO users (
+                id, name, email, phone, password_hash,
+                account_type, role, email_verified, phone_verified
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, 'user', FALSE, FALSE)
+            RETURNING id, name, email, phone, account_type, role, email_verified, phone_verified
+            `,
+            [userId, cleanName, normalizedEmail, normalizedPhone, passwordHash, normalizedAccountType]
+        );
+
+        if (normalizedAccountType === "business") {
+            await client.query(
+                `
+                INSERT INTO business_profiles (
+                    id,
+                    owner_id,
+                    business_type_id,
+                    subscription_plan_id,
+                    business_content_type,
+                    name,
+                    phone
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                `,
                 [
-                    normalizedEmail,
+                    crypto.randomUUID(),
+                    userId,
+                    businessTypeRow.id,
+                    planRow.id,
+                    resolvedContentType,
+                    cleanName,
                     normalizedPhone
                 ]
             );
+        }
 
-        if (existingUser.rows.length > 0) {
-            return res.status(409).json({
-                ok: false,
-                message:
-                    "Користувач із таким email або номером телефону вже зареєстрований."
+        await client.query("COMMIT");
+        const newUser = userResult.rows[0];
+
+        if (normalizedAccountType === "business") {
+            const registrationPaymentToken = jwt.sign(
+                {
+                    userId: newUser.id,
+                    planId: planRow.id,
+                    scope: "business_registration_payment"
+                },
+                process.env.JWT_SECRET,
+                { expiresIn: "30m" }
+            );
+
+            return res.status(201).json({
+                ok: true,
+                requiresBusinessPayment: true,
+                registrationPaymentToken,
+                message: "Бізнес створено. Наступний крок — оплатити вибраний тариф.",
+                user: {
+                    id: newUser.id,
+                    name: newUser.name,
+                    email: newUser.email,
+                    phone: newUser.phone || "",
+                    accountType: newUser.account_type || "business",
+                    role: newUser.role || "user",
+                    emailVerified: false,
+                    phoneVerified: false
+                }
             });
         }
 
-        const passwordHash =
-            await bcrypt.hash(
-                password,
-                12
-            );
+        // Для звичайного користувача залишаємо підтвердження email одразу після реєстрації.
+        const verificationToken = crypto.randomBytes(32).toString("hex");
+        const verificationTokenHash = crypto
+            .createHash("sha256")
+            .update(verificationToken)
+            .digest("hex");
+        const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-        const userId =
-            crypto.randomUUID();
-
-            const result =
-            await pool.query(
-                `
-                INSERT INTO users (
-                    id,
-                    name,
-                    email,
-                    phone,
-                    password_hash,
-                    account_type,
-                    role,
-                    email_verified
-                )
-                VALUES (
-                    $1,
-                    $2,
-                    $3,
-                    $4,
-                    $5,
-                    $6,
-                    'user',
-                    FALSE
-                )
-                RETURNING
-                id,
-                name,
-                email,
-                phone,
-                account_type,
-                role,
-                email_verified,
-                created_at
-                `,
-                [
-                    userId,
-                    name.trim(),
-                    normalizedEmail,
-                    normalizedPhone,
-                    passwordHash,
-                    normalizedAccountType
-                ]
-            );
-
-            if (normalizedAccountType === "business") {
-                const businessTypeResult =
-                    await pool.query(
-                        `
-                        SELECT id
-                        FROM business_types
-                        WHERE code = $1
-                        LIMIT 1
-                        `,
-                        [
-                            businessType
-                        ]
-                    );
-            
-                if (
-                    businessTypeResult.rows.length === 0
-                ) {
-                    return res.status(400).json({
-                        ok: false,
-                        message:
-                            "Невідомий тип бізнесу."
-                    });
-                }
-            
-                const planResult =
-                    await pool.query(
-                        `
-                        SELECT id
-                        FROM subscription_plans
-                        WHERE id = $1
-                          AND business_type_code = $2
-                          AND is_active = TRUE
-                        LIMIT 1
-                        `,
-                        [
-                            businessPlanId,
-                            businessType
-                        ]
-                    );
-            
-                if (
-                    planResult.rows.length === 0
-                ) {
-                    return res.status(400).json({
-                        ok: false,
-                        message:
-                            "Невірний тариф для цього типу бізнесу."
-                    });
-                }
-            
-                await pool.query(
-                    `
-                    INSERT INTO business_profiles (
-                        id,
-                        owner_id,
-                        business_type_id,
-                        subscription_plan_id,
-                        name,
-                        phone
-                    )
-                    VALUES (
-                        $1,
-                        $2,
-                        $3,
-                        $4,
-                        $5,
-                        $6
-                    )
-                    `,
-                    [
-                        crypto.randomUUID(),
-                        userId,
-                        businessTypeResult.rows[0].id,
-                        planResult.rows[0].id,
-                        name.trim(),
-                        normalizedPhone
-                    ]
-                );
-            }
-
-            const newUser =
-            result.rows[0];
-
-            const verificationToken =
-    crypto
-        .randomBytes(32)
-        .toString("hex");
-
-const verificationTokenHash =
-    crypto
-        .createHash("sha256")
-        .update(verificationToken)
-        .digest("hex");
-
-const verificationExpiresAt =
-    new Date(
-        Date.now() +
-        24 * 60 * 60 * 1000
-    );
-
-await pool.query(
-    `
-    DELETE FROM email_verification_tokens
-    WHERE
-        user_id = $1
-        AND used_at IS NULL
-    `,
-    [
-        newUser.id
-    ]
-);
-
-await pool.query(
-    `
-    INSERT INTO email_verification_tokens (
-        id,
-        user_id,
-        token_hash,
-        expires_at
-    )
-    VALUES (
-        $1,
-        $2,
-        $3,
-        $4
-    )
-    `,
-    [
-        crypto.randomUUID(),
-        newUser.id,
-        verificationTokenHash,
-        verificationExpiresAt
-    ]
-);
-
-const verificationUrl =
-    `https://royalgarage.com.ua/api/verify-email?token=` +
-    encodeURIComponent(
-        verificationToken
-    );
-
-try {
-    await mailTransporter.sendMail({
-        from:
-            `"Royal Garage" <${process.env.GMAIL_USER}>`,
-
-        to:
-            newUser.email,
-
-        subject:
-            "Підтвердження email — Royal Garage",
-
-        text:
-            `Вітаємо у Royal Garage!\n\n` +
-            `Підтвердьте вашу email-адресу:\n${verificationUrl}\n\n` +
-            `Посилання діє 24 години.`,
-
-        html:
+        await pool.query(
             `
-            <h2>Royal Garage</h2>
-
-            <p>
-                Дякуємо за реєстрацію.
-            </p>
-
-            <p>
-                Натисніть кнопку, щоб підтвердити email:
-            </p>
-
-            <p>
-                <a href="${verificationUrl}">
-                    Підтвердити email
-                </a>
-            </p>
-
-            <p>
-                Посилання діє 24 години.
-            </p>
-            `
-    });
-} catch (mailError) {
-    console.error(
-        "Verification email error:",
-        mailError
-    );
-}
-        
-res.status(201).json({
-    ok: true,
-
-    requiresEmailVerification: true,
-
-    message:
-        "Реєстрація успішна. Перевірте пошту та підтвердьте email.",
-
-    user: {
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-
-        phone:
-            newUser.phone || "",
-
-        accountType:
-            newUser.account_type ||
-            "user",
-
-        role:
-            newUser.role ||
-            "user",
-
-        emailVerified:
-            Boolean(
-                newUser.email_verified
+            INSERT INTO email_verification_tokens (
+                id, user_id, token_hash, expires_at
             )
-    }
-});
-
-
-    } catch (error) {
-        console.error(
-            "Registration error:",
-            error
+            VALUES ($1, $2, $3, $4)
+            `,
+            [crypto.randomUUID(), newUser.id, verificationTokenHash, verificationExpiresAt]
         );
 
-        res.status(500).json({
-            ok: false,
-            message:
-                "Не вдалося створити користувача."
+        const verificationUrl =
+            `https://royalgarage.com.ua/api/verify-email?token=${encodeURIComponent(verificationToken)}`;
+
+        try {
+            await mailTransporter.sendMail({
+                from: `"Royal Garage" <${process.env.GMAIL_USER}>`,
+                to: newUser.email,
+                subject: "Підтвердження email — Royal Garage",
+                text: `Підтвердьте вашу email-адресу:\n${verificationUrl}\n\nПосилання діє 24 години.`,
+                html: `<h2>Royal Garage</h2><p>Підтвердьте вашу email-адресу.</p><p><a href="${verificationUrl}">Підтвердити email</a></p><p>Посилання діє 24 години.</p>`
+            });
+        } catch (mailError) {
+            console.error("Verification email error:", mailError);
+        }
+
+        return res.status(201).json({
+            ok: true,
+            requiresEmailVerification: true,
+            message: "Реєстрація успішна. Перевірте пошту та підтвердьте email.",
+            user: {
+                id: newUser.id,
+                name: newUser.name,
+                email: newUser.email,
+                phone: newUser.phone || "",
+                accountType: newUser.account_type || "user",
+                role: newUser.role || "user",
+                emailVerified: false,
+                phoneVerified: false
+            }
         });
+    } catch (error) {
+        try { await client.query("ROLLBACK"); } catch {}
+        console.error("Registration error:", error);
+        return res.status(500).json({
+            ok: false,
+            message: "Не вдалося створити користувача."
+        });
+    } finally {
+        client.release();
     }
 });
 
@@ -6836,29 +7193,18 @@ app.post(
     }
 );
 
+
 app.post("/api/login", async (req, res) => {
     try {
-        const {
-            email,
-            password
-        } = req.body;
-
+        const { email, password } = req.body;
         if (!email || !password) {
-            return res.status(400).json({
-                ok: false,
-                message: "Введи email і пароль."
-            });
+            return res.status(400).json({ ok: false, message: "Введи email і пароль." });
         }
 
-        const normalizedEmail =
-            String(email)
-                .trim()
-                .toLowerCase();
-
-        const result =
-            await pool.query(
-                `
-                SELECT
+        const normalizedEmail = String(email).trim().toLowerCase();
+        const result = await pool.query(
+            `
+            SELECT
                 id,
                 name,
                 email,
@@ -6867,58 +7213,85 @@ app.post("/api/login", async (req, res) => {
                 account_type,
                 role,
                 email_verified,
+                phone_verified,
                 created_at
             FROM users
-                WHERE email = $1
-                LIMIT 1
-                `,
-                [normalizedEmail]
-            );
+            WHERE email = $1
+            LIMIT 1
+            `,
+            [normalizedEmail]
+        );
 
-        if (result.rows.length === 0) {
-            return res.status(401).json({
-                ok: false,
-                message:
-                    "Неправильний email або пароль."
-            });
+        if (!result.rows.length) {
+            return res.status(401).json({ ok: false, message: "Неправильний email або пароль." });
         }
 
         const user = result.rows[0];
-
-        const passwordMatches =
-            await bcrypt.compare(
-                password,
-                user.password_hash
-            );
-
+        const passwordMatches = await bcrypt.compare(password, user.password_hash);
         if (!passwordMatches) {
-            return res.status(401).json({
+            return res.status(401).json({ ok: false, message: "Неправильний email або пароль." });
+        }
+
+        // Звичайний користувач підтверджує email до входу.
+        // Бізнес після першої оплати входить у чернетку й завершує email/phone verification у кабінеті.
+        if (user.account_type !== "business" && !user.email_verified) {
+            return res.status(403).json({
                 ok: false,
-                message:
-                    "Неправильний email або пароль."
+                message: "Підтвердьте email. Ми надіслали посилання на вашу пошту."
             });
         }
 
-        if (!user.email_verified) {
-            return res.status(403).json({
-                ok: false,
-                message:
-                    "Підтвердьте email. Ми надіслали посилання на вашу пошту."
-            });
+        if (user.account_type === "business") {
+            const businessResult = await pool.query(
+                `
+                SELECT
+                    bp.subscription_plan_id AS "planId",
+                    (
+                        sp.is_active = TRUE
+                        AND bp.subscription_expires_at > NOW()
+                    ) AS "subscriptionActive"
+                FROM business_profiles bp
+                JOIN subscription_plans sp ON sp.id = bp.subscription_plan_id
+                WHERE bp.owner_id = $1
+                LIMIT 1
+                `,
+                [user.id]
+            );
+
+            if (!businessResult.rows.length) {
+                return res.status(404).json({
+                    ok: false,
+                    message: "Бізнес-профіль не знайдено."
+                });
+            }
+
+            if (!businessResult.rows[0].subscriptionActive) {
+                const registrationPaymentToken = jwt.sign(
+                    {
+                        userId: user.id,
+                        planId: businessResult.rows[0].planId,
+                        scope: "business_registration_payment"
+                    },
+                    process.env.JWT_SECRET,
+                    { expiresIn: "30m" }
+                );
+
+                return res.status(402).json({
+                    ok: false,
+                    code: "BUSINESS_PAYMENT_REQUIRED",
+                    registrationPaymentToken,
+                    message: "Спочатку активуйте тариф бізнесу."
+                });
+            }
         }
 
         const token = jwt.sign(
-            {
-                userId: user.id,
-                role: user.role || "user"
-            },
+            { userId: user.id, role: user.role || "user" },
             process.env.JWT_SECRET,
-            {
-                expiresIn: "7d"
-            }
+            { expiresIn: "7d" }
         );
 
-        res.json({
+        return res.json({
             ok: true,
             token,
             user: {
@@ -6926,23 +7299,15 @@ app.post("/api/login", async (req, res) => {
                 name: user.name,
                 email: user.email,
                 phone: user.phone || "",
-                accountType:
-                    user.account_type || "user",
-                role:
-                    user.role || "user"
+                accountType: user.account_type || "user",
+                role: user.role || "user",
+                emailVerified: Boolean(user.email_verified),
+                phoneVerified: Boolean(user.phone_verified)
             }
         });
     } catch (error) {
-        console.error(
-            "Login error:",
-            error
-        );
-
-        res.status(500).json({
-            ok: false,
-            message:
-                "Не вдалося виконати вхід."
-        });
+        console.error("Login error:", error);
+        return res.status(500).json({ ok: false, message: "Не вдалося виконати вхід." });
     }
 });
 

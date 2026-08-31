@@ -1,3164 +1,848 @@
-"use strict";
-if (window.location.hash) {
-    history.replaceState(
-        null,
-        "",
-        window.location.pathname
-    );
-
-    window.scrollTo(0, 0);
-}
-
-/* =========================
-   BUSINESS PROFILE
-   ========================= */
-
-let currentBusinessProfile = null;
-let businessEditPhotosData = [];
-
-const businessElements = {
-    logo:
-        document.getElementById(
-            "businessLogo"
-        ),
-
-    logoPlaceholder:
-        document.getElementById(
-            "businessLogoPlaceholder"
-        ),
-
-    logoUploadLabel:
-        document.getElementById(
-            "businessLogoUploadLabel"
-        ),
-
-    logoInput:
-        document.getElementById(
-            "businessLogoInput"
-        ),
-
-    ownerPanel:
-        document.getElementById(
-            "businessOwnerPanel"
-        ),
-
-    name:
-        document.getElementById(
-            "businessName"
-        ),
-
-    typeLabel:
-        document.getElementById(
-            "businessTypeLabel"
-        ),
-
-    heroDescription:
-        document.getElementById(
-            "businessHeroDescription"
-        ),
-
-    description:
-        document.getElementById(
-            "businessDescription"
-        ),
-
-    city:
-        document.getElementById(
-            "businessCity"
-        ),
-
-    address:
-        document.getElementById(
-            "businessAddress"
-        ),
-
-    planName:
-        document.getElementById(
-            "businessPlanName"
-        ),
-
-        planCurrent:
-        document.getElementById(
-            "businessPlanCurrent"
-        ),
-    
-    planUsageRow:
-        document.getElementById(
-            "businessPlanUsageRow"
-        ),
-    
-    planUsage:
-        document.getElementById(
-            "businessPlanUsage"
-        ),
-    
-    planExpires:
-        document.getElementById(
-            "businessPlanExpires"
-        ),
-    
-    planStatus:
-        document.getElementById(
-            "businessPlanStatus"
-        ),
-    
-    ratingAverage:
-        document.getElementById(
-            "businessRatingAverage"
-        ),
-    
-    ratingCount:
-        document.getElementById(
-            "businessRatingCount"
-        ),
-    
-    reviewsList:
-        document.getElementById(
-            "businessReviewsList"
-        ),
-    
-    reviewsEmpty:
-        document.getElementById(
-            "businessReviewsEmpty"
-        ),
-
-    phoneLink:
-        document.getElementById(
-            "businessPhoneLink"
-        ),
-
-    telegramLink:
-        document.getElementById(
-            "businessTelegramLink"
-        ),
-
-    instagramLink:
-        document.getElementById(
-            "businessInstagramLink"
-        ),
-
-    servicesGrid:
-        document.getElementById(
-            "businessServicesGrid"
-        ),
-
-    servicesEmpty:
-        document.getElementById(
-            "businessServicesEmpty"
-        ),
-
-    gallery:
-        document.getElementById(
-            "businessGallery"
-        ),
-
-    galleryEmpty:
-        document.getElementById(
-            "businessGalleryEmpty"
-        ),
-
-    carsSection:
-        document.getElementById(
-            "businessCarsSection"
-        ),
-
-    carsGrid:
-        document.getElementById(
-            "businessCarsGrid"
-        ),
-
-    carsLoading:
-        document.getElementById(
-            "businessCarsLoading"
-        ),
-
-    carsEmpty:
-        document.getElementById(
-            "businessCarsEmpty"
-        ),
-
-        editButton:
-            document.getElementById(
-                "editBusinessProfileButton"
-            ),
-
-        editSection:
-            document.getElementById(
-                "businessEditSection"
-            ),
-
-        editForm:
-            document.getElementById(
-                "businessEditForm"
-            ),
-
-        cancelEditButton:
-            document.getElementById(
-                "cancelBusinessEditButton"
-            ),
-
-        editName:
-            document.getElementById(
-                "businessEditName"
-            ),
-
-        editCity:
-            document.getElementById(
-                "businessEditCity"
-            ),
-
-        editAddress:
-            document.getElementById(
-                "businessEditAddress"
-            ),
-
-        editPhone:
-            document.getElementById(
-                "businessEditPhone"
-            ),
-
-        editTelegram:
-            document.getElementById(
-                "businessEditTelegram"
-            ),
-
-        editInstagram:
-            document.getElementById(
-                "businessEditInstagram"
-            ),
-
-        editDescription:
-            document.getElementById(
-                "businessEditDescription"
-            ),
-
-        editServices:
-            document.getElementById(
-                "businessEditServices"
-            ),
-
-        editPhotos:
-            document.getElementById(
-                "businessEditPhotos"
-            ),
-
-        editPhotosPreview:
-            document.getElementById(
-                "businessEditPhotosPreview"
-            ),
-
-        choosePlanButton:
-            document.getElementById(
-            "businessChoosePlanButton"
-        ),
-
-        renewPlanButton:
-    document.getElementById(
-        "businessRenewPlanButton"
-    ),
-
-        mapButton:
-            document.getElementById(
-                "businessMapButton"
-            ),
-
-        crmButton:
-            document.getElementById(
-                "businessCrmButton"
-            ),
-
-};
-
-
-function getToken() {
-    return localStorage.getItem(
-        "royalGarageToken"
-    );
-}
-
-/* =========================
-   BUSINESS FAVORITES
-   ========================= */
-
-   let favoriteListingIds = [];
-
-
-   async function loadBusinessFavorites() {
-       const token =
-           getToken();
-   
-       if (!token) {
-           favoriteListingIds = [];
-           return;
-       }
-   
-       try {
-           const response =
-               await fetch(
-                   "/api/market/favorites",
-                   {
-                       headers: {
-                           Authorization:
-                               `Bearer ${token}`
-                       }
-                   }
-               );
-   
-           const data =
-               await response.json();
-   
-           if (!response.ok) {
-               throw new Error(
-                   data.message ||
-                   "Не вдалося завантажити обране."
-               );
-           }
-   
-           favoriteListingIds =
-               Array.isArray(
-                   data.favoriteIds
-               )
-                   ? data.favoriteIds.map(
-                       String
-                   )
-                   : [];
-   
-       } catch (error) {
-           console.error(
-               "Business favorites load error:",
-               error
-           );
-   
-           favoriteListingIds = [];
-       }
-   }
-   
-   
-   function isBusinessFavoriteListing(
-       listingId
-   ) {
-       return favoriteListingIds.includes(
-           String(listingId)
-       );
-   }
-   
-   
-   async function toggleBusinessFavoriteListing(
-       listingId
-   ) {
-       const token =
-           getToken();
-   
-       if (!token) {
-           alert(
-               "Спочатку увійдіть у профіль."
-           );
-           return;
-       }
-   
-       const normalizedId =
-           String(listingId);
-   
-       const isFavorite =
-           isBusinessFavoriteListing(
-               normalizedId
-           );
-   
-       try {
-           const response =
-               await fetch(
-                   `/api/market/favorites/${encodeURIComponent(
-                       normalizedId
-                   )}`,
-                   {
-                       method:
-                           isFavorite
-                               ? "DELETE"
-                               : "POST",
-   
-                       headers: {
-                           Authorization:
-                               `Bearer ${token}`
-                       }
-                   }
-               );
-   
-           const data =
-               await response.json();
-   
-           if (!response.ok) {
-               throw new Error(
-                   data.message ||
-                   "Не вдалося змінити обране."
-               );
-           }
-   
-           if (isFavorite) {
-               favoriteListingIds =
-                   favoriteListingIds.filter(
-                       (id) =>
-                           id !== normalizedId
-                   );
-           } else {
-               favoriteListingIds.push(
-                   normalizedId
-               );
-           }
-   
-           return true;
-   
-       } catch (error) {
-           console.error(
-               "Business favorite toggle error:",
-               error
-           );
-   
-           alert(
-               error.message ||
-               "Не вдалося змінити обране."
-           );
-   
-           return false;
-       }
-   }
-
-   async function renderBusinessFavoriteListings() {
-    const favoritesList =
-        document.getElementById(
-            "businessFavoritesList"
-        );
-
-    const favoritesCount =
-        document.getElementById(
-            "businessFavoritesCount"
-        );
-
-    if (
-        !favoritesList ||
-        !favoritesCount
-    ) {
-        return;
-    }
-
-    const token =
-        getToken();
-
-    if (!token) {
-        favoritesCount.textContent =
-            "0";
-
-        favoritesList.innerHTML = `
-            <p class="profile-favorites-empty">
-                Увійдіть у профіль,
-                щоб переглянути обране.
-            </p>
-        `;
-
-        return;
-    }
-
-    try {
-        const [
-            favoritesResponse,
-            listingsResponse
-        ] = await Promise.all([
-            fetch(
-                "/api/market/favorites",
-                {
-                    headers: {
-                        Authorization:
-                            `Bearer ${token}`
-                    }
-                }
-            ),
-
-            fetch(
-                "/api/market/listings"
-            )
-        ]);
-
-        const favoritesData =
-            await favoritesResponse.json();
-
-        const listingsData =
-            await listingsResponse.json();
-
-        if (!favoritesResponse.ok) {
-            throw new Error(
-                favoritesData.message ||
-                "Не вдалося завантажити обране."
-            );
-        }
-
-        if (!listingsResponse.ok) {
-            throw new Error(
-                listingsData.message ||
-                "Не вдалося завантажити оголошення."
-            );
-        }
-
-        const favoriteIds =
-            Array.isArray(
-                favoritesData.favoriteIds
-            )
-                ? favoritesData.favoriteIds.map(
-                    String
-                )
-                : [];
-
-        const listings =
-            Array.isArray(
-                listingsData.listings
-            )
-                ? listingsData.listings
-                : [];
-
-        const favoriteListings =
-            listings.filter(
-                (listing) =>
-                    favoriteIds.includes(
-                        String(listing.id)
-                    )
-            );
-
-        favoritesCount.textContent =
-            String(
-                favoriteListings.length
-            );
-
-        if (
-            favoriteListings.length === 0
-        ) {
-            favoritesList.innerHTML = `
-                <p class="profile-favorites-empty">
-                    Ви ще не додали
-                    оголошення в обране.
-                </p>
-            `;
-
-            return;
-        }
-
-        favoritesList.innerHTML =
-            favoriteListings
-                .map((listing) => {
-                    const listingPhotos =
-                        Array.isArray(
-                            listing.photos
-                        )
-                            ? listing.photos
-                            : listing.photo
-                                ? [
-                                    listing.photo
-                                ]
-                                : [];
-
-                    const mainPhoto =
-                        listingPhotos[0] ||
-                        "";
-
-                    const priceUsd =
-                        listing.price_usd ??
-                        listing.priceUsd ??
-                        null;
-
-                    return `
-                        <a
-                            class="profile-favorite-card"
-                            href="listing.html?id=${encodeURIComponent(
-                                listing.id
-                            )}"
-                        >
-                            ${
-                                mainPhoto
-                                    ? `
-                                        <img
-                                            class="profile-favorite-photo"
-                                            src="${escapeBusinessHtml(
-                                                mainPhoto
-                                            )}"
-                                            alt="${escapeBusinessHtml(
-                                                listing.name ||
-                                                "Автомобіль"
-                                            )}"
-                                        >
-                                    `
-                                    : ""
-                            }
-
-                            <div class="profile-favorite-info">
-
-                                <strong>
-                                    ${escapeBusinessHtml(
-                                        listing.name ||
-                                        "Автомобіль"
-                                    )}
-                                </strong>
-
-                                ${
-                                    listing.year
-                                        ? `
-                                            <span>
-                                                ${escapeBusinessHtml(
-                                                    String(
-                                                        listing.year
-                                                    )
-                                                )} рік
-                                            </span>
-                                        `
-                                        : ""
-                                }
-
-                                ${
-                                    priceUsd
-                                        ? `
-                                            <span>
-                                                ${Number(
-                                                    priceUsd
-                                                ).toLocaleString(
-                                                    "uk-UA"
-                                                )} $
-                                            </span>
-                                        `
-                                        : ""
-                                }
-
-                            </div>
-                        </a>
-                    `;
-                })
-                .join("");
-
-    } catch (error) {
-        console.error(
-            "Business favorites render error:",
-            error
-        );
-
-        favoritesCount.textContent =
-            "0";
-
-        favoritesList.innerHTML = `
-            <p class="profile-favorites-empty">
-                Не вдалося завантажити обране.
-            </p>
-        `;
-    }
-}
-
-
-function renderBusinessLogo(
-    logo,
-    businessName = ""
-) {
-    if (
-        !businessElements.logo ||
-        !businessElements.logoPlaceholder
-    ) {
-        return;
-    }
-
-    if (logo) {
-        businessElements.logo.src =
-            logo;
-
-        businessElements.logo.hidden =
-            false;
-
-        businessElements
-            .logoPlaceholder
-            .hidden = true;
-
-        return;
-    }
-
-    businessElements.logo.hidden =
-        true;
-
-    businessElements.logo.src =
-        "";
-
-    businessElements
-        .logoPlaceholder
-        .hidden = false;
-
-    const initials =
-        String(
-            businessName || "RG"
-        )
-            .trim()
-            .split(/\s+/)
-            .slice(0, 2)
-            .map(
-                (part) =>
-                    part
-                        .charAt(0)
-                        .toUpperCase()
-            )
-            .join("");
-
-    businessElements
-        .logoPlaceholder
-        .textContent =
-            initials || "RG";
-}
-
-function updateBusinessSeo(profile) {
-    if (!profile) {
-        return;
-    }
-
-    const name =
-        String(
-            profile.name ||
-            "Бізнес"
-        ).trim();
-
-    const city =
-        String(
-            profile.city || ""
-        ).trim();
-
-    const type =
-        String(
-            profile.businessTypeName ||
-            "Автобізнес"
-        ).trim();
-
-    const description =
-        String(
-            profile.description || ""
-        ).trim();
-
-    const params =
-        new URLSearchParams(
-            window.location.search
-        );
-
-    const ownerId =
-        params.get("id");
-
-    const titleParts = [
-        name,
-        city
-            ? `${type} у ${city}`
-            : type
+(() => {
+    "use strict";
+
+    const MAX_ITEM_PHOTOS = 6;
+    const DAYS = [
+        ["mon", "Пн"],
+        ["tue", "Вт"],
+        ["wed", "Ср"],
+        ["thu", "Чт"],
+        ["fri", "Пт"],
+        ["sat", "Сб"],
+        ["sun", "Нд"]
     ];
 
-    document.title =
-        `${titleParts.join(" — ")} | Royal Garage`;
-
-    let seoDescription =
-        `${name} — ${type}`;
-
-    if (city) {
-        seoDescription +=
-            ` у місті ${city}`;
-    }
-
-    if (description) {
-        seoDescription +=
-            `. ${description}`;
-    }
-
-    seoDescription =
-        seoDescription
-            .replace(/\s+/g, " ")
-            .trim()
-            .slice(0, 160);
-
-    let metaDescription =
-        document.querySelector(
-            'meta[name="description"]'
-        );
-
-    if (!metaDescription) {
-        metaDescription =
-            document.createElement(
-                "meta"
-            );
-
-        metaDescription.name =
-            "description";
-
-        document.head.appendChild(
-            metaDescription
-        );
-    }
-
-    metaDescription.content =
-        seoDescription;
-
-    if (ownerId) {
-        const canonicalUrl =
-            `https://royalgarage.com.ua/business-profile.html?id=${encodeURIComponent(
-                ownerId
-            )}`;
-
-        let canonical =
-            document.querySelector(
-                'link[rel="canonical"]'
-            );
-
-        if (!canonical) {
-            canonical =
-                document.createElement(
-                    "link"
-                );
-
-            canonical.rel =
-                "canonical";
-
-            document.head.appendChild(
-                canonical
-            );
-        }
-
-        canonical.href =
-            canonicalUrl;
-    }
-}
-
-
-function renderBusinessProfile(
-    profile
-) {
-    currentBusinessProfile =
-        profile;
-
-        updateBusinessSeo(profile);
-
-    if (businessElements.name) {
-        businessElements.name.textContent =
-            profile.name ||
-            "Бізнес";
-    }
-
-    if (businessElements.typeLabel) {
-        businessElements
-            .typeLabel
-            .textContent =
-                profile.businessTypeName ||
-                "Бізнес";
-    }
-
-    if (businessElements.heroDescription) {
-        businessElements
-            .heroDescription
-            .textContent =
-                profile.description ||
-                "Профіль бізнесу в Royal Garage.";
-    }
-
-    if (businessElements.description) {
-        businessElements
-            .description
-            .textContent =
-                profile.description ||
-                "Опис компанії ще не додано.";
-    }
-
-    if (businessElements.city) {
-        businessElements.city.textContent =
-            profile.city ||
-            "Не вказано";
-    }
-
-    if (businessElements.address) {
-        businessElements.address.textContent =
-            profile.address ||
-            "Не вказано";
-    }
-
-    if (businessElements.planName) {
-        businessElements
-            .planName
-            .textContent =
-                profile.planName
-                    ? `${profile.planName} — ${profile.priceUah || 0} грн/міс`
-                    : "—";
-    }
-
-    renderBusinessLogo(
-        profile.logo,
-        profile.name
-    );
-
-    renderBusinessContacts(
-        profile
-    );
-
-    renderBusinessServices(
-        profile.services
-    );
-
-    renderBusinessGallery(
-        profile.photos
-    );
-
-    renderBusinessPlan(
-        profile
-    );
-    
-    loadBusinessReputation(
-        profile.ownerId
-    );
-    
-
-    renderBusinessTypeFeatures(
-        profile
-    );
-}
-
-function renderBusinessPlan(
-    profile
-) {
-    if (
-        businessElements.planCurrent
-    ) {
-        businessElements
-            .planCurrent
-            .textContent =
-                profile.planName
-                    ? `${profile.planName} — ${profile.priceUah || 0} грн/міс`
-                    : "Тариф не визначено";
-    }
-
-    const carLimit =
-        Number(
-            profile.carLimit
-        );
-
-    if (
-        businessElements.planUsageRow
-    ) {
-        businessElements
-            .planUsageRow
-            .hidden =
-                !Number.isFinite(
-                    carLimit
-                ) ||
-                carLimit <= 0;
-    }
-
-    if (
-        businessElements.planUsage &&
-        Number.isFinite(carLimit) &&
-        carLimit > 0
-    ) {
-        businessElements
-            .planUsage
-            .textContent =
-                `0 / ${carLimit}`;
-    }
-
-    const expiresAt =
-        profile.subscriptionExpiresAt
-            ? new Date(
-                profile.subscriptionExpiresAt
-            )
-            : null;
-
-    const validDate =
-        expiresAt &&
-        !Number.isNaN(
-            expiresAt.getTime()
-        );
-
-    if (
-        businessElements.planExpires
-    ) {
-        businessElements
-            .planExpires
-            .textContent =
-                validDate
-                    ? expiresAt
-                        .toLocaleDateString(
-                            "uk-UA"
-                        )
-                    : "Не вказано";
-    }
-
-    const isActive =
-        Boolean(
-            validDate &&
-            expiresAt.getTime() >
-                Date.now()
-        );
-
-    if (
-        businessElements.planStatus
-    ) {
-        businessElements
-            .planStatus
-            .textContent =
-                isActive
-                    ? "✅ Активний"
-                    : "⚠️ Неактивний";
-    }
-
-    if (
-        businessElements.renewPlanButton
-    ) {
-        businessElements
-            .renewPlanButton
-            .hidden =
-                !profile.planId;
-    }
-}
-
-
-async function loadBusinessReputation(
-    ownerId
-) {
-    if (!ownerId) {
-        return;
-    }
-
-    try {
-        const [
-            ratingResponse,
-            reviewsResponse
-        ] = await Promise.all([
-            fetch(
-                `/api/sellers/${encodeURIComponent(
-                    ownerId
-                )}/rating`
-            ),
-
-            fetch(
-                `/api/sellers/${encodeURIComponent(
-                    ownerId
-                )}/reviews`
-            )
-        ]);
-
-        const ratingData =
-            await ratingResponse.json();
-
-        const reviewsData =
-            await reviewsResponse.json();
-
-        const average =
-            Number(
-                ratingData
-                    ?.rating
-                    ?.average || 0
-            );
-
-        const count =
-            Number(
-                ratingData
-                    ?.rating
-                    ?.count || 0
-            );
-
-        if (
-            businessElements
-                .ratingAverage
-        ) {
-            businessElements
-                .ratingAverage
-                .textContent =
-                    count > 0
-                        ? `⭐ ${average.toFixed(
-                            1
-                        )} із 5`
-                        : "Новий продавець";
-        }
-
-        if (
-            businessElements
-                .ratingCount
-        ) {
-            businessElements
-                .ratingCount
-                .textContent =
-                    count > 0
-                        ? `${count} ${
-                            count === 1
-                                ? "оцінка"
-                                : "оцінок"
-                        }`
-                        : "Оцінок ще немає.";
-        }
-
-        const reviews =
-            Array.isArray(
-                reviewsData.reviews
-            )
-                ? reviewsData.reviews
-                : [];
-
-        renderBusinessReviews(
-            reviews
-        );
-
-    } catch (error) {
-        console.error(
-            "Business reputation load error:",
-            error
-        );
-    }
-}
-
-
-function renderBusinessReviews(
-    reviews
-) {
-    if (
-        !businessElements
-            .reviewsList
-    ) {
-        return;
-    }
-
-    businessElements
-        .reviewsList
-        .innerHTML = "";
-
-    if (
-        businessElements
-            .reviewsEmpty
-    ) {
-        businessElements
-            .reviewsEmpty
-            .hidden =
-                reviews.length > 0;
-    }
-
-    reviews.forEach(
-        (review) => {
-            const card =
-                document.createElement(
-                    "div"
-                );
-
-            card.className =
-                "upholstery-detail-card";
-
-            const date =
-                review.updatedAt
-                    ? new Date(
-                        review.updatedAt
-                    )
-                    : null;
-
-            card.innerHTML = `
-                <div>
-                    <strong>
-                        ${escapeBusinessHtml(
-                            review.userName ||
-                            "Користувач"
-                        )}
-                    </strong>
-
-                    <p>
-                        ${"⭐".repeat(
-                            Math.max(
-                                0,
-                                Math.min(
-                                    5,
-                                    Number(
-                                        review.rating
-                                    ) || 0
-                                )
-                            )
-                        )}
-                    </p>
-
-                    <p>
-                        ${escapeBusinessHtml(
-                            review.text || ""
-                        )}
-                    </p>
-
-                    <small>
-                        ${
-                            date &&
-                            !Number.isNaN(
-                                date.getTime()
-                            )
-                                ? date.toLocaleDateString(
-                                    "uk-UA"
-                                )
-                                : ""
-                        }
-                    </small>
-                </div>
-            `;
-
-            businessElements
-                .reviewsList
-                .appendChild(
-                    card
-                );
-        }
-    );
-}
-
-function renderBusinessContacts(
-    profile
-) {
-    const phone =
-        String(
-            profile.phone || ""
-        ).replace(/\s+/g, "");
-
-    if (businessElements.phoneLink) {
-        if (phone) {
-            businessElements
-                .phoneLink
-                .href =
-                    `tel:+${phone.replace(
-                        /^\+/,
-                        ""
-                    )}`;
-
-            businessElements
-                .phoneLink
-                .textContent =
-                    "📞 Зателефонувати";
-
-            businessElements
-                .phoneLink
-                .hidden = false;
-        } else {
-            businessElements
-                .phoneLink
-                .hidden = true;
-        }
-    }
-
-    if (
-        businessElements.telegramLink
-    ) {
-        const telegram =
-            String(
-                profile.telegram || ""
-            ).trim();
-
-        if (telegram) {
-            const username =
-                telegram
-                    .replace(
-                        /^https?:\/\/t\.me\//i,
-                        ""
-                    )
-                    .replace(/^@/, "");
-
-            businessElements
-                .telegramLink
-                .href =
-                    `https://t.me/${username}`;
-
-            businessElements
-                .telegramLink
-                .hidden = false;
-        } else {
-            businessElements
-                .telegramLink
-                .hidden = true;
-        }
-    }
-
-    if (
-        businessElements.instagramLink
-    ) {
-        const instagram =
-            String(
-                profile.instagram || ""
-            ).trim();
-
-        if (instagram) {
-            businessElements
-                .instagramLink
-                .href =
-                    instagram.startsWith(
-                        "http"
-                    )
-                        ? instagram
-                        : `https://instagram.com/${instagram.replace(
-                            /^@/,
-                            ""
-                        )}`;
-
-            businessElements
-                .instagramLink
-                .hidden = false;
-        } else {
-            businessElements
-                .instagramLink
-                .hidden = true;
-        }
-    }
-}
-
-
-function renderBusinessServices(
-    services
-) {
-    if (
-        !businessElements.servicesGrid
-    ) {
-        return;
-    }
-
-    const list =
-        Array.isArray(services)
-            ? services
-            : [];
-
-    businessElements
-        .servicesGrid
-        .innerHTML = "";
-
-    if (list.length === 0) {
-        const empty =
-            document.createElement(
-                "p"
-            );
-
-        empty.id =
-            "businessServicesEmpty";
-
-        empty.textContent =
-            "Послуги ще не додано.";
-
-        businessElements
-            .servicesGrid
-            .appendChild(
-                empty
-            );
-
-        return;
-    }
-
-    list.forEach(
-        (service) => {
-            const card =
-                document.createElement(
-                    "div"
-                );
-
-            card.className =
-                "upholstery-service-card";
-
-            const title =
-                typeof service ===
-                "string"
-                    ? service
-                    : service?.name ||
-                      service?.title ||
-                      "Послуга";
-
-            card.innerHTML = `
-                <span>🔧</span>
-
-                <h3>
-                    ${escapeBusinessHtml(
-                        title
-                    )}
-                </h3>
-            `;
-
-            businessElements
-                .servicesGrid
-                .appendChild(
-                    card
-                );
-        }
-    );
-}
-
-
-function renderBusinessGallery(
-    photos
-) {
-    if (!businessElements.gallery) {
-        return;
-    }
-
-    const list =
-        Array.isArray(photos)
-            ? photos
-            : [];
-
-    businessElements
-        .gallery
-        .innerHTML = "";
-
-    if (list.length === 0) {
-        const empty =
-            document.createElement(
-                "p"
-            );
-
-        empty.id =
-            "businessGalleryEmpty";
-
-        empty.textContent =
-            "Фото робіт ще не додано.";
-
-        businessElements
-            .gallery
-            .appendChild(
-                empty
-            );
-
-        return;
-    }
-
-    list.forEach(
-        (photo) => {
-            const card =
-                document.createElement(
-                    "div"
-                );
-
-            card.className =
-                "royal-auto-car-card";
-
-            const photoBox =
-                document.createElement(
-                    "div"
-                );
-
-            photoBox.className =
-                "royal-auto-car-photo";
-
-            const image =
-                document.createElement(
-                    "img"
-                );
-
-            image.src =
-                photo;
-
-            image.alt =
-                "Фото роботи";
-
-            image.loading =
-                "lazy";
-
-            photoBox.appendChild(
-                image
-            );
-
-            card.appendChild(
-                photoBox
-            );
-
-            businessElements
-                .gallery
-                .appendChild(
-                    card
-                );
-        }
-    );
-}
-
-
-function renderBusinessTypeFeatures(
-    profile
-) {
-    const type =
-        profile.businessTypeCode ||
-        "";
-
-    const isCarDealer =
-        type === "car_dealer";
-
-        if (businessElements.carsSection) {
-            businessElements
-                .carsSection
-                .hidden = false;
-        }
-
-    const addListingButton =
-        document.getElementById(
-            "businessAddListingButton"
-        );
-
-        if (addListingButton) {
-            addListingButton.hidden = false;
-        }
-
-        loadBusinessFavorites()
-        .then(() => {
-            loadBusinessCars(
-                profile.ownerId
-            );
-        });
-}
-
-
-async function loadBusinessCars(
-    ownerId
-) {
-
-    if (
-        !businessElements.carsGrid ||
-        !ownerId
-    ) {
-        return;
-    }
-
-    try {
-        if (
-            businessElements.carsLoading
-        ) {
-            businessElements
-                .carsLoading
-                .hidden = false;
-        }
-
-        if (
-            businessElements.carsEmpty
-        ) {
-            businessElements
-                .carsEmpty
-                .hidden = true;
-        }
-
-        businessElements
-            .carsGrid
-            .innerHTML = "";
-
-        const response =
-            await fetch(
-                "/api/market/listings"
-            );
-
-        const data =
-            await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                data.message ||
-                "Не вдалося завантажити автомобілі."
-            );
-        }
-
-        const listings =
-            Array.isArray(
-                data.listings
-            )
-                ? data.listings
-                : [];
-
-        const businessListings =
-            listings.filter(
-                (listing) =>
-                    String(
-                        listing.ownerId ??
-                        listing.owner_id
-                    ) ===
-                    String(ownerId)
-            );
-
-            if (
-                businessElements.planUsage &&
-                currentBusinessProfile
-            ) {
-                const carLimit =
-                    Number(
-                        currentBusinessProfile.carLimit
-                    );
-            
-                if (
-                    Number.isFinite(carLimit) &&
-                    carLimit > 0
-                ) {
-                    businessElements
-                        .planUsage
-                        .textContent =
-                            `${businessListings.length} / ${carLimit}`;
-                }
-            }
-
-        if (
-            businessElements.carsLoading
-        ) {
-            businessElements
-                .carsLoading
-                .hidden = true;
-        }
-
-        if (
-            businessListings.length ===
-            0
-        ) {
-            if (
-                businessElements
-                    .carsEmpty
-            ) {
-                businessElements
-                    .carsEmpty
-                    .hidden = false;
-            }
-
-            return;
-        }
-
-        businessListings.forEach(
-            (listing) => {
-                businessElements
-                    .carsGrid
-                    .appendChild(
-                        createBusinessCarCard(
-                            listing
-                        )
-                    );
-            }
-        );
-
-    } catch (error) {
-        console.error(
-            "Business cars load error:",
-            error
-        );
-
-        if (
-            businessElements.carsLoading
-        ) {
-            businessElements
-                .carsLoading
-                .hidden = true;
-        }
-    }
-}
-
-
-function createBusinessCarCard(
-    listing
-) {
-    const link =
-        document.createElement(
-            "a"
-        );
-
-    link.className =
-        "royal-auto-car-card";
-
-    link.href =
-        `listing.html?id=${encodeURIComponent(
-            listing.id
-        )}`;
-
-    const photos =
-        Array.isArray(
-            listing.photos
-        )
-            ? listing.photos
-            : [];
-
-    const activeIndex =
-        Number(
-            listing.activePhotoIndex ??
-            listing.active_photo_index ??
-            0
-        );
-
-    const photo =
-        photos[activeIndex] ||
-        photos[0] ||
-        "";
-
-    const photoBox =
-        document.createElement(
-            "div"
-        );
-
-    photoBox.className =
-        "royal-auto-car-photo";
-
-        const favoriteButton =
-    document.createElement(
-        "button"
-    );
-
-favoriteButton.type =
-    "button";
-
-favoriteButton.className =
-    "favorite-headlight-button";
-
-favoriteButton.setAttribute(
-    "aria-label",
-    "Додати в обране"
-);
-
-favoriteButton.innerHTML = `
-    <svg
-        viewBox="0 0 40 40"
-        aria-hidden="true"
-    >
-        <path
-            class="favorite-headlight-shape"
-            d="M14 8C21 5 30 7 34 12C36 15 36 25 34 28C30 33 21 35 14 32C10 30 8 26 8 20C8 14 10 10 14 8Z"
-        ></path>
-
-        <path
-            class="favorite-headlight-lines"
-            d="M3 14H12M1 22H11M3 30H12"
-        ></path>
-    </svg>
-`;
-
-favoriteButton.classList.toggle(
-    "is-active",
-    isBusinessFavoriteListing(
-        listing.id
-    )
-);
-
-favoriteButton.addEventListener(
-    "click",
-    async (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-
-        const changed =
-            await toggleBusinessFavoriteListing(
-                listing.id
-            );
-
-        if (!changed) {
-            return;
-        }
-
-        favoriteButton.classList.toggle(
-            "is-active",
-            isBusinessFavoriteListing(
-                listing.id
-            )
-        );
-    }
-);
-
-photoBox.appendChild(
-    favoriteButton
-);
-
-    if (photo) {
-        const image =
-            document.createElement(
-                "img"
-            );
-
-        image.src =
-            photo;
-
-        image.alt =
-            listing.name ||
-            "Автомобіль";
-
-        photoBox.appendChild(
-            image
-        );
-    } else {
-        photoBox.innerHTML = `
-            <div class="royal-auto-car-placeholder">
-                🚘
-            </div>
-        `;
-    }
-
-    const info =
-        document.createElement(
-            "div"
-        );
-
-    info.className =
-        "royal-auto-car-info";
-
-    const price =
-        Number(
-            listing.priceUsd ??
-            listing.price_usd
-        );
-
-    info.innerHTML = `
-        <h3>
-            ${escapeBusinessHtml(
-                listing.name ||
-                "Автомобіль"
-            )}
-            ${
-                listing.year
-                    ? escapeBusinessHtml(
-                        String(
-                            listing.year
-                        )
-                    )
-                    : ""
-            }
-        </h3>
-
-        <strong class="royal-auto-car-price">
-            ${
-                Number.isFinite(
-                    price
-                ) &&
-                price > 0
-                    ? `${new Intl.NumberFormat(
-                        "uk-UA"
-                    ).format(
-                        price
-                    )} $`
-                    : "Ціна договірна"
-            }
-        </strong>
-
-        <span class="royal-auto-car-more">
-            Детальніше
-        </span>
-    `;
-
-    link.append(
-        photoBox,
-        info
-    );
-
-    return link;
-}
-
-
-function escapeBusinessHtml(
-    value
-) {
-    return String(
-        value ?? ""
-    )
-        .replaceAll(
-            "&",
-            "&amp;"
-        )
-        .replaceAll(
-            "<",
-            "&lt;"
-        )
-        .replaceAll(
-            ">",
-            "&gt;"
-        )
-        .replaceAll(
-            '"',
-            "&quot;"
-        )
-        .replaceAll(
-            "'",
-            "&#039;"
-        );
-}
-
-function isBusinessSubscriptionActive() {
-    const expiresAt =
-        currentBusinessProfile
-            ?.subscriptionExpiresAt;
-
-    if (!expiresAt) {
-        return false;
-    }
-
-    return (
-        new Date(
-            expiresAt
-        ).getTime() >
-        Date.now()
-    );
-}
-
-
-function showBusinessProMessage(
-    featureName
-) {
-    alert(
-        `${featureName} доступний у тарифі Pro.\n\nОберіть Pro, щоб активувати цю функцію.`
-    );
-}
-
-
-businessElements
-    .mapButton
-    ?.addEventListener(
-        "click",
-        () => {
-            if (
-                !currentBusinessProfile
-                    ?.hasMap ||
-                !isBusinessSubscriptionActive()
-            ) {
-                showBusinessProMessage(
-                    "Google Maps"
-                );
-
-                return;
-            }
-
-            alert(
-                "Google Maps активний."
-            );
-        }
-    );
-
-
-businessElements
-    .crmButton
-    ?.addEventListener(
-        "click",
-        () => {
-            if (
-                !currentBusinessProfile
-                    ?.hasCrm ||
-                !isBusinessSubscriptionActive()
-            ) {
-                showBusinessProMessage(
-                    "CRM"
-                );
-
-                return;
-            }
-
-            alert(
-                "CRM активна."
-            );
-        }
-    );
-
-    
-    async function loadBusinessPlans() {
-        const businessTypeCode =
-            currentBusinessProfile
-                ?.businessTypeCode;
-    
-        if (!businessTypeCode) {
-            throw new Error(
-                "Не вдалося визначити тип бізнесу."
-            );
-        }
-    
-        const response =
-            await fetch(
-                `/api/business/plans?type=${encodeURIComponent(
-                    businessTypeCode
-                )}`
-            );
-    
-        const data =
-            await response.json();
-    
-        if (!response.ok) {
-            throw new Error(
-                data.message ||
-                "Не вдалося завантажити тарифи."
-            );
-        }
-    
-        return Array.isArray(
-            data.plans
-        )
-            ? data.plans
-            : [];
-    }
-    
-    
-    async function startBusinessPlanPayment(
-        plan
-    ) {
-        const token =
-            getToken();
-    
-        if (!token) {
-            alert(
-                "Потрібно увійти в акаунт."
-            );
-    
-            return;
-        }
-    
-        const response =
-            await fetch(
-                "/api/payments/liqpay/create",
-                {
-                    method: "POST",
-    
-                    headers: {
-                        "Content-Type":
-                            "application/json",
-    
-                        Authorization:
-                            `Bearer ${token}`
-                    },
-    
-                    body:
-                        JSON.stringify({
-                            planId:
-                                plan.id
-                        })
-                }
-            );
-    
-        const data =
-            await response.json();
-    
-        if (!response.ok) {
-            throw new Error(
-                data.message ||
-                "Не вдалося створити оплату."
-            );
-        }
-    
-        const form =
-            document.createElement(
-                "form"
-            );
-    
-        form.method =
-            "POST";
-    
-        form.action =
-            data.checkoutUrl;
-    
-    
-        const dataInput =
-            document.createElement(
-                "input"
-            );
-    
-        dataInput.type =
-            "hidden";
-    
-        dataInput.name =
-            "data";
-    
-        dataInput.value =
-            data.data;
-    
-    
-        const signatureInput =
-            document.createElement(
-                "input"
-            );
-    
-        signatureInput.type =
-            "hidden";
-    
-        signatureInput.name =
-            "signature";
-    
-        signatureInput.value =
-            data.signature;
-    
-    
-        form.append(
-            dataInput,
-            signatureInput
-        );
-    
-        document.body.appendChild(
-            form
-        );
-    
-        form.submit();
-    }
-    
-    
-    async function chooseBusinessPlan() {
-        try {
-            const plans =
-                await loadBusinessPlans();
-    
-            if (
-                plans.length === 0
-            ) {
-                alert(
-                    "Для цього типу бізнесу тарифи ще не налаштовані."
-                );
-    
-                return;
-            }
-    
-            const text =
-                plans
-                    .map(
-                        (
-                            plan,
-                            index
-                        ) => {
-                            const features =
-                                [];
-    
-                            if (
-                                plan.hasCrm
-                            ) {
-                                features.push(
-                                    "CRM"
-                                );
-                            }
-    
-                            if (
-                                plan.hasMap
-                            ) {
-                                features.push(
-                                    "Google Maps"
-                                );
-                            }
-    
-                            if (
-                                Number.isFinite(
-                                    Number(
-                                        plan.carLimit
-                                    )
-                                )
-                            ) {
-                                features.push(
-                                    `${plan.carLimit} авто`
-                                );
-                            }
-    
-                            return (
-                                `${index + 1}. ` +
-                                `${plan.name} — ` +
-                                `${plan.priceUah} грн/міс` +
-                                (
-                                    features.length
-                                        ? ` (${features.join(", ")})`
-                                        : ""
-                                )
-                            );
-                        }
-                    )
-                    .join("\n");
-    
-            const answer =
-                prompt(
-                    `Оберіть тариф:\n\n${text}\n\nВведіть номер тарифу:`
-                );
-    
-            if (
-                answer === null
-            ) {
-                return;
-            }
-    
-            const planIndex =
-                Number(answer) - 1;
-    
-            if (
-                !Number.isInteger(
-                    planIndex
-                ) ||
-                !plans[planIndex]
-            ) {
-                alert(
-                    "Невірний номер тарифу."
-                );
-    
-                return;
-            }
-    
-            const selectedPlan =
-                plans[planIndex];
-    
-            const confirmed =
-                confirm(
-                    `Обрати тариф "${selectedPlan.name}" за ${selectedPlan.priceUah} грн/місяць?`
-                );
-    
-            if (!confirmed) {
-                return;
-            }
-    
-            await startBusinessPlanPayment(
-                selectedPlan
-            );
-    
-        } catch (error) {
-            console.error(
-                "Business plan choose error:",
-                error
-            );
-    
-            alert(
-                error.message ||
-                "Не вдалося відкрити оплату."
-            );
-        }
-    }
-    
-    
-    businessElements
-        .choosePlanButton
-        ?.addEventListener(
-            "click",
-            chooseBusinessPlan
-        );
-
-        businessElements
-    .renewPlanButton
-    ?.addEventListener(
-        "click",
-        async () => {
-            if (
-                !currentBusinessProfile?.planId
-            ) {
-                alert(
-                    "Не вдалося визначити поточний тариф."
-                );
-
-                return;
-            }
-
-            const confirmed =
-                confirm(
-                    `Продовжити тариф "${currentBusinessProfile.planName}" за ${currentBusinessProfile.priceUah} грн на 30 днів?`
-                );
-
-            if (!confirmed) {
-                return;
-            }
-
-            try {
-                await startBusinessPlanPayment({
-                    id:
-                        currentBusinessProfile
-                            .planId
-                });
-            } catch (error) {
-                console.error(
-                    "Business plan renew error:",
-                    error
-                );
-
-                alert(
-                    error.message ||
-                    "Не вдалося відкрити оплату."
-                );
-            }
-        }
-    );
-
-    async function loadBusinessProfile() {
-        const params =
-            new URLSearchParams(
-                window.location.search
-            );
-    
-        const ownerId =
-            params.get("id");
-    
-        const token =
-            getToken();
-    
-        try {
-            let response;
-    
-            // Публічний перегляд чужого бізнес-профілю
-            if (ownerId) {
-                response =
-                    await fetch(
-                        `/api/business/profiles/${encodeURIComponent(
-                            ownerId
-                        )}`
-                    );
-            }
-    
-            // Власний бізнес-профіль
-            else {
-                if (!token) {
-                    window.location.href =
-                        "index.html";
-    
-                    return;
-                }
-    
-                response =
-                    await fetch(
-                        "/api/business/profile",
-                        {
-                            headers: {
-                                Authorization:
-                                    `Bearer ${token}`
-                            }
-                        }
-                    );
-            }
-    
-            const data =
-                await response.json();
-    
-            if (!response.ok) {
-                throw new Error(
-                    data.message ||
-                    "Не вдалося завантажити бізнес-профіль."
-                );
-            }
-    
-            renderBusinessProfile(
-                data.profile
-            );
-    
-            const isOwnerView =
-                !ownerId;
-
-                if (businessElements.editButton) {
-                    businessElements.editButton.hidden =
-                        !isOwnerView;
-                }
-                
-                if (businessElements.editSection) {
-                    businessElements.editSection.hidden =
-                        true;
-                }
-                
-                if (businessElements.choosePlanButton) {
-                    businessElements.choosePlanButton.hidden =
-                        !isOwnerView;
-                }
-                
-                if (businessElements.renewPlanButton) {
-                    businessElements.renewPlanButton.hidden =
-                        !isOwnerView;
-                }
-                
-                if (businessElements.mapButton) {
-                    businessElements.mapButton.hidden =
-                        !isOwnerView;
-                }
-                
-                if (businessElements.crmButton) {
-                    businessElements.crmButton.hidden =
-                        !isOwnerView;
-                }
-    
-            if (
-                businessElements.ownerPanel
-            ) {
-                businessElements
-                    .ownerPanel
-                    .hidden =
-                        !isOwnerView;
-            }
-
-            if (isOwnerView) {
-                await renderBusinessFavoriteListings();
-            }
-    
-            if (
-                businessElements
-                    .logoUploadLabel
-            ) {
-                businessElements
-                    .logoUploadLabel
-                    .hidden =
-                        !isOwnerView;
-            }
-    
-        } catch (error) {
-            console.error(
-                "Business profile load error:",
-                error
-            );
-    
-            alert(
-                error.message
-            );
-        }
-    }
-
-
-
-
-const businessContactFloat =
-    document.querySelector(
-        ".business-contact-float"
-    );
-
-function updateBusinessContactFloat() {
-    if (!businessContactFloat) {
-        return;
-    }
-
-    const contacts =
-        document.getElementById(
-            "contacts"
-        );
-
-        const contactsRect =
-        contacts
-            ?.getBoundingClientRect();
-    
-    const contactsVisible =
-        Boolean(
-            contactsRect &&
-            contactsRect.top <
-                window.innerHeight &&
-            contactsRect.bottom > 0
-        );
-
-    businessContactFloat
-        .classList.toggle(
-            "is-visible",
-            window.scrollY > 350 &&
-            !contactsVisible
-        );
-}
-
-window.addEventListener(
-    "scroll",
-    updateBusinessContactFloat,
-    {
-        passive: true
-    }
-);
-
-/* =========================
-   BUSINESS LOGO UPLOAD
-   ========================= */
-
-   function compressBusinessLogo(file) {
-    return new Promise(
-        (resolve, reject) => {
-            const reader =
-                new FileReader();
-
-            reader.onload = () => {
-                const image =
-                    new Image();
-
-                image.onload = () => {
-                    const maxSize = 600;
-
-                    let width =
-                        image.width;
-
-                    let height =
-                        image.height;
-
-                    if (
-                        width > maxSize ||
-                        height > maxSize
-                    ) {
-                        const scale =
-                            Math.min(
-                                maxSize / width,
-                                maxSize / height
-                            );
-
-                        width =
-                            Math.round(
-                                width * scale
-                            );
-
-                        height =
-                            Math.round(
-                                height * scale
-                            );
-                    }
-
-                    const canvas =
-                        document.createElement(
-                            "canvas"
-                        );
-
-                    canvas.width =
-                        width;
-
-                    canvas.height =
-                        height;
-
-                    const context =
-                        canvas.getContext(
-                            "2d"
-                        );
-
-                    context.drawImage(
-                        image,
-                        0,
-                        0,
-                        width,
-                        height
-                    );
-
-                    const compressed =
-                        canvas.toDataURL(
-                            "image/jpeg",
-                            0.82
-                        );
-
-                    resolve(
-                        compressed
-                    );
-                };
-
-                image.onerror =
-                    () =>
-                        reject(
-                            new Error(
-                                "Не вдалося прочитати зображення."
-                            )
-                        );
-
-                image.src =
-                    reader.result;
-            };
-
-            reader.onerror =
-                () =>
-                    reject(
-                        new Error(
-                            "Не вдалося прочитати файл."
-                        )
-                    );
-
-            reader.readAsDataURL(
-                file
-            );
-        }
-    );
-}
-
-
-async function saveBusinessLogo(
-    logoData
-) {
-    const token =
-        getToken();
-
-    if (!token) {
-        return;
-    }
-
-    const response =
-        await fetch(
-            "/api/business/profile",
-            {
-                method: "PATCH",
-
-                headers: {
-                    "Content-Type":
-                        "application/json",
-
-                    Authorization:
-                        `Bearer ${token}`
-                },
-
-                body:
-                    JSON.stringify({
-                        logo:
-                            logoData
-                    })
-            }
-        );
-
-    const data =
-        await response.json();
-
-    if (!response.ok) {
-        throw new Error(
-            data.message ||
-            "Не вдалося зберегти логотип."
-        );
-    }
-
-    currentBusinessProfile = {
-        ...currentBusinessProfile,
-        ...data.profile
+    const state = {
+        profile: null,
+        isOwner: false,
+        publicOwnerId: null,
+        editingItemPhotos: [],
+        editingLogo: null
     };
 
-    renderBusinessLogo(
-        data.profile.logo,
-        data.profile.name
-    );
-}
+    const $ = (id) => document.getElementById(id);
+    const token = () => localStorage.getItem("royalGarageToken") || "";
 
-
-if (businessElements.logoInput) {
-    businessElements
-        .logoInput
-        .addEventListener(
-            "change",
-            async (event) => {
-                const file =
-                    event.target
-                        .files?.[0];
-
-                if (!file) {
-                    return;
-                }
-
-                if (
-                    !file.type.startsWith(
-                        "image/"
-                    )
-                ) {
-                    alert(
-                        "Оберіть зображення."
-                    );
-
-                    return;
-                }
-
-                try {
-                    const logoData =
-                        await compressBusinessLogo(
-                            file
-                        );
-
-                    await saveBusinessLogo(
-                        logoData
-                    );
-
-                    alert(
-                        "Логотип збережено."
-                    );
-
-                } catch (error) {
-                    console.error(
-                        "Business logo upload error:",
-                        error
-                    );
-
-                    alert(
-                        error.message
-                    );
-                } finally {
-                    event.target.value =
-                        "";
-                }
-            }
-        );
-}
-
-function fillBusinessEditForm() {
-    if (!currentBusinessProfile) {
-        return;
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
     }
 
-    businessElements.editName.value =
-        currentBusinessProfile.name || "";
+    function getStoredUser() {
+        if (typeof window.getCurrentUser === "function") {
+            return window.getCurrentUser();
+        }
 
-    businessElements.editCity.value =
-        currentBusinessProfile.city || "";
+        try {
+            return JSON.parse(localStorage.getItem("royalGarageCurrentUser") || "null");
+        } catch {
+            return null;
+        }
+    }
 
-    businessElements.editAddress.value =
-        currentBusinessProfile.address || "";
+    async function api(url, options = {}) {
+        const headers = new Headers(options.headers || {});
+        const authToken = token();
 
-    businessElements.editPhone.value =
-        currentBusinessProfile.phone || "";
+        if (authToken && !headers.has("Authorization")) {
+            headers.set("Authorization", `Bearer ${authToken}`);
+        }
 
-    businessElements.editTelegram.value =
-        currentBusinessProfile.telegram || "";
+        if (options.body && !(options.body instanceof FormData) && !headers.has("Content-Type")) {
+            headers.set("Content-Type", "application/json");
+        }
 
-    businessElements.editInstagram.value =
-        currentBusinessProfile.instagram || "";
+        const response = await fetch(url, { ...options, headers });
+        let data = null;
 
-    businessElements.editDescription.value =
-        currentBusinessProfile.description || "";
+        try {
+            data = await response.json();
+        } catch {
+            data = {};
+        }
 
-        businessElements.editServices.value =
-    Array.isArray(
-        currentBusinessProfile.services
-    )
-        ? currentBusinessProfile.services
-            .map(
-                (service) =>
-                    typeof service === "string"
-                        ? service
-                        : service?.name || ""
-            )
+        if (!response.ok) {
+            const error = new Error(data.message || "Помилка сервера.");
+            error.status = response.status;
+            throw error;
+        }
+
+        return data;
+    }
+
+    function setPageError(message) {
+        $("businessPageLoading").hidden = true;
+        $("businessPageContent").hidden = true;
+        const error = $("businessPageError");
+        error.textContent = message;
+        error.hidden = false;
+    }
+
+    function initials(name) {
+        const parts = String(name || "Royal Garage")
+            .trim()
+            .split(/\s+/)
             .filter(Boolean)
-            .join("\n")
-        : "";
+            .slice(0, 2);
 
-        businessEditPhotosData =
-    Array.isArray(
-        currentBusinessProfile.photos
-    )
-        ? [
-            ...currentBusinessProfile.photos
-        ]
-        : [];
-
-renderBusinessEditPhotosPreview();
-}
-
-
-businessElements.editButton
-    ?.addEventListener(
-        "click",
-        () => {
-            fillBusinessEditForm();
-
-            businessElements
-                .editSection
-                .hidden = false;
-
-            businessElements
-                .editButton
-                .hidden = true;
-
-            businessElements
-                .editSection
-                .scrollIntoView({
-                    behavior: "smooth",
-                    block: "start"
-                });
-        }
-    );
-
-
-businessElements.cancelEditButton
-    ?.addEventListener(
-        "click",
-        () => {
-            businessElements
-                .editSection
-                .hidden = true;
-
-            businessElements
-                .editButton
-                .hidden = false;
-        }
-    );
-
-
-businessElements.editForm
-    ?.addEventListener(
-        "submit",
-        async (event) => {
-            event.preventDefault();
-
-            const token =
-                getToken();
-
-            if (!token) {
-                return;
-            }
-
-            const profileData = {
-                name:
-                    businessElements
-                        .editName
-                        .value
-                        .trim(),
-
-                city:
-                    businessElements
-                        .editCity
-                        .value
-                        .trim(),
-
-                address:
-                    businessElements
-                        .editAddress
-                        .value
-                        .trim(),
-
-                phone:
-                    businessElements
-                        .editPhone
-                        .value
-                        .trim(),
-
-                telegram:
-                    businessElements
-                        .editTelegram
-                        .value
-                        .trim(),
-
-                instagram:
-                    businessElements
-                        .editInstagram
-                        .value
-                        .trim(),
-
-                description:
-                    businessElements
-                        .editDescription
-                        .value
-                        .trim(),
-
-                services:
-                    businessElements
-                        .editServices
-                        .value
-                        .split("\n")
-                        .map(
-                            (service) =>
-                                service.trim()
-                        )
-                        .filter(Boolean),
-                        photos:
-                 businessEditPhotosData
-            };
-
-            try {
-                const response =
-                    await fetch(
-                        "/api/business/profile",
-                        {
-                            method: "PATCH",
-
-                            headers: {
-                                "Content-Type":
-                                    "application/json",
-
-                                Authorization:
-                                    `Bearer ${token}`
-                            },
-
-                            body:
-                                JSON.stringify(
-                                    profileData
-                                )
-                        }
-                    );
-
-                const data =
-                    await response.json();
-
-                if (!response.ok) {
-                    throw new Error(
-                        data.message ||
-                        "Не вдалося зберегти профіль."
-                    );
-                }
-
-                currentBusinessProfile = {
-                    ...currentBusinessProfile,
-                    ...data.profile
-                };
-
-                renderBusinessProfile(
-                    currentBusinessProfile
-                );
-
-                businessElements
-                    .editSection
-                    .hidden = true;
-
-                businessElements
-                    .editButton
-                    .hidden = false;
-
-                alert(
-                    "Бізнес-профіль збережено."
-                );
-
-            } catch (error) {
-                console.error(
-                    "Business profile update error:",
-                    error
-                );
-
-                alert(
-                    error.message
-                );
-            }
-        }
-    );
-
-    /* =========================
-   КНОПКА ВГОРУ
-   ========================= */
-
-let backToTopButton =
-document.getElementById(
-    "backToTopButton"
-);
-
-if (!backToTopButton) {
-backToTopButton =
-    document.createElement(
-        "button"
-    );
-
-backToTopButton.type =
-    "button";
-
-backToTopButton.id =
-    "backToTopButton";
-
-backToTopButton.className =
-    "business-back-to-top";
-
-backToTopButton.setAttribute(
-    "aria-label",
-    "Повернутися вгору"
-);
-
-backToTopButton.textContent =
-    "↑";
-
-document.body.appendChild(
-    backToTopButton
-);
-}
-
-backToTopButton.classList.remove(
-    "back-to-top-button"
-);
-
-backToTopButton.classList.add(
-    "business-back-to-top"
-);
-
-function updateBackToTopButton() {
-backToTopButton
-    .classList.toggle(
-        "is-visible",
-        window.scrollY > 350
-    );
-}
-
-backToTopButton.addEventListener(
-"click",
-() => {
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
-}
-);
-
-window.addEventListener(
-"scroll",
-updateBackToTopButton,
-{
-    passive: true
-}
-);
-
-function renderBusinessEditPhotosPreview() {
-    if (
-        !businessElements.editPhotosPreview
-    ) {
-        return;
+        return parts.map((part) => part[0]?.toUpperCase() || "").join("") || "RG";
     }
 
-    businessElements
-        .editPhotosPreview
-        .innerHTML = "";
+    function formatPhone(phone) {
+        const digits = String(phone || "").replace(/\D/g, "");
+        return digits ? `+${digits}` : "";
+    }
 
-    businessEditPhotosData.forEach(
-        (photo, index) => {
-            const item =
-                document.createElement(
-                    "div"
-                );
+    function telegramUrl(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "";
+        if (/^https?:\/\//i.test(raw)) return raw;
+        return `https://t.me/${raw.replace(/^@/, "")}`;
+    }
 
-            item.className =
-                "business-edit-photo-item";
+    function instagramUrl(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "";
+        if (/^https?:\/\//i.test(raw)) return raw;
+        return `https://instagram.com/${raw.replace(/^@/, "")}`;
+    }
 
-            const image =
-                document.createElement(
-                    "img"
-                );
+    function mapUrl(profile) {
+        const query = [profile.city, profile.address].filter(Boolean).join(", ").trim();
+        if (!query) return "";
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+    }
 
-            image.src =
-                photo;
+    function formatDate(value) {
+        if (!value) return "";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "";
+        return date.toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit", year: "numeric" });
+    }
 
-            image.alt =
-                "Фото роботи";
+    function money(value, prefix = "") {
+        const number = Number(value);
+        if (!Number.isFinite(number) || number <= 0) return "";
+        return `${prefix}${Math.round(number).toLocaleString("uk-UA")} грн`;
+    }
 
-            const removeButton =
-                document.createElement(
-                    "button"
-                );
+    function normalizeSchedule(schedule) {
+        const source = schedule && typeof schedule === "object" && !Array.isArray(schedule)
+            ? schedule
+            : {};
 
-            removeButton.type =
-                "button";
-
-            removeButton.textContent =
-                "✕";
-
-            removeButton.className =
-                "business-edit-photo-remove";
-
-            removeButton.addEventListener(
-                "click",
-                () => {
-                    businessEditPhotosData.splice(
-                        index,
-                        1
-                    );
-
-                    renderBusinessEditPhotosPreview();
-                }
-            );
-
-            item.append(
-                image,
-                removeButton
-            );
-
-            businessElements
-                .editPhotosPreview
-                .appendChild(
-                    item
-                );
+        const result = {};
+        for (const [key] of DAYS) {
+            const current = source[key] || {};
+            result[key] = {
+                enabled: Boolean(current.enabled),
+                open: String(current.open || "09:00"),
+                close: String(current.close || "18:00")
+            };
         }
-    );
-}
+        return result;
+    }
 
+    function renderLogo(profile) {
+        const image = $("businessLogo");
+        const placeholder = $("businessLogoPlaceholder");
+        placeholder.textContent = initials(profile.name);
 
-async function compressBusinessPhoto(
-    file
-) {
-    return new Promise(
-        (resolve, reject) => {
-            const reader =
-                new FileReader();
+        if (profile.logo) {
+            image.src = profile.logo;
+            image.hidden = false;
+            placeholder.hidden = true;
+        } else {
+            image.removeAttribute("src");
+            image.hidden = true;
+            placeholder.hidden = false;
+        }
+    }
 
-            reader.onload = () => {
-                const image =
-                    new Image();
+    function setContactLink(id, href, visible) {
+        const element = $(id);
+        if (!element) return;
+        element.hidden = !visible;
+        if (visible) element.href = href;
+    }
 
-                image.onload = () => {
-                    const maxSize = 1200;
+    function renderContacts(profile) {
+        const phone = formatPhone(profile.phone);
+        const tg = telegramUrl(profile.telegram);
+        const ig = instagramUrl(profile.instagram);
+        const route = mapUrl(profile);
+        const mapAllowed = profile.mapEnabled !== false && profile.hasMap !== false;
 
-                    let width =
-                        image.width;
+        setContactLink("businessPhoneLink", phone ? `tel:${phone}` : "#", Boolean(phone));
+        setContactLink("businessTelegramLink", tg, Boolean(tg));
+        setContactLink("businessInstagramLink", ig, Boolean(ig));
+        setContactLink("businessRouteLink", route, Boolean(route && mapAllowed));
 
-                    let height =
-                        image.height;
+        setContactLink("businessBottomPhone", phone ? `tel:${phone}` : "#", Boolean(phone));
+        setContactLink("businessBottomTelegram", tg, Boolean(tg));
+        setContactLink("businessBottomInstagram", ig, Boolean(ig));
+        setContactLink("businessMapLink", route, Boolean(route && mapAllowed));
+    }
 
-                    if (
-                        width > maxSize ||
-                        height > maxSize
-                    ) {
-                        const scale =
-                            Math.min(
-                                maxSize / width,
-                                maxSize / height
-                            );
+    function renderSchedule(profile) {
+        const root = $("businessSchedule");
+        root.innerHTML = "";
+        const schedule = normalizeSchedule(profile.workSchedule);
+        const hasAny = DAYS.some(([key]) => schedule[key].enabled);
 
-                        width =
-                            Math.round(
-                                width * scale
-                            );
+        if (!hasAny) {
+            root.innerHTML = '<p class="business-empty">Графік ще не вказано.</p>';
+            return;
+        }
 
-                        height =
-                            Math.round(
-                                height * scale
-                            );
-                    }
+        for (const [key, label] of DAYS) {
+            const day = schedule[key];
+            const row = document.createElement("div");
+            row.className = "business-schedule-row";
+            row.innerHTML = `<strong>${label}</strong><span>${day.enabled ? `${escapeHtml(day.open)}–${escapeHtml(day.close)}` : "Вихідний"}</span>`;
+            root.appendChild(row);
+        }
+    }
 
-                    const canvas =
-                        document.createElement(
-                            "canvas"
-                        );
+    function contentMode(profile) {
+        const type = profile.businessTypeCode;
+        if (["car_service", "detailing", "tire_service", "road_assistance"].includes(type)) return "services";
+        if (type === "auto_shop") return "products";
+        if (type === "car_dealer") return "cars";
+        return profile.businessContentType || "services";
+    }
 
-                    canvas.width =
-                        width;
+    function renderOwnerControls(profile) {
+        const panel = $("businessOwnerPanel");
+        const manage = $("businessManageButton");
+        panel.hidden = !state.isOwner;
+        manage.hidden = !state.isOwner;
+        $("businessOwnerDraftBadge").hidden = !(state.isOwner && profile.profileStatus !== "active");
 
-                    canvas.height =
-                        height;
+        if (!state.isOwner) return;
 
-                    const context =
-                        canvas.getContext(
-                            "2d"
-                        );
+        const active = profile.profileStatus === "active";
+        $("businessProfileStatusText").textContent = active ? "Активний" : "Чернетка";
+        $("businessProfileStatusHint").textContent = active
+            ? "Профіль опублікований у «Партнерах»."
+            : "Для публікації потрібні активний тариф, підтверджений email і телефон.";
+        $("businessProfileStatusDot").classList.toggle("active", active);
 
-                    context.drawImage(
-                        image,
-                        0,
-                        0,
-                        width,
-                        height
-                    );
+        $("businessEmailStatus").textContent = profile.emailVerified ? "Підтверджено ✓" : "Не підтверджено";
+        $("businessPhoneStatus").textContent = profile.phoneVerified ? "Підтверджено ✓" : "Не підтверджено";
+        $("businessVerifyEmailButton").hidden = Boolean(profile.emailVerified);
+        $("businessVerifyPhoneButton").hidden = Boolean(profile.phoneVerified);
 
-                    resolve(
-                        canvas.toDataURL(
-                            "image/jpeg",
-                            0.82
-                        )
-                    );
-                };
+        const subActive = profile.subscriptionStatus === "active";
+        $("businessPlanStatus").textContent = subActive
+            ? `${profile.planName || "Тариф"} — активний`
+            : `${profile.planName || "Тариф"} — неактивний`;
+        $("businessPlanExpires").textContent = profile.subscriptionExpiresAt
+            ? `До ${formatDate(profile.subscriptionExpiresAt)}`
+            : "";
 
-                image.onerror = () =>
-                    reject(
-                        new Error(
-                            "Не вдалося прочитати фото."
-                        )
-                    );
+        const mode = contentMode(profile);
+        $("businessAddServiceButton").hidden = !(mode === "services" || mode === "both");
+        $("businessAddProductButton").hidden = !(mode === "products" || mode === "both");
+        $("businessAddCarButton").hidden = mode !== "cars";
+    }
 
-                image.src =
-                    reader.result;
+    function createPhotos(photos, alt) {
+        const list = Array.isArray(photos) ? photos.filter(Boolean).slice(0, MAX_ITEM_PHOTOS) : [];
+        if (!list.length) return "";
+        return `<div class="business-card-photos">${list.map((src) => `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy">`).join("")}</div>`;
+    }
+
+    function itemCard(item, kind) {
+        const card = document.createElement("article");
+        card.className = "business-content-card";
+        const priceText = kind === "service"
+            ? money(item.priceFrom, "від ")
+            : money(item.price);
+
+        card.innerHTML = `
+            ${createPhotos(item.photos, item.title)}
+            <div class="business-content-body">
+                <h3>${escapeHtml(item.title || (kind === "service" ? "Послуга" : "Товар"))}</h3>
+                ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
+                ${priceText ? `<span class="business-price">${priceText}</span>` : ""}
+                ${state.isOwner ? `
+                    <div class="business-card-owner-actions">
+                        <button type="button" data-edit-kind="${kind}" data-edit-id="${escapeHtml(item.id)}">✏️ Редагувати</button>
+                        <button type="button" data-delete-kind="${kind}" data-delete-id="${escapeHtml(item.id)}">🗑 Видалити</button>
+                    </div>
+                ` : ""}
+            </div>`;
+        return card;
+    }
+
+    async function renderCars(profile) {
+        const root = $("businessMainGrid");
+        const empty = $("businessMainEmpty");
+        root.innerHTML = "";
+        $("businessMainTitle").textContent = "Автомобілі у продажу";
+        $("businessMainEyebrow").textContent = "Авторинок";
+        empty.textContent = "Активних оголошень ще немає.";
+
+        try {
+            const data = await api("/api/market/listings", { headers: { Authorization: "" } });
+            const listings = (Array.isArray(data.listings) ? data.listings : [])
+                .filter((listing) => String(listing.ownerId ?? listing.owner_id) === String(profile.ownerId));
+
+            empty.hidden = listings.length > 0;
+            for (const listing of listings) {
+                const photos = Array.isArray(listing.photos) ? listing.photos : [];
+                const activeIndex = Number(listing.activePhotoIndex ?? listing.active_photo_index ?? 0) || 0;
+                const photo = photos[activeIndex] || photos[0] || "";
+                const card = document.createElement("a");
+                card.className = "business-content-card";
+                card.href = `listing.html?id=${encodeURIComponent(listing.id)}`;
+                card.style.textDecoration = "none";
+                card.innerHTML = `
+                    ${photo ? `<div class="business-card-photos"><img src="${escapeHtml(photo)}" alt="${escapeHtml(listing.name || "Автомобіль")}" loading="lazy"></div>` : ""}
+                    <div class="business-content-body">
+                        <h3>${escapeHtml([listing.name, listing.year].filter(Boolean).join(" "))}</h3>
+                        ${listing.city ? `<p>${escapeHtml(listing.city)}</p>` : ""}
+                        ${money(listing.priceUsd) ? `<span class="business-price">${Math.round(Number(listing.priceUsd)).toLocaleString("uk-UA")} $</span>` : ""}
+                    </div>`;
+                root.appendChild(card);
+            }
+        } catch (error) {
+            console.error("Business cars load error:", error);
+            empty.hidden = false;
+            empty.textContent = "Не вдалося завантажити автомобілі.";
+        }
+    }
+
+    async function renderMainContent(profile) {
+        const root = $("businessMainGrid");
+        const empty = $("businessMainEmpty");
+        root.innerHTML = "";
+        empty.hidden = true;
+
+        const mode = contentMode(profile);
+        if (mode === "cars") {
+            await renderCars(profile);
+            return;
+        }
+
+        const services = Array.isArray(profile.services) ? profile.services : [];
+        const products = Array.isArray(profile.products) ? profile.products : [];
+
+        if (mode === "products") {
+            $("businessMainTitle").textContent = "Товари";
+            $("businessMainEyebrow").textContent = "Каталог";
+            products.forEach((item) => root.appendChild(itemCard(item, "product")));
+            empty.textContent = "Товари ще не додано.";
+            empty.hidden = products.length > 0;
+            return;
+        }
+
+        if (mode === "both") {
+            $("businessMainTitle").textContent = "Послуги та товари";
+            $("businessMainEyebrow").textContent = "Пропозиції";
+            services.forEach((item) => root.appendChild(itemCard(item, "service")));
+            products.forEach((item) => root.appendChild(itemCard(item, "product")));
+            empty.textContent = "Пропозиції ще не додано.";
+            empty.hidden = services.length + products.length > 0;
+            return;
+        }
+
+        $("businessMainTitle").textContent = "Послуги";
+        $("businessMainEyebrow").textContent = "Послуги";
+        services.forEach((item) => root.appendChild(itemCard(item, "service")));
+        empty.textContent = "Послуги ще не додано.";
+        empty.hidden = services.length > 0;
+    }
+
+    async function loadReviews(ownerId) {
+        try {
+            const [ratingData, reviewsData] = await Promise.all([
+                api(`/api/sellers/${encodeURIComponent(ownerId)}/rating`, { headers: { Authorization: "" } }),
+                api(`/api/sellers/${encodeURIComponent(ownerId)}/reviews`, { headers: { Authorization: "" } })
+            ]);
+
+            const average = Number(ratingData?.rating?.average || 0);
+            const count = Number(ratingData?.rating?.count || 0);
+            $("businessRatingAverage").textContent = count ? `⭐ ${average.toFixed(1)}` : "⭐ —";
+            $("businessRatingCount").textContent = count ? `${count} оцінок` : "Відгуків ще немає";
+
+            const reviews = Array.isArray(reviewsData.reviews) ? reviewsData.reviews : [];
+            const root = $("businessReviewsList");
+            root.innerHTML = "";
+            $("businessReviewsEmpty").hidden = reviews.length > 0;
+
+            for (const review of reviews) {
+                const card = document.createElement("article");
+                card.className = "business-review-card";
+                const stars = "⭐".repeat(Math.max(0, Math.min(5, Number(review.rating) || 0)));
+                card.innerHTML = `
+                    <div class="business-review-top">
+                        <strong>${escapeHtml(review.userName || "Користувач")}</strong>
+                        <span>${stars}</span>
+                    </div>
+                    <p>${escapeHtml(review.text || "")}</p>
+                    <small>${formatDate(review.updatedAt)}</small>`;
+                root.appendChild(card);
+            }
+        } catch (error) {
+            console.error("Business reviews error:", error);
+        }
+    }
+
+    async function renderProfile(profile) {
+        state.profile = profile;
+        renderLogo(profile);
+        $("businessTypeLabel").textContent = profile.businessTypeName || "Автобізнес";
+        $("businessName").textContent = profile.name || "Бізнес";
+        $("businessHeroDescription").textContent = profile.description || "";
+        $("businessDescription").textContent = profile.description || "Опис ще не додано.";
+
+        const cityLine = [profile.city, profile.address].filter(Boolean).join(" · ");
+        $("businessCityLine").textContent = cityLine ? `📍 ${cityLine}` : "";
+        $("businessCityLine").hidden = !cityLine;
+        $("businessAddress").textContent = [profile.city, profile.address].filter(Boolean).join(", ") || "Не вказано";
+
+        renderContacts(profile);
+        renderSchedule(profile);
+        renderOwnerControls(profile);
+        await renderMainContent(profile);
+        loadReviews(profile.ownerId);
+
+        document.title = `${profile.name || "Бізнес"} | Royal Garage`;
+    }
+
+    async function loadProfile() {
+        const params = new URLSearchParams(location.search);
+        state.publicOwnerId = params.get("id");
+        state.isOwner = !state.publicOwnerId;
+
+        if (state.isOwner && !token()) {
+            location.href = "index.html";
+            return;
+        }
+
+        try {
+            const data = state.isOwner
+                ? await api("/api/business/profile")
+                : await api(`/api/business/profiles/${encodeURIComponent(state.publicOwnerId)}`, { headers: { Authorization: "" } });
+
+            await renderProfile(data.profile);
+            $("businessPageLoading").hidden = true;
+            $("businessPageError").hidden = true;
+            $("businessPageContent").hidden = false;
+        } catch (error) {
+            console.error("Business profile load error:", error);
+            setPageError(error.status === 404
+                ? "Бізнес-профіль не знайдено або він ще не опублікований."
+                : error.message);
+        }
+    }
+
+    function openModal(id) {
+        const modal = $(id);
+        if (!modal) return;
+        modal.hidden = false;
+        document.body.style.overflow = "hidden";
+    }
+
+    function closeModal(id) {
+        const modal = $(id);
+        if (!modal) return;
+        modal.hidden = true;
+        if (!document.querySelector(".business-modal:not([hidden])")) {
+            document.body.style.overflow = "";
+        }
+    }
+
+    function setupScheduleEditor() {
+        const root = $("businessScheduleEditor");
+        root.innerHTML = "";
+        const schedule = normalizeSchedule(state.profile?.workSchedule);
+
+        for (const [key, label] of DAYS) {
+            const day = schedule[key];
+            const row = document.createElement("div");
+            row.className = "business-schedule-edit-row";
+            row.innerHTML = `
+                <strong>${label}</strong>
+                <label><input type="checkbox" data-day-enabled="${key}" ${day.enabled ? "checked" : ""}> Працює</label>
+                <input type="time" data-day-open="${key}" value="${escapeHtml(day.open)}">
+                <input type="time" data-day-close="${key}" value="${escapeHtml(day.close)}">`;
+            root.appendChild(row);
+        }
+    }
+
+    function readScheduleEditor() {
+        const result = {};
+        for (const [key] of DAYS) {
+            result[key] = {
+                enabled: Boolean(document.querySelector(`[data-day-enabled="${key}"]`)?.checked),
+                open: document.querySelector(`[data-day-open="${key}"]`)?.value || "09:00",
+                close: document.querySelector(`[data-day-close="${key}"]`)?.value || "18:00"
+            };
+        }
+        return result;
+    }
+
+    function fillProfileForm() {
+        const p = state.profile;
+        $("businessEditName").value = p.name || "";
+        $("businessEditCity").value = p.city || "";
+        $("businessEditAddress").value = p.address || "";
+        $("businessEditPhone").value = p.phone || "";
+        $("businessEditTelegram").value = p.telegram || "";
+        $("businessEditInstagram").value = p.instagram || "";
+        $("businessEditDescription").value = p.description || "";
+        $("businessProfileFormError").textContent = "";
+        state.editingLogo = p.logo || null;
+        renderLogoEditPreview();
+
+        const otherField = $("businessOtherContentTypeField");
+        otherField.hidden = p.businessTypeCode !== "other";
+        if (!otherField.hidden) {
+            const value = p.businessContentType || "services";
+            const radio = document.querySelector(`input[name="businessContentType"][value="${value}"]`);
+            if (radio) radio.checked = true;
+        }
+        setupScheduleEditor();
+    }
+
+    function renderLogoEditPreview() {
+        const root = $("businessLogoEditPreview");
+        root.innerHTML = state.editingLogo ? `<img src="${escapeHtml(state.editingLogo)}" alt="Логотип">` : "";
+    }
+
+    async function compressImage(file, maxSize = 1200, quality = 0.82) {
+        if (!file?.type?.startsWith("image/")) {
+            throw new Error("Оберіть файл зображення.");
+        }
+
+        const dataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+
+        const image = await new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = dataUrl;
+        });
+
+        const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(image.width * scale);
+        canvas.height = Math.round(image.height * scale);
+        canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL("image/jpeg", quality);
+    }
+
+    async function saveProfile(event) {
+        event.preventDefault();
+        const error = $("businessProfileFormError");
+        error.textContent = "";
+
+        try {
+            const body = {
+                name: $("businessEditName").value.trim(),
+                logo: state.editingLogo,
+                city: $("businessEditCity").value.trim(),
+                address: $("businessEditAddress").value.trim(),
+                phone: $("businessEditPhone").value.trim(),
+                telegram: $("businessEditTelegram").value.trim(),
+                instagram: $("businessEditInstagram").value.trim(),
+                description: $("businessEditDescription").value.trim(),
+                workSchedule: readScheduleEditor()
             };
 
-            reader.onerror = () =>
-                reject(
-                    new Error(
-                        "Не вдалося прочитати файл."
-                    )
-                );
+            if (state.profile.businessTypeCode === "other") {
+                body.businessContentType = document.querySelector('input[name="businessContentType"]:checked')?.value || "services";
+            }
 
-            reader.readAsDataURL(
-                file
-            );
+            const data = await api("/api/business/profile", {
+                method: "PATCH",
+                body: JSON.stringify(body)
+            });
+
+            state.profile = data.profile;
+            closeModal("businessProfileModal");
+            await renderProfile(state.profile);
+        } catch (e) {
+            error.textContent = e.message;
         }
-    );
-}
+    }
 
+    function findItem(kind, id) {
+        const list = kind === "service" ? state.profile.services : state.profile.products;
+        return (Array.isArray(list) ? list : []).find((item) => String(item.id) === String(id));
+    }
 
-businessElements.editPhotos
-    ?.addEventListener(
-        "change",
-        async (event) => {
-            const files =
-                Array.from(
-                    event.target.files || []
-                );
+    function openItemModal(kind, item = null) {
+        $("businessItemKind").value = kind;
+        $("businessItemId").value = item?.id || "";
+        $("businessItemTitle").value = item?.title || "";
+        $("businessItemDescription").value = item?.description || "";
+        $("businessItemPrice").value = kind === "service" ? (item?.priceFrom || "") : (item?.price || "");
+        $("businessItemModalTitle").textContent = `${item ? "Редагувати" : "Додати"} ${kind === "service" ? "послугу" : "товар"}`;
+        $("businessItemPriceLabel").firstChild.textContent = kind === "service" ? "Ціна від, грн\n" : "Ціна, грн\n";
+        $("businessItemFormError").textContent = "";
+        $("businessItemPhotosInput").value = "";
+        state.editingItemPhotos = Array.isArray(item?.photos) ? [...item.photos] : [];
+        renderItemPhotosPreview();
+        openModal("businessItemModal");
+    }
 
-            if (files.length === 0) {
+    function renderItemPhotosPreview() {
+        const root = $("businessItemPhotosPreview");
+        root.innerHTML = "";
+        state.editingItemPhotos.forEach((src, index) => {
+            const item = document.createElement("div");
+            item.className = "business-photo-preview-item";
+            item.innerHTML = `<img src="${escapeHtml(src)}" alt="Фото"><button type="button" data-remove-photo="${index}" aria-label="Видалити">×</button>`;
+            root.appendChild(item);
+        });
+    }
+
+    async function saveItem(event) {
+        event.preventDefault();
+        const kind = $("businessItemKind").value;
+        const id = $("businessItemId").value;
+        const error = $("businessItemFormError");
+        error.textContent = "";
+
+        try {
+            const price = Number($("businessItemPrice").value || 0);
+            const body = {
+                title: $("businessItemTitle").value.trim(),
+                description: $("businessItemDescription").value.trim(),
+                photos: state.editingItemPhotos
+            };
+
+            if (kind === "service") body.priceFrom = price > 0 ? price : null;
+            else body.price = price > 0 ? price : null;
+
+            const base = kind === "service" ? "/api/business/services" : "/api/business/products";
+            await api(id ? `${base}/${encodeURIComponent(id)}` : base, {
+                method: id ? "PATCH" : "POST",
+                body: JSON.stringify(body)
+            });
+
+            closeModal("businessItemModal");
+            await refreshOwnerProfile();
+        } catch (e) {
+            error.textContent = e.message;
+        }
+    }
+
+    async function deleteItem(kind, id) {
+        if (!confirm(`Видалити ${kind === "service" ? "послугу" : "товар"}?`)) return;
+        const base = kind === "service" ? "/api/business/services" : "/api/business/products";
+        try {
+            await api(`${base}/${encodeURIComponent(id)}`, { method: "DELETE" });
+            await refreshOwnerProfile();
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    async function refreshOwnerProfile() {
+        const data = await api("/api/business/profile");
+        await renderProfile(data.profile);
+    }
+
+    async function sendVerificationEmail() {
+        try {
+            const data = await api("/api/resend-verification-email", {
+                method: "POST",
+                headers: { Authorization: "" },
+                body: JSON.stringify({ email: state.profile.email })
+            });
+            alert(data.message || "Лист надіслано.");
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    async function sendPhoneCode() {
+        try {
+            const data = await api("/api/phone/send-code", { method: "POST", body: JSON.stringify({}) });
+            alert(data.message || "Код надіслано.");
+            $("businessPhoneCodeForm").hidden = false;
+            $("businessPhoneCode").focus();
+        } catch (error) {
+            $("businessPhoneFormError").textContent = error.message;
+        }
+    }
+
+    async function verifyPhoneCode(event) {
+        event.preventDefault();
+        try {
+            await api("/api/phone/verify-code", {
+                method: "POST",
+                body: JSON.stringify({ code: $("businessPhoneCode").value.trim() })
+            });
+            closeModal("businessPhoneModal");
+            await refreshOwnerProfile();
+        } catch (error) {
+            $("businessPhoneFormError").textContent = error.message;
+        }
+    }
+
+    async function openPlanModal() {
+        $("businessPlanModalError").textContent = "";
+        $("businessPlansList").innerHTML = "Завантаження…";
+        openModal("businessPlanModal");
+
+        try {
+            const data = await api(`/api/business/plans?type=${encodeURIComponent(state.profile.businessTypeCode)}`, { headers: { Authorization: "" } });
+            const plans = Array.isArray(data.plans) ? data.plans : [];
+            const root = $("businessPlansList");
+            root.innerHTML = "";
+
+            for (const plan of plans) {
+                const card = document.createElement("div");
+                card.className = "business-plan-card";
+                card.innerHTML = `
+                    <div><strong>${escapeHtml(plan.name)}</strong><p>${Number(plan.priceUah || 0).toLocaleString("uk-UA")} грн / 30 днів</p></div>
+                    <button class="business-primary-button" type="button" data-pay-plan="${escapeHtml(plan.id)}">Оплатити</button>`;
+                root.appendChild(card);
+            }
+        } catch (error) {
+            $("businessPlanModalError").textContent = error.message;
+        }
+    }
+
+    async function payPlan(planId) {
+        try {
+            const data = await api("/api/payments/liqpay/create", {
+                method: "POST",
+                body: JSON.stringify({ planId })
+            });
+            submitLiqPay(data);
+        } catch (error) {
+            $("businessPlanModalError").textContent = error.message;
+        }
+    }
+
+    function submitLiqPay(data) {
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = data.checkoutUrl;
+        form.innerHTML = `
+            <input type="hidden" name="data" value="${escapeHtml(data.data)}">
+            <input type="hidden" name="signature" value="${escapeHtml(data.signature)}">`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    function bindEvents() {
+        $("businessManageButton")?.addEventListener("click", () => {
+            $("businessOwnerPanel").hidden = false;
+            $("businessOwnerPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        $("businessOwnerPanelClose")?.addEventListener("click", () => { $("businessOwnerPanel").hidden = true; });
+
+        $("businessEditProfileButton")?.addEventListener("click", () => {
+            fillProfileForm();
+            openModal("businessProfileModal");
+        });
+        $("businessAddServiceButton")?.addEventListener("click", () => openItemModal("service"));
+        $("businessAddProductButton")?.addEventListener("click", () => openItemModal("product"));
+        $("businessVerifyEmailButton")?.addEventListener("click", sendVerificationEmail);
+        $("businessVerifyPhoneButton")?.addEventListener("click", () => {
+            $("businessPhoneCodeForm").hidden = true;
+            $("businessPhoneFormError").textContent = "";
+            openModal("businessPhoneModal");
+        });
+        $("businessPlanButton")?.addEventListener("click", openPlanModal);
+
+        $("businessProfileForm")?.addEventListener("submit", saveProfile);
+        $("businessItemForm")?.addEventListener("submit", saveItem);
+        $("businessSendPhoneCodeButton")?.addEventListener("click", sendPhoneCode);
+        $("businessPhoneCodeForm")?.addEventListener("submit", verifyPhoneCode);
+
+        $("businessLogoInput")?.addEventListener("change", async (event) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            try {
+                state.editingLogo = await compressImage(file, 900, 0.84);
+                renderLogoEditPreview();
+            } catch (error) {
+                $("businessProfileFormError").textContent = error.message;
+            }
+        });
+
+        $("businessItemPhotosInput")?.addEventListener("change", async (event) => {
+            const files = Array.from(event.target.files || []);
+            const free = MAX_ITEM_PHOTOS - state.editingItemPhotos.length;
+            if (files.length > free) {
+                $("businessItemFormError").textContent = `Можна додати максимум ${MAX_ITEM_PHOTOS} фото.`;
+            }
+
+            for (const file of files.slice(0, Math.max(0, free))) {
+                try {
+                    state.editingItemPhotos.push(await compressImage(file));
+                } catch (error) {
+                    $("businessItemFormError").textContent = error.message;
+                }
+            }
+            renderItemPhotosPreview();
+            event.target.value = "";
+        });
+
+        document.addEventListener("click", (event) => {
+            const close = event.target.closest("[data-close-modal]");
+            if (close) closeModal(close.dataset.closeModal);
+
+            const removePhoto = event.target.closest("[data-remove-photo]");
+            if (removePhoto) {
+                state.editingItemPhotos.splice(Number(removePhoto.dataset.removePhoto), 1);
+                renderItemPhotosPreview();
+            }
+
+            const edit = event.target.closest("[data-edit-kind][data-edit-id]");
+            if (edit) openItemModal(edit.dataset.editKind, findItem(edit.dataset.editKind, edit.dataset.editId));
+
+            const del = event.target.closest("[data-delete-kind][data-delete-id]");
+            if (del) deleteItem(del.dataset.deleteKind, del.dataset.deleteId);
+
+            const pay = event.target.closest("[data-pay-plan]");
+            if (pay) payPlan(pay.dataset.payPlan);
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key !== "Escape") return;
+            document.querySelectorAll(".business-modal:not([hidden])").forEach((modal) => closeModal(modal.id));
+        });
+
+        const top = $("businessBackToTop");
+        window.addEventListener("scroll", () => top?.classList.toggle("visible", window.scrollY > 500));
+        top?.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+    }
+
+    async function init() {
+        bindEvents();
+        const current = getStoredUser();
+        if (!new URLSearchParams(location.search).get("id") && current) {
+            const accountType = current.accountType || current.account_type;
+            if (accountType !== "business") {
+                setPageError("Ця сторінка доступна для бізнес-акаунта.");
                 return;
             }
-
-            try {
-                for (
-                    const file of files
-                ) {
-                    if (
-                        !file.type.startsWith(
-                            "image/"
-                        )
-                    ) {
-                        continue;
-                    }
-
-                    const photoData =
-                        await compressBusinessPhoto(
-                            file
-                        );
-
-                    businessEditPhotosData.push(
-                        photoData
-                    );
-                }
-
-                renderBusinessEditPhotosPreview();
-
-            } catch (error) {
-                console.error(
-                    "Business photos error:",
-                    error
-                );
-
-                alert(
-                    error.message
-                );
-            } finally {
-                event.target.value =
-                    "";
-            }
         }
-    );
+        await loadProfile();
+    }
 
-updateBackToTopButton();
-
-updateBusinessContactFloat();
-loadBusinessProfile();
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+    } else {
+        init();
+    }
+})();

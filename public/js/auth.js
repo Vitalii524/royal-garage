@@ -212,6 +212,13 @@ function createAuthModal() {
             </option>
         </select>
     </label>
+
+    <fieldset id="registerBusinessContentTypeField" class="hidden" style="margin-top:14px;">
+        <legend>Що пропонує ваш бізнес?</legend>
+        <label><input type="radio" name="registerBusinessContentType" value="services"> Послуги</label>
+        <label><input type="radio" name="registerBusinessContentType" value="products"> Товари</label>
+        <label><input type="radio" name="registerBusinessContentType" value="both"> Послуги та товари</label>
+    </fieldset>
 </div>
 
                 <label>
@@ -289,6 +296,11 @@ const businessTypeSelect =
 const businessPlanSelect =
     document.getElementById(
         "registerBusinessPlan"
+    );
+
+const businessContentTypeField =
+    document.getElementById(
+        "registerBusinessContentTypeField"
     );
 
 async function loadBusinessTypes() {
@@ -438,6 +450,10 @@ accountTypeSelect
                 await loadBusinessTypes();
             } else {
                 businessTypeSelect.value = "";
+                businessContentTypeField?.classList.add("hidden");
+                document
+                    .querySelectorAll('input[name="registerBusinessContentType"]')
+                    .forEach((input) => { input.checked = false; input.required = false; });
 
                 businessPlanSelect.innerHTML = `
                     <option value="">
@@ -454,6 +470,15 @@ businessTypeSelect
         async () => {
             const businessType =
                 businessTypeSelect.value;
+
+            const isOther = businessType === "other";
+            businessContentTypeField?.classList.toggle("hidden", !isOther);
+            document
+                .querySelectorAll('input[name="registerBusinessContentType"]')
+                .forEach((input) => {
+                    input.required = isOther;
+                    if (!isOther) input.checked = false;
+                });
 
             if (!businessType) {
                 businessPlanSelect.innerHTML = `
@@ -706,6 +731,44 @@ function normalizePhone(value) {
     return digits;
 }
 
+function submitRegistrationLiqPay(data) {
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = data.checkoutUrl;
+
+    const dataInput = document.createElement("input");
+    dataInput.type = "hidden";
+    dataInput.name = "data";
+    dataInput.value = data.data;
+
+    const signatureInput = document.createElement("input");
+    signatureInput.type = "hidden";
+    signatureInput.name = "signature";
+    signatureInput.value = data.signature;
+
+    form.append(dataInput, signatureInput);
+    document.body.appendChild(form);
+    form.submit();
+}
+
+async function startRegistrationBusinessPayment(registrationPaymentToken) {
+    const response = await fetch(
+        "/api/payments/liqpay/business-registration",
+        {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ registrationPaymentToken })
+        }
+    );
+
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.message || "Не вдалося відкрити оплату тарифу.");
+    }
+
+    submitRegistrationLiqPay(data);
+}
+
 async function registerUser(event) {
     event.preventDefault();
 
@@ -777,6 +840,16 @@ resendVerificationButton
         return;
     }
 
+    const accountType =
+        document.getElementById(
+            "registerAccountType"
+        )?.value || "user";
+
+    const businessContentType =
+        document.querySelector(
+            'input[name="registerBusinessContentType"]:checked'
+        )?.value || "";
+
     try {
         const response = await fetch(
             "/api/register",
@@ -792,10 +865,7 @@ resendVerificationButton
                     phone,
                     password,
                 
-                    accountType:
-                        document.getElementById(
-                            "registerAccountType"
-                        )?.value || "user",
+                    accountType,
                 
                     businessType:
                         document.getElementById(
@@ -805,7 +875,9 @@ resendVerificationButton
                     businessPlanId:
                         document.getElementById(
                             "registerBusinessPlan"
-                        )?.value || ""
+                        )?.value || "",
+
+                    businessContentType
                 })
             }
         );
@@ -817,6 +889,17 @@ resendVerificationButton
             errorElement.textContent =
                 data.message ||
                 "Не вдалося зареєструватися.";
+            return;
+        }
+
+        if (
+            accountType === "business" &&
+            data.requiresBusinessPayment &&
+            data.registrationPaymentToken
+        ) {
+            await startRegistrationBusinessPayment(
+                data.registrationPaymentToken
+            );
             return;
         }
 
@@ -895,6 +978,20 @@ async function loginUser(event) {
             await response.json();
 
             if (!response.ok) {
+                if (
+                    response.status === 402 &&
+                    data.code === "BUSINESS_PAYMENT_REQUIRED" &&
+                    data.registrationPaymentToken
+                ) {
+                    errorElement.textContent =
+                        "Тариф ще не активний. Відкриваю оплату…";
+
+                    await startRegistrationBusinessPayment(
+                        data.registrationPaymentToken
+                    );
+                    return;
+                }
+
                 errorElement.textContent =
                     data.message ||
                     "Не вдалося увійти.";
@@ -1031,6 +1128,18 @@ function escapeHtml(value) {
 document.addEventListener("DOMContentLoaded", () => {
     createAuthModal();
     renderAuthArea();
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("businessPayment") === "return") {
+        setTimeout(() => {
+            openAuthModal("login");
+            const loginError = document.getElementById("loginError");
+            if (loginError) {
+                loginError.textContent =
+                    "Оплату прийнято. Увійдіть у бізнес-профіль та підтвердьте email і номер телефону.";
+            }
+        }, 0);
+    }
 });
 
 /* ===== КНОПКА "ВГОРУ" ===== */
