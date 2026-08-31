@@ -1,1007 +1,727 @@
-"use strict";
+(() => {
+    "use strict";
 
-/* =========================
-   SERVICE HUB LVIV
-   BUSINESS PROFILE
-   ========================= */
+    const SERVICE_HUB_OWNER_ID = "d2363e3d-4723-4755-9030-594cd3ccd6f0";
+    const DEFAULT_SERVICE_HUB_LOGO = "images/service-hub-logo.jpg";
+    const MAX_ITEM_PHOTOS = 6;
+    const DAYS = [
+        ["mon", "Пн"],
+        ["tue", "Вт"],
+        ["wed", "Ср"],
+        ["thu", "Чт"],
+        ["fri", "Пт"],
+        ["sat", "Сб"],
+        ["sun", "Нд"]
+    ];
 
-const SERVICE_HUB_OWNER_ID =
-    "d2363e3d-4723-4755-9030-594cd3ccd6f0";
+    const state = {
+        profile: null,
+        isOwner: false,
+        editingItemPhotos: [],
+        editingLogo: null
+    };
 
-const CURRENT_USER_KEY =
-    "royalGarageCurrentUser";
+    const $ = (id) => document.getElementById(id);
+    const token = () => localStorage.getItem("royalGarageToken") || "";
 
-    let currentServiceHubProfile =
-    null;
-
-
-function getToken() {
-    return (
-        localStorage.getItem(
-            "royalGarageToken"
-        ) || ""
-    );
-}
-
-
-function readCurrentUser() {
-    try {
-        const value =
-            localStorage.getItem(
-                CURRENT_USER_KEY
-            );
-
-        return value
-            ? JSON.parse(value)
-            : null;
-
-    } catch (error) {
-        console.error(
-            "Не вдалося прочитати поточного користувача:",
-            error
-        );
-
-        return null;
-    }
-}
-
-
-function isServiceHubOwner() {
-    const currentUser =
-        readCurrentUser();
-
-    if (!currentUser) {
-        return false;
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
     }
 
-    return (
-        String(currentUser.id) ===
-        String(SERVICE_HUB_OWNER_ID)
-    );
-}
-
-
-function makeTelegramUrl(
-    value
-) {
-    const telegram =
-        String(
-            value || ""
-        ).trim();
-
-    if (!telegram) {
-        return "";
-    }
-
-    if (
-        telegram.startsWith(
-            "http://"
-        ) ||
-        telegram.startsWith(
-            "https://"
-        )
-    ) {
-        return telegram;
-    }
-
-    return (
-        "https://t.me/" +
-        telegram.replace(
-            /^@/,
-            ""
-        )
-    );
-}
-
-
-function makeInstagramUrl(
-    value
-) {
-    const instagram =
-        String(
-            value || ""
-        ).trim();
-
-    if (!instagram) {
-        return "";
-    }
-
-    if (
-        instagram.startsWith(
-            "http://"
-        ) ||
-        instagram.startsWith(
-            "https://"
-        )
-    ) {
-        return instagram;
-    }
-
-    return (
-        "https://instagram.com/" +
-        instagram.replace(
-            /^@/,
-            ""
-        )
-    );
-}
-
-
-/* =========================
-   RENDER PROFILE
-   ========================= */
-
-function renderServiceHubProfile(
-    profile
-) {
-    const name =
-        document.getElementById(
-            "serviceHubName"
-        );
-
-    const description =
-        document.getElementById(
-            "serviceHubDescription"
-        );
-
-    const address =
-        document.getElementById(
-            "serviceHubAddress"
-        );
-
-    if (name) {
-        name.textContent =
-            profile.name ||
-            "SERVICE HUB LVIV";
-    }
-
-    if (description) {
-        description.textContent =
-            profile.description ||
-            "Профіль автосервісу в Royal Garage.";
-    }
-
-    if (address) {
-        address.textContent =
-            [
-                profile.city,
-                profile.address
-            ]
-                .filter(Boolean)
-                .join(", ") ||
-            "Адресу ще не вказано";
-    }
-
-    renderMainPhoto(
-        profile
-    );
-
-    renderServices(
-        profile.services
-    );
-
-    renderGallery(
-        profile.photos
-    );
-
-    renderContacts(
-        profile
-    );
-
-    renderOwnerPanel();
-}
-
-
-/* =========================
-   MAIN PHOTO
-   ========================= */
-
-function renderMainPhoto(
-    profile
-) {
-    const image =
-        document.getElementById(
-            "serviceHubMainPhoto"
-        );
-
-    if (!image) {
-        return;
-    }
-
-    const source =
-        profile.logo ||
-        "images/service-hub-logo.jpg";
-
-    image.src =
-        source;
-
-    image.alt =
-        profile.name ||
-        "SERVICE HUB LVIV";
-}
-
-
-/* =========================
-   SERVICES
-   ========================= */
-
-   function renderServices(
-    services
-) {
-    const container =
-        document.getElementById(
-            "serviceHubPublicServices"
-        );
-
-    if (!container) {
-        return;
-    }
-
-    const list =
-        Array.isArray(
-            services
-        )
-            ? services
-            : [];
-
-    container.innerHTML = "";
-
-    if (
-        list.length === 0
-    ) {
-        const empty =
-            document.createElement(
-                "p"
-            );
-
-        empty.id =
-            "serviceHubServicesEmpty";
-
-        empty.className =
-            "service-hub-empty";
-
-        empty.textContent =
-            "Послуги ще не додано.";
-
-        container.appendChild(
-            empty
-        );
-
-        return;
-    }
-
-    list.forEach(
-        (
-            service,
-            index
-        ) => {
-            const card =
-                document.createElement(
-                    "div"
-                );
-
-            card.className =
-                "service-hub-service-card";
-
-            const title =
-                document.createElement(
-                    "h3"
-                );
-
-            const serviceName =
-                typeof service ===
-                "string"
-                    ? service
-                    : service?.name ||
-                      service?.title ||
-                      "Послуга";
-
-            title.textContent =
-                serviceName;
-
-            card.appendChild(
-                title
-            );
-
-
-            if (
-                isServiceHubOwner()
-            ) {
-                const actions =
-                    document.createElement(
-                        "div"
-                    );
-
-                actions.className =
-                    "service-hub-service-actions";
-
-
-                const editButton =
-                    document.createElement(
-                        "button"
-                    );
-
-                editButton.type =
-                    "button";
-
-                editButton.className =
-                    "service-hub-secondary-button";
-
-                editButton.textContent =
-                    "Редагувати";
-
-                editButton.addEventListener(
-                    "click",
-                    () => {
-                        editServiceHubService(
-                            index
-                        );
-                    }
-                );
-
-
-                const deleteButton =
-                    document.createElement(
-                        "button"
-                    );
-
-                deleteButton.type =
-                    "button";
-
-                deleteButton.className =
-                    "service-hub-delete-button";
-
-                deleteButton.textContent =
-                    "Видалити";
-
-                deleteButton.addEventListener(
-                    "click",
-                    () => {
-                        deleteServiceHubService(
-                            index
-                        );
-                    }
-                );
-
-
-                actions.append(
-                    editButton,
-                    deleteButton
-                );
-
-                card.appendChild(
-                    actions
-                );
-            }
-
-
-            container.appendChild(
-                card
-            );
+    function getStoredUser() {
+        if (typeof window.getCurrentUser === "function") {
+            const user = window.getCurrentUser();
+            if (user) return user;
         }
-    );
-}
 
-/* =========================
-   GALLERY
-   ========================= */
-
-function renderGallery(
-    photos
-) {
-    const gallery =
-        document.getElementById(
-            "serviceHubGallery"
-        );
-
-    if (!gallery) {
-        return;
-    }
-
-    const list =
-        Array.isArray(
-            photos
-        )
-            ? photos
-            : [];
-
-    gallery.innerHTML = "";
-
-    if (
-        list.length === 0
-    ) {
-        const empty =
-            document.createElement(
-                "p"
-            );
-
-        empty.id =
-            "serviceHubGalleryEmpty";
-
-        empty.className =
-            "service-hub-empty";
-
-        empty.textContent =
-            "Фото робіт ще не додано.";
-
-        gallery.appendChild(
-            empty
-        );
-
-        return;
-    }
-
-    list.forEach(
-        (photo) => {
-            const item =
-                document.createElement(
-                    "div"
-                );
-
-            item.className =
-                "service-hub-gallery-item";
-
-            const image =
-                document.createElement(
-                    "img"
-                );
-
-            image.src =
-                photo;
-
-            image.alt =
-                "Фото роботи";
-
-            image.loading =
-                "lazy";
-
-            item.appendChild(
-                image
-            );
-
-            gallery.appendChild(
-                item
-            );
-        }
-    );
-}
-
-
-/* =========================
-   CONTACTS
-   ========================= */
-
-function renderContacts(
-    profile
-) {
-    const telegram =
-        document.getElementById(
-            "serviceHubTelegram"
-        );
-
-    const instagram =
-        document.getElementById(
-            "serviceHubInstagram"
-        );
-
-    const phone =
-        document.getElementById(
-            "serviceHubPhoneLink"
-        );
-
-    const route =
-        document.getElementById(
-            "serviceHubRouteButton"
-        );
-
-
-    if (telegram) {
-        const url =
-            makeTelegramUrl(
-                profile.telegram
-            );
-
-        telegram.hidden =
-            !url;
-
-        if (url) {
-            telegram.href =
-                url;
+        try {
+            return JSON.parse(localStorage.getItem("royalGarageCurrentUser") || "null");
+        } catch {
+            return null;
         }
     }
 
+    function isServiceHubOwner() {
+        const user = getStoredUser();
+        const userId = user?.id ?? user?.userId ?? user?.user_id;
+        return Boolean(token() && userId && String(userId) === SERVICE_HUB_OWNER_ID);
+    }
 
-    if (instagram) {
-        const url =
-            makeInstagramUrl(
-                profile.instagram
-            );
+    async function api(url, options = {}) {
+        const headers = new Headers(options.headers || {});
+        const authToken = token();
 
-        instagram.hidden =
-            !url;
-
-        if (url) {
-            instagram.href =
-                url;
+        if (authToken && !headers.has("Authorization")) {
+            headers.set("Authorization", `Bearer ${authToken}`);
         }
-    }
 
-
-    if (phone) {
-        const cleanPhone =
-            String(
-                profile.phone || ""
-            )
-                .replace(
-                    /\D/g,
-                    ""
-                );
-
-        phone.hidden =
-            !cleanPhone;
-
-        if (cleanPhone) {
-            phone.href =
-                `tel:+${cleanPhone}`;
+        if (options.body && !(options.body instanceof FormData) && !headers.has("Content-Type")) {
+            headers.set("Content-Type", "application/json");
         }
-    }
 
+        const response = await fetch(url, { ...options, headers });
+        let data = {};
 
-    if (route) {
-        const routeAddress =
-            [
-                profile.city,
-                profile.address
-            ]
-                .filter(Boolean)
-                .join(", ");
-
-        if (routeAddress) {
-            route.href =
-                "https://www.google.com/maps/search/?api=1&query=" +
-                encodeURIComponent(
-                    routeAddress
-                );
+        try {
+            data = await response.json();
+        } catch {
+            data = {};
         }
-    }
-}
-
-
-/* =========================
-   OWNER PANEL
-   ========================= */
-
-function renderOwnerPanel() {
-    const panel =
-        document.getElementById(
-            "serviceHubOwnerPanel"
-        );
-
-    if (!panel) {
-        return;
-    }
-
-    panel.hidden =
-        !isServiceHubOwner();
-}
-
-
-/* =========================
-   LOAD PUBLIC PROFILE
-   ========================= */
-
-async function loadServiceHubProfile() {
-    try {
-        const response =
-            await fetch(
-                `/api/business/profiles/${SERVICE_HUB_OWNER_ID}`
-            );
-
-        const data =
-            await response.json();
 
         if (!response.ok) {
-            throw new Error(
-                data.message ||
-                "Не вдалося завантажити бізнес-профіль."
-            );
+            const error = new Error(data.message || "Помилка сервера.");
+            error.status = response.status;
+            throw error;
         }
 
-        currentServiceHubProfile =
-            data.profile;
-
-        renderServiceHubProfile(
-            data.profile
-        );
-
-    } catch (error) {
-        console.error(
-            "Service Hub profile load error:",
-            error
-        );
-    }
-}
-
-async function editServiceHubService(
-    index
-) {
-    if (
-        !isServiceHubOwner() ||
-        !currentServiceHubProfile
-    ) {
-        return;
+        return data;
     }
 
-    const services =
-        Array.isArray(
-            currentServiceHubProfile.services
-        )
-            ? [
-                ...currentServiceHubProfile.services
-            ]
+    function setPageError(message) {
+        $("businessPageLoading").hidden = true;
+        $("businessPageContent").hidden = true;
+        const error = $("businessPageError");
+        error.textContent = message;
+        error.hidden = false;
+    }
+
+    function initials(name) {
+        const parts = String(name || "SERVICE HUB")
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2);
+
+        return parts.map((part) => part[0]?.toUpperCase() || "").join("") || "SH";
+    }
+
+    function formatPhone(phone) {
+        const digits = String(phone || "").replace(/\D/g, "");
+        return digits ? `+${digits}` : "";
+    }
+
+    function telegramUrl(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "";
+        if (/^https?:\/\//i.test(raw)) return raw;
+        return `https://t.me/${raw.replace(/^@/, "")}`;
+    }
+
+    function instagramUrl(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "";
+        if (/^https?:\/\//i.test(raw)) return raw;
+        return `https://instagram.com/${raw.replace(/^@/, "")}`;
+    }
+
+    function mapUrl(profile) {
+        const query = [profile.city, profile.address].filter(Boolean).join(", ").trim();
+        if (!query) return "";
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+    }
+
+    function money(value) {
+        const number = Number(value);
+        if (!Number.isFinite(number) || number <= 0) return "";
+        return `від ${Math.round(number).toLocaleString("uk-UA")} грн`;
+    }
+
+    function formatDate(value) {
+        if (!value) return "";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "";
+        return date.toLocaleDateString("uk-UA", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+        });
+    }
+
+    function normalizeSchedule(schedule) {
+        const source = schedule && typeof schedule === "object" && !Array.isArray(schedule)
+            ? schedule
+            : {};
+
+        const result = {};
+        for (const [key] of DAYS) {
+            const current = source[key] || {};
+            result[key] = {
+                enabled: Boolean(current.enabled),
+                open: String(current.open || "09:00"),
+                close: String(current.close || "18:00")
+            };
+        }
+        return result;
+    }
+
+    function renderLogo(profile) {
+        const image = $("businessLogo");
+        const placeholder = $("businessLogoPlaceholder");
+        const source = String(profile.logo || "").trim() || DEFAULT_SERVICE_HUB_LOGO;
+
+        placeholder.textContent = initials(profile.name);
+        image.dataset.fallbackTried = "";
+        image.onerror = () => {
+            if (!image.dataset.fallbackTried && source !== DEFAULT_SERVICE_HUB_LOGO) {
+                image.dataset.fallbackTried = "1";
+                image.src = DEFAULT_SERVICE_HUB_LOGO;
+                return;
+            }
+
+            image.hidden = true;
+            placeholder.hidden = false;
+        };
+
+        image.src = source;
+        image.alt = profile.name || "SERVICE HUB LVIV";
+        image.hidden = false;
+        placeholder.hidden = true;
+    }
+
+    function setContactLink(id, href, visible) {
+        const element = $(id);
+        if (!element) return;
+        element.hidden = !visible;
+        if (visible) element.href = href;
+    }
+
+    function renderContacts(profile) {
+        const phone = formatPhone(profile.phone);
+        const tg = telegramUrl(profile.telegram);
+        const ig = instagramUrl(profile.instagram);
+        const route = mapUrl(profile);
+        const mapAllowed = profile.mapEnabled !== false && profile.hasMap !== false;
+
+        setContactLink("businessPhoneLink", phone ? `tel:${phone}` : "#", Boolean(phone));
+        setContactLink("businessTelegramLink", tg, Boolean(tg));
+        setContactLink("businessInstagramLink", ig, Boolean(ig));
+        setContactLink("businessRouteLink", route, Boolean(route && mapAllowed));
+
+        setContactLink("businessBottomPhone", phone ? `tel:${phone}` : "#", Boolean(phone));
+        setContactLink("businessBottomTelegram", tg, Boolean(tg));
+        setContactLink("businessBottomInstagram", ig, Boolean(ig));
+        setContactLink("businessMapLink", route, Boolean(route && mapAllowed));
+    }
+
+    function renderSchedule(profile) {
+        const root = $("businessSchedule");
+        root.innerHTML = "";
+        const schedule = normalizeSchedule(profile.workSchedule);
+        const hasAny = DAYS.some(([key]) => schedule[key].enabled);
+
+        if (!hasAny) {
+            root.innerHTML = '<p class="business-empty">Графік ще не вказано.</p>';
+            return;
+        }
+
+        for (const [key, label] of DAYS) {
+            const day = schedule[key];
+            const row = document.createElement("div");
+            row.className = "business-schedule-row";
+            row.innerHTML = `<strong>${label}</strong><span>${day.enabled ? `${escapeHtml(day.open)}–${escapeHtml(day.close)}` : "Вихідний"}</span>`;
+            root.appendChild(row);
+        }
+    }
+
+    function renderOwnerControls(profile) {
+        const panel = $("businessOwnerPanel");
+        const manage = $("businessManageButton");
+
+        manage.hidden = !state.isOwner;
+        $("businessOwnerDraftBadge").hidden = !(state.isOwner && profile.profileStatus !== "active");
+
+        if (!state.isOwner) {
+            panel.hidden = true;
+            return;
+        }
+
+        const active = profile.profileStatus === "active";
+        $("businessProfileStatusText").textContent = active ? "Активний" : "Чернетка";
+        $("businessProfileStatusHint").textContent = active
+            ? "Профіль опублікований у «Партнерах»."
+            : "Перевірте підтвердження email і телефону.";
+        $("businessProfileStatusDot").classList.toggle("active", active);
+
+        $("businessEmailStatus").textContent = profile.emailVerified ? "Підтверджено ✓" : "Не підтверджено";
+        $("businessPhoneStatus").textContent = profile.phoneVerified ? "Підтверджено ✓" : "Не підтверджено";
+        $("businessVerifyEmailButton").hidden = Boolean(profile.emailVerified);
+        $("businessVerifyPhoneButton").hidden = Boolean(profile.phoneVerified);
+    }
+
+    function createPhotos(photos, alt) {
+        const list = Array.isArray(photos)
+            ? photos.filter(Boolean).slice(0, MAX_ITEM_PHOTOS)
             : [];
 
-    const current =
-        services[index];
+        if (!list.length) return "";
 
-    if (!current) {
-        return;
+        return `<div class="business-card-photos">${list
+            .map((src) => `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy">`)
+            .join("")}</div>`;
     }
 
-    const currentName =
-        typeof current ===
-        "string"
-            ? current
-            : current.name ||
-              current.title ||
-              "";
+    function serviceCard(service) {
+        const card = document.createElement("article");
+        card.className = "business-content-card";
+        const priceText = money(service.priceFrom);
 
-    const newName =
-        prompt(
-            "Нова назва послуги:",
-            currentName
-        );
+        card.innerHTML = `
+            ${createPhotos(service.photos, service.title)}
+            <div class="business-content-body">
+                <h3>${escapeHtml(service.title || "Послуга")}</h3>
+                ${service.description ? `<p>${escapeHtml(service.description)}</p>` : ""}
+                ${priceText ? `<span class="business-price">${priceText}</span>` : ""}
+                ${state.isOwner ? `
+                    <div class="business-card-owner-actions">
+                        <button type="button" data-edit-service="${escapeHtml(service.id)}">✏️ Редагувати</button>
+                        <button type="button" data-delete-service="${escapeHtml(service.id)}">🗑 Видалити</button>
+                    </div>
+                ` : ""}
+            </div>`;
 
-    if (newName === null) {
-        return;
+        return card;
     }
 
-    const cleanName =
-        newName.trim();
+    function renderServices(profile) {
+        const root = $("businessMainGrid");
+        const empty = $("businessMainEmpty");
+        const services = Array.isArray(profile.services) ? profile.services : [];
 
-    if (!cleanName) {
-        alert(
-            "Назва послуги не може бути порожньою."
-        );
-
-        return;
+        root.innerHTML = "";
+        services.forEach((service) => root.appendChild(serviceCard(service)));
+        empty.hidden = services.length > 0;
     }
 
-    services[index] = {
-        id:
-            typeof current === "object" &&
-            current.id
-                ? current.id
-                : crypto.randomUUID(),
+    async function loadReviews(ownerId) {
+        try {
+            const [ratingData, reviewsData] = await Promise.all([
+                api(`/api/sellers/${encodeURIComponent(ownerId)}/rating`, { headers: { Authorization: "" } }),
+                api(`/api/sellers/${encodeURIComponent(ownerId)}/reviews`, { headers: { Authorization: "" } })
+            ]);
 
-        name:
-            cleanName
-    };
+            const average = Number(ratingData?.rating?.average || 0);
+            const count = Number(ratingData?.rating?.count || 0);
+            $("businessRatingAverage").textContent = count ? `⭐ ${average.toFixed(1)}` : "⭐ —";
+            $("businessRatingCount").textContent = count ? `${count} оцінок` : "Відгуків ще немає";
 
-    try {
-        await saveServiceHubServices(
-            services
-        );
+            const reviews = Array.isArray(reviewsData.reviews) ? reviewsData.reviews : [];
+            const root = $("businessReviewsList");
+            root.innerHTML = "";
+            $("businessReviewsEmpty").hidden = reviews.length > 0;
 
-        alert(
-            "Послугу оновлено."
-        );
-
-    } catch (error) {
-        console.error(
-            "Service Hub edit service error:",
-            error
-        );
-
-        alert(
-            error.message
-        );
-    }
-}
-
-
-async function deleteServiceHubService(
-    index
-) {
-    if (
-        !isServiceHubOwner() ||
-        !currentServiceHubProfile
-    ) {
-        return;
+            for (const review of reviews) {
+                const card = document.createElement("article");
+                card.className = "business-review-card";
+                const stars = "⭐".repeat(Math.max(0, Math.min(5, Number(review.rating) || 0)));
+                card.innerHTML = `
+                    <div class="business-review-top">
+                        <strong>${escapeHtml(review.userName || "Користувач")}</strong>
+                        <span>${stars}</span>
+                    </div>
+                    <p>${escapeHtml(review.text || "")}</p>
+                    <small>${formatDate(review.updatedAt)}</small>`;
+                root.appendChild(card);
+            }
+        } catch (error) {
+            console.error("Service Hub reviews error:", error);
+        }
     }
 
-    const services =
-        Array.isArray(
-            currentServiceHubProfile.services
-        )
-            ? [
-                ...currentServiceHubProfile.services
-            ]
-            : [];
+    async function renderProfile(profile) {
+        state.profile = profile;
+        renderLogo(profile);
 
-    const service =
-        services[index];
+        $("businessTypeLabel").textContent = profile.businessTypeName || "СТО / автосервіс";
+        $("businessName").textContent = profile.name || "SERVICE HUB LVIV";
+        $("businessHeroDescription").textContent = profile.description || "";
+        $("businessDescription").textContent = profile.description || "Опис ще не додано.";
 
-    if (!service) {
-        return;
+        const cityLine = [profile.city, profile.address].filter(Boolean).join(" · ");
+        $("businessCityLine").textContent = cityLine ? `📍 ${cityLine}` : "";
+        $("businessCityLine").hidden = !cityLine;
+        $("businessAddress").textContent = [profile.city, profile.address].filter(Boolean).join(", ") || "Не вказано";
+
+        renderContacts(profile);
+        renderSchedule(profile);
+        renderOwnerControls(profile);
+        renderServices(profile);
+        loadReviews(profile.ownerId || SERVICE_HUB_OWNER_ID);
+
+        document.title = `${profile.name || "SERVICE HUB LVIV"} | Royal Garage`;
     }
 
-    const serviceName =
-        typeof service ===
-        "string"
-            ? service
-            : service.name ||
-              service.title ||
-              "цю послугу";
+    async function loadProfile() {
+        state.isOwner = isServiceHubOwner();
 
-    const confirmed =
-        confirm(
-            `Видалити послугу "${serviceName}"?`
-        );
+        try {
+            const data = state.isOwner
+                ? await api("/api/business/profile")
+                : await api(`/api/business/profiles/${encodeURIComponent(SERVICE_HUB_OWNER_ID)}`, {
+                    headers: { Authorization: "" }
+                });
 
-    if (!confirmed) {
-        return;
+            if (String(data.profile?.ownerId || "") !== SERVICE_HUB_OWNER_ID) {
+                throw new Error("Профіль SERVICE HUB LVIV не знайдено.");
+            }
+
+            await renderProfile(data.profile);
+            $("businessPageLoading").hidden = true;
+            $("businessPageError").hidden = true;
+            $("businessPageContent").hidden = false;
+        } catch (error) {
+            console.error("Service Hub profile load error:", error);
+            setPageError(
+                error.status === 404
+                    ? "Профіль SERVICE HUB LVIV ще не опублікований."
+                    : error.message
+            );
+        }
     }
 
-    services.splice(
-        index,
-        1
-    );
-
-    try {
-        await saveServiceHubServices(
-            services
-        );
-
-        alert(
-            "Послугу видалено."
-        );
-
-    } catch (error) {
-        console.error(
-            "Service Hub delete service error:",
-            error
-        );
-
-        alert(
-            error.message
-        );
-    }
-}
-
-async function saveServiceHubServices(
-    services
-) {
-    const token =
-        getToken();
-
-    if (!token) {
-        alert(
-            "Потрібно увійти в акаунт."
-        );
-
-        return false;
+    function openModal(id) {
+        const modal = $(id);
+        if (!modal) return;
+        modal.hidden = false;
+        document.body.style.overflow = "hidden";
     }
 
-    const response =
-        await fetch(
-            "/api/business/profile",
-            {
+    function closeModal(id) {
+        const modal = $(id);
+        if (!modal) return;
+        modal.hidden = true;
+        if (!document.querySelector(".business-modal:not([hidden])")) {
+            document.body.style.overflow = "";
+        }
+    }
+
+    function setupScheduleEditor() {
+        const root = $("businessScheduleEditor");
+        root.innerHTML = "";
+        const schedule = normalizeSchedule(state.profile?.workSchedule);
+
+        for (const [key, label] of DAYS) {
+            const day = schedule[key];
+            const row = document.createElement("div");
+            row.className = "business-schedule-edit-row";
+            row.innerHTML = `
+                <strong>${label}</strong>
+                <label><input type="checkbox" data-day-enabled="${key}" ${day.enabled ? "checked" : ""}> Працює</label>
+                <input type="time" data-day-open="${key}" value="${escapeHtml(day.open)}">
+                <input type="time" data-day-close="${key}" value="${escapeHtml(day.close)}">`;
+            root.appendChild(row);
+        }
+    }
+
+    function readScheduleEditor() {
+        const result = {};
+        for (const [key] of DAYS) {
+            result[key] = {
+                enabled: Boolean(document.querySelector(`[data-day-enabled="${key}"]`)?.checked),
+                open: document.querySelector(`[data-day-open="${key}"]`)?.value || "09:00",
+                close: document.querySelector(`[data-day-close="${key}"]`)?.value || "18:00"
+            };
+        }
+        return result;
+    }
+
+    function fillProfileForm() {
+        const profile = state.profile;
+        $("businessEditName").value = profile.name || "";
+        $("businessEditCity").value = profile.city || "";
+        $("businessEditAddress").value = profile.address || "";
+        $("businessEditPhone").value = profile.phone || "";
+        $("businessEditTelegram").value = profile.telegram || "";
+        $("businessEditInstagram").value = profile.instagram || "";
+        $("businessEditDescription").value = profile.description || "";
+        $("businessProfileFormError").textContent = "";
+        state.editingLogo = profile.logo || null;
+        renderLogoEditPreview();
+        setupScheduleEditor();
+    }
+
+    function renderLogoEditPreview() {
+        const root = $("businessLogoEditPreview");
+        const source = state.editingLogo || DEFAULT_SERVICE_HUB_LOGO;
+        root.innerHTML = `<img src="${escapeHtml(source)}" alt="Логотип SERVICE HUB LVIV">`;
+    }
+
+    async function compressImage(file, maxSize = 1200, quality = 0.82) {
+        if (!file?.type?.startsWith("image/")) {
+            throw new Error("Оберіть файл зображення.");
+        }
+
+        const dataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+
+        const image = await new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = dataUrl;
+        });
+
+        const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(image.width * scale);
+        canvas.height = Math.round(image.height * scale);
+        canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL("image/jpeg", quality);
+    }
+
+    async function saveProfile(event) {
+        event.preventDefault();
+        const error = $("businessProfileFormError");
+        error.textContent = "";
+
+        try {
+            const body = {
+                name: $("businessEditName").value.trim(),
+                logo: state.editingLogo,
+                city: $("businessEditCity").value.trim(),
+                address: $("businessEditAddress").value.trim(),
+                phone: $("businessEditPhone").value.trim(),
+                telegram: $("businessEditTelegram").value.trim(),
+                instagram: $("businessEditInstagram").value.trim(),
+                description: $("businessEditDescription").value.trim(),
+                workSchedule: readScheduleEditor()
+            };
+
+            const data = await api("/api/business/profile", {
                 method: "PATCH",
+                body: JSON.stringify(body)
+            });
 
-                headers: {
-                    "Content-Type":
-                        "application/json",
-
-                    Authorization:
-                        `Bearer ${token}`
-                },
-
-                body:
-                    JSON.stringify({
-                        services
-                    })
-            }
-        );
-
-    const data =
-        await response.json();
-
-    if (!response.ok) {
-        throw new Error(
-            data.message ||
-            "Не вдалося зберегти послуги."
-        );
-    }
-
-    currentServiceHubProfile = {
-        ...currentServiceHubProfile,
-        ...data.profile
-    };
-
-    renderServices(
-        currentServiceHubProfile.services
-    );
-
-    return true;
-}
-
-
-async function addServiceHubService() {
-    if (!isServiceHubOwner()) {
-        return;
-    }
-
-    const name =
-        prompt(
-            "Назва послуги:"
-        );
-
-    if (name === null) {
-        return;
-    }
-
-    const cleanName =
-        name.trim();
-
-    if (!cleanName) {
-        alert(
-            "Назва послуги не може бути порожньою."
-        );
-
-        return;
-    }
-
-    const currentServices =
-        Array.isArray(
-            currentServiceHubProfile?.services
-        )
-            ? [
-                ...currentServiceHubProfile.services
-            ]
-            : [];
-
-    currentServices.push({
-        id:
-            crypto.randomUUID(),
-
-        name:
-            cleanName
-    });
-
-    try {
-        await saveServiceHubServices(
-            currentServices
-        );
-
-        alert(
-            "Послугу додано."
-        );
-
-    } catch (error) {
-        console.error(
-            "Service Hub add service error:",
-            error
-        );
-
-        alert(
-            error.message
-        );
-    }
-}
-
-
-document
-    .getElementById(
-        "serviceHubAddServiceButton"
-    )
-    ?.addEventListener(
-        "click",
-        addServiceHubService
-    );
-    document
-    .getElementById(
-        "serviceHubMapButton"
-    )
-    ?.addEventListener(
-        "click",
-        () => {
-            if (
-                !isServiceHubOwner()
-            ) {
-                return;
-            }
-
-            alert(
-                "Google Maps доступний для SERVICE HUB LVIV."
-            );
+            closeModal("businessProfileModal");
+            await renderProfile(data.profile);
+        } catch (e) {
+            error.textContent = e.message;
         }
-    );
+    }
 
+    function findService(id) {
+        const list = Array.isArray(state.profile?.services) ? state.profile.services : [];
+        return list.find((service) => String(service.id) === String(id));
+    }
 
-document
-    .getElementById(
-        "serviceHubCrmButton"
-    )
-    ?.addEventListener(
-        "click",
-        () => {
-            if (
-                !isServiceHubOwner()
-            ) {
-                return;
+    function openServiceModal(service = null) {
+        $("businessItemId").value = service?.id || "";
+        $("businessItemTitle").value = service?.title || "";
+        $("businessItemDescription").value = service?.description || "";
+        $("businessItemPrice").value = service?.priceFrom || "";
+        $("businessItemModalTitle").textContent = service ? "Редагувати послугу" : "Додати послугу";
+        $("businessItemFormError").textContent = "";
+        $("businessItemPhotosInput").value = "";
+        state.editingItemPhotos = Array.isArray(service?.photos) ? [...service.photos] : [];
+        renderItemPhotosPreview();
+        openModal("businessItemModal");
+    }
+
+    function renderItemPhotosPreview() {
+        const root = $("businessItemPhotosPreview");
+        root.innerHTML = "";
+
+        state.editingItemPhotos.forEach((src, index) => {
+            const item = document.createElement("div");
+            item.className = "business-photo-preview-item";
+            item.innerHTML = `<img src="${escapeHtml(src)}" alt="Фото послуги"><button type="button" data-remove-photo="${index}" aria-label="Видалити">×</button>`;
+            root.appendChild(item);
+        });
+    }
+
+    async function saveService(event) {
+        event.preventDefault();
+        const id = $("businessItemId").value;
+        const error = $("businessItemFormError");
+        error.textContent = "";
+
+        try {
+            const price = Number($("businessItemPrice").value || 0);
+            const body = {
+                title: $("businessItemTitle").value.trim(),
+                description: $("businessItemDescription").value.trim(),
+                priceFrom: price > 0 ? price : null,
+                photos: state.editingItemPhotos
+            };
+
+            await api(
+                id
+                    ? `/api/business/services/${encodeURIComponent(id)}`
+                    : "/api/business/services",
+                {
+                    method: id ? "PATCH" : "POST",
+                    body: JSON.stringify(body)
+                }
+            );
+
+            closeModal("businessItemModal");
+            await refreshOwnerProfile();
+        } catch (e) {
+            error.textContent = e.message;
+        }
+    }
+
+    async function deleteService(id) {
+        if (!confirm("Видалити послугу?")) return;
+
+        try {
+            await api(`/api/business/services/${encodeURIComponent(id)}`, {
+                method: "DELETE"
+            });
+            await refreshOwnerProfile();
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    async function refreshOwnerProfile() {
+        const data = await api("/api/business/profile");
+        await renderProfile(data.profile);
+    }
+
+    async function sendVerificationEmail() {
+        try {
+            const data = await api("/api/resend-verification-email", {
+                method: "POST",
+                headers: { Authorization: "" },
+                body: JSON.stringify({ email: state.profile.email })
+            });
+            alert(data.message || "Лист надіслано.");
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    async function sendPhoneCode() {
+        try {
+            const data = await api("/api/phone/send-code", {
+                method: "POST",
+                body: JSON.stringify({})
+            });
+            alert(data.message || "Код надіслано.");
+            $("businessPhoneCodeForm").hidden = false;
+            $("businessPhoneCode").focus();
+        } catch (error) {
+            $("businessPhoneFormError").textContent = error.message;
+        }
+    }
+
+    async function verifyPhoneCode(event) {
+        event.preventDefault();
+
+        try {
+            await api("/api/phone/verify-code", {
+                method: "POST",
+                body: JSON.stringify({ code: $("businessPhoneCode").value.trim() })
+            });
+            closeModal("businessPhoneModal");
+            await refreshOwnerProfile();
+        } catch (error) {
+            $("businessPhoneFormError").textContent = error.message;
+        }
+    }
+
+    function bindEvents() {
+        $("businessManageButton")?.addEventListener("click", () => {
+            $("businessOwnerPanel").hidden = false;
+            $("businessOwnerPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+
+        $("businessOwnerPanelClose")?.addEventListener("click", () => {
+            $("businessOwnerPanel").hidden = true;
+        });
+
+        $("businessEditProfileButton")?.addEventListener("click", () => {
+            fillProfileForm();
+            openModal("businessProfileModal");
+        });
+
+        $("businessAddServiceButton")?.addEventListener("click", () => openServiceModal());
+        $("businessVerifyEmailButton")?.addEventListener("click", sendVerificationEmail);
+        $("businessVerifyPhoneButton")?.addEventListener("click", () => {
+            $("businessPhoneCodeForm").hidden = true;
+            $("businessPhoneFormError").textContent = "";
+            openModal("businessPhoneModal");
+        });
+
+        $("businessProfileForm")?.addEventListener("submit", saveProfile);
+        $("businessItemForm")?.addEventListener("submit", saveService);
+        $("businessSendPhoneCodeButton")?.addEventListener("click", sendPhoneCode);
+        $("businessPhoneCodeForm")?.addEventListener("submit", verifyPhoneCode);
+
+        $("businessLogoInput")?.addEventListener("change", async (event) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+
+            try {
+                state.editingLogo = await compressImage(file, 900, 0.84);
+                renderLogoEditPreview();
+            } catch (error) {
+                $("businessProfileFormError").textContent = error.message;
+            }
+        });
+
+        $("businessItemPhotosInput")?.addEventListener("change", async (event) => {
+            const files = Array.from(event.target.files || []);
+            const free = MAX_ITEM_PHOTOS - state.editingItemPhotos.length;
+
+            if (files.length > free) {
+                $("businessItemFormError").textContent = `Можна додати максимум ${MAX_ITEM_PHOTOS} фото.`;
             }
 
-            alert(
-                "CRM доступна для SERVICE HUB LVIV."
-            );
-        }
-    );
+            for (const file of files.slice(0, Math.max(0, free))) {
+                try {
+                    state.editingItemPhotos.push(await compressImage(file));
+                } catch (error) {
+                    $("businessItemFormError").textContent = error.message;
+                }
+            }
 
-/* =========================
-   FLOATING BUTTONS
-   ========================= */
+            renderItemPhotosPreview();
+            event.target.value = "";
+        });
 
-const contactFloat =
-    document.getElementById(
-        "serviceHubContactFloat"
-    );
+        document.addEventListener("click", (event) => {
+            const close = event.target.closest("[data-close-modal]");
+            if (close) closeModal(close.dataset.closeModal);
 
+            const removePhoto = event.target.closest("[data-remove-photo]");
+            if (removePhoto) {
+                state.editingItemPhotos.splice(Number(removePhoto.dataset.removePhoto), 1);
+                renderItemPhotosPreview();
+            }
 
+            const edit = event.target.closest("[data-edit-service]");
+            if (edit) openServiceModal(findService(edit.dataset.editService));
 
-function updateFloatingButtons() {
-    const contacts =
-        document.getElementById(
-            "contacts"
-        );
+            const del = event.target.closest("[data-delete-service]");
+            if (del) deleteService(del.dataset.deleteService);
+        });
 
-    const contactsRect =
-        contacts
-            ?.getBoundingClientRect();
-
-    const contactsVisible =
-        Boolean(
-            contactsRect &&
-            contactsRect.top <
-                window.innerHeight &&
-            contactsRect.bottom > 0
-        );
-
-    if (contactFloat) {
-        contactFloat
-            .classList
-            .toggle(
-                "is-visible",
-                window.scrollY > 350 &&
-                !contactsVisible
-            );
+        document.addEventListener("keydown", (event) => {
+            if (event.key !== "Escape") return;
+            document
+                .querySelectorAll(".business-modal:not([hidden])")
+                .forEach((modal) => closeModal(modal.id));
+        });
     }
 
-}
-
-
-window.addEventListener(
-    "scroll",
-    updateFloatingButtons,
-    {
-        passive: true
+    async function init() {
+        bindEvents();
+        await loadProfile();
     }
-);
 
-
-/* =========================
-   START
-   ========================= */
-
-updateFloatingButtons();
-loadServiceHubProfile();
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+    } else {
+        init();
+    }
+})();
