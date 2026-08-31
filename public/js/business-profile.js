@@ -822,9 +822,6 @@
             document.querySelectorAll(".business-modal:not([hidden])").forEach((modal) => closeModal(modal.id));
         });
 
-        const top = $("businessBackToTop");
-        window.addEventListener("scroll", () => top?.classList.toggle("visible", window.scrollY > 500));
-        top?.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
     }
 
     async function init() {
