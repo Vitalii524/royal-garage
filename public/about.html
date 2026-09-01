@@ -398,18 +398,132 @@
         <p class="about-lead">
             Маєте запитання, пропозицію щодо співпраці або хочете
             розповісти про свій автомобільний бізнес?
-            Напишіть нам через форму зворотного зв’язку нижче.
+            Напишіть нам — повідомлення надійде команді Royal Garage.
         </p>
-
-        <a href="#feedback" class="about-button about-button-primary">
-            <i class="fa-solid fa-envelope"></i>
-            Написати нам
-        </a>
 
     </section>
 
 
-    <section class="about-section about-feedback" id="feedback">
+    <section class="about-section about-contact-form-section" id="feedback">
+
+        <div class="about-contact-card">
+
+            <div class="about-contact-copy">
+                <p class="about-kicker">НАПИСАТИ НАМ</p>
+                <h2>Зворотний зв’язок</h2>
+
+                <p>
+                    Заповніть форму, і ми отримаємо ваше повідомлення
+                    на контактну пошту Royal Garage.
+                </p>
+
+                <div class="about-contact-note">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>
+                        Ваша email-адреса потрібна лише для відповіді
+                        на ваше звернення.
+                    </span>
+                </div>
+            </div>
+
+            <form
+                class="about-contact-form"
+                id="aboutContactForm"
+                novalidate
+            >
+
+                <div class="about-form-row">
+
+                    <label class="about-form-field">
+                        <span>Ім’я</span>
+                        <input
+                            type="text"
+                            name="name"
+                            id="contactName"
+                            autocomplete="name"
+                            maxlength="80"
+                            placeholder="Ваше ім’я"
+                            required
+                        >
+                    </label>
+
+                    <label class="about-form-field">
+                        <span>Email</span>
+                        <input
+                            type="email"
+                            name="email"
+                            id="contactEmail"
+                            autocomplete="email"
+                            maxlength="160"
+                            placeholder="name@example.com"
+                            required
+                        >
+                    </label>
+
+                </div>
+
+                <label class="about-form-field">
+                    <span>Тема</span>
+                    <select
+                        name="subject"
+                        id="contactSubject"
+                        required
+                    >
+                        <option value="">Оберіть тему</option>
+                        <option value="general">Загальне питання</option>
+                        <option value="cooperation">Співпраця</option>
+                        <option value="business">Бізнес на Royal Garage</option>
+                        <option value="problem">Помилка або проблема</option>
+                        <option value="idea">Ідея або пропозиція</option>
+                    </select>
+                </label>
+
+                <label class="about-form-field">
+                    <span>Повідомлення</span>
+                    <textarea
+                        name="message"
+                        id="contactMessage"
+                        rows="7"
+                        maxlength="3000"
+                        placeholder="Напишіть ваше повідомлення..."
+                        required
+                    ></textarea>
+                </label>
+
+                <input
+                    class="about-form-honeypot"
+                    type="text"
+                    name="website"
+                    id="contactWebsite"
+                    tabindex="-1"
+                    autocomplete="off"
+                    aria-hidden="true"
+                >
+
+                <button
+                    type="submit"
+                    class="about-button about-button-primary about-contact-submit"
+                    id="contactSubmitButton"
+                >
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>Надіслати повідомлення</span>
+                </button>
+
+                <p
+                    class="about-form-status"
+                    id="contactFormStatus"
+                    role="status"
+                    aria-live="polite"
+                ></p>
+
+            </form>
+
+        </div>
+
+    </section>
+
+
+    <section class="about-section about-feedback">
 
         <div class="about-section-heading">
             <p class="about-kicker">ЗВОРОТНИЙ ЗВ’ЯЗОК</p>
@@ -451,6 +565,7 @@
 
 <script src="js/script.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/about.js"></script>
 <script src="js/loader.js"></script>
 
 </body>

@@ -2206,6 +2206,225 @@ ${businessSchemaJson}
 
 app.use(express.static(path.join(__dirname, "public")));
 
+/* =========================
+   ЗВОРОТНИЙ ЗВʼЯЗОК
+   ========================= */
+
+   const CONTACT_EMAIL =
+   process.env.CONTACT_EMAIL ||
+   "V11102244@gmail.com";
+
+
+const contactRequestTimes =
+   new Map();
+
+
+app.post(
+   "/api/contact",
+   async (req, res) => {
+
+       try {
+
+           const {
+               name,
+               email,
+               subject,
+               message,
+               website
+           } = req.body || {};
+
+
+           /*
+            * Honeypot для ботів.
+            * Звичайний користувач цього поля не бачить.
+            */
+           if (
+               String(website || "").trim()
+           ) {
+               return res.json({
+                   ok: true,
+                   message:
+                       "Повідомлення надіслано. Дякуємо!"
+               });
+           }
+
+
+           const cleanName =
+               String(name || "").trim();
+
+           const cleanEmail =
+               String(email || "")
+                   .trim()
+                   .toLowerCase();
+
+           const cleanSubject =
+               String(subject || "").trim();
+
+           const cleanMessage =
+               String(message || "").trim();
+
+
+           if (
+               !cleanName ||
+               !cleanEmail ||
+               !cleanSubject ||
+               !cleanMessage
+           ) {
+               return res.status(400).json({
+                   ok: false,
+                   message:
+                       "Заповніть усі обов’язкові поля."
+               });
+           }
+
+
+           if (
+               cleanName.length > 80 ||
+               cleanEmail.length > 160 ||
+               cleanMessage.length > 3000
+           ) {
+               return res.status(400).json({
+                   ok: false,
+                   message:
+                       "Повідомлення містить забагато символів."
+               });
+           }
+
+
+           const emailRegex =
+               /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+
+           if (
+               !emailRegex.test(cleanEmail)
+           ) {
+               return res.status(400).json({
+                   ok: false,
+                   message:
+                       "Введіть коректний email."
+               });
+           }
+
+
+           const subjects = {
+               general:
+                   "Загальне питання",
+
+               cooperation:
+                   "Співпраця",
+
+               business:
+                   "Бізнес на Royal Garage",
+
+               problem:
+                   "Помилка або проблема",
+
+               idea:
+                   "Ідея або пропозиція"
+           };
+
+
+           const subjectLabel =
+               subjects[cleanSubject];
+
+
+           if (!subjectLabel) {
+               return res.status(400).json({
+                   ok: false,
+                   message:
+                       "Оберіть тему звернення."
+               });
+           }
+
+
+           /*
+            * Простий захист від спаму:
+            * не частіше одного повідомлення
+            * з однієї IP за 30 секунд.
+            */
+           const ip =
+               req.ip ||
+               req.socket?.remoteAddress ||
+               "unknown";
+
+           const now =
+               Date.now();
+
+           const previousRequest =
+               contactRequestTimes.get(ip) || 0;
+
+
+           if (
+               now - previousRequest <
+               30 * 1000
+           ) {
+               return res.status(429).json({
+                   ok: false,
+                   message:
+                       "Зачекайте трохи перед повторним повідомленням."
+               });
+           }
+
+
+           contactRequestTimes.set(
+               ip,
+               now
+           );
+
+
+           await mailTransporter.sendMail({
+
+               from:
+                   `"Royal Garage" <${process.env.GMAIL_USER}>`,
+
+               to:
+                   CONTACT_EMAIL,
+
+               replyTo:
+                   cleanEmail,
+
+               subject:
+                   `[Royal Garage] ${subjectLabel}`,
+
+               text:
+                   `Нове звернення з Royal Garage\n\n` +
+
+                   `Ім’я: ${cleanName}\n` +
+
+                   `Email: ${cleanEmail}\n` +
+
+                   `Тема: ${subjectLabel}\n\n` +
+
+                   `Повідомлення:\n` +
+
+                   `${cleanMessage}\n`
+           });
+
+
+           return res.json({
+               ok: true,
+               message:
+                   "Повідомлення надіслано. Дякуємо!"
+           });
+
+
+       } catch (error) {
+
+           console.error(
+               "Contact form error:",
+               error
+           );
+
+
+           return res.status(500).json({
+               ok: false,
+               message:
+                   "Не вдалося надіслати повідомлення. Спробуйте ще раз."
+           });
+       }
+   }
+);
+
 app.get(
     "/api/garage/cars",
     requireAuth,
