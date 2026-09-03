@@ -20,9 +20,9 @@ body {
     align-items: center;
     gap: 22px;
 
-    max-width: 1050px;
+    max-width: 900px;
     margin: 0 auto;
-    padding: 40px 20px 25px;
+    padding: 40px 24px 25px;
 }
 
 .legal-logo-link {
@@ -31,27 +31,21 @@ body {
 
 .legal-logo {
     display: block;
-
     width: 95px;
     height: 95px;
-
     object-fit: contain;
 }
 
 .legal-header h1 {
     margin: 0 0 8px;
-
     color: #f4d58d;
-
     font-size: 36px;
     line-height: 1.15;
 }
 
 .legal-header p {
     margin: 0;
-
     color: #aebed2;
-
     font-size: 16px;
     line-height: 1.5;
 }
@@ -60,17 +54,17 @@ body {
 /* ===== ОСНОВНИЙ КОНТЕЙНЕР ===== */
 
 .legal-container {
-    max-width: 1050px;
+    max-width: 900px;
     margin: 0 auto;
-    padding: 10px 20px 50px;
+    padding: 20px 24px 60px;
 }
 
 
 /* ===== КАРТКИ ===== */
 
 .legal-card {
-    margin-bottom: 22px;
-    padding: 26px;
+    margin-bottom: 24px;
+    padding: 28px 30px;
 
     background:
         linear-gradient(
@@ -79,10 +73,7 @@ body {
             rgba(4, 22, 53, 0.96)
         );
 
-    border:
-        1px solid
-        rgba(214, 160, 58, 0.3);
-
+    border: 1px solid rgba(214, 160, 58, 0.3);
     border-radius: 18px;
 
     box-shadow:
@@ -92,19 +83,21 @@ body {
 
 .legal-card h2 {
     margin: 0 0 18px;
-
     color: #f4d58d;
-
     font-size: 24px;
 }
 
 .legal-card p {
     margin: 10px 0;
-
     color: #d9e3f0;
-
     font-size: 16px;
     line-height: 1.65;
+}
+
+.legal-subtitle {
+    margin: 32px 0 12px;
+    color: #f4d58d;
+    font-size: 20px;
 }
 
 
@@ -112,34 +105,27 @@ body {
 
 .legal-note {
     margin-bottom: 18px !important;
-
     color: #aebed2 !important;
 }
 
 .price-table {
     overflow: hidden;
+    margin-top: 14px;
 
-    border:
-        1px solid
-        rgba(214, 160, 58, 0.25);
-
+    border: 1px solid rgba(214, 160, 58, 0.25);
     border-radius: 12px;
 }
 
 .price-row {
     display: grid;
-
-    grid-template-columns:
-        minmax(0, 1fr)
-        150px;
+    grid-template-columns: minmax(0, 1fr) 130px;
+    align-items: center;
 
     gap: 20px;
-
-    padding: 15px 18px;
+    padding: 14px 18px;
 
     border-bottom:
-        1px solid
-        rgba(255, 255, 255, 0.08);
+        1px solid rgba(255, 255, 255, 0.08);
 }
 
 .price-row:last-child {
@@ -149,13 +135,13 @@ body {
 .price-heading {
     color: #f4d58d;
     background: rgba(214, 160, 58, 0.1);
-
     font-weight: 700;
 }
 
 .price-row strong {
     color: #f4d58d;
     text-align: right;
+    white-space: nowrap;
 }
 
 
@@ -163,9 +149,7 @@ body {
 
 .legal-details {
     padding: 18px;
-
     background: rgba(2, 7, 18, 0.38);
-
     border-radius: 12px;
 }
 
@@ -174,8 +158,19 @@ body {
 }
 
 .seller-card {
-    border-color:
-        rgba(214, 160, 58, 0.5);
+    border-color: rgba(214, 160, 58, 0.5);
+}
+
+
+/* ===== ПОСИЛАННЯ ===== */
+
+.legal-card a {
+    color: #f4d58d;
+    text-decoration: none;
+}
+
+.legal-card a:hover {
+    text-decoration: underline;
 }
 
 
@@ -184,7 +179,6 @@ body {
 .legal-back {
     display: flex;
     justify-content: center;
-
     margin-top: 30px;
 }
 
@@ -228,7 +222,6 @@ body {
 
 .legal-footer p {
     margin: 0 0 7px;
-
     color: #8495aa;
 }
 
@@ -248,7 +241,10 @@ body {
 
         gap: 14px;
 
-        padding-top: 25px;
+        padding:
+            25px
+            12px
+            20px;
     }
 
     .legal-logo {
@@ -260,9 +256,15 @@ body {
         font-size: 28px;
     }
 
-    .legal-card {
-        padding: 19px 16px;
+    .legal-container {
+        padding:
+            12px
+            10px
+            40px;
+    }
 
+    .legal-card {
+        padding: 18px 14px;
         border-radius: 14px;
     }
 
@@ -274,52 +276,26 @@ body {
         font-size: 15px;
     }
 
-    .price-row {
-        grid-template-columns: 1fr;
-        gap: 5px;
+    .legal-subtitle {
+        margin-top: 26px;
+        font-size: 18px;
+    }
 
+    .price-row {
+        grid-template-columns: 1fr auto;
+        gap: 10px;
         padding: 14px;
     }
 
     .price-row strong {
-        text-align: left;
+        text-align: right;
     }
 
     .price-heading span:last-child {
-        display: none;
+        display: block;
     }
 
-}
-
-.legal-subtitle {
-    margin: 28px 0 12px;
-    color: #f4d58d;
-    font-size: 19px;
-}
-
-.legal-card a {
-    color: #f4d58d;
-    text-decoration: none;
-}
-
-.legal-card a:hover {
-    text-decoration: underline;
-}
-
-.legal-container {
-    padding-left: 12px;
-    padding-right: 12px;
-}
-
-.legal-header {
-    padding-left: 12px;
-    padding-right: 12px;
-}
-
-.legal-details {
-    padding: 14px;
-}
-
-.legal-subtitle {
-    font-size: 18px;
+    .legal-details {
+        padding: 14px;
+    }
 }
