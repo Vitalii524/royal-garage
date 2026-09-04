@@ -8742,6 +8742,290 @@ app.post(
     }
 );
 
+app.get(
+    "/api/crm/cars",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        cars.id,
+                        cars.client_id AS "clientId",
+                        cars.brand,
+                        cars.model,
+                        cars.year,
+                        cars.vin,
+                        cars.plate,
+                        cars.mileage,
+                        cars.engine,
+                        cars.fuel,
+                        cars.transmission,
+                        cars.notes,
+                        cars.created_at AS "createdAt",
+                        cars.updated_at AS "updatedAt",
+                        clients.name AS "clientName",
+                        clients.phone AS "clientPhone"
+                    FROM crm_cars AS cars
+                    JOIN crm_clients AS clients
+                        ON clients.id = cars.client_id
+                    WHERE cars.service_id = $1
+                    ORDER BY cars.created_at DESC
+                    `,
+                    [
+                        serviceId
+                    ]
+                );
+
+            return res.json({
+                ok: true,
+                cars: result.rows
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM cars load error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити автомобілі."
+            });
+        }
+    }
+);
+
+app.post(
+    "/api/crm/cars",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const {
+                clientId,
+                brand,
+                model,
+                year,
+                vin,
+                plate,
+                mileage,
+                engine,
+                fuel,
+                transmission,
+                notes
+            } = req.body || {};
+
+            const cleanClientId =
+                String(clientId || "").trim();
+
+            const cleanBrand =
+                String(brand || "").trim();
+
+            const cleanModel =
+                String(model || "").trim();
+
+            const cleanVin =
+                String(vin || "").trim();
+
+            const cleanPlate =
+                String(plate || "").trim();
+
+            const cleanEngine =
+                String(engine || "").trim();
+
+            const cleanFuel =
+                String(fuel || "").trim();
+
+            const cleanTransmission =
+                String(transmission || "").trim();
+
+            const cleanNotes =
+                String(notes || "").trim();
+
+            const cleanYear =
+                year === "" || year == null
+                    ? null
+                    : Number(year);
+
+            const cleanMileage =
+                mileage === "" || mileage == null
+                    ? null
+                    : Number(mileage);
+
+            if (!cleanClientId) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Виберіть клієнта."
+                });
+            }
+
+            if (!cleanBrand && !cleanModel) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть марку або модель автомобіля."
+                });
+            }
+
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const clientResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_clients
+                    WHERE id = $1
+                      AND service_id = $2
+                    LIMIT 1
+                    `,
+                    [
+                        cleanClientId,
+                        serviceId
+                    ]
+                );
+
+            if (
+                clientResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Клієнта не знайдено."
+                });
+            }
+
+            const result =
+                await pool.query(
+                    `
+                    INSERT INTO crm_cars (
+                        service_id,
+                        client_id,
+                        brand,
+                        model,
+                        year,
+                        vin,
+                        plate,
+                        mileage,
+                        engine,
+                        fuel,
+                        transmission,
+                        notes
+                    )
+                    VALUES (
+                        $1,$2,$3,$4,$5,$6,
+                        $7,$8,$9,$10,$11,$12
+                    )
+                    RETURNING
+                        id,
+                        client_id AS "clientId",
+                        brand,
+                        model,
+                        year,
+                        vin,
+                        plate,
+                        mileage,
+                        engine,
+                        fuel,
+                        transmission,
+                        notes,
+                        created_at AS "createdAt",
+                        updated_at AS "updatedAt"
+                    `,
+                    [
+                        serviceId,
+                        cleanClientId,
+                        cleanBrand || null,
+                        cleanModel || null,
+                        Number.isFinite(cleanYear)
+                            ? cleanYear
+                            : null,
+                        cleanVin || null,
+                        cleanPlate || null,
+                        Number.isFinite(cleanMileage)
+                            ? cleanMileage
+                            : null,
+                        cleanEngine || null,
+                        cleanFuel || null,
+                        cleanTransmission || null,
+                        cleanNotes || null
+                    ]
+                );
+
+            return res.status(201).json({
+                ok: true,
+                car: result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM car create error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося додати автомобіль."
+            });
+        }
+    }
+);
+
 app.post(
     "/api/phone/send-code",
     requireAuth,
