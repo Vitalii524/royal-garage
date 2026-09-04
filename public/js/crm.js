@@ -203,6 +203,7 @@ function bindClientForm() {
 
                 form.reset();
                 form.hidden = true;
+                loadClients();
 
             } catch (error) {
                 console.error(
@@ -219,10 +220,111 @@ function bindClientForm() {
     );
 }
 
+async function loadClients() {
+    const count =
+        document.getElementById(
+            "crmClientsCount"
+        );
+
+    const list =
+        document.getElementById(
+            "crmClientsList"
+        );
+
+    if (!count || !list) {
+        return;
+    }
+
+    const token = getToken();
+
+    try {
+        const response =
+            await fetch(
+                `${getApiBaseUrl()}/api/crm/clients`,
+                {
+                    headers: {
+                        Authorization:
+                            `Bearer ${token}`
+                    }
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити клієнтів."
+            );
+        }
+
+        const clients =
+            Array.isArray(data.clients)
+                ? data.clients
+                : [];
+
+        count.textContent =
+            `Клієнтів: ${clients.length}`;
+
+        if (clients.length === 0) {
+            list.innerHTML =
+                "<p>Клієнтів ще немає.</p>";
+            return;
+        }
+
+        list.innerHTML =
+            clients
+                .map(
+                    (client) => `
+                        <div style="
+                            padding: 12px 0;
+                            border-top: 1px solid #333;
+                        ">
+                            <strong>
+                                ${client.name}
+                            </strong>
+
+                            ${
+                                client.phone
+                                    ? `<div>${client.phone}</div>`
+                                    : ""
+                            }
+
+                            ${
+                                client.email
+                                    ? `<div>${client.email}</div>`
+                                    : ""
+                            }
+
+                            ${
+                                client.notes
+                                    ? `<div>${client.notes}</div>`
+                                    : ""
+                            }
+                        </div>
+                    `
+                )
+                .join("");
+
+    } catch (error) {
+        console.error(
+            "CRM clients load error:",
+            error
+        );
+
+        count.textContent =
+            "Не вдалося завантажити клієнтів.";
+
+        list.innerHTML = "";
+    }
+}
+
 document.addEventListener(
     "DOMContentLoaded",
     () => {
         loadCrm();
+        loadClients();
         bindClientForm();
     }
 );
