@@ -3452,6 +3452,10 @@ function normalizePhone(value) {
 
 function renderAccountSettings() {
 
+    if (!currentUser) {
+        return;
+    }
+
     const accountEmail =
         document.getElementById(
             "accountEmail"
