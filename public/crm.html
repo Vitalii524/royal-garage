@@ -115,6 +115,57 @@
             Перевіряємо доступ до CRM...
         </section>
 
+        <section class="crm-status">
+            <button
+                id="crmAddClientButton"
+                type="button"
+            >
+                + Додати клієнта
+            </button>
+        
+            <form
+                id="crmClientForm"
+                hidden
+                style="margin-top: 16px;"
+            >
+                <div style="margin-bottom: 12px;">
+                    <input
+                        id="crmClientName"
+                        type="text"
+                        placeholder="Ім'я клієнта"
+                        required
+                    >
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <input
+                        id="crmClientPhone"
+                        type="text"
+                        placeholder="Телефон"
+                    >
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <input
+                        id="crmClientEmail"
+                        type="email"
+                        placeholder="Email"
+                    >
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <textarea
+                        id="crmClientNotes"
+                        placeholder="Примітки"
+                    ></textarea>
+                </div>
+        
+                <button type="submit">
+                    Зберегти клієнта
+                </button>
+            </form>
+        </section>
+
         <section
             id="crmDashboard"
             class="crm-grid"

@@ -8558,6 +8558,190 @@ app.post(
     }
 );
 
+app.get(
+    "/api/crm/clients",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        name,
+                        phone,
+                        email,
+                        notes,
+                        created_at AS "createdAt",
+                        updated_at AS "updatedAt"
+                    FROM crm_clients
+                    WHERE service_id = $1
+                    ORDER BY created_at DESC
+                    `,
+                    [
+                        serviceId
+                    ]
+                );
+
+            return res.json({
+                ok: true,
+                clients: result.rows
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM clients load error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити клієнтів."
+            });
+        }
+    }
+);
+
+app.post(
+    "/api/crm/clients",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const {
+                name,
+                phone,
+                email,
+                notes
+            } = req.body || {};
+
+            const cleanName =
+                String(name || "").trim();
+
+            const cleanPhone =
+                String(phone || "").trim();
+
+            const cleanEmail =
+                String(email || "").trim();
+
+            const cleanNotes =
+                String(notes || "").trim();
+
+            if (!cleanName) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть ім'я клієнта."
+                });
+            }
+
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const result =
+                await pool.query(
+                    `
+                    INSERT INTO crm_clients (
+                        id,
+                        service_id,
+                        name,
+                        phone,
+                        email,
+                        notes
+                    )
+                    VALUES (
+                        $1,$2,$3,$4,$5,$6
+                    )
+                    RETURNING
+                        id,
+                        name,
+                        phone,
+                        email,
+                        notes,
+                        created_at AS "createdAt",
+                        updated_at AS "updatedAt"
+                    `,
+                    [
+                        crypto.randomUUID(),
+                        serviceId,
+                        cleanName,
+                        cleanPhone || null,
+                        cleanEmail || null,
+                        cleanNotes || null
+                    ]
+                );
+
+            return res.status(201).json({
+                ok: true,
+                client: result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM client create error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося додати клієнта."
+            });
+        }
+    }
+);
+
 app.post(
     "/api/phone/send-code",
     requireAuth,

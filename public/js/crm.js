@@ -97,7 +97,132 @@ async function loadCrm() {
     }
 }
 
+function bindClientForm() {
+    const addButton =
+        document.getElementById(
+            "crmAddClientButton"
+        );
+
+    const form =
+        document.getElementById(
+            "crmClientForm"
+        );
+
+    if (!addButton || !form) {
+        return;
+    }
+
+    addButton.addEventListener(
+        "click",
+        () => {
+            form.hidden =
+                !form.hidden;
+        }
+    );
+
+    form.addEventListener(
+        "submit",
+        async (event) => {
+            event.preventDefault();
+
+            const name =
+                document
+                    .getElementById(
+                        "crmClientName"
+                    )
+                    ?.value.trim() || "";
+
+            const phone =
+                document
+                    .getElementById(
+                        "crmClientPhone"
+                    )
+                    ?.value.trim() || "";
+
+            const email =
+                document
+                    .getElementById(
+                        "crmClientEmail"
+                    )
+                    ?.value.trim() || "";
+
+            const notes =
+                document
+                    .getElementById(
+                        "crmClientNotes"
+                    )
+                    ?.value.trim() || "";
+
+            if (!name) {
+                alert(
+                    "Вкажіть ім'я клієнта."
+                );
+                return;
+            }
+
+            const token =
+                getToken();
+
+            try {
+                const response =
+                    await fetch(
+                        `${getApiBaseUrl()}/api/crm/clients`,
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+
+                                Authorization:
+                                    `Bearer ${token}`
+                            },
+
+                            body: JSON.stringify({
+                                name,
+                                phone,
+                                email,
+                                notes
+                            })
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.message ||
+                        "Не вдалося додати клієнта."
+                    );
+                }
+
+                alert(
+                    "Клієнта додано."
+                );
+
+                form.reset();
+                form.hidden = true;
+
+            } catch (error) {
+                console.error(
+                    "CRM client create error:",
+                    error
+                );
+
+                alert(
+                    error.message ||
+                    "Не вдалося додати клієнта."
+                );
+            }
+        }
+    );
+}
+
 document.addEventListener(
     "DOMContentLoaded",
-    loadCrm
+    () => {
+        loadCrm();
+        bindClientForm();
+    }
 );
