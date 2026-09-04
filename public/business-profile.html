@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-
 <html lang="uk">
 <head>
+
 <!-- Google tag (gtag.js) -->
-<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-NS6FGLSFVX"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NS6FGLSFVX"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
@@ -11,128 +11,347 @@
 
   gtag('config', 'G-NS6FGLSFVX');
 </script>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title data-i18n="auto.305">Бізнеси | Royal Garage</title>
-<link href="images/favicon.png" rel="icon" type="image/png"/>
-<link href="css/styles.css" rel="stylesheet"/>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet"/>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Бізнес-профіль | Royal Garage</title>
+    <meta name="description" content="Бізнес-профіль партнера Royal Garage">
+
+    <link rel="icon" type="image/png" href="images/favicon.png">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/handmade.css">
+    <link rel="stylesheet" href="css/business-profile.css?v=10">
 </head>
 <body>
 <header class="site-header">
-<div class="top-line">
-<div class="brand">
-<a href="index.html">
-<img alt="Royal Garage" src="images/royal-garage-logo.png"/>
-</a>
-</div><div class="language-switcher"><button class="active" data-lang="uk" type="button">UA</button><button data-lang="en" type="button">EN</button></div>
-<nav aria-label="Головна навігація" class="nav" data-i18n-aria-label="auto.175">
-<a data-i18n="auto.002" href="index.html">
-            Головна
-        </a>
-<a data-i18n="auto.003" href="forum.html">
-            Форум
-        </a>
-<a data-i18n="auto.004" href="market.html">
-            Авторинок
-        </a>
-<a data-i18n="auto.005" href="businesses.html">
-            Партнери
-        </a>
-<a data-i18n="auto.006" href="profile.html" id="profileNavLink">
-            Мій профіль
-        </a>
-</nav>
-<details class="burger-menu">
-<summary aria-label="Відкрити меню" class="burger-button" data-i18n-aria-label="auto.112" data-i18n-title="auto.111" title="Меню">
-            ☰
-        </summary>
-<nav aria-label="Мобільне меню" class="burger-dropdown" data-i18n-aria-label="auto.113">
-<a data-i18n="auto.002" href="index.html">
-                Головна
+    <div class="top-line">
+        <div class="brand">
+            <a href="index.html" aria-label="Royal Garage — головна">
+                <img src="images/royal-garage-logo.png" alt="Royal Garage">
             </a>
-<a data-i18n="auto.003" href="forum.html">
-                Форум
-            </a>
-<a data-i18n="auto.004" href="market.html">
-                Авторинок
-            </a>
-<a data-i18n="auto.005" href="businesses.html">
-                Партнери
-            </a>
-<a href="handmade.html">
-                RoyalAuto
-            </a>
-<a href="service-hub.html">
-                Service Hub
-            </a>
-<a data-i18n="auto.006" href="profile.html">
-                Мій профіль
-            </a>
-</nav>
-</details>
-<div class="auth-area" id="authArea"></div>
-</div>
+        </div>
+
+        <nav class="nav" aria-label="Головна навігація">
+            <a href="index.html">Головна</a>
+            <a href="forum.html">Форум</a>
+            <a href="market.html">Авторинок</a>
+            <a href="businesses.html">Партнери</a>
+            <a href="profile.html" id="profileNavLink">Мій профіль</a>
+        </nav>
+
+        <details class="burger-menu">
+            <summary class="burger-button" aria-label="Відкрити меню" title="Меню">☰</summary>
+            <nav class="burger-dropdown" aria-label="Мобільне меню">
+                <a href="index.html">Головна</a>
+                <a href="forum.html">Форум</a>
+                <a href="market.html">Авторинок</a>
+                <a href="businesses.html">Партнери</a>
+                <a href="handmade.html">RoyalAuto</a>
+                <a href="service-hub.html">Service Hub</a>
+                <a href="profile.html">Мій профіль</a>
+            </nav>
+        </details>
+
+        <div id="authArea" class="auth-area"></div>
+    </div>
 </header>
-<main class="business-directory">
-<!-- НАЗАД -->
-<a class="business-list-back" data-i18n-nodes="0:auto.306" href="businesses.html">
-<i class="fa-solid fa-arrow-left"></i>
-        Каталог бізнесів
-    </a>
-<!-- НАЗВА КАТЕГОРІЇ -->
-<section class="business-directory-hero">
-<p class="business-directory-label">
-            ROYAL GARAGE
-        </p>
-<h1 data-i18n="auto.307" id="businessListTitle">
-            Завантаження...
-        </h1>
-<p data-i18n="auto.308" id="businessListDescription">
-            Зареєстровані бізнеси Royal Garage
-        </p>
-</section>
-<!-- СПИСОК БІЗНЕСІВ -->
-<section class="business-list" id="businessList">
-</section>
-<!-- ЗАВАНТАЖЕННЯ -->
-<section class="business-list-message" id="businessListLoading">
-<p data-i18n="auto.309">
-            Завантаження бізнесів...
-        </p>
-</section>
-<!-- ЯКЩО НІЧОГО НЕМАЄ -->
-<section class="business-empty-state" hidden="" id="businessListEmpty">
-<h2 data-i18n="auto.310">
-            Бізнесів не знайдено
-        </h2>
-<p data-i18n="auto.311">
-            У цій категорії поки немає
-            активних бізнесів.
-        </p>
-</section>
-<!-- ПОМИЛКА -->
-<section class="business-empty-state" hidden="" id="businessListError">
-<h2 data-i18n="auto.312">
-            Не вдалося завантажити список
-        </h2>
-<p data-i18n="auto.313">
-            Спробуйте оновити сторінку.
-        </p>
-</section>
+
+<main class="business-page">
+    <a href="businesses.html" class="business-back-link">← До партнерів</a>
+
+    <div id="businessPageLoading" class="business-state-card">Завантаження бізнес-профілю…</div>
+    <div id="businessPageError" class="business-state-card business-state-error" hidden></div>
+
+    <div id="businessPageContent" hidden>
+        <section class="business-hero-card">
+            <div class="business-logo-image-wrap">
+                <img id="businessLogo" class="business-logo" alt="Логотип бізнесу" hidden>
+                <div id="businessLogoPlaceholder" class="business-logo-placeholder">RG</div>
+            </div>
+
+            <div class="business-hero-main">
+                <div class="business-hero-meta">
+                    <span id="businessTypeLabel" class="business-type-badge">Автобізнес</span>
+                    <span id="businessOwnerDraftBadge" class="business-draft-badge" hidden>Чернетка</span>
+                </div>
+
+                <h1 id="businessName">Бізнес</h1>
+                <p id="businessCityLine" class="business-location-line" hidden></p>
+                <p id="businessHeroDescription" class="business-hero-description"></p>
+
+                <div class="business-contact-actions" id="businessHeroContacts">
+                    <a id="businessPhoneLink" class="business-action primary" href="#" hidden>📞 Зателефонувати</a>
+                    <a id="businessTelegramLink" class="business-action" href="#" target="_blank" rel="noopener" hidden>Telegram</a>
+                    <a id="businessInstagramLink" class="business-action" href="#" target="_blank" rel="noopener" hidden>Instagram</a>
+                    <a id="businessRouteLink" class="business-action" href="#" target="_blank" rel="noopener" hidden>📍 Маршрут</a>
+                </div>
+            </div>
+
+            <button id="businessManageButton" class="business-manage-button" type="button" hidden>⚙️ Керувати профілем</button>
+        </section>
+
+        <section id="businessOwnerPanel" class="business-owner-panel" hidden>
+            <div class="business-owner-panel-head">
+                <div>
+                    <span class="business-eyebrow">Керування</span>
+                    <h2>Мій бізнес</h2>
+                </div>
+                <button id="businessOwnerPanelClose" type="button" class="business-icon-button" aria-label="Закрити">×</button>
+            </div>
+
+            <div class="business-activation-card">
+                <div>
+                    <strong id="businessProfileStatusText">Чернетка</strong>
+                    <p id="businessProfileStatusHint">Завершіть активацію профілю.</p>
+                </div>
+                <span id="businessProfileStatusDot" class="business-status-dot"></span>
+            </div>
+
+            <div class="business-verification-grid">
+                <div class="business-verification-item">
+                    <span>Email</span>
+                    <strong id="businessEmailStatus">Не підтверджено</strong>
+                    <button id="businessVerifyEmailButton" type="button" class="business-small-button">Підтвердити email</button>
+                </div>
+                <div class="business-verification-item">
+                    <span>Телефон</span>
+                    <strong id="businessPhoneStatus">Не підтверджено</strong>
+                    <button id="businessVerifyPhoneButton" type="button" class="business-small-button">Підтвердити номер</button>
+                </div>
+                <div class="business-verification-item">
+                    <span>Тариф</span>
+                    <strong id="businessPlanStatus">Неактивний</strong>
+                    <small id="businessPlanExpires"></small>
+                    <button id="businessPlanButton" type="button" class="business-small-button">Тариф / продовжити</button>
+                </div>
+            </div>
+
+            <div class="business-owner-actions">
+                <button id="businessEditProfileButton" type="button" class="business-owner-action">Редагувати профіль</button>
+                <button id="businessAddServiceButton" type="button" class="business-owner-action" hidden>+ Додати послугу</button>
+                <button id="businessAddProductButton" type="button" class="business-owner-action" hidden>+ Додати товар</button>
+                <a id="businessAddCarButton" href="market.html?create=1" class="business-owner-action" hidden>+ Додати авто</a>
+            </div>
+        </section>
+
+        <section id="businessMainContentSection" class="business-section">
+            <div class="business-section-head">
+                <div>
+                    <span class="business-eyebrow" id="businessMainEyebrow">Пропозиції</span>
+                    <h2 id="businessMainTitle">Послуги</h2>
+                </div>
+            </div>
+            <div id="businessMainGrid" class="business-content-grid"></div>
+            <p id="businessMainEmpty" class="business-empty" hidden></p>
+        </section>
+
+        <section class="business-section business-about-section">
+            <div class="business-section-head">
+                <div>
+                    <span class="business-eyebrow">Інформація</span>
+                    <h2>Про нас</h2>
+                </div>
+            </div>
+
+            <div class="business-info-grid">
+                <article class="business-info-card business-info-wide">
+                    <h3>Про компанію</h3>
+                    <p id="businessDescription">Опис ще не додано.</p>
+                </article>
+
+                <article class="business-info-card">
+                    <h3>Адреса</h3>
+                    <p id="businessAddress">Не вказано</p>
+                    <a id="businessMapLink" href="#" target="_blank" rel="noopener" class="business-inline-link" hidden>📍 Відкрити на Google Maps</a>
+                </article>
+
+                <article class="business-info-card">
+                    <h3>Графік роботи</h3>
+                    <div id="businessSchedule" class="business-schedule"></div>
+                </article>
+            </div>
+        </section>
+
+        <section id="businessReviewsSection" class="business-section">
+            <div class="business-section-head business-rating-head">
+                <div>
+                    <span class="business-eyebrow">Репутація</span>
+                    <h2>Рейтинг та відгуки</h2>
+                </div>
+                <div class="business-rating-summary">
+                    <strong id="businessRatingAverage">⭐ —</strong>
+                    <span id="businessRatingCount">Відгуків ще немає</span>
+                </div>
+            </div>
+            <div id="businessReviewsList" class="business-reviews-list"></div>
+            <p id="businessReviewsEmpty" class="business-empty">Відгуків ще немає.</p>
+        </section>
+
+        <section id="businessBottomContact" class="business-bottom-contact">
+            <div>
+                <span class="business-eyebrow">Зв’язок</span>
+                <h2>Потрібна консультація?</h2>
+                <p>Зв’яжіться з бізнесом зручним способом.</p>
+            </div>
+            <div class="business-contact-actions">
+                <a id="businessBottomPhone" class="business-action primary" href="#" hidden>📞 Зателефонувати</a>
+                <a id="businessBottomTelegram" class="business-action" href="#" target="_blank" rel="noopener" hidden>Telegram</a>
+                <a id="businessBottomInstagram" class="business-action" href="#" target="_blank" rel="noopener" hidden>Instagram</a>
+            </div>
+        </section>
+    </div>
 </main>
-<footer class="site-footer">
-<div>
-<h3>Royal Garage</h3>
-<p data-i18n="auto.139">Автоспільнота України</p>
-<p data-i18n="auto.140">
-            © 2026 Royal Garage. Усі права захищені.
-        </p>
-</div>
+
+<footer class="footer">
+    <div>
+        <h3>Royal Garage</h3>
+        <p>Автоспільнота України</p>
+        <p>© 2026 Royal Garage. Усі права захищені.</p>
+    </div>
+    <div>
+        <h3>Навігація</h3>
+        <a href="index.html">Головна</a>
+        <a href="forum.html">Форум</a>
+        <a href="market.html">Авторинок</a>
+        <a href="businesses.html">Партнери</a>
+        <a href="profile.html">Мій профіль</a>
+    </div>
 </footer>
-<script src="js/script.js"></script>
+
+<!-- Редагування профілю -->
+<div id="businessProfileModal" class="business-modal" hidden>
+    <div class="business-modal-backdrop" data-close-modal="businessProfileModal"></div>
+    <div class="business-modal-card" role="dialog" aria-modal="true" aria-labelledby="businessProfileModalTitle">
+        <div class="business-modal-head">
+            <h2 id="businessProfileModalTitle">Редагувати профіль</h2>
+            <button type="button" class="business-icon-button" data-close-modal="businessProfileModal">×</button>
+        </div>
+
+        <form id="businessProfileForm" class="business-form">
+            <label>Логотип
+                <input id="businessLogoInput" type="file" accept="image/*">
+            </label>
+            <div id="businessLogoEditPreview" class="business-logo-edit-preview"></div>
+
+            <label>Назва бізнесу
+                <input id="businessEditName" type="text" maxlength="160" required>
+            </label>
+            <div class="business-form-row">
+                <label>Місто
+                    <input id="businessEditCity" type="text" maxlength="100">
+                </label>
+                <label>Адреса
+                    <input id="businessEditAddress" type="text" maxlength="255">
+                </label>
+            </div>
+            <label>Телефон
+                <input id="businessEditPhone" type="tel" maxlength="30" placeholder="380XXXXXXXXX">
+            </label>
+            <div class="business-form-row">
+                <label>Telegram
+                    <input id="businessEditTelegram" type="text" maxlength="100" placeholder="@username">
+                </label>
+                <label>Instagram
+                    <input id="businessEditInstagram" type="text" maxlength="255" placeholder="@username або посилання">
+                </label>
+            </div>
+            <label>Короткий опис
+                <textarea id="businessEditDescription" rows="5" maxlength="2000"></textarea>
+            </label>
+
+            <fieldset id="businessOtherContentTypeField" class="business-fieldset" hidden>
+                <legend>Що пропонує ваш бізнес?</legend>
+                <label class="business-radio"><input type="radio" name="businessContentType" value="services"> Послуги</label>
+                <label class="business-radio"><input type="radio" name="businessContentType" value="products"> Товари</label>
+                <label class="business-radio"><input type="radio" name="businessContentType" value="both"> Послуги та товари</label>
+            </fieldset>
+
+            <fieldset class="business-fieldset">
+                <legend>Графік роботи</legend>
+                <div id="businessScheduleEditor" class="business-schedule-editor"></div>
+            </fieldset>
+
+            <p id="businessProfileFormError" class="business-form-error"></p>
+            <div class="business-modal-actions">
+                <button type="button" class="business-secondary-button" data-close-modal="businessProfileModal">Скасувати</button>
+                <button type="submit" class="business-primary-button">Зберегти</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Послуга / товар -->
+<div id="businessItemModal" class="business-modal" hidden>
+    <div class="business-modal-backdrop" data-close-modal="businessItemModal"></div>
+    <div class="business-modal-card" role="dialog" aria-modal="true" aria-labelledby="businessItemModalTitle">
+        <div class="business-modal-head">
+            <h2 id="businessItemModalTitle">Додати послугу</h2>
+            <button type="button" class="business-icon-button" data-close-modal="businessItemModal">×</button>
+        </div>
+
+        <form id="businessItemForm" class="business-form">
+            <input id="businessItemId" type="hidden">
+            <input id="businessItemKind" type="hidden">
+
+            <label>Назва
+                <input id="businessItemTitle" type="text" maxlength="160" required>
+            </label>
+            <label>Опис
+                <textarea id="businessItemDescription" rows="5" maxlength="3000"></textarea>
+            </label>
+            <label id="businessItemPriceLabel">Ціна, грн
+                <input id="businessItemPrice" type="number" min="0" step="1" placeholder="Необов’язково">
+            </label>
+            <label>Фото (до 6)
+                <input id="businessItemPhotosInput" type="file" accept="image/*" multiple>
+            </label>
+            <div id="businessItemPhotosPreview" class="business-photo-preview"></div>
+
+            <p id="businessItemFormError" class="business-form-error"></p>
+            <div class="business-modal-actions">
+                <button type="button" class="business-secondary-button" data-close-modal="businessItemModal">Скасувати</button>
+                <button type="submit" class="business-primary-button">Зберегти</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Підтвердження телефону -->
+<div id="businessPhoneModal" class="business-modal" hidden>
+    <div class="business-modal-backdrop" data-close-modal="businessPhoneModal"></div>
+    <div class="business-modal-card business-modal-small" role="dialog" aria-modal="true" aria-labelledby="businessPhoneModalTitle">
+        <div class="business-modal-head">
+            <h2 id="businessPhoneModalTitle">Підтвердження телефону</h2>
+            <button type="button" class="business-icon-button" data-close-modal="businessPhoneModal">×</button>
+        </div>
+        <p>Надішлемо 6-значний код на номер вашого акаунта.</p>
+        <button id="businessSendPhoneCodeButton" type="button" class="business-primary-button">Надіслати код</button>
+        <form id="businessPhoneCodeForm" class="business-form" hidden>
+            <label>Код
+                <input id="businessPhoneCode" type="text" inputmode="numeric" maxlength="6" pattern="\d{6}" required>
+            </label>
+            <p id="businessPhoneFormError" class="business-form-error"></p>
+            <button type="submit" class="business-primary-button">Підтвердити</button>
+        </form>
+    </div>
+</div>
+
+<!-- Тариф -->
+<div id="businessPlanModal" class="business-modal" hidden>
+    <div class="business-modal-backdrop" data-close-modal="businessPlanModal"></div>
+    <div class="business-modal-card" role="dialog" aria-modal="true" aria-labelledby="businessPlanModalTitle">
+        <div class="business-modal-head">
+            <h2 id="businessPlanModalTitle">Тариф</h2>
+            <button type="button" class="business-icon-button" data-close-modal="businessPlanModal">×</button>
+        </div>
+        <div id="businessPlansList" class="business-plans-list"></div>
+        <p id="businessPlanModalError" class="business-form-error"></p>
+    </div>
+</div>
+
 <script src="js/auth.js"></script>
-<script src="js/business-list.js"></script>
+<script src="js/business-profile.js?v=11"></script>
 <script src="js/loader.js"></script>
-<script src="js/lang.js"></script></body>
+<script src="js/lang.js"></script>
+</body>
 </html>
