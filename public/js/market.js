@@ -1,5 +1,14 @@
 "use strict";
 
+function rgTr(key, fallback = "") {
+    return typeof window.t === "function" ? window.t(key, fallback) : fallback;
+}
+
+function rgLocale() {
+    return (typeof window.getRoyalGarageLanguage === "function" && window.getRoyalGarageLanguage() === "en") ? "en-US" : "uk-UA";
+}
+
+
 
 /* =====================================================
    КОРИСТУВАЧ
@@ -571,9 +580,7 @@ function fillBrandSelect() {
     }
 
     listingBrand.innerHTML = `
-        <option value="">
-            Обери марку
-        </option>
+        <option value="">${rgTr("market.form.chooseBrand", "Обери марку")}</option>
     `;
 
 
@@ -617,9 +624,7 @@ function fillModelSelect(
         !CAR_BRANDS_MODELS[brand]
     ) {
         listingModel.innerHTML = `
-            <option value="">
-                Спочатку обери марку
-            </option>
+            <option value="">${rgTr("market.form.chooseBrandFirst", "Спочатку обери марку")}</option>
         `;
 
         listingModel.disabled =
@@ -641,7 +646,7 @@ function fillModelSelect(
     defaultOption.value = "";
 
     defaultOption.textContent =
-        "Обери модель";
+        rgTr("market.dynamic.chooseModel", "Обери модель");
 
     listingModel.appendChild(
         defaultOption
@@ -1357,9 +1362,7 @@ function fillCarSelect() {
 
 
     listingCar.innerHTML = `
-        <option value="">
-            Обери автомобіль
-        </option>
+        <option value="">${rgTr("market.form.chooseCar", "Обери автомобіль")}</option>
     `;
 
 
@@ -1763,7 +1766,7 @@ async function loadUsdRate() {
 
         if (pricePreview) {
             pricePreview.textContent =
-                "Курс долара тимчасово недоступний";
+                rgTr("market.dynamic.rateUnavailable", "Курс долара тимчасово недоступний");
         }
     }
 }
@@ -1786,7 +1789,7 @@ function updatePricePreview() {
 
     if (!dollars) {
         pricePreview.textContent =
-            "Еквівалент у гривнях: 0 грн";
+            rgTr("market.form.pricePreviewZero", "Еквівалент у гривнях: 0 грн");
 
         return;
     }
@@ -1794,7 +1797,7 @@ function updatePricePreview() {
 
     if (!usdRate) {
         pricePreview.textContent =
-            "Завантаження курсу долара...";
+            rgTr("market.dynamic.rateLoading", "Завантаження курсу долара...");
 
         return;
     }
@@ -1808,12 +1811,8 @@ function updatePricePreview() {
 
 
     pricePreview.textContent =
-        `${dollars.toLocaleString(
-            "uk-UA"
-        )} $ ≈ ` +
-        `${hryvnias.toLocaleString(
-            "uk-UA"
-        )} грн`;
+        `${dollars.toLocaleString(rgLocale())} $ ≈ ` +
+        `${hryvnias.toLocaleString(rgLocale())} ${rgTr("market.dynamic.uahShort", "грн")}`;
 }
 
 
@@ -1856,7 +1855,7 @@ function updatePhotosCounter() {
 
 
     listingPhotosCounter.textContent =
-        `Вибрано: ${selectedPhotos.length} / ${MAX_LISTING_PHOTOS}`;
+        `${rgTr("market.dynamic.selected", "Вибрано")}: ${selectedPhotos.length} / ${MAX_LISTING_PHOTOS}`;
 }
 
 
@@ -1923,7 +1922,7 @@ function updatePhotoCount() {
     }
 
     photoCount.textContent =
-        `Вибрано: ${selectedPhotos.length} / 20`;
+        `${rgTr("market.dynamic.selected", "Вибрано")}: ${selectedPhotos.length} / 20`;
 }
 
 
@@ -2682,7 +2681,7 @@ function resetListingForm() {
 
     if (submitButton) {
         submitButton.textContent =
-            "Опублікувати оголошення";
+            rgTr("market.form.publish", "Опублікувати оголошення");
     }
 
 
@@ -2692,7 +2691,7 @@ function resetListingForm() {
 
     if (modalTitle) {
         modalTitle.textContent =
-            "Створення оголошення";
+            rgTr("market.dynamic.createListing", "Створення оголошення");
     }
 
 
@@ -4599,3 +4598,17 @@ if (
         window.location.pathname
     );
 }
+
+document.addEventListener("royalGarageLanguageChange", () => {
+    try { fillBrandSelect(); } catch {}
+    try { fillCarSelect(); } catch {}
+    try { if (listingBrand) fillModelSelect(listingBrand.value, listingModel?.value || ""); } catch {}
+    try { updatePricePreview(); } catch {}
+    try { updatePhotosCounter(); } catch {}
+    try { updatePhotoCount(); } catch {}
+    const submitButton = typeof getListingSubmitButton === "function" ? getListingSubmitButton() : null;
+    if (submitButton && !isEditMode) submitButton.textContent = rgTr("market.form.publish", "Опублікувати оголошення");
+    const modalTitle = typeof getListingModalTitle === "function" ? getListingModalTitle() : null;
+    if (modalTitle && !isEditMode) modalTitle.textContent = rgTr("market.dynamic.createListing", "Створення оголошення");
+    try { renderListings(); } catch {}
+});

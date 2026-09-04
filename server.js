@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
@@ -116,13 +117,12 @@ const LIQPAY_PRIVATE_KEY =
             .digest("base64");
     }
 
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl:
-        process.env.NODE_ENV === "production"
-            ? { rejectUnauthorized: false }
-            : false
-});
+    const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+            rejectUnauthorized: false
+        }
+    });
 
 function normalizeVin(value) {
     return String(value || "")
@@ -5063,9 +5063,6 @@ await pool.query(
                 language:
                     "uk",
                 
-                sandbox:
-                    1,
-                
                 server_url:
                     "https://royal-garage.onrender.com/api/payments/liqpay/callback",
                 
@@ -5257,7 +5254,6 @@ app.post(
                 description: `Royal Garage — ${row.planName}`,
                 order_id: orderId,
                 language: "uk",
-                sandbox: 1,
                 server_url:
                     "https://royal-garage.onrender.com/api/payments/liqpay/callback",
                 result_url:
@@ -5586,9 +5582,6 @@ app.post(
                 order_id:
                     orderId,
 
-                sandbox:
-                    1,
-
                 server_url:
                     `${baseUrl}/api/payments/liqpay/callback`,
 
@@ -5735,7 +5728,7 @@ app.post(
 
             /*
                 У бойовому режимі:
-                success = успішна оплата.
+                success = успішна оплата.node server.js
 
                 У тестовому режимі:
                 sandbox = успішна тестова оплата.

@@ -8,6 +8,46 @@ document.documentElement.style.visibility = "hidden";
 
 let currentUser = null;
 
+function tr(key, fallback = "") {
+    return typeof window.t === "function"
+        ? window.t(key, fallback)
+        : fallback;
+}
+
+function currentLocale() {
+    return window.getRoyalGarageLanguage?.() === "en"
+        ? "en-US"
+        : "uk-UA";
+}
+
+function trf(key, fallback = "", vars = {}) {
+    return tr(key, fallback).replace(/\{(\w+)\}/g, (_, name) =>
+        String(vars[name] ?? "")
+    );
+}
+
+const profileFuelKeys = {
+    "Бензин": "auto.065", petrol: "auto.065",
+    "Дизель": "auto.066", diesel: "auto.066",
+    "Газ": "auto.067", lpg: "auto.067",
+    "Газ / бензин": "auto.068", "Газ/бензин": "auto.068", lpg_petrol: "auto.068",
+    "Гібрид": "auto.069", hybrid: "auto.069",
+    "Електро": "auto.070", electric: "auto.070"
+};
+
+const profileTransmissionKeys = {
+    "Механіка": "auto.073", manual: "auto.073",
+    "Автомат": "auto.074", automatic: "auto.074",
+    "Робот": "auto.075", robot: "auto.075",
+    "Варіатор": "auto.076", cvt: "auto.076"
+};
+
+function translateStoredValue(value, map) {
+    const raw = String(value || "");
+    const key = map[raw];
+    return key ? tr(key, raw) : raw;
+}
+
 async function renderFavoriteListings() {
     const favoritesList =
         document.getElementById(
@@ -36,7 +76,7 @@ async function renderFavoriteListings() {
 
         favoritesList.innerHTML = `
             <p class="profile-favorites-empty">
-                Увійдіть у профіль, щоб переглянути обране.
+                ${escapeHtml(tr("profile.dynamic.loginForFavorites", "Увійдіть у профіль, щоб переглянути обране."))}
             </p>
         `;
 
@@ -117,7 +157,7 @@ async function renderFavoriteListings() {
         ) {
             favoritesList.innerHTML = `
                 <p class="profile-favorites-empty">
-                    Ви ще не додали оголошення в обране.
+                    ${escapeHtml(tr("auto.040", "Ви ще не додали оголошення в обране."))}
                 </p>
             `;
 
@@ -164,7 +204,7 @@ async function renderFavoriteListings() {
                                             )}"
                                             alt="${escapeHtml(
                                                 listing.name ||
-                                                "Автомобіль"
+                                                tr("profile.dynamic.vehicle", "Автомобіль")
                                             )}"
                                         >
                                     `
@@ -175,7 +215,7 @@ async function renderFavoriteListings() {
                                 <strong>
                                     ${escapeHtml(
                                         listing.name ||
-                                        "Автомобіль"
+                                        tr("profile.dynamic.vehicle", "Автомобіль")
                                     )}
                                 </strong>
 
@@ -187,7 +227,7 @@ async function renderFavoriteListings() {
                                                     String(
                                                         listing.year
                                                     )
-                                                )} рік
+                                                )} ${escapeHtml(tr("profile.dynamic.yearWord", "рік"))}
                                             </span>
                                         `
                                         : ""
@@ -200,7 +240,7 @@ async function renderFavoriteListings() {
                                                 ${Number(
                                                     priceUsd
                                                 ).toLocaleString(
-                                                    "uk-UA"
+                                                    currentLocale()
                                                 )} $
                                             </span>
                                         `
@@ -222,7 +262,7 @@ async function renderFavoriteListings() {
 
         favoritesList.innerHTML = `
             <p class="profile-favorites-empty">
-                Не вдалося завантажити обране.
+                ${escapeHtml(tr("profile.dynamic.favoritesLoadError", "Не вдалося завантажити обране."))}
             </p>
         `;
     }
@@ -1206,37 +1246,13 @@ function calculateProfileRating(
             votes.length
     };
 }
-function getRatingCountLabel(
-    count
-) {
-    const value =
-        Number(count) || 0;
-
-    const lastTwoDigits =
-        value % 100;
-
-    const lastDigit =
-        value % 10;
-
-    if (
-        lastTwoDigits >= 11 &&
-        lastTwoDigits <= 14
-    ) {
-        return `${value} оцінок`;
-    }
-
-    if (lastDigit === 1) {
-        return `${value} оцінка`;
-    }
-
-    if (
-        lastDigit >= 2 &&
-        lastDigit <= 4
-    ) {
-        return `${value} оцінки`;
-    }
-
-    return `${value} оцінок`;
+function getRatingCountLabel(count) {
+    const value = Number(count) || 0;
+    const category = new Intl.PluralRules(currentLocale()).select(value);
+    return `${value} ${tr(
+        `profile.rating.${category}`,
+        tr("profile.rating.other", "оцінок")
+    )}`;
 }
 
 function createId() {
@@ -1279,7 +1295,7 @@ function escapeHtml(value) {
 
 function formatNumber(value) {
     return new Intl.NumberFormat(
-        "uk-UA"
+        currentLocale()
     ).format(
         Number(value) || 0
     );
@@ -1287,7 +1303,7 @@ function formatNumber(value) {
 
 function formatDate(value) {
     if (!value) {
-        return "Дата не вказана";
+        return tr("profile.dynamic.dateUnknown", "Дата не вказана");
     }
 
     const date =
@@ -1300,11 +1316,11 @@ function formatDate(value) {
             date.getTime()
         )
     ) {
-        return "Дата не вказана";
+        return tr("profile.dynamic.dateUnknown", "Дата не вказана");
     }
 
     return new Intl.DateTimeFormat(
-        "uk-UA"
+        currentLocale()
     ).format(date);
 }
 
@@ -1645,7 +1661,7 @@ function renderCars() {
             <span>
                 ${escapeHtml(
                     car.year
-                )} рік ·
+                )} ${escapeHtml(tr("profile.dynamic.yearWord", "рік"))} ·
 
                 ${formatNumber(
                     car.mileage
@@ -1785,9 +1801,7 @@ function renderCarGallery(
                 photo;
 
             thumbnail.alt =
-                `Фото автомобіля ${
-                    index + 1
-                }`;
+                `${tr("auto.094", "Фото автомобіля")} ${index + 1}`;
 
             thumbnailButton
                 .appendChild(
@@ -1867,7 +1881,7 @@ function renderCarGallery(
                     : "☆";
 
             mainButton.title =
-                "Зробити головним фото";
+                tr("profile.dynamic.makeMainPhoto", "Зробити головним фото");
 
                 mainButton.addEventListener(
                     "click",
@@ -1955,7 +1969,7 @@ function renderCarGallery(
                 "🔄";
 
             replaceButton.title =
-                "Замінити фото";
+                tr("profile.dynamic.replacePhoto", "Замінити фото");
 
             replaceButton.addEventListener(
                 "click",
@@ -2059,7 +2073,7 @@ function renderCarGallery(
                 "🗑️";
 
             deleteButton.title =
-                "Видалити фото";
+                tr("auto.033", "Видалити фото");
 
                 deleteButton.addEventListener(
                     "click",
@@ -2734,8 +2748,8 @@ function renderServiceCard(
             <span class="service-visibility">
                 ${
                     service.isPublic
-                        ? "Публічний"
-                        : "Приватний"
+                        ? tr("profile.dynamic.public", "Публічний")
+                        : tr("profile.dynamic.private", "Приватний")
                 }
             </span>
 
@@ -2744,7 +2758,7 @@ function renderServiceCard(
         <div class="service-details">
 
             <span>
-                Пробіг:
+                ${escapeHtml(tr("profile.dynamic.mileage", "Пробіг"))}:
 
                 <strong>
                     ${formatNumber(
@@ -2754,12 +2768,12 @@ function renderServiceCard(
             </span>
 
             <span>
-                Вартість:
+                ${escapeHtml(tr("profile.dynamic.cost", "Вартість"))}:
 
                 <strong>
                     ${formatNumber(
                         service.cost
-                    )} грн
+                    )} ${escapeHtml(tr("market.dynamic.uahShort", "грн"))}
                 </strong>
             </span>
 
@@ -2770,7 +2784,7 @@ function renderServiceCard(
                 ? `
                     <p>
                         <strong>
-                            СТО:
+                            ${escapeHtml(tr("profile.dynamic.serviceStation", "СТО"))}:
                         </strong>
 
                         ${escapeHtml(
@@ -2799,14 +2813,14 @@ function renderServiceCard(
                 class="edit-service-button"
                 type="button"
             >
-                Редагувати запис
+                ${escapeHtml(tr("profile.dynamic.editRecord", "Редагувати запис"))}
             </button>
 
             <button
                 class="delete-service-button"
                 type="button"
             >
-                Видалити запис
+                ${escapeHtml(tr("profile.dynamic.deleteRecord", "Видалити запис"))}
             </button>
 
         </div>
@@ -2876,7 +2890,7 @@ function renderServiceCard(
                     photo;
 
                 image.alt =
-                    "Фото до запису";
+                    tr("profile.dynamic.recordPhoto", "Фото до запису");
 
                 image.className =
                     "service-photo";
@@ -2917,7 +2931,7 @@ function renderServiceCard(
                     "replace-service-photo-button";
 
                 replaceButton.textContent =
-                    "Замінити фото";
+                    tr("profile.dynamic.replacePhoto", "Замінити фото");
 
                 replaceButton
                     .addEventListener(
@@ -2961,7 +2975,7 @@ function renderServiceCard(
                     "delete-service-photo-button";
 
                 deleteButton.textContent =
-                    "Видалити фото";
+                    tr("auto.033", "Видалити фото");
 
                 deleteButton
                     .addEventListener(
@@ -3025,8 +3039,8 @@ function renderServiceCard(
 
         addButton.textContent =
             photos.length === 0
-                ? "Додати фото"
-                : "Додати ще фото";
+                ? tr("profile.dynamic.addPhoto", "Додати фото")
+                : tr("profile.dynamic.addMorePhotos", "Додати ще фото");
 
         addButton.addEventListener(
             "click",
@@ -3105,7 +3119,7 @@ function renderSelectedCar() {
         elements.selectedCarName
             .textContent =
                 car.name ||
-                "Автомобіль";
+                tr("profile.dynamic.vehicle", "Автомобіль");
     }
 
     if (
@@ -3113,7 +3127,7 @@ function renderSelectedCar() {
     ) {
         const details = [
             car.year
-                ? `${car.year} рік`
+                ? trf("profile.dynamic.year", `${car.year} рік`, { year: car.year })
                 : null,
 
             `${formatNumber(
@@ -3123,11 +3137,13 @@ function renderSelectedCar() {
             car.engine ||
                 null,
 
-            car.fuel ||
-                null,
+            car.fuel
+                ? translateStoredValue(car.fuel, profileFuelKeys)
+                : null,
 
-            car.transmission ||
-                null
+            car.transmission
+                ? translateStoredValue(car.transmission, profileTransmissionKeys)
+                : null
         ].filter(Boolean);
 
         elements.selectedCarInfo
@@ -3136,7 +3152,7 @@ function renderSelectedCar() {
 
 VIN: ${car.vin || "-"}
 
-Номер: ${car.plate || "-"}`;
+${tr("profile.dynamic.plate", "Номер")}: ${car.plate || "-"}`;
     }
 
     renderCarGallery(car);
@@ -3192,7 +3208,7 @@ VIN: ${car.vin || "-"}
             .textContent =
                 `${formatNumber(
                     totalCost
-                )} грн`;
+                )} ${tr("market.dynamic.uahShort", "грн")}`;
     }
 
     if (
@@ -3268,7 +3284,7 @@ async function renderProfileSellerReputation() {
             "—";
 
         countElement.textContent =
-            "Новий продавець";
+            tr("auto.009", "Новий продавець");
 
         return;
     }
@@ -3300,7 +3316,7 @@ async function renderProfileSellerReviews() {
     if (!sellerId) {
         reviewsList.innerHTML = `
             <p class="profile-seller-reviews-empty">
-                Відгуків поки немає.
+                ${escapeHtml(tr("auto.011", "Відгуків поки немає."))}
             </p>
         `;
 
@@ -3337,7 +3353,7 @@ async function renderProfileSellerReviews() {
         ) {
             reviewsList.innerHTML = `
                 <p class="profile-seller-reviews-empty">
-                    Відгуків поки немає.
+                    ${escapeHtml(tr("auto.011", "Відгуків поки немає."))}
                 </p>
             `;
 
@@ -3355,7 +3371,7 @@ async function renderProfileSellerReviews() {
                                 <strong>
                                     ${escapeHtml(
                                         review.userName ||
-                                        "Користувач"
+                                        tr("profile.dynamic.user", "Користувач")
                                     )}
                                 </strong>
 
@@ -3365,7 +3381,7 @@ async function renderProfileSellerReviews() {
                                             ? new Date(
                                                 review.updatedAt
                                             ).toLocaleDateString(
-                                                "uk-UA"
+                                                currentLocale()
                                             )
                                             : ""
                                     }
@@ -3413,7 +3429,7 @@ async function renderProfileSellerReviews() {
 
         reviewsList.innerHTML = `
             <p class="profile-seller-reviews-empty">
-                Не вдалося завантажити відгуки.
+                ${escapeHtml(tr("profile.dynamic.reviewsLoadError", "Не вдалося завантажити відгуки."))}
             </p>
         `;
     }
@@ -3481,8 +3497,8 @@ function renderAccountSettings() {
     if (accountEmailStatus) {
         accountEmailStatus.textContent =
             currentUser.emailVerified
-                ? "✅ Підтверджено"
-                : "⚠ Не підтверджено";
+                ? `✅ ${tr("profile.dynamic.verified", "Підтверджено")}`
+                : `⚠ ${tr("profile.dynamic.notVerified", "Не підтверджено")}`;
     }
 
 
@@ -3495,8 +3511,8 @@ function renderAccountSettings() {
     if (accountPhoneStatus) {
         accountPhoneStatus.textContent =
             currentUser.phoneVerified
-                ? "✅ Підтверджено"
-                : "⚠ Не підтверджено";
+                ? `✅ ${tr("profile.dynamic.verified", "Підтверджено")}`
+                : `⚠ ${tr("profile.dynamic.notVerified", "Не підтверджено")}`;
     }
 
 
@@ -3519,8 +3535,8 @@ function renderAccountSettings() {
     if (changeAccountPhoneButton) {
         changeAccountPhoneButton.textContent =
             currentUser.phone
-                ? "Змінити номер телефону"
-                : "Додати номер телефону";
+                ? tr("auto.020", "Змінити номер телефону")
+                : tr("profile.dynamic.addPhone", "Додати номер телефону");
     }
 }
 
@@ -4407,7 +4423,7 @@ function fillCarModelSelect(
    ) {
        carModel.innerHTML = `
            <option value="">
-               Спочатку обери марку
+               ${tr("auto.059", "Спочатку обери марку")}
            </option>
        `;
 
@@ -4430,7 +4446,7 @@ function fillCarModelSelect(
    defaultOption.value = "";
 
    defaultOption.textContent =
-       "Обери модель";
+       tr("profile.dynamic.chooseModel", "Обери модель");
 
    carModel.appendChild(
        defaultOption
@@ -4708,10 +4724,10 @@ function updateCarPowerField() {
 
     if (fuel === "Електро") {
         carPowerValueLabel.textContent =
-            "Ємність батареї, кВт·год";
+            tr("profile.dynamic.batteryCapacity", "Ємність батареї, кВт·год");
 
         carEngine.placeholder =
-            "Наприклад, 64";
+            tr("profile.dynamic.example64", "Наприклад, 64");
 
         carEngine.min =
             "1";
@@ -4723,10 +4739,10 @@ function updateCarPowerField() {
             "1";
     } else {
         carPowerValueLabel.textContent =
-            "Об’єм двигуна, л";
+            tr("auto.062", "Об’єм двигуна, л");
 
         carEngine.placeholder =
-            "Наприклад, 1.6";
+            tr("auto.116", "Наприклад, 1.6");
 
         carEngine.min =
             "0.1";
@@ -5708,7 +5724,7 @@ function getLastMessageText(
             ?.type ===
         "image"
     ) {
-        return "📷 Фото";
+        return tr("profile.dynamic.photoAttachment", "📷 Фото");
     }
 
     if (
@@ -5716,10 +5732,10 @@ function getLastMessageText(
             ?.type ===
         "video"
     ) {
-        return "🎥 Відео";
+        return tr("profile.dynamic.videoAttachment", "🎥 Відео");
     }
 
-    return "Нове повідомлення";
+    return tr("profile.dynamic.newMessage", "Нове повідомлення");
 }
 async function renderMyChats() {
     if (!elements.myChatsList) {
@@ -5734,7 +5750,7 @@ async function renderMyChats() {
     if (!token) {
         elements.myChatsList.innerHTML = `
             <p>
-                Спочатку увійдіть у профіль.
+                ${escapeHtml(tr("profile.dynamic.loginFirst", "Спочатку увійдіть у профіль."))}
             </p>
         `;
 
@@ -5798,7 +5814,7 @@ async function renderMyChats() {
             elements.openChatsButton.innerHTML =
                 totalUnread > 0
                     ? `
-                        Мої чати
+                        ${escapeHtml(tr("auto.055", "Мої чати"))}
                         <span class="chats-button-badge">
                             ${
                                 totalUnread > 99
@@ -5807,7 +5823,7 @@ async function renderMyChats() {
                             }
                         </span>
                     `
-                    : "Мої чати";
+                    : tr("auto.055", "Мої чати");
         }
 
         const conversations =
@@ -5848,7 +5864,7 @@ async function renderMyChats() {
         ) {
             elements.myChatsList.innerHTML = `
                 <p>
-                    Чатів поки немає.
+                    ${escapeHtml(tr("profile.dynamic.noChats", "Чатів поки немає."))}
                 </p>
             `;
 
@@ -5867,7 +5883,7 @@ async function renderMyChats() {
             }) => {
                 const listingName =
                     message.listingName ||
-                    "Оголошення";
+                    tr("profile.dynamic.listing", "Оголошення");
 
                 const listingYear =
                     message.listingYear ||
@@ -5923,7 +5939,7 @@ async function renderMyChats() {
                         ? ""
                         : messageDate
                             .toLocaleString(
-                                "uk-UA",
+                                currentLocale(),
                                 {
                                     day:
                                         "2-digit",
@@ -6031,7 +6047,7 @@ async function renderMyChats() {
 
         elements.myChatsList.innerHTML = `
             <p>
-                Не вдалося завантажити чати.
+                ${escapeHtml(tr("profile.dynamic.chatsLoadError", "Не вдалося завантажити чати."))}
             </p>
         `;
     }
@@ -6225,7 +6241,7 @@ async function renderMyChats() {
                 publicServices.length === 0
             ) {
                 elements.noServiceMessage.textContent =
-                    "Продавець ще не опублікував історію обслуговування цього автомобіля.";
+                    tr("profile.dynamic.noPublicHistory", "Продавець ще не опублікував історію обслуговування цього автомобіля.");
             }
         }
 
@@ -6260,7 +6276,7 @@ async function renderMyChats() {
             elements.totalServiceCost.textContent =
                 `${formatNumber(
                     publicTotalCost
-                )} грн`;
+                )} ${tr("market.dynamic.uahShort", "грн")}`;
         }
 
 
@@ -6302,7 +6318,7 @@ async function renderMyChats() {
                         </div>
 
                         <span class="service-visibility">
-                            Публічний
+                            ${escapeHtml(tr("profile.dynamic.public", "Публічний"))}
                         </span>
 
                     </div>
@@ -6310,7 +6326,7 @@ async function renderMyChats() {
                     <div class="service-details">
 
                         <span>
-                            Пробіг:
+                            ${escapeHtml(tr("profile.dynamic.mileage", "Пробіг"))}:
 
                             <strong>
                                 ${formatNumber(
@@ -6320,12 +6336,12 @@ async function renderMyChats() {
                         </span>
 
                         <span>
-                            Вартість:
+                            ${escapeHtml(tr("profile.dynamic.cost", "Вартість"))}:
 
                             <strong>
                                 ${formatNumber(
                                     service.cost
-                                )} грн
+                                )} ${escapeHtml(tr("market.dynamic.uahShort", "грн"))}
                             </strong>
                         </span>
 
@@ -6336,7 +6352,7 @@ async function renderMyChats() {
                             ? `
                                 <p>
                                     <strong>
-                                        СТО:
+                                        ${escapeHtml(tr("profile.dynamic.serviceStation", "СТО"))}:
                                     </strong>
 
                                     ${escapeHtml(
@@ -6401,7 +6417,7 @@ async function renderMyChats() {
                                 photo;
 
                             image.alt =
-                                "Фото до запису";
+                                tr("profile.dynamic.recordPhoto", "Фото до запису");
 
                             image.className =
                                 "service-photo";
@@ -7000,6 +7016,24 @@ function updateGlobalChatsButton() {
     );
 }
 
+document.addEventListener("royalGarageLanguageChange", async () => {
+    renderAccountSettings();
+    renderCars();
+    renderSelectedCar();
+
+    const selectedBrand = carBrand?.value || "";
+    const selectedModel = carModel?.value || "";
+    fillCarBrandSelect();
+    if (carBrand) carBrand.value = selectedBrand;
+    fillCarModelSelect(selectedBrand, selectedModel);
+    updateCarPowerField();
+
+    await renderProfileSellerReputation();
+    await renderProfileSellerReviews();
+    await renderFavoriteListings();
+    await renderMyChats();
+});
+
 /* ===== КНОПКА "ВГОРУ" ===== */
 
 let backToTopButton =
@@ -7024,7 +7058,7 @@ if (!backToTopButton) {
 
     backToTopButton.setAttribute(
         "aria-label",
-        "Повернутися вгору"
+        tr("profile.dynamic.backToTop", "Повернутися вгору")
     );
 
     backToTopButton.textContent =

@@ -1,3 +1,5 @@
+function rgTr(key, fallback = "") { return typeof window.t === "function" ? window.t(key, fallback) : fallback; }
+
 function openAuth(type) {
     const modal = document.getElementById("modal");
     const modalBody = document.getElementById("modalBody");
@@ -339,7 +341,7 @@ async function renderHomeMarketListings() {
         if (!response.ok) {
             throw new Error(
                 data.message ||
-                "Не вдалося завантажити оголошення."
+                rgTr("home.dynamic.listingsLoadError", "Не вдалося завантажити оголошення.")
             );
         }
 
@@ -505,7 +507,7 @@ async function renderHomeMarketListings() {
 
         container.innerHTML = `
             <p class="empty-message">
-                Не вдалося завантажити оголошення.
+                ${rgTr("home.dynamic.listingsLoadError", "Не вдалося завантажити оголошення.")}
             </p>
         `;
     }
@@ -652,7 +654,7 @@ async function renderHomeForumTopics() {
 
         container.innerHTML = `
             <p class="empty-message">
-                Не вдалося завантажити теми форуму.
+                ${rgTr("home.dynamic.forumLoadError", "Не вдалося завантажити теми форуму.")}
             </p>
         `;
     }
@@ -871,3 +873,9 @@ function openAtelierModal() {
     modal.style.display = "flex";
 }
 
+
+
+document.addEventListener("royalGarageLanguageChange", () => {
+    try { renderHomeMarketListings(); } catch {}
+    try { renderHomeForumTopics(); } catch {}
+});

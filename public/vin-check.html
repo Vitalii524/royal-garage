@@ -1,50 +1,35 @@
 <!DOCTYPE html>
+
 <html lang="uk">
 <head>
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Перевірка VIN | Royal Garage</title>
-
-    <link rel="stylesheet" href="css/styles.css">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title data-i18n="auto.403">Перевірка VIN | Royal Garage</title>
+<link href="css/styles.css" rel="stylesheet"/>
 </head>
-
 <body>
-    <header class="site-header">
-        <a href="index.html" class="logo">
+<header class="site-header">
+<a class="logo" href="index.html">
             Royal Garage
-        </a>
-    </header>
-
-    <main class="vin-check-page">
-        <section class="vin-check-card">
-            <h1>Перевірка автомобіля за VIN</h1>
-
-            <p>
+        </a><div class="language-switcher"><button class="active" data-lang="uk" type="button">UA</button><button data-lang="en" type="button">EN</button></div>
+</header>
+<main class="vin-check-page">
+<section class="vin-check-card">
+<h1 data-i18n="auto.404">Перевірка автомобіля за VIN</h1>
+<p data-i18n-nodes="0:auto.405">
                 VIN-код:
                 <strong id="vinValue">—</strong>
-            </p>
-
-            <div id="vinStatus">
+</p>
+<div data-i18n="auto.406" id="vinStatus">
                 Виконується перевірка...
             </div>
-
-            <div id="vinResult"></div>
-
-            <a
-                href="javascript:history.back()"
-                class="secondary-button"
-            >
+<div id="vinResult"></div>
+<a class="secondary-button" data-i18n="auto.407" href="javascript:history.back()">
                 Назад до оголошення
             </a>
-        </section>
-    </main>
-
-    <script src="js/vin-check.js"></script>
-    <script src="js/loader.js"></script>
-</body>
+</section>
+</main>
+<script src="js/vin-check.js"></script>
+<script src="js/loader.js"></script>
+<script src="js/lang.js"></script></body>
 </html>

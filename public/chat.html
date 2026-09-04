@@ -1,9 +1,9 @@
 <!DOCTYPE html>
+
 <html lang="uk">
 <head>
-
 <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-NS6FGLSFVX"></script>
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-NS6FGLSFVX"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
@@ -11,156 +11,67 @@
 
   gtag('config', 'G-NS6FGLSFVX');
 </script>
-
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Чат | Royal Garage</title>
-
-    <link
-        rel="icon"
-        type="image/png"
-        href="images/favicon.png"
-    >
-
-    <link
-        rel="stylesheet"
-        href="css/styles.css"
-    >
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title data-i18n="auto.394">Чат | Royal Garage</title>
+<link href="images/favicon.png" rel="icon" type="image/png"/>
+<link href="css/styles.css" rel="stylesheet"/>
 </head>
-
 <body class="chat-page">
-    <header class="site-header">
-        <div class="logo">🚗 Royal Garage</div>
-
-        <nav>
-            <a href="index.html">Головна</a>
-            <a href="forum.html">Форум</a>
-            <a href="market.html">Авторинок</a>
-            <a
-                href="profile.html"
-                id="profileNavLink"
-            >
+<header class="site-header">
+<div class="logo">🚗 Royal Garage</div><div class="language-switcher"><button class="active" data-lang="uk" type="button">UA</button><button data-lang="en" type="button">EN</button></div>
+<nav>
+<a data-i18n="auto.002" href="index.html">Головна</a>
+<a data-i18n="auto.003" href="forum.html">Форум</a>
+<a data-i18n="auto.004" href="market.html">Авторинок</a>
+<a data-i18n="auto.006" href="profile.html" id="profileNavLink">
                 Мій профіль
             </a>
-        </nav>
-    </header>
-
-    <main class="chat-page">
-        <div class="chat-top-bar">
-            <a
-                id="chatBackLink"
-                href="market.html"
-                class="chat-back-link"
-            >
+</nav>
+</header>
+<main class="chat-page">
+<div class="chat-top-bar">
+<a class="chat-back-link" data-i18n="auto.395" href="market.html" id="chatBackLink">
                 ← Назад
             </a>
-
-            <strong>Чат із продавцем</strong>
-        </div>
-
-        <section class="chat-card">
-            <h1 id="chatTitle">
+<strong data-i18n="auto.396">Чат із продавцем</strong>
+</div>
+<section class="chat-card">
+<h1 data-i18n="auto.396" id="chatTitle">
                 Чат із продавцем
             </h1>
-
-            <div
-                id="chatMessages"
-                class="chat-messages"
-            >
-                <p>Завантаження повідомлень...</p>
-            </div>
-
-            <form
-                id="chatForm"
-                class="chat-form"
-            >
-                <div
-                    id="chatAttachmentPreview"
-                    class="chat-attachment-preview"
-                    hidden
-                >
-                    <div
-                        id="chatAttachmentContent"
-                        class="chat-attachment-content"
-                    ></div>
-
-                    <button
-                        id="removeChatAttachment"
-                        class="chat-remove-attachment"
-                        type="button"
-                        aria-label="Видалити вкладення"
-                    >
+<div class="chat-messages" id="chatMessages">
+<p data-i18n="auto.397">Завантаження повідомлень...</p>
+</div>
+<form class="chat-form" id="chatForm">
+<div class="chat-attachment-preview" hidden="" id="chatAttachmentPreview">
+<div class="chat-attachment-content" id="chatAttachmentContent"></div>
+<button aria-label="Видалити вкладення" class="chat-remove-attachment" data-i18n-aria-label="auto.399" id="removeChatAttachment" type="button">
                         ×
                     </button>
-                </div>
-
-                <div class="chat-form-controls">
-                    <label
-                        for="chatAttachmentInput"
-                        class="chat-attachment-button"
-                        title="Додати фото або відео"
-                    >
+</div>
+<div class="chat-form-controls">
+<label class="chat-attachment-button" data-i18n-title="auto.400" for="chatAttachmentInput" title="Додати фото або відео">
                         📎
                     </label>
-
-                    <input
-                        id="chatAttachmentInput"
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
-                        hidden
-                    >
-
-                    <textarea
-                        id="chatMessageInput"
-                        placeholder="Напишіть повідомлення..."
-                        rows="1"
-                    ></textarea>
-
-                    <button
-                        id="chatSubmitButton"
-                        type="submit"
-                    >
+<input accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" hidden="" id="chatAttachmentInput" type="file"/>
+<textarea data-i18n-placeholder="auto.401" id="chatMessageInput" placeholder="Напишіть повідомлення..." rows="1"></textarea>
+<button data-i18n="auto.398" id="chatSubmitButton" type="submit">
                         Надіслати
                     </button>
-                </div>
-
-                <p
-                    id="chatFileError"
-                    class="chat-file-error"
-                    hidden
-                ></p>
-            </form>
-        </section>
-    </main>
-
-    <div
-        id="chatImageViewer"
-        class="chat-image-viewer"
-        hidden
-    >
-        <button
-            id="closeChatImageViewer"
-            class="chat-image-viewer-close"
-            type="button"
-            aria-label="Закрити"
-        >
+</div>
+<p class="chat-file-error" hidden="" id="chatFileError"></p>
+</form>
+</section>
+</main>
+<div class="chat-image-viewer" hidden="" id="chatImageViewer">
+<button aria-label="Закрити" class="chat-image-viewer-close" data-i18n-aria-label="auto.143" id="closeChatImageViewer" type="button">
             ×
         </button>
-
-        <img
-            id="chatImageViewerPhoto"
-            src=""
-            alt="Фото з чату"
-        >
-    </div>
-
-    <script src="js/auth.js"></script>
-    <script src="js/chat.js"></script>
-    <script src="js/loader.js"></script>
-</body>
+<img alt="Фото з чату" data-i18n-alt="auto.402" id="chatImageViewerPhoto" src=""/>
+</div>
+<script src="js/auth.js"></script>
+<script src="js/chat.js"></script>
+<script src="js/loader.js"></script>
+<script src="js/lang.js"></script></body>
 </html>

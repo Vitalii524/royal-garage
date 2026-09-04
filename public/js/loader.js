@@ -34,7 +34,7 @@ function ensureRoyalLoader() {
             </h1>
 
             <p class="royal-loader-text">
-                Завантажуємо ваш автосвіт...
+                <span data-i18n="loader.text">Завантажуємо ваш автосвіт...</span>
             </p>
 
             <div class="royal-loader-line"></div>

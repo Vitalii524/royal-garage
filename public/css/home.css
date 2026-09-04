@@ -252,7 +252,7 @@
     }
 
     .features {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
@@ -458,6 +458,7 @@
     }
 
     .features {
+        grid-template-columns: 1fr;
         gap: 8px;
         margin: 0 14px 25px;
         padding: 14px;
@@ -1389,37 +1390,3 @@
     }
 }
 
-/* ===== FINAL MOBILE POLISH ===== */
-
-@media (max-width: 620px) {
-    .features {
-        gap: 4px;
-        padding: 10px 14px;
-        margin-bottom: 22px;
-    }
-
-    .feature {
-        padding: 16px 10px;
-    }
-
-    .feature span {
-        font-size: 28px;
-    }
-
-    .feature h3 {
-        margin: 6px 0;
-    }
-
-    .feature p {
-        margin: 0;
-        line-height: 1.35;
-    }
-
-    .back-to-top-button {
-        right: 10px;
-        bottom: 12px;
-        width: 42px;
-        height: 42px;
-        font-size: 24px;
-    }
-}

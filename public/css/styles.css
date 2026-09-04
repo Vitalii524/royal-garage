@@ -11,3 +11,24 @@
 @import url("./forum.css");
 @import url("./businesses.css");
 @import url("./loader.css");
+
+.language-switcher {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  
+  .language-switcher button {
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: transparent;
+    color: inherit;
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  
+  .language-switcher button.active {
+    background: #f3d27a;
+    color: #0b1736;
+  }

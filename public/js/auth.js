@@ -1102,12 +1102,14 @@ function renderAuthArea() {
                 👤 ${escapeHtml(currentUser.name)}
             </a>
 
-            <button
-                type="button"
-                class="logout-button"
-                id="logoutButton">
-                Вийти
-            </button>
+        <button
+            type="button"
+            class="logout-button"
+            id="logoutButton">
+            ${typeof window.t === "function"
+                ? window.t("auth.logout", "Вийти")
+                : "Вийти"}
+        </button>
         </div>
     `;
 
@@ -1206,5 +1208,12 @@ document.addEventListener(
         );
 
         updateBackToTopButton();
+    }
+);
+
+document.addEventListener(
+    "royalGarageLanguageChange",
+    () => {
+        renderAuthArea();
     }
 );
