@@ -8137,6 +8137,427 @@ async function requireAuth(req, res, next) {
     }
 }
 
+async function requireCrmAccess(req, res, next) {
+    try {
+        if (
+            !req.user ||
+            req.user.accountType !== "business"
+        ) {
+            return res.status(403).json({
+                ok: false,
+                code: "CRM_BUSINESS_REQUIRED",
+                message:
+                    "CRM RG доступна для бізнес-акаунтів."
+            });
+        }
+
+        const result =
+            await pool.query(
+                `
+                SELECT
+                    bp.id AS "businessProfileId",
+                    bp.owner_id AS "ownerId",
+                    bp.name AS "businessName",
+
+                    sp.id AS "planId",
+                    sp.code AS "planCode",
+                    sp.name AS "planName",
+                    sp.has_crm AS "hasCrm",
+
+                    bp.complimentary_subscription
+                        AS "complimentarySubscription",
+
+                    bp.subscription_expires_at
+                        AS "subscriptionExpiresAt"
+
+                FROM business_profiles bp
+
+                JOIN subscription_plans sp
+                    ON sp.id =
+                        bp.subscription_plan_id
+
+                WHERE bp.owner_id = $1
+                  AND sp.is_active = TRUE
+
+                LIMIT 1
+                `,
+                [
+                    req.user.userId
+                ]
+            );
+
+        if (
+            result.rows.length === 0
+        ) {
+            return res.status(404).json({
+                ok: false,
+                code: "CRM_BUSINESS_NOT_FOUND",
+                message:
+                    "Бізнес-профіль не знайдено."
+            });
+        }
+
+        const business =
+            result.rows[0];
+
+        const subscriptionActive =
+            business.complimentarySubscription === true ||
+            (
+                business.subscriptionExpiresAt &&
+                new Date(
+                    business.subscriptionExpiresAt
+                ) > new Date()
+            );
+
+        if (!subscriptionActive) {
+            return res.status(403).json({
+                ok: false,
+                code: "CRM_SUBSCRIPTION_INACTIVE",
+                message:
+                    "Підписка бізнесу не активна."
+            });
+        }
+
+        if (business.hasCrm !== true) {
+            return res.status(403).json({
+                ok: false,
+                code: "CRM_PLAN_REQUIRED",
+                message:
+                    "Ваш тариф не включає CRM RG."
+            });
+        }
+
+        req.crm = {
+            businessProfileId:
+                business.businessProfileId,
+
+            ownerId:
+                business.ownerId,
+
+            businessName:
+                business.businessName,
+
+            planId:
+                business.planId,
+
+            planCode:
+                business.planCode,
+
+            planName:
+                business.planName
+        };
+
+        next();
+
+    } catch (error) {
+        console.error(
+            "CRM access check error:",
+            error
+        );
+
+        return res.status(500).json({
+            ok: false,
+            message:
+                "Не вдалося перевірити доступ до CRM RG."
+        });
+    }
+}
+
+app.get(
+    "/api/crm/me",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        return res.json({
+            ok: true,
+            crm: {
+                name: "CRM RG",
+
+                businessProfileId:
+                    req.crm.businessProfileId,
+
+                businessName:
+                    req.crm.businessName,
+
+                planCode:
+                    req.crm.planCode,
+
+                planName:
+                    req.crm.planName
+            }
+        });
+    }
+);
+
+app.post(
+    "/api/crm/bootstrap",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        const client =
+            await pool.connect();
+
+        try {
+            await client.query("BEGIN");
+
+            /*
+                Беремо актуальні дані власника
+                та бізнес-профілю Royal Garage.
+            */
+            const sourceResult =
+                await client.query(
+                    `
+                    SELECT
+                        bp.id AS "businessProfileId",
+                        bp.name AS "businessName",
+                        bp.phone AS "businessPhone",
+                        bp.city,
+                        bp.address,
+
+                        u.id AS "userId",
+                        u.name AS "userName",
+                        u.email,
+                        u.phone AS "userPhone",
+                        u.password_hash AS "passwordHash"
+
+                    FROM business_profiles bp
+
+                    JOIN users u
+                        ON u.id = bp.owner_id
+
+                    WHERE bp.id = $1
+                      AND bp.owner_id = $2
+
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId,
+                        req.user.userId
+                    ]
+                );
+
+            if (
+                sourceResult.rows.length === 0
+            ) {
+                await client.query("ROLLBACK");
+
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Не вдалося знайти бізнес для CRM RG."
+                });
+            }
+
+            const source =
+                sourceResult.rows[0];
+
+            /*
+                Створюємо CRM-сервіс.
+
+                Якщо CRM RG для цього бізнесу
+                вже була створена —
+                просто оновлюємо основні дані.
+            */
+            const serviceResult =
+                await client.query(
+                    `
+                    INSERT INTO crm_services (
+                        id,
+                        business_profile_id,
+                        name,
+                        phone,
+                        email,
+                        city,
+                        address,
+                        subscription_status,
+                        trial_ends_at,
+                        is_active
+                    )
+                    VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        $4,
+                        $5,
+                        $6,
+                        $7,
+                        'active',
+                        NULL,
+                        TRUE
+                    )
+
+                    ON CONFLICT (
+                        business_profile_id
+                    )
+
+                    DO UPDATE SET
+                        name = EXCLUDED.name,
+                        phone = EXCLUDED.phone,
+                        email = EXCLUDED.email,
+                        city = EXCLUDED.city,
+                        address = EXCLUDED.address,
+                        subscription_status = 'active',
+                        is_active = TRUE,
+                        updated_at = NOW()
+
+                    RETURNING
+                        id,
+                        business_profile_id
+                            AS "businessProfileId",
+                        name,
+                        phone,
+                        email,
+                        city,
+                        address,
+                        subscription_status
+                            AS "subscriptionStatus",
+                        is_active
+                            AS "isActive"
+                    `,
+                    [
+                        crypto.randomUUID(),
+                        source.businessProfileId,
+                        source.businessName,
+                        source.businessPhone ||
+                            source.userPhone ||
+                            null,
+                        source.email,
+                        source.city || null,
+                        source.address || null
+                    ]
+                );
+
+            const service =
+                serviceResult.rows[0];
+
+            /*
+                Власник бізнесу стає
+                першим адміністратором CRM RG.
+
+                password_hash копіюємо з
+                Royal Garage, але назовні
+                його ніколи не повертаємо.
+            */
+            const crmUserResult =
+                await client.query(
+                    `
+                    INSERT INTO crm_users (
+                        id,
+                        service_id,
+                        linked_user_id,
+                        name,
+                        email,
+                        phone,
+                        password_hash,
+                        role,
+                        is_active
+                    )
+                    VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        $4,
+                        $5,
+                        $6,
+                        $7,
+                        'admin',
+                        TRUE
+                    )
+
+                    ON CONFLICT (
+                        service_id,
+                        email
+                    )
+
+                    DO UPDATE SET
+                        linked_user_id =
+                            EXCLUDED.linked_user_id,
+
+                        name =
+                            EXCLUDED.name,
+
+                        phone =
+                            EXCLUDED.phone,
+
+                        password_hash =
+                            EXCLUDED.password_hash,
+
+                        role =
+                            'admin',
+
+                        is_active =
+                            TRUE,
+
+                        updated_at =
+                            NOW()
+
+                    RETURNING
+                        id,
+                        service_id
+                            AS "serviceId",
+                        linked_user_id
+                            AS "linkedUserId",
+                        name,
+                        email,
+                        phone,
+                        role,
+                        is_active
+                            AS "isActive"
+                    `,
+                    [
+                        crypto.randomUUID(),
+                        service.id,
+                        source.userId,
+                        source.userName,
+                        source.email,
+                        source.userPhone || null,
+                        source.passwordHash
+                    ]
+                );
+
+            const crmUser =
+                crmUserResult.rows[0];
+
+            await client.query("COMMIT");
+
+            return res.json({
+                ok: true,
+
+                message:
+                    "CRM RG готова до роботи.",
+
+                service,
+
+                user:
+                    crmUser
+            });
+
+        } catch (error) {
+            try {
+                await client.query(
+                    "ROLLBACK"
+                );
+            } catch {
+                // Транзакція могла вже завершитися.
+            }
+
+            console.error(
+                "CRM bootstrap error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося підготувати CRM RG."
+            });
+
+        } finally {
+            client.release();
+        }
+    }
+);
+
 app.post(
     "/api/phone/send-code",
     requireAuth,
