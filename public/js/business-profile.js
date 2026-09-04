@@ -753,6 +753,30 @@
             fillProfileForm();
             openModal("businessProfileModal");
         });
+        $("businessCrmButton")?.addEventListener("click", async () => {
+            const button = $("businessCrmButton");
+        
+            if (!button) {
+                return;
+            }
+        
+            button.disabled = true;
+        
+            try {
+                await api("/api/crm/me");
+        
+                window.location.href = "crm.html";
+        
+            } catch (error) {
+                alert(
+                    error.message ||
+                    "Не вдалося відкрити CRM RG."
+                );
+        
+            } finally {
+                button.disabled = false;
+            }
+        });
         $("businessAddServiceButton")?.addEventListener("click", () => openItemModal("service"));
         $("businessAddProductButton")?.addEventListener("click", () => openItemModal("product"));
         $("businessVerifyEmailButton")?.addEventListener("click", sendVerificationEmail);

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>CRM RG | Royal Garage</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #111;
+            color: #fff;
+        }
+
+        .crm-page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .crm-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .crm-title {
+            margin: 0;
+            font-size: 32px;
+        }
+
+        .crm-subtitle {
+            margin-top: 6px;
+            color: #aaa;
+        }
+
+        .crm-back {
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .crm-status {
+            padding: 16px;
+            border: 1px solid #333;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+
+        .crm-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .crm-card {
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 14px;
+            background: #1a1a1a;
+        }
+
+        .crm-card h2 {
+            margin-top: 0;
+        }
+
+        .crm-card p {
+            margin-bottom: 0;
+            color: #aaa;
+        }
+
+        .crm-error {
+            color: #ff8a8a;
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="crm-page">
+
+        <header class="crm-header">
+            <div>
+                <h1 class="crm-title">
+                    CRM RG
+                </h1>
+
+                <div
+                    id="crmBusinessName"
+                    class="crm-subtitle"
+                >
+                    Завантаження...
+                </div>
+            </div>
+
+            <a
+                href="business-profile.html"
+                class="crm-back"
+            >
+                ← Мій бізнес
+            </a>
+        </header>
+
+        <section
+            id="crmStatus"
+            class="crm-status"
+        >
+            Перевіряємо доступ до CRM...
+        </section>
+
+        <section
+            id="crmDashboard"
+            class="crm-grid"
+            hidden
+        >
+            <div class="crm-card">
+                <h2>Клієнти</h2>
+                <p>
+                    База клієнтів СТО.
+                </p>
+            </div>
+
+            <div class="crm-card">
+                <h2>Автомобілі</h2>
+                <p>
+                    Автомобілі клієнтів.
+                </p>
+            </div>
+
+            <div class="crm-card">
+                <h2>Замовлення-наряди</h2>
+                <p>
+                    Роботи, запчастини та статуси.
+                </p>
+            </div>
+
+            <div class="crm-card">
+                <h2>Календар</h2>
+                <p>
+                    Записи та планування робіт.
+                </p>
+            </div>
+
+            <div class="crm-card">
+                <h2>Працівники</h2>
+                <p>
+                    Менеджери та механіки.
+                </p>
+            </div>
+
+            <div class="crm-card">
+                <h2>Налаштування</h2>
+                <p>
+                    Налаштування CRM RG.
+                </p>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="js/crm.js"></script>
+</body>
+</html>
