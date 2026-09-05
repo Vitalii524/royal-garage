@@ -546,6 +546,7 @@ async function bindCarForm() {
 
                 form.reset();
                 form.hidden = true;
+                loadCars();
 
             } catch (error) {
                 console.error(
@@ -562,11 +563,123 @@ async function bindCarForm() {
     );
 }
 
+async function loadCars() {
+    const count =
+        document.getElementById(
+            "crmCarsCount"
+        );
+
+    const list =
+        document.getElementById(
+            "crmCarsList"
+        );
+
+    if (!count || !list) {
+        return;
+    }
+
+    try {
+        const response =
+            await fetch(
+                `${getApiBaseUrl()}/api/crm/cars`,
+                {
+                    headers: {
+                        Authorization:
+                            `Bearer ${getToken()}`
+                    }
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити автомобілі."
+            );
+        }
+
+        const cars =
+            Array.isArray(data.cars)
+                ? data.cars
+                : [];
+
+        count.textContent =
+            `Автомобілів: ${cars.length}`;
+
+        if (cars.length === 0) {
+            list.innerHTML =
+                "<p>Автомобілів ще немає.</p>";
+            return;
+        }
+
+        list.innerHTML =
+            cars
+                .map(
+                    (car) => `
+                        <div style="
+                            padding: 12px 0;
+                            border-top: 1px solid #333;
+                        ">
+                            <strong>
+                                ${car.brand || ""}
+                                ${car.model || ""}
+                            </strong>
+
+                            ${
+                                car.year
+                                    ? `<div>Рік: ${car.year}</div>`
+                                    : ""
+                            }
+
+                            ${
+                                car.plate
+                                    ? `<div>Номер: ${car.plate}</div>`
+                                    : ""
+                            }
+
+                            ${
+                                car.vin
+                                    ? `<div>VIN: ${car.vin}</div>`
+                                    : ""
+                            }
+
+                            ${
+                                car.mileage != null
+                                    ? `<div>Пробіг: ${car.mileage} км</div>`
+                                    : ""
+                            }
+
+                            ${
+                                car.clientName
+                                    ? `<div>Клієнт: ${car.clientName}</div>`
+                                    : ""
+                            }
+                        </div>
+                    `
+                )
+                .join("");
+
+    } catch (error) {
+        console.error(
+            "CRM cars load error:",
+            error
+        );
+
+        count.textContent =
+            "Не вдалося завантажити автомобілі.";
+
+        list.innerHTML = "";
+    }
+}
+
 document.addEventListener(
     "DOMContentLoaded",
     () => {
         loadCrm();
         loadClients();
+        loadCars();
         bindClientForm();
         bindCarForm();
     }
