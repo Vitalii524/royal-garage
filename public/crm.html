@@ -166,6 +166,115 @@
             </form>
         </section>
 
+        <section class="crm-status">
+            <button
+                id="crmAddCarButton"
+                type="button"
+            >
+                + Додати автомобіль
+            </button>
+        
+            <form
+                id="crmCarForm"
+                hidden
+                style="margin-top: 16px;"
+            >
+                <div style="margin-bottom: 12px;">
+                    <select
+                        id="crmCarClient"
+                        required
+                    >
+                        <option value="">
+                            Виберіть клієнта
+                        </option>
+                    </select>
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <input
+                        id="crmCarBrand"
+                        type="text"
+                        placeholder="Марка"
+                    >
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <input
+                        id="crmCarModel"
+                        type="text"
+                        placeholder="Модель"
+                    >
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <input
+                        id="crmCarYear"
+                        type="number"
+                        placeholder="Рік"
+                    >
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <input
+                        id="crmCarVin"
+                        type="text"
+                        placeholder="VIN"
+                    >
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <input
+                        id="crmCarPlate"
+                        type="text"
+                        placeholder="Держ. номер"
+                    >
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <input
+                        id="crmCarMileage"
+                        type="number"
+                        placeholder="Пробіг, км"
+                    >
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <input
+                        id="crmCarEngine"
+                        type="text"
+                        placeholder="Двигун"
+                    >
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <input
+                        id="crmCarFuel"
+                        type="text"
+                        placeholder="Паливо"
+                    >
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <input
+                        id="crmCarTransmission"
+                        type="text"
+                        placeholder="Коробка передач"
+                    >
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <textarea
+                        id="crmCarNotes"
+                        placeholder="Примітки"
+                    ></textarea>
+                </div>
+        
+                <button type="submit">
+                    Зберегти автомобіль
+                </button>
+            </form>
+        </section>
+
         <section
             id="crmDashboard"
             class="crm-grid"

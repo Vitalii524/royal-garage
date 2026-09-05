@@ -320,11 +320,254 @@ async function loadClients() {
     }
 }
 
+async function bindCarForm() {
+    const addButton =
+        document.getElementById(
+            "crmAddCarButton"
+        );
+
+    const form =
+        document.getElementById(
+            "crmCarForm"
+        );
+
+    const clientSelect =
+        document.getElementById(
+            "crmCarClient"
+        );
+
+    if (
+        !addButton ||
+        !form ||
+        !clientSelect
+    ) {
+        return;
+    }
+
+    async function loadClientOptions() {
+        try {
+            const response =
+                await fetch(
+                    `${getApiBaseUrl()}/api/crm/clients`,
+                    {
+                        headers: {
+                            Authorization:
+                                `Bearer ${getToken()}`
+                        }
+                    }
+                );
+
+            const data =
+                await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message ||
+                    "Не вдалося завантажити клієнтів."
+                );
+            }
+
+            const clients =
+                Array.isArray(data.clients)
+                    ? data.clients
+                    : [];
+
+            clientSelect.innerHTML = `
+                <option value="">
+                    Виберіть клієнта
+                </option>
+                ${clients
+                    .map(
+                        (client) => `
+                            <option value="${client.id}">
+                                ${client.name}
+                            </option>
+                        `
+                    )
+                    .join("")}
+            `;
+
+        } catch (error) {
+            console.error(
+                "CRM clients select error:",
+                error
+            );
+        }
+    }
+
+    addButton.addEventListener(
+        "click",
+        async () => {
+            form.hidden =
+                !form.hidden;
+
+            if (!form.hidden) {
+                await loadClientOptions();
+            }
+        }
+    );
+
+    form.addEventListener(
+        "submit",
+        async (event) => {
+            event.preventDefault();
+
+            const clientId =
+                clientSelect.value;
+
+            const brand =
+                document
+                    .getElementById(
+                        "crmCarBrand"
+                    )
+                    ?.value.trim() || "";
+
+            const model =
+                document
+                    .getElementById(
+                        "crmCarModel"
+                    )
+                    ?.value.trim() || "";
+
+            const year =
+                document
+                    .getElementById(
+                        "crmCarYear"
+                    )
+                    ?.value || "";
+
+            const vin =
+                document
+                    .getElementById(
+                        "crmCarVin"
+                    )
+                    ?.value.trim() || "";
+
+            const plate =
+                document
+                    .getElementById(
+                        "crmCarPlate"
+                    )
+                    ?.value.trim() || "";
+
+            const mileage =
+                document
+                    .getElementById(
+                        "crmCarMileage"
+                    )
+                    ?.value || "";
+
+            const engine =
+                document
+                    .getElementById(
+                        "crmCarEngine"
+                    )
+                    ?.value.trim() || "";
+
+            const fuel =
+                document
+                    .getElementById(
+                        "crmCarFuel"
+                    )
+                    ?.value.trim() || "";
+
+            const transmission =
+                document
+                    .getElementById(
+                        "crmCarTransmission"
+                    )
+                    ?.value.trim() || "";
+
+            const notes =
+                document
+                    .getElementById(
+                        "crmCarNotes"
+                    )
+                    ?.value.trim() || "";
+
+            if (!clientId) {
+                alert(
+                    "Виберіть клієнта."
+                );
+                return;
+            }
+
+            if (!brand && !model) {
+                alert(
+                    "Вкажіть марку або модель автомобіля."
+                );
+                return;
+            }
+
+            try {
+                const response =
+                    await fetch(
+                        `${getApiBaseUrl()}/api/crm/cars`,
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+
+                                Authorization:
+                                    `Bearer ${getToken()}`
+                            },
+
+                            body: JSON.stringify({
+                                clientId,
+                                brand,
+                                model,
+                                year,
+                                vin,
+                                plate,
+                                mileage,
+                                engine,
+                                fuel,
+                                transmission,
+                                notes
+                            })
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.message ||
+                        "Не вдалося додати автомобіль."
+                    );
+                }
+
+                alert(
+                    "Автомобіль додано."
+                );
+
+                form.reset();
+                form.hidden = true;
+
+            } catch (error) {
+                console.error(
+                    "CRM car create error:",
+                    error
+                );
+
+                alert(
+                    error.message ||
+                    "Не вдалося додати автомобіль."
+                );
+            }
+        }
+    );
+}
+
 document.addEventListener(
     "DOMContentLoaded",
     () => {
         loadCrm();
         loadClients();
         bindClientForm();
+        bindCarForm();
     }
 );
