@@ -56,8 +56,10 @@
         .crm-grid {
             display: grid;
             grid-template-columns:
-                repeat(auto-fit, minmax(220px, 1fr));
+                repeat(auto-fit, minmax(220px, 280px));
             gap: 16px;
+            align-items: start;
+            justify-content: start;
         }
 
         .crm-card {
@@ -65,6 +67,8 @@
             border: 1px solid #333;
             border-radius: 14px;
             background: #1a1a1a;
+            width: 100%;
+            min-width: 0;
         }
 
         .crm-card h2 {
