@@ -674,6 +674,303 @@ async function loadCars() {
     }
 }
 
+async function bindWorkOrderForm() {
+    const addButton =
+        document.getElementById(
+            "crmAddWorkOrderButton"
+        );
+
+    const form =
+        document.getElementById(
+            "crmWorkOrderForm"
+        );
+
+    const clientSelect =
+        document.getElementById(
+            "crmWorkOrderClient"
+        );
+
+    const carSelect =
+        document.getElementById(
+            "crmWorkOrderCar"
+        );
+
+    if (
+        !addButton ||
+        !form ||
+        !clientSelect ||
+        !carSelect
+    ) {
+        return;
+    }
+
+    let carsCache = [];
+
+    async function loadClientsAndCars() {
+        try {
+            const [
+                clientsResponse,
+                carsResponse
+            ] = await Promise.all([
+                fetch(
+                    `${getApiBaseUrl()}/api/crm/clients`,
+                    {
+                        headers: {
+                            Authorization:
+                                `Bearer ${getToken()}`
+                        }
+                    }
+                ),
+                fetch(
+                    `${getApiBaseUrl()}/api/crm/cars`,
+                    {
+                        headers: {
+                            Authorization:
+                                `Bearer ${getToken()}`
+                        }
+                    }
+                )
+            ]);
+
+            const clientsData =
+                await clientsResponse.json();
+
+            const carsData =
+                await carsResponse.json();
+
+            if (!clientsResponse.ok) {
+                throw new Error(
+                    clientsData.message ||
+                    "Не вдалося завантажити клієнтів."
+                );
+            }
+
+            if (!carsResponse.ok) {
+                throw new Error(
+                    carsData.message ||
+                    "Не вдалося завантажити автомобілі."
+                );
+            }
+
+            const clients =
+                Array.isArray(clientsData.clients)
+                    ? clientsData.clients
+                    : [];
+
+            carsCache =
+                Array.isArray(carsData.cars)
+                    ? carsData.cars
+                    : [];
+
+            clientSelect.innerHTML = `
+                <option value="">
+                    Виберіть клієнта
+                </option>
+                ${clients
+                    .map(
+                        (client) => `
+                            <option value="${client.id}">
+                                ${client.name}
+                            </option>
+                        `
+                    )
+                    .join("")}
+            `;
+
+            carSelect.innerHTML = `
+                <option value="">
+                    Спочатку виберіть клієнта
+                </option>
+            `;
+
+            carSelect.disabled = true;
+
+        } catch (error) {
+            console.error(
+                "CRM work order options error:",
+                error
+            );
+
+            alert(
+                error.message ||
+                "Не вдалося завантажити дані для наряду."
+            );
+        }
+    }
+
+    clientSelect.addEventListener(
+        "change",
+        () => {
+            const clientId =
+                clientSelect.value;
+
+            if (!clientId) {
+                carSelect.innerHTML = `
+                    <option value="">
+                        Спочатку виберіть клієнта
+                    </option>
+                `;
+
+                carSelect.disabled = true;
+                return;
+            }
+
+            const clientCars =
+                carsCache.filter(
+                    (car) =>
+                        car.clientId === clientId
+                );
+
+            carSelect.innerHTML = `
+                <option value="">
+                    Виберіть автомобіль
+                </option>
+                ${clientCars
+                    .map(
+                        (car) => `
+                            <option value="${car.id}">
+                                ${car.brand || ""}
+                                ${car.model || ""}
+                                ${car.plate
+                                    ? ` · ${car.plate}`
+                                    : ""}
+                                ${car.vin
+                                    ? ` · VIN ${car.vin}`
+                                    : ""}
+                            </option>
+                        `
+                    )
+                    .join("")}
+            `;
+
+            carSelect.disabled =
+                clientCars.length === 0;
+        }
+    );
+
+    addButton.addEventListener(
+        "click",
+        async () => {
+            form.hidden =
+                !form.hidden;
+
+            if (!form.hidden) {
+                await loadClientsAndCars();
+            }
+        }
+    );
+
+    form.addEventListener(
+        "submit",
+        async (event) => {
+            event.preventDefault();
+
+            const clientId =
+                clientSelect.value;
+
+            const carId =
+                carSelect.value;
+
+            const mileage =
+                document
+                    .getElementById(
+                        "crmWorkOrderMileage"
+                    )
+                    ?.value || "";
+
+            const customerComplaint =
+                document
+                    .getElementById(
+                        "crmWorkOrderComplaint"
+                    )
+                    ?.value.trim() || "";
+
+            const diagnostics =
+                document
+                    .getElementById(
+                        "crmWorkOrderDiagnostics"
+                    )
+                    ?.value.trim() || "";
+
+            if (!clientId) {
+                alert(
+                    "Виберіть клієнта."
+                );
+                return;
+            }
+
+            if (!carId) {
+                alert(
+                    "Виберіть автомобіль."
+                );
+                return;
+            }
+
+            try {
+                const response =
+                    await fetch(
+                        `${getApiBaseUrl()}/api/crm/work-orders`,
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+
+                                Authorization:
+                                    `Bearer ${getToken()}`
+                            },
+
+                            body: JSON.stringify({
+                                clientId,
+                                carId,
+                                mileage,
+                                customerComplaint,
+                                diagnostics
+                            })
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.message ||
+                        "Не вдалося створити замовлення-наряд."
+                    );
+                }
+
+                alert(
+                    `Наряд ${data.workOrder?.orderNumber || ""} створено.`
+                );
+
+                form.reset();
+                form.hidden = true;
+
+                carSelect.innerHTML = `
+                    <option value="">
+                        Спочатку виберіть клієнта
+                    </option>
+                `;
+
+                carSelect.disabled = true;
+
+            } catch (error) {
+                console.error(
+                    "CRM work order create error:",
+                    error
+                );
+
+                alert(
+                    error.message ||
+                    "Не вдалося створити замовлення-наряд."
+                );
+            }
+        }
+    );
+}
+
 document.addEventListener(
     "DOMContentLoaded",
     () => {
@@ -682,5 +979,6 @@ document.addEventListener(
         loadCars();
         bindClientForm();
         bindCarForm();
+        bindWorkOrderForm();
     }
 );

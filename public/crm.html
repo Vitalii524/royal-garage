@@ -275,6 +275,70 @@
                 </form>
                 </section>
 
+                <section class="crm-status">
+                    <button
+                        id="crmAddWorkOrderButton"
+                        type="button"
+                    >
+                        + Створити замовлення-наряд
+                    </button>
+                
+                    <form
+                        id="crmWorkOrderForm"
+                        hidden
+                        style="margin-top: 16px;"
+                    >
+                        <div style="margin-bottom: 12px;">
+                            <select
+                                id="crmWorkOrderClient"
+                                required
+                            >
+                                <option value="">
+                                    Виберіть клієнта
+                                </option>
+                            </select>
+                        </div>
+                
+                        <div style="margin-bottom: 12px;">
+                            <select
+                                id="crmWorkOrderCar"
+                                required
+                                disabled
+                            >
+                                <option value="">
+                                    Спочатку виберіть клієнта
+                                </option>
+                            </select>
+                        </div>
+                
+                        <div style="margin-bottom: 12px;">
+                            <input
+                                id="crmWorkOrderMileage"
+                                type="number"
+                                placeholder="Пробіг, км"
+                            >
+                        </div>
+                
+                        <div style="margin-bottom: 12px;">
+                            <textarea
+                                id="crmWorkOrderComplaint"
+                                placeholder="Скарга клієнта"
+                            ></textarea>
+                        </div>
+                
+                        <div style="margin-bottom: 12px;">
+                            <textarea
+                                id="crmWorkOrderDiagnostics"
+                                placeholder="Діагностика"
+                            ></textarea>
+                        </div>
+                
+                        <button type="submit">
+                            Створити наряд
+                        </button>
+                    </form>
+                </section>
+
         <section
             id="crmDashboard"
             class="crm-grid"
