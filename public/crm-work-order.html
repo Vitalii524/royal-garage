@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>CRM RG — Замовлення-наряд</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #111827;
+            color: #ffffff;
+        }
+
+        .crm-page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .crm-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .crm-back {
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        .crm-card {
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .crm-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(260px, 1fr)
+                );
+            gap: 20px;
+        }
+
+        .crm-section-title {
+            margin-top: 0;
+        }
+
+        .crm-muted {
+            color: #9ca3af;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="crm-page">
+
+        <div class="crm-topbar">
+            <div>
+                <h1 id="crmWorkOrderTitle">
+                    Замовлення-наряд
+                </h1>
+
+                <div
+                    id="crmWorkOrderStatus"
+                    class="crm-muted"
+                >
+                    Завантаження...
+                </div>
+            </div>
+
+            <a
+                href="crm.html"
+                class="crm-back"
+            >
+                ← Назад до CRM
+            </a>
+        </div>
+
+        <section class="crm-card">
+            <h2 class="crm-section-title">
+                Основна інформація
+            </h2>
+
+            <div
+                id="crmWorkOrderInfo"
+                class="crm-grid"
+            >
+                Завантаження...
+            </div>
+        </section>
+        <section class="crm-card">
+            <div
+                style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 12px;
+                    margin-bottom: 16px;
+                "
+            >
+                <h2
+                    class="crm-section-title"
+                    style="margin-bottom: 0;"
+                >
+                    Роботи
+                </h2>
+        
+                <button
+                    id="crmAddServiceButton"
+                    type="button"
+                >
+                    + Додати роботу
+                </button>
+            </div>
+        
+            <form
+                id="crmServiceForm"
+                hidden
+                style="margin-bottom: 20px;"
+            >
+                <div style="margin-bottom: 12px;">
+                    <input
+                        id="crmServiceName"
+                        type="text"
+                        placeholder="Назва роботи"
+                        required
+                    >
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <input
+                        id="crmServiceQuantity"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        value="1"
+                        placeholder="Кількість"
+                        required
+                    >
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <input
+                        id="crmServicePrice"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="Ціна, грн"
+                        required
+                    >
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <textarea
+                        id="crmServiceNotes"
+                        placeholder="Примітка"
+                    ></textarea>
+                </div>
+        
+                <button type="submit">
+                    Зберегти роботу
+                </button>
+            </form>
+        
+            <div id="crmWorkOrderServices">
+                Робіт ще немає.
+            </div>
+        </section>
+
+        <section class="crm-card">
+            <div
+                style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 12px;
+                    margin-bottom: 16px;
+                "
+            >
+                <h2
+                    class="crm-section-title"
+                    style="margin-bottom: 0;"
+                >
+                    Запчастини
+                </h2>
+        
+                <button
+                    id="crmAddPartButton"
+                    type="button"
+                >
+                    + Додати запчастину
+                </button>
+            </div>
+        
+            <form
+                id="crmPartForm"
+                hidden
+                style="margin-bottom: 20px;"
+            >
+                <div style="margin-bottom: 12px;">
+                    <input
+                        id="crmPartName"
+                        type="text"
+                        placeholder="Назва запчастини"
+                        required
+                    >
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <input
+                        id="crmPartNumber"
+                        type="text"
+                        placeholder="Артикул"
+                    >
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <input
+                        id="crmPartQuantity"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        value="1"
+                        placeholder="Кількість"
+                        required
+                    >
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <input
+                        id="crmPartPrice"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="Ціна, грн"
+                        required
+                    >
+                </div>
+        
+                <div style="margin-bottom: 12px;">
+                    <textarea
+                        id="crmPartNotes"
+                        placeholder="Примітка"
+                    ></textarea>
+                </div>
+        
+                <button type="submit">
+                    Зберегти запчастину
+                </button>
+            </form>
+        
+            <div id="crmWorkOrderParts">
+                Запчастин ще немає.
+            </div>
+        </section>
+
+        <section class="crm-card">
+            <h2 class="crm-section-title">
+                Підсумок
+            </h2>
+
+            <div id="crmWorkOrderTotal">
+                Сума: 0.00 грн
+            </div>
+        </section>
+
+    </main>
+
+    <script src="js/crm-work-order.js"></script>
+</body>
+</html>

@@ -1031,9 +1031,16 @@ async function loadWorkOrders() {
                             padding: 12px 0;
                             border-top: 1px solid #333;
                         ">
-                            <strong>
-                                ${order.orderNumber || ""}
-                            </strong>
+                        <a
+                            href="crm-work-order.html?id=${encodeURIComponent(order.id)}"
+                            style="
+                                color: inherit;
+                                text-decoration: none;
+                                font-weight: bold;
+                            "
+                        >
+                            ${order.orderNumber || ""}
+                        </a>
 
                             <div>
                                 Статус:
