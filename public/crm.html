@@ -10,94 +10,351 @@
     <title>CRM RG | Royal Garage</title>
 
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        :root {
+            --crm-bg: #111;
+            --crm-panel: #1a1a1a;
+            --crm-panel-soft: #161616;
+            --crm-border: #333;
+            --crm-text: #fff;
+            --crm-muted: #aaa;
+            --crm-accent: #2f80ed;
+            --crm-accent-hover: #1f6fd6;
+            --crm-danger: #ff8a8a;
+            --crm-sidebar-width: 260px;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
             margin: 0;
             font-family: Arial, sans-serif;
-            background: #111;
-            color: #fff;
+            background: var(--crm-bg);
+            color: var(--crm-text);
         }
 
-        .crm-page {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 24px;
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
         }
 
-        .crm-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 24px;
+        button {
+            cursor: pointer;
+        }
+
+        .crm-layout {
+            min-height: 100vh;
+        }
+
+        .crm-sidebar {
+            position: fixed;
+            inset: 0 auto 0 0;
+            width: var(--crm-sidebar-width);
+            padding: 22px 16px;
+            border-right: 1px solid var(--crm-border);
+            background: #171717;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .crm-sidebar-head {
+            padding: 4px 8px 20px;
+            border-bottom: 1px solid var(--crm-border);
+            margin-bottom: 16px;
         }
 
         .crm-title {
             margin: 0;
-            font-size: 32px;
+            font-size: 28px;
         }
 
         .crm-subtitle {
-            margin-top: 6px;
-            color: #aaa;
+            margin-top: 8px;
+            color: var(--crm-muted);
+            line-height: 1.35;
+        }
+
+        .crm-nav {
+            display: grid;
+            gap: 6px;
+        }
+
+        .crm-nav-button,
+        .crm-back {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: #ddd;
+            text-align: left;
+            text-decoration: none;
+        }
+
+        .crm-nav-button:hover,
+        .crm-nav-button.active,
+        .crm-back:hover {
+            background: #242424;
+            color: #fff;
+        }
+
+        .crm-nav-button.active {
+            box-shadow: inset 3px 0 0 var(--crm-accent);
         }
 
         .crm-back {
-            color: #fff;
-            text-decoration: none;
+            margin-top: 16px;
+            border-top: 1px solid var(--crm-border);
+            border-radius: 0;
+            padding-top: 18px;
+        }
+
+        .crm-main {
+            min-height: 100vh;
+            margin-left: var(--crm-sidebar-width);
+        }
+
+        .crm-mobile-header {
+            display: none;
+        }
+
+        .crm-page {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 28px;
+        }
+
+        .crm-page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .crm-page-header h1 {
+            margin: 0;
+            font-size: 30px;
+        }
+
+        .crm-page-header p {
+            margin: 6px 0 0;
+            color: var(--crm-muted);
         }
 
         .crm-status {
             padding: 16px;
-            border: 1px solid #333;
+            border: 1px solid var(--crm-border);
             border-radius: 12px;
-            margin-bottom: 24px;
+            margin-bottom: 18px;
+            background: var(--crm-panel-soft);
+        }
+
+        .crm-error {
+            color: var(--crm-danger);
+        }
+
+        .crm-section[hidden] {
+            display: none !important;
+        }
+
+        .crm-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .crm-primary-button,
+        .crm-status > button,
+        .crm-form button[type="submit"] {
+            border: 1px solid #3b82f6;
+            border-radius: 9px;
+            padding: 10px 14px;
+            background: var(--crm-accent);
+            color: #fff;
+        }
+
+        .crm-primary-button:hover,
+        .crm-status > button:hover,
+        .crm-form button[type="submit"]:hover {
+            background: var(--crm-accent-hover);
         }
 
         .crm-grid {
             display: grid;
-            grid-template-columns:
-                repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 16px;
             align-items: start;
         }
 
         .crm-card {
             padding: 20px;
-            border: 1px solid #333;
+            border: 1px solid var(--crm-border);
             border-radius: 14px;
-            background: #1a1a1a;
-            width: 100%;
+            background: var(--crm-panel);
             min-width: 0;
         }
 
-        .crm-card h2 {
+        .crm-card h2,
+        .crm-card h3 {
             margin-top: 0;
         }
 
         .crm-card p {
-            margin-bottom: 0;
-            color: #aaa;
+            color: var(--crm-muted);
         }
 
-        .crm-error {
-            color: #ff8a8a;
+        .crm-home-card {
+            min-height: 145px;
         }
 
-        .crm-card-work-orders {
-            min-width: 320px;
+        .crm-home-card strong {
+            display: block;
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .crm-home-card button {
+            margin-top: 8px;
+        }
+
+        .crm-list-card {
+            max-width: 760px;
+        }
+
+        .crm-form {
+            margin-top: 16px;
+            display: grid;
+            gap: 12px;
+            max-width: 620px;
+        }
+
+        .crm-form[hidden] {
+            display: none;
+        }
+
+        .crm-form input,
+        .crm-form select,
+        .crm-form textarea {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1px solid #444;
+            border-radius: 8px;
+            background: #101010;
+            color: #fff;
+            outline: none;
+        }
+
+        .crm-form textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        .crm-form input:focus,
+        .crm-form select:focus,
+        .crm-form textarea:focus {
+            border-color: var(--crm-accent);
+        }
+
+        .crm-empty-block {
+            padding: 28px 20px;
+            border: 1px dashed #3a3a3a;
+            border-radius: 12px;
+            color: var(--crm-muted);
+            background: #151515;
+        }
+
+        .crm-overlay {
+            display: none;
+        }
+
+        @media (max-width: 860px) {
+            .crm-sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.2s ease;
+                width: min(82vw, 300px);
+                box-shadow: 16px 0 40px rgba(0, 0, 0, 0.35);
+            }
+
+            body.crm-menu-open .crm-sidebar {
+                transform: translateX(0);
+            }
+
+            .crm-main {
+                margin-left: 0;
+            }
+
+            .crm-mobile-header {
+                position: sticky;
+                top: 0;
+                z-index: 900;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                padding: 12px 14px;
+                border-bottom: 1px solid var(--crm-border);
+                background: #171717;
+            }
+
+            .crm-menu-button {
+                border: 1px solid #3b82f6;
+                border-radius: 9px;
+                padding: 10px 13px;
+                background: var(--crm-accent);
+                color: #fff;
+            }
+
+            .crm-mobile-title {
+                font-weight: 700;
+            }
+
+            .crm-page {
+                padding: 18px 14px 28px;
+            }
+
+            .crm-page-header {
+                align-items: flex-start;
+            }
+
+            .crm-page-header h1 {
+                font-size: 26px;
+            }
+
+            .crm-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .crm-overlay {
+                position: fixed;
+                inset: 0;
+                z-index: 950;
+                background: rgba(0, 0, 0, 0.55);
+            }
+
+            body.crm-menu-open .crm-overlay {
+                display: block;
+            }
         }
     </style>
 </head>
 
 <body>
-
-    <main class="crm-page">
-
-        <header class="crm-header">
-            <div>
-                <h1 class="crm-title">
-                    CRM RG
-                </h1>
+    <div class="crm-layout">
+        <aside class="crm-sidebar" id="crmSidebar">
+            <div class="crm-sidebar-head">
+                <h1 class="crm-title">CRM RG</h1>
 
                 <div
                     id="crmBusinessName"
@@ -107,304 +364,530 @@
                 </div>
             </div>
 
+            <nav class="crm-nav" aria-label="Навігація CRM">
+                <button
+                    type="button"
+                    class="crm-nav-button active"
+                    data-crm-section="crmHomeSection"
+                >
+                    🏠 Головна
+                </button>
+
+                <button
+                    type="button"
+                    class="crm-nav-button"
+                    data-crm-section="crmClientsSection"
+                >
+                    👥 Клієнти
+                </button>
+
+                <button
+                    type="button"
+                    class="crm-nav-button"
+                    data-crm-section="crmCarsSection"
+                >
+                    🚗 Автомобілі
+                </button>
+
+                <button
+                    type="button"
+                    class="crm-nav-button"
+                    data-crm-section="crmOrdersSection"
+                >
+                    🧾 Замовлення-наряди
+                </button>
+
+                <button
+                    type="button"
+                    class="crm-nav-button"
+                    data-crm-section="crmCalendarSection"
+                >
+                    📅 Календар
+                </button>
+
+                <button
+                    type="button"
+                    class="crm-nav-button"
+                    data-crm-section="crmWorkersSection"
+                >
+                    👨‍🔧 Працівники
+                </button>
+
+                <button
+                    type="button"
+                    class="crm-nav-button"
+                    data-crm-section="crmSettingsSection"
+                >
+                    ⚙️ Налаштування
+                </button>
+            </nav>
+
             <a
                 href="business-profile.html"
                 class="crm-back"
             >
                 ← Мій бізнес
             </a>
-        </header>
+        </aside>
 
-        <section
-            id="crmStatus"
-            class="crm-status"
-        >
-            Перевіряємо доступ до CRM...
-        </section>
+        <div class="crm-overlay" id="crmOverlay"></div>
 
-        <section class="crm-status">
-            <button
-                id="crmAddClientButton"
-                type="button"
-            >
-                + Додати клієнта
-            </button>
-        
-            <form
-                id="crmClientForm"
-                hidden
-                style="margin-top: 16px;"
-            >
-                <div style="margin-bottom: 12px;">
-                    <input
-                        id="crmClientName"
-                        type="text"
-                        placeholder="Ім'я клієнта"
-                        required
-                    >
-                </div>
-        
-                <div style="margin-bottom: 12px;">
-                    <input
-                        id="crmClientPhone"
-                        type="text"
-                        placeholder="Телефон"
-                    >
-                </div>
-        
-                <div style="margin-bottom: 12px;">
-                    <input
-                        id="crmClientEmail"
-                        type="email"
-                        placeholder="Email"
-                    >
-                </div>
-        
-                <div style="margin-bottom: 12px;">
-                    <textarea
-                        id="crmClientNotes"
-                        placeholder="Примітки"
-                    ></textarea>
-                </div>
-        
-                <button type="submit">
-                    Зберегти клієнта
+        <div class="crm-main">
+            <header class="crm-mobile-header">
+                <button
+                    id="crmMenuButton"
+                    class="crm-menu-button"
+                    type="button"
+                >
+                    ☰ Меню
                 </button>
-            </form>
-        </section>
 
-        <section class="crm-status">
-            <button
-                id="crmAddCarButton"
-                type="button"
-            >
-                + Додати автомобіль
-            </button>
-        
-            <form
-                id="crmCarForm"
-                hidden
-                style="margin-top: 16px;"
-            >
-                <div style="margin-bottom: 12px;">
-                    <select
-                        id="crmCarClient"
-                        required
-                    >
-                        <option value="">
-                            Виберіть клієнта
-                        </option>
-                    </select>
-                </div>
-        
-                <div style="margin-bottom: 12px;">
-                    <input
-                        id="crmCarBrand"
-                        type="text"
-                        placeholder="Марка"
-                    >
-                </div>
-        
-                <div style="margin-bottom: 12px;">
-                    <input
-                        id="crmCarModel"
-                        type="text"
-                        placeholder="Модель"
-                    >
-                </div>
-        
-                <div style="margin-bottom: 12px;">
-                    <input
-                        id="crmCarYear"
-                        type="number"
-                        placeholder="Рік"
-                    >
-                </div>
-        
-                <div style="margin-bottom: 12px;">
-                    <input
-                        id="crmCarVin"
-                        type="text"
-                        placeholder="VIN"
-                    >
-                </div>
-        
-                <div style="margin-bottom: 12px;">
-                    <input
-                        id="crmCarPlate"
-                        type="text"
-                        placeholder="Держ. номер"
-                    >
-                </div>
-        
-                <div style="margin-bottom: 12px;">
-                    <input
-                        id="crmCarMileage"
-                        type="number"
-                        placeholder="Пробіг, км"
-                    >
-                </div>
-        
-                <div style="margin-bottom: 12px;">
-                    <input
-                        id="crmCarEngine"
-                        type="text"
-                        placeholder="Двигун"
-                    >
-                </div>
-        
-                <div style="margin-bottom: 12px;">
-                    <input
-                        id="crmCarFuel"
-                        type="text"
-                        placeholder="Паливо"
-                    >
-                </div>
-        
-                <div style="margin-bottom: 12px;">
-                    <input
-                        id="crmCarTransmission"
-                        type="text"
-                        placeholder="Коробка передач"
-                    >
-                </div>
-        
-                <div style="margin-bottom: 12px;">
-                    <textarea
-                        id="crmCarNotes"
-                        placeholder="Примітки"
-                    ></textarea>
-                </div>
-        
-                <button type="submit">
-                    Зберегти автомобіль
-                </button>
-                </form>
+                <div class="crm-mobile-title">CRM RG</div>
+            </header>
+
+            <main class="crm-page">
+                <section
+                    id="crmStatus"
+                    class="crm-status"
+                >
+                    Перевіряємо доступ до CRM...
                 </section>
 
-                <section class="crm-status">
-                    <button
-                        id="crmAddWorkOrderButton"
-                        type="button"
+                <div
+                    id="crmDashboard"
+                    hidden
+                >
+                    <section
+                        id="crmHomeSection"
+                        class="crm-section"
                     >
-                        + Створити замовлення-наряд
-                    </button>
-                
-                    <form
-                        id="crmWorkOrderForm"
+                        <div class="crm-page-header">
+                            <div>
+                                <h1>Головна</h1>
+                                <p>Швидкий доступ до основних розділів CRM RG.</p>
+                            </div>
+                        </div>
+
+                        <div class="crm-grid">
+                            <div class="crm-card crm-home-card">
+                                <strong>Клієнти</strong>
+                                <p>База клієнтів та контактні дані.</p>
+                                <button
+                                    type="button"
+                                    class="crm-primary-button"
+                                    data-crm-open="crmClientsSection"
+                                >
+                                    Відкрити
+                                </button>
+                            </div>
+
+                            <div class="crm-card crm-home-card">
+                                <strong>Автомобілі</strong>
+                                <p>Автомобілі клієнтів, VIN та історія.</p>
+                                <button
+                                    type="button"
+                                    class="crm-primary-button"
+                                    data-crm-open="crmCarsSection"
+                                >
+                                    Відкрити
+                                </button>
+                            </div>
+
+                            <div class="crm-card crm-home-card">
+                                <strong>Замовлення-наряди</strong>
+                                <p>Поточні та завершені ремонти.</p>
+                                <button
+                                    type="button"
+                                    class="crm-primary-button"
+                                    data-crm-open="crmOrdersSection"
+                                >
+                                    Відкрити
+                                </button>
+                            </div>
+
+                            <div class="crm-card crm-home-card">
+                                <strong>Календар</strong>
+                                <p>Записи та планування робіт.</p>
+                                <button
+                                    type="button"
+                                    class="crm-primary-button"
+                                    data-crm-open="crmCalendarSection"
+                                >
+                                    Відкрити
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section
+                        id="crmClientsSection"
+                        class="crm-section"
                         hidden
-                        style="margin-top: 16px;"
                     >
-                        <div style="margin-bottom: 12px;">
-                            <select
-                                id="crmWorkOrderClient"
-                                required
+                        <div class="crm-page-header">
+                            <div>
+                                <h1>Клієнти</h1>
+                                <p>Клієнти вашого СТО.</p>
+                            </div>
+                        </div>
+
+                        <section class="crm-status">
+                            <button
+                                id="crmAddClientButton"
+                                type="button"
                             >
-                                <option value="">
-                                    Виберіть клієнта
-                                </option>
-                            </select>
-                        </div>
-                
-                        <div style="margin-bottom: 12px;">
-                            <select
-                                id="crmWorkOrderCar"
-                                required
-                                disabled
+                                + Додати клієнта
+                            </button>
+
+                            <form
+                                id="crmClientForm"
+                                class="crm-form"
+                                hidden
                             >
-                                <option value="">
-                                    Спочатку виберіть клієнта
-                                </option>
-                            </select>
+                                <input
+                                    id="crmClientName"
+                                    type="text"
+                                    placeholder="Ім'я клієнта"
+                                    required
+                                >
+
+                                <input
+                                    id="crmClientPhone"
+                                    type="text"
+                                    placeholder="Телефон"
+                                >
+
+                                <input
+                                    id="crmClientEmail"
+                                    type="email"
+                                    placeholder="Email"
+                                >
+
+                                <textarea
+                                    id="crmClientNotes"
+                                    placeholder="Примітки"
+                                ></textarea>
+
+                                <button type="submit">
+                                    Зберегти клієнта
+                                </button>
+                            </form>
+                        </section>
+
+                        <div class="crm-card crm-list-card">
+                            <h2>Список клієнтів</h2>
+
+                            <p id="crmClientsCount">
+                                Завантаження...
+                            </p>
+
+                            <div id="crmClientsList"></div>
                         </div>
-                
-                        <div style="margin-bottom: 12px;">
-                            <input
-                                id="crmWorkOrderMileage"
-                                type="number"
-                                placeholder="Пробіг, км"
+                    </section>
+
+                    <section
+                        id="crmCarsSection"
+                        class="crm-section"
+                        hidden
+                    >
+                        <div class="crm-page-header">
+                            <div>
+                                <h1>Автомобілі</h1>
+                                <p>Автомобілі клієнтів та основні дані.</p>
+                            </div>
+                        </div>
+
+                        <section class="crm-status">
+                            <button
+                                id="crmAddCarButton"
+                                type="button"
                             >
+                                + Додати автомобіль
+                            </button>
+
+                            <form
+                                id="crmCarForm"
+                                class="crm-form"
+                                hidden
+                            >
+                                <select
+                                    id="crmCarClient"
+                                    required
+                                >
+                                    <option value="">
+                                        Виберіть клієнта
+                                    </option>
+                                </select>
+
+                                <input
+                                    id="crmCarBrand"
+                                    type="text"
+                                    placeholder="Марка"
+                                >
+
+                                <input
+                                    id="crmCarModel"
+                                    type="text"
+                                    placeholder="Модель"
+                                >
+
+                                <input
+                                    id="crmCarYear"
+                                    type="number"
+                                    placeholder="Рік"
+                                >
+
+                                <input
+                                    id="crmCarVin"
+                                    type="text"
+                                    placeholder="VIN"
+                                >
+
+                                <input
+                                    id="crmCarPlate"
+                                    type="text"
+                                    placeholder="Держ. номер"
+                                >
+
+                                <input
+                                    id="crmCarMileage"
+                                    type="number"
+                                    placeholder="Пробіг, км"
+                                >
+
+                                <input
+                                    id="crmCarEngine"
+                                    type="text"
+                                    placeholder="Двигун"
+                                >
+
+                                <input
+                                    id="crmCarFuel"
+                                    type="text"
+                                    placeholder="Паливо"
+                                >
+
+                                <input
+                                    id="crmCarTransmission"
+                                    type="text"
+                                    placeholder="Коробка передач"
+                                >
+
+                                <textarea
+                                    id="crmCarNotes"
+                                    placeholder="Примітки"
+                                ></textarea>
+
+                                <button type="submit">
+                                    Зберегти автомобіль
+                                </button>
+                            </form>
+                        </section>
+
+                        <div class="crm-card crm-list-card">
+                            <h2>Список автомобілів</h2>
+
+                            <p id="crmCarsCount">
+                                Завантаження...
+                            </p>
+
+                            <div id="crmCarsList"></div>
                         </div>
-                
-                        <div style="margin-bottom: 12px;">
-                            <textarea
-                                id="crmWorkOrderComplaint"
-                                placeholder="Скарга клієнта"
-                            ></textarea>
+                    </section>
+
+                    <section
+                        id="crmOrdersSection"
+                        class="crm-section"
+                        hidden
+                    >
+                        <div class="crm-page-header">
+                            <div>
+                                <h1>Замовлення-наряди</h1>
+                                <p>Ремонти, діагностика, роботи та запчастини.</p>
+                            </div>
                         </div>
-                
-                        <div style="margin-bottom: 12px;">
-                            <textarea
-                                id="crmWorkOrderDiagnostics"
-                                placeholder="Діагностика"
-                            ></textarea>
+
+                        <section class="crm-status">
+                            <button
+                                id="crmAddWorkOrderButton"
+                                type="button"
+                            >
+                                + Створити замовлення-наряд
+                            </button>
+
+                            <form
+                                id="crmWorkOrderForm"
+                                class="crm-form"
+                                hidden
+                            >
+                                <select
+                                    id="crmWorkOrderClient"
+                                    required
+                                >
+                                    <option value="">
+                                        Виберіть клієнта
+                                    </option>
+                                </select>
+
+                                <select
+                                    id="crmWorkOrderCar"
+                                    required
+                                    disabled
+                                >
+                                    <option value="">
+                                        Спочатку виберіть клієнта
+                                    </option>
+                                </select>
+
+                                <input
+                                    id="crmWorkOrderMileage"
+                                    type="number"
+                                    placeholder="Пробіг, км"
+                                >
+
+                                <textarea
+                                    id="crmWorkOrderComplaint"
+                                    placeholder="Скарга клієнта"
+                                ></textarea>
+
+                                <textarea
+                                    id="crmWorkOrderDiagnostics"
+                                    placeholder="Діагностика"
+                                ></textarea>
+
+                                <button type="submit">
+                                    Створити наряд
+                                </button>
+                            </form>
+                        </section>
+
+                        <div class="crm-card crm-list-card">
+                            <h2>Список нарядів</h2>
+
+                            <p id="crmWorkOrdersCount">
+                                Завантаження...
+                            </p>
+
+                            <div id="crmWorkOrdersList"></div>
                         </div>
-                
-                        <button type="submit">
-                            Створити наряд
-                        </button>
-                    </form>
-                </section>
+                    </section>
 
-        <section
-            id="crmDashboard"
-            class="crm-grid"
-            hidden
-        >
-        <div class="crm-card">
-            <h2>Клієнти</h2>
-        
-            <p id="crmClientsCount">
-                Завантаження...
-            </p>
-        
-            <div id="crmClientsList"></div>
+                    <section
+                        id="crmCalendarSection"
+                        class="crm-section"
+                        hidden
+                    >
+                        <div class="crm-page-header">
+                            <div>
+                                <h1>Календар</h1>
+                                <p>Записи та планування робіт.</p>
+                            </div>
+                        </div>
+
+                        <div class="crm-empty-block">
+                            Календар CRM RG буде підключено наступним етапом.
+                        </div>
+                    </section>
+
+                    <section
+                        id="crmWorkersSection"
+                        class="crm-section"
+                        hidden
+                    >
+                        <div class="crm-page-header">
+                            <div>
+                                <h1>Працівники</h1>
+                                <p>Менеджери та механіки.</p>
+                            </div>
+                        </div>
+
+                        <div class="crm-empty-block">
+                            Керування працівниками буде додано наступним етапом.
+                        </div>
+                    </section>
+
+                    <section
+                        id="crmSettingsSection"
+                        class="crm-section"
+                        hidden
+                    >
+                        <div class="crm-page-header">
+                            <div>
+                                <h1>Налаштування</h1>
+                                <p>Налаштування CRM RG.</p>
+                            </div>
+                        </div>
+
+                        <div class="crm-empty-block">
+                            Тут будуть налаштування CRM, ролей та сервісу.
+                        </div>
+                    </section>
+                </div>
+            </main>
         </div>
-
-        <div class="crm-card">
-            <h2>Автомобілі</h2>
-        
-            <p id="crmCarsCount">
-                Завантаження...
-            </p>
-        
-            <div id="crmCarsList"></div>
-        </div>
-
-        <div class="crm-card crm-card-work-orders">
-            <h2>Замовлення-наряди</h2>
-        
-            <p id="crmWorkOrdersCount">
-                Завантаження...
-            </p>
-        
-            <div id="crmWorkOrdersList"></div>
-        </div>
-
-            <div class="crm-card">
-                <h2>Календар</h2>
-                <p>
-                    Записи та планування робіт.
-                </p>
-            </div>
-
-            <div class="crm-card">
-                <h2>Працівники</h2>
-                <p>
-                    Менеджери та механіки.
-                </p>
-            </div>
-
-            <div class="crm-card">
-                <h2>Налаштування</h2>
-                <p>
-                    Налаштування CRM RG.
-                </p>
-            </div>
-        </section>
-
-    </main>
+    </div>
 
     <script src="js/crm.js"></script>
+
+    <script>
+        (() => {
+            const body = document.body;
+            const menuButton = document.getElementById("crmMenuButton");
+            const overlay = document.getElementById("crmOverlay");
+            const navButtons = Array.from(
+                document.querySelectorAll("[data-crm-section]")
+            );
+            const openButtons = Array.from(
+                document.querySelectorAll("[data-crm-open]")
+            );
+            const sections = Array.from(
+                document.querySelectorAll(".crm-section")
+            );
+
+            function closeMenu() {
+                body.classList.remove("crm-menu-open");
+            }
+
+            function showSection(sectionId) {
+                sections.forEach((section) => {
+                    section.hidden = section.id !== sectionId;
+                });
+
+                navButtons.forEach((button) => {
+                    button.classList.toggle(
+                        "active",
+                        button.dataset.crmSection === sectionId
+                    );
+                });
+
+                closeMenu();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+
+            menuButton?.addEventListener("click", () => {
+                body.classList.toggle("crm-menu-open");
+            });
+
+            overlay?.addEventListener("click", closeMenu);
+
+            navButtons.forEach((button) => {
+                button.addEventListener("click", () => {
+                    showSection(button.dataset.crmSection);
+                });
+            });
+
+            openButtons.forEach((button) => {
+                button.addEventListener("click", () => {
+                    showSection(button.dataset.crmOpen);
+                });
+            });
+
+            document.addEventListener("keydown", (event) => {
+                if (event.key === "Escape") {
+                    closeMenu();
+                }
+            });
+        })();
+    </script>
 </body>
 </html>
