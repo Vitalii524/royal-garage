@@ -56,10 +56,9 @@
         .crm-grid {
             display: grid;
             grid-template-columns:
-                repeat(auto-fit, minmax(220px, 280px));
+                repeat(auto-fit, minmax(220px, 1fr));
             gap: 16px;
             align-items: start;
-            justify-content: start;
         }
 
         .crm-card {
@@ -82,6 +81,10 @@
 
         .crm-error {
             color: #ff8a8a;
+        }
+
+        .crm-card-work-orders {
+            min-width: 320px;
         }
     </style>
 </head>
@@ -368,7 +371,7 @@
             <div id="crmCarsList"></div>
         </div>
 
-        <div class="crm-card">
+        <div class="crm-card crm-card-work-orders">
             <h2>Замовлення-наряди</h2>
         
             <p id="crmWorkOrdersCount">
