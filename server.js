@@ -9026,6 +9026,59 @@ app.post(
     }
 );
 
+async function recalculateCrmWorkOrderTotal(
+    serviceId,
+    workOrderId
+) {
+    const result =
+        await pool.query(
+            `
+            SELECT
+                COALESCE((
+                    SELECT SUM(total)
+                    FROM crm_work_order_services
+                    WHERE service_id = $1
+                      AND work_order_id = $2
+                ), 0)
+                +
+                COALESCE((
+                    SELECT SUM(total)
+                    FROM crm_work_order_parts
+                    WHERE service_id = $1
+                      AND work_order_id = $2
+                ), 0)
+                AS total
+            `,
+            [
+                serviceId,
+                workOrderId
+            ]
+        );
+
+    const total =
+        Number(
+            result.rows[0]?.total || 0
+        );
+
+    await pool.query(
+        `
+        UPDATE crm_work_orders
+        SET
+            total_amount = $1,
+            updated_at = NOW()
+        WHERE id = $2
+          AND service_id = $3
+        `,
+        [
+            total,
+            workOrderId,
+            serviceId
+        ]
+    );
+
+    return total;
+}
+
 app.get(
     "/api/crm/work-orders",
     requireAuth,
@@ -9300,6 +9353,580 @@ app.post(
                 ok: false,
                 message:
                     "Не вдалося створити замовлення-наряд."
+            });
+        }
+    }
+);
+
+app.post(
+    "/api/crm/work-orders/:workOrderId/services",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const workOrderId =
+                String(req.params.workOrderId || "").trim();
+
+            const {
+                name,
+                quantity,
+                price,
+                notes
+            } = req.body || {};
+
+            const cleanName =
+                String(name || "").trim();
+
+            const cleanNotes =
+                String(notes || "").trim();
+
+            const cleanQuantity =
+                quantity === "" || quantity == null
+                    ? 1
+                    : Number(quantity);
+
+            const cleanPrice =
+                price === "" || price == null
+                    ? 0
+                    : Number(price);
+
+            if (!cleanName) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть назву роботи."
+                });
+            }
+
+            if (
+                !Number.isFinite(cleanQuantity) ||
+                cleanQuantity <= 0
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть коректну кількість."
+                });
+            }
+
+            if (
+                !Number.isFinite(cleanPrice) ||
+                cleanPrice < 0
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть коректну ціну."
+                });
+            }
+
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const workOrderResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_work_orders
+                    WHERE id = $1
+                      AND service_id = $2
+                    LIMIT 1
+                    `,
+                    [
+                        workOrderId,
+                        serviceId
+                    ]
+                );
+
+            if (
+                workOrderResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Замовлення-наряд не знайдено."
+                });
+            }
+
+            const total =
+                cleanQuantity * cleanPrice;
+
+            const result =
+                await pool.query(
+                    `
+                    INSERT INTO crm_work_order_services (
+                        service_id,
+                        work_order_id,
+                        name,
+                        quantity,
+                        price,
+                        total,
+                        notes
+                    )
+                    VALUES (
+                        $1,$2,$3,$4,$5,$6,$7
+                    )
+                    RETURNING
+                        id,
+                        work_order_id AS "workOrderId",
+                        name,
+                        quantity,
+                        price,
+                        total,
+                        notes,
+                        created_at AS "createdAt"
+                    `,
+                    [
+                        serviceId,
+                        workOrderId,
+                        cleanName,
+                        cleanQuantity,
+                        cleanPrice,
+                        total,
+                        cleanNotes || null
+                    ]
+                );
+
+                const workOrderTotal =
+                    await recalculateCrmWorkOrderTotal(
+                        serviceId,
+                        workOrderId
+                    );
+
+                    return res.status(201).json({
+                        ok: true,
+                        service: result.rows[0],
+                        workOrderTotal
+                    });
+
+        } catch (error) {
+            console.error(
+                "CRM work order service create error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося додати роботу."
+            });
+        }
+    }
+);
+
+app.get(
+    "/api/crm/work-orders/:workOrderId/services",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const workOrderId =
+                String(req.params.workOrderId || "").trim();
+
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const workOrderResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_work_orders
+                    WHERE id = $1
+                      AND service_id = $2
+                    LIMIT 1
+                    `,
+                    [
+                        workOrderId,
+                        serviceId
+                    ]
+                );
+
+            if (
+                workOrderResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Замовлення-наряд не знайдено."
+                });
+            }
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        work_order_id AS "workOrderId",
+                        name,
+                        quantity,
+                        price,
+                        total,
+                        notes,
+                        created_at AS "createdAt",
+                        updated_at AS "updatedAt"
+                    FROM crm_work_order_services
+                    WHERE service_id = $1
+                      AND work_order_id = $2
+                    ORDER BY created_at ASC
+                    `,
+                    [
+                        serviceId,
+                        workOrderId
+                    ]
+                );
+
+            return res.json({
+                ok: true,
+                services: result.rows
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM work order services load error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити роботи."
+            });
+        }
+    }
+);
+
+app.post(
+    "/api/crm/work-orders/:workOrderId/parts",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const workOrderId =
+                String(req.params.workOrderId || "").trim();
+
+            const {
+                name,
+                partNumber,
+                quantity,
+                price,
+                notes
+            } = req.body || {};
+
+            const cleanName =
+                String(name || "").trim();
+
+            const cleanPartNumber =
+                String(partNumber || "").trim();
+
+            const cleanNotes =
+                String(notes || "").trim();
+
+            const cleanQuantity =
+                quantity === "" || quantity == null
+                    ? 1
+                    : Number(quantity);
+
+            const cleanPrice =
+                price === "" || price == null
+                    ? 0
+                    : Number(price);
+
+            if (!cleanName) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть назву запчастини."
+                });
+            }
+
+            if (
+                !Number.isFinite(cleanQuantity) ||
+                cleanQuantity <= 0
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть коректну кількість."
+                });
+            }
+
+            if (
+                !Number.isFinite(cleanPrice) ||
+                cleanPrice < 0
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть коректну ціну."
+                });
+            }
+
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const workOrderResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_work_orders
+                    WHERE id = $1
+                      AND service_id = $2
+                    LIMIT 1
+                    `,
+                    [
+                        workOrderId,
+                        serviceId
+                    ]
+                );
+
+            if (
+                workOrderResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Замовлення-наряд не знайдено."
+                });
+            }
+
+            const total =
+                cleanQuantity * cleanPrice;
+
+            const result =
+                await pool.query(
+                    `
+                    INSERT INTO crm_work_order_parts (
+                        service_id,
+                        work_order_id,
+                        name,
+                        part_number,
+                        quantity,
+                        price,
+                        total,
+                        notes
+                    )
+                    VALUES (
+                        $1,$2,$3,$4,$5,$6,$7,$8
+                    )
+                    RETURNING
+                        id,
+                        work_order_id AS "workOrderId",
+                        name,
+                        part_number AS "partNumber",
+                        quantity,
+                        price,
+                        total,
+                        notes,
+                        created_at AS "createdAt"
+                    `,
+                    [
+                        serviceId,
+                        workOrderId,
+                        cleanName,
+                        cleanPartNumber || null,
+                        cleanQuantity,
+                        cleanPrice,
+                        total,
+                        cleanNotes || null
+                    ]
+                );
+
+                const workOrderTotal =
+                    await recalculateCrmWorkOrderTotal(
+                        serviceId,
+                        workOrderId
+                    );
+
+                    return res.status(201).json({
+                        ok: true,
+                        part: result.rows[0],
+                        workOrderTotal
+                    });
+
+        } catch (error) {
+            console.error(
+                "CRM work order part create error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося додати запчастину."
+            });
+        }
+    }
+);
+
+app.get(
+    "/api/crm/work-orders/:workOrderId/parts",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const workOrderId =
+                String(req.params.workOrderId || "").trim();
+
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const workOrderResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_work_orders
+                    WHERE id = $1
+                      AND service_id = $2
+                    LIMIT 1
+                    `,
+                    [
+                        workOrderId,
+                        serviceId
+                    ]
+                );
+
+            if (
+                workOrderResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Замовлення-наряд не знайдено."
+                });
+            }
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        work_order_id AS "workOrderId",
+                        name,
+                        part_number AS "partNumber",
+                        quantity,
+                        price,
+                        total,
+                        notes,
+                        created_at AS "createdAt",
+                        updated_at AS "updatedAt"
+                    FROM crm_work_order_parts
+                    WHERE service_id = $1
+                      AND work_order_id = $2
+                    ORDER BY created_at ASC
+                    `,
+                    [
+                        serviceId,
+                        workOrderId
+                    ]
+                );
+
+            return res.json({
+                ok: true,
+                parts: result.rows
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM work order parts load error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити запчастини."
             });
         }
     }
