@@ -947,6 +947,7 @@ async function bindWorkOrderForm() {
 
                 form.reset();
                 form.hidden = true;
+                loadWorkOrders();
 
                 carSelect.innerHTML = `
                     <option value="">
@@ -971,12 +972,145 @@ async function bindWorkOrderForm() {
     );
 }
 
+async function loadWorkOrders() {
+    const count =
+        document.getElementById(
+            "crmWorkOrdersCount"
+        );
+
+    const list =
+        document.getElementById(
+            "crmWorkOrdersList"
+        );
+
+    if (!count || !list) {
+        return;
+    }
+
+    try {
+        const response =
+            await fetch(
+                `${getApiBaseUrl()}/api/crm/work-orders`,
+                {
+                    headers: {
+                        Authorization:
+                            `Bearer ${getToken()}`
+                    }
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити замовлення-наряди."
+            );
+        }
+
+        const workOrders =
+            Array.isArray(data.workOrders)
+                ? data.workOrders
+                : [];
+
+        count.textContent =
+            `Нарядів: ${workOrders.length}`;
+
+        if (workOrders.length === 0) {
+            list.innerHTML =
+                "<p>Замовлень-нарядів ще немає.</p>";
+            return;
+        }
+
+        list.innerHTML =
+            workOrders
+                .map(
+                    (order) => `
+                        <div style="
+                            padding: 12px 0;
+                            border-top: 1px solid #333;
+                        ">
+                            <strong>
+                                ${order.orderNumber || ""}
+                            </strong>
+
+                            <div>
+                                Статус:
+                                ${order.status || ""}
+                            </div>
+
+                            ${
+                                order.clientName
+                                    ? `<div>Клієнт: ${order.clientName}</div>`
+                                    : ""
+                            }
+
+                            <div>
+                                Авто:
+                                ${order.brand || ""}
+                                ${order.model || ""}
+                            </div>
+
+                            ${
+                                order.plate
+                                    ? `<div>Номер: ${order.plate}</div>`
+                                    : ""
+                            }
+
+                            ${
+                                order.vin
+                                    ? `<div>VIN: ${order.vin}</div>`
+                                    : ""
+                            }
+
+                            ${
+                                order.mileage != null
+                                    ? `<div>Пробіг: ${order.mileage} км</div>`
+                                    : ""
+                            }
+
+                            ${
+                                order.customerComplaint
+                                    ? `<div>Скарга: ${order.customerComplaint}</div>`
+                                    : ""
+                            }
+
+                            ${
+                                order.diagnostics
+                                    ? `<div>Діагностика: ${order.diagnostics}</div>`
+                                    : ""
+                            }
+
+                            <div>
+                                Сума:
+                                ${Number(order.totalAmount || 0).toFixed(2)} грн
+                            </div>
+                        </div>
+                    `
+                )
+                .join("");
+
+    } catch (error) {
+        console.error(
+            "CRM work orders load error:",
+            error
+        );
+
+        count.textContent =
+            "Не вдалося завантажити замовлення-наряди.";
+
+        list.innerHTML = "";
+    }
+}
+
 document.addEventListener(
     "DOMContentLoaded",
     () => {
         loadCrm();
         loadClients();
         loadCars();
+        loadWorkOrders();
         bindClientForm();
         bindCarForm();
         bindWorkOrderForm();
