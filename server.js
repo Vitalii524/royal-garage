@@ -9026,6 +9026,285 @@ app.post(
     }
 );
 
+app.get(
+    "/api/crm/work-orders",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        wo.id,
+                        wo.order_number AS "orderNumber",
+                        wo.status,
+                        wo.mileage,
+                        wo.customer_complaint AS "customerComplaint",
+                        wo.diagnostics,
+                        wo.total_amount AS "totalAmount",
+                        wo.started_at AS "startedAt",
+                        wo.completed_at AS "completedAt",
+                        wo.created_at AS "createdAt",
+                        wo.updated_at AS "updatedAt",
+
+                        clients.id AS "clientId",
+                        clients.name AS "clientName",
+                        clients.phone AS "clientPhone",
+
+                        cars.id AS "carId",
+                        cars.brand,
+                        cars.model,
+                        cars.year,
+                        cars.vin,
+                        cars.plate
+
+                    FROM crm_work_orders AS wo
+
+                    JOIN crm_clients AS clients
+                        ON clients.id = wo.client_id
+
+                    JOIN crm_cars AS cars
+                        ON cars.id = wo.car_id
+
+                    WHERE wo.service_id = $1
+
+                    ORDER BY wo.created_at DESC
+                    `,
+                    [
+                        serviceId
+                    ]
+                );
+
+            return res.json({
+                ok: true,
+                workOrders: result.rows
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM work orders load error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити замовлення-наряди."
+            });
+        }
+    }
+);
+
+app.post(
+    "/api/crm/work-orders",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const {
+                clientId,
+                carId,
+                mileage,
+                customerComplaint,
+                diagnostics
+            } = req.body || {};
+
+            const cleanClientId =
+                String(clientId || "").trim();
+
+            const cleanCarId =
+                String(carId || "").trim();
+
+            const cleanCustomerComplaint =
+                String(customerComplaint || "").trim();
+
+            const cleanDiagnostics =
+                String(diagnostics || "").trim();
+
+            const cleanMileage =
+                mileage === "" || mileage == null
+                    ? null
+                    : Number(mileage);
+
+            if (!cleanClientId) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Виберіть клієнта."
+                });
+            }
+
+            if (!cleanCarId) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Виберіть автомобіль."
+                });
+            }
+
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const carResult =
+                await pool.query(
+                    `
+                    SELECT
+                        cars.id,
+                        cars.client_id
+                    FROM crm_cars AS cars
+                    WHERE cars.id = $1
+                      AND cars.service_id = $2
+                      AND cars.client_id = $3
+                    LIMIT 1
+                    `,
+                    [
+                        cleanCarId,
+                        serviceId,
+                        cleanClientId
+                    ]
+                );
+
+            if (
+                carResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Автомобіль не знайдено у цього клієнта."
+                });
+            }
+
+            const numberResult =
+                await pool.query(
+                    `
+                    SELECT COUNT(*)::int AS count
+                    FROM crm_work_orders
+                    WHERE service_id = $1
+                    `,
+                    [
+                        serviceId
+                    ]
+                );
+
+            const nextNumber =
+                Number(
+                    numberResult.rows[0]?.count || 0
+                ) + 1;
+
+            const orderNumber =
+                `WO-${String(nextNumber).padStart(6, "0")}`;
+
+            const result =
+                await pool.query(
+                    `
+                    INSERT INTO crm_work_orders (
+                        service_id,
+                        client_id,
+                        car_id,
+                        order_number,
+                        status,
+                        mileage,
+                        customer_complaint,
+                        diagnostics
+                    )
+                    VALUES (
+                        $1,$2,$3,$4,
+                        'new',
+                        $5,$6,$7
+                    )
+                    RETURNING
+                        id,
+                        order_number AS "orderNumber",
+                        status,
+                        mileage,
+                        customer_complaint AS "customerComplaint",
+                        diagnostics,
+                        total_amount AS "totalAmount",
+                        created_at AS "createdAt"
+                    `,
+                    [
+                        serviceId,
+                        cleanClientId,
+                        cleanCarId,
+                        orderNumber,
+                        Number.isFinite(cleanMileage)
+                            ? cleanMileage
+                            : null,
+                        cleanCustomerComplaint || null,
+                        cleanDiagnostics || null
+                    ]
+                );
+
+            return res.status(201).json({
+                ok: true,
+                workOrder: result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM work order create error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося створити замовлення-наряд."
+            });
+        }
+    }
+);
+
 app.post(
     "/api/phone/send-code",
     requireAuth,
