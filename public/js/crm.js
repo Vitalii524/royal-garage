@@ -986,6 +986,17 @@ function normalizeCrmPhone(value) {
         .replace(/\D/g, "");
 }
 
+function getCrmWorkOrderStatusLabel(status) {
+    const labels = {
+        new: "Новий",
+        in_progress: "В роботі",
+        ready: "Готовий",
+        completed: "Виданий"
+    };
+
+    return labels[status] || status || "—";
+}
+
 function renderWorkOrders(workOrders) {
     const count =
         document.getElementById(
@@ -1097,7 +1108,7 @@ function renderWorkOrders(workOrders) {
                                 color: #aaa;
                                 font-size: 14px;
                             ">
-                                ${order.status || "—"}
+                            ${getCrmWorkOrderStatusLabel(order.status)}
                             </div>
                         </div>
 
