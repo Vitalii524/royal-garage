@@ -79,11 +79,52 @@
                 </h1>
 
                 <div
-                    id="crmWorkOrderStatus"
-                    class="crm-muted"
+                id="crmWorkOrderStatus"
+                style="
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    flex-wrap: wrap;
+                "
+            >
+                <span class="crm-muted">
+                    Статус:
+                </span>
+            
+                <select
+                    id="crmWorkOrderStatusSelect"
+                    style="
+                        background: #1f2937;
+                        color: #ffffff;
+                        border: 1px solid #4b5563;
+                        border-radius: 8px;
+                        padding: 7px 10px;
+                        font-size: 14px;
+                        cursor: pointer;
+                    "
                 >
-                    Завантаження...
-                </div>
+                    <option value="new">
+                        Новий
+                    </option>
+            
+                    <option value="in_progress">
+                        В роботі
+                    </option>
+            
+                    <option value="ready">
+                        Готовий
+                    </option>
+            
+                    <option value="completed">
+                        Виданий
+                    </option>
+                </select>
+            
+                <span
+                    id="crmWorkOrderStatusMessage"
+                    class="crm-muted"
+                ></span>
+            </div>
             </div>
 
             <a

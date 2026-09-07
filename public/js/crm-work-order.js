@@ -120,8 +120,24 @@ async function loadWorkOrder() {
             order.orderNumber ||
             "Замовлення-наряд";
 
-        status.textContent =
-            `Статус: ${order.status || "—"}`;
+            const statusSelect =
+            document.getElementById(
+                "crmWorkOrderStatusSelect"
+            );
+        
+        const statusMessage =
+            document.getElementById(
+                "crmWorkOrderStatusMessage"
+            );
+        
+        if (statusSelect) {
+            statusSelect.value =
+                order.status || "new";
+        }
+        
+        if (statusMessage) {
+            statusMessage.textContent = "";
+        }
 
         info.innerHTML = `
             <div>
@@ -717,11 +733,105 @@ function bindPartForm() {
         }
     );
 }
+
+function bindWorkOrderStatus() {
+    const statusSelect =
+        document.getElementById(
+            "crmWorkOrderStatusSelect"
+        );
+
+    const statusMessage =
+        document.getElementById(
+            "crmWorkOrderStatusMessage"
+        );
+
+    if (!statusSelect) {
+        return;
+    }
+
+    statusSelect.addEventListener(
+        "change",
+        async () => {
+            const workOrderId =
+                getWorkOrderId();
+
+            if (!workOrderId) {
+                return;
+            }
+
+            const newStatus =
+                statusSelect.value;
+
+            statusSelect.disabled = true;
+
+            if (statusMessage) {
+                statusMessage.textContent =
+                    "Збереження...";
+            }
+
+            try {
+                const response =
+                    await fetch(
+                        `${getApiBaseUrl()}/api/crm/work-orders/${encodeURIComponent(workOrderId)}/status`,
+                        {
+                            method: "PATCH",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+
+                                Authorization:
+                                    `Bearer ${getToken()}`
+                            },
+
+                            body:
+                                JSON.stringify({
+                                    status: newStatus
+                                })
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.message ||
+                        "Не вдалося змінити статус."
+                    );
+                }
+
+                if (statusMessage) {
+                    statusMessage.textContent =
+                        "Збережено";
+                }
+
+            } catch (error) {
+                console.error(
+                    "CRM work order status update error:",
+                    error
+                );
+
+                if (statusMessage) {
+                    statusMessage.textContent =
+                        "Помилка";
+                }
+
+                await loadWorkOrder();
+
+            } finally {
+                statusSelect.disabled = false;
+            }
+        }
+    );
+}
+
 document.addEventListener(
     "DOMContentLoaded",
     () => {
         loadWorkOrder();
         bindServiceForm();
         bindPartForm();
+        bindWorkOrderStatus();
     }
 );
