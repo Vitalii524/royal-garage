@@ -9358,6 +9358,133 @@ app.post(
     }
 );
 
+app.patch(
+    "/api/crm/work-orders/:workOrderId/status",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const workOrderId =
+                String(
+                    req.params.workOrderId || ""
+                ).trim();
+
+            const status =
+                String(
+                    req.body?.status || ""
+                ).trim();
+
+            const allowedStatuses = [
+                "new",
+                "in_progress",
+                "ready",
+                "completed"
+            ];
+
+            if (!allowedStatuses.includes(status)) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Некоректний статус замовлення-наряду."
+                });
+            }
+
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const result =
+                await pool.query(
+                    `
+                    UPDATE crm_work_orders
+                    SET
+                        status = $1,
+
+                        started_at =
+                            CASE
+                                WHEN $1 = 'in_progress'
+                                     AND started_at IS NULL
+                                THEN NOW()
+                                ELSE started_at
+                            END,
+
+                        completed_at =
+                            CASE
+                                WHEN $1 = 'completed'
+                                THEN NOW()
+                                ELSE completed_at
+                            END,
+
+                        updated_at = NOW()
+
+                    WHERE id = $2
+                      AND service_id = $3
+
+                    RETURNING
+                        id,
+                        order_number AS "orderNumber",
+                        status,
+                        started_at AS "startedAt",
+                        completed_at AS "completedAt",
+                        updated_at AS "updatedAt"
+                    `,
+                    [
+                        status,
+                        workOrderId,
+                        serviceId
+                    ]
+                );
+
+            if (result.rows.length === 0) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Замовлення-наряд не знайдено."
+                });
+            }
+
+            return res.json({
+                ok: true,
+                workOrder: result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM work order status update error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося змінити статус замовлення-наряду."
+            });
+        }
+    }
+);
+
 app.post(
     "/api/crm/work-orders/:workOrderId/services",
     requireAuth,
