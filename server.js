@@ -9485,6 +9485,139 @@ app.patch(
     }
 );
 
+app.patch(
+    "/api/crm/work-orders/:workOrderId",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const workOrderId =
+                String(
+                    req.params.workOrderId || ""
+                ).trim();
+
+            const {
+                mileage,
+                customerComplaint,
+                diagnostics
+            } = req.body || {};
+
+            const cleanMileage =
+                mileage === "" ||
+                mileage == null
+                    ? null
+                    : Number(mileage);
+
+            const cleanCustomerComplaint =
+                String(
+                    customerComplaint || ""
+                ).trim();
+
+            const cleanDiagnostics =
+                String(
+                    diagnostics || ""
+                ).trim();
+
+            if (
+                cleanMileage !== null &&
+                (
+                    !Number.isInteger(cleanMileage) ||
+                    cleanMileage < 0
+                )
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть коректний пробіг."
+                });
+            }
+
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const result =
+                await pool.query(
+                    `
+                    UPDATE crm_work_orders
+                    SET
+                        mileage = $1,
+                        customer_complaint = $2,
+                        diagnostics = $3,
+                        updated_at = NOW()
+                    WHERE id = $4
+                      AND service_id = $5
+                    RETURNING
+                        id,
+                        order_number AS "orderNumber",
+                        status,
+                        mileage,
+                        customer_complaint
+                            AS "customerComplaint",
+                        diagnostics,
+                        updated_at AS "updatedAt"
+                    `,
+                    [
+                        cleanMileage,
+                        cleanCustomerComplaint || null,
+                        cleanDiagnostics || null,
+                        workOrderId,
+                        serviceId
+                    ]
+                );
+
+            if (
+                result.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Замовлення-наряд не знайдено."
+                });
+            }
+
+            return res.json({
+                ok: true,
+                workOrder: result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM work order update error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося зберегти зміни наряду."
+            });
+        }
+    }
+);
+
 app.post(
     "/api/crm/work-orders/:workOrderId/services",
     requireAuth,
