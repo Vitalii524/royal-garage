@@ -405,11 +405,6 @@ function bindServiceForm() {
             "crmServiceName"
         );
 
-    const quantityInput =
-        document.getElementById(
-            "crmServiceQuantity"
-        );
-
     const priceInput =
         document.getElementById(
             "crmServicePrice"
@@ -424,7 +419,6 @@ function bindServiceForm() {
         !button ||
         !form ||
         !nameInput ||
-        !quantityInput ||
         !priceInput ||
         !notesInput
     ) {
@@ -458,7 +452,7 @@ function bindServiceForm() {
                 name:
                     nameInput.value.trim(),
                 quantity:
-                    quantityInput.value,
+                    1,
                 price:
                     priceInput.value,
                 notes:
@@ -495,9 +489,6 @@ function bindServiceForm() {
                 }
 
                 form.reset();
-
-                quantityInput.value =
-                    "1";
 
                 form.hidden =
                     true;
