@@ -8590,6 +8590,32 @@ app.get(
             const serviceId =
                 serviceResult.rows[0].id;
 
+                const currentResult =
+    await pool.query(
+        `
+        SELECT status
+        FROM crm_work_orders
+        WHERE id = $1
+          AND service_id = $2
+        LIMIT 1
+        `,
+        [
+            workOrderId,
+            serviceId
+        ]
+    );
+
+if (currentResult.rows.length === 0) {
+    return res.status(404).json({
+        ok: false,
+        message:
+            "Замовлення-наряд не знайдено."
+    });
+}
+
+const oldStatus =
+    currentResult.rows[0].status;
+
             const result =
                 await pool.query(
                     `
@@ -9585,6 +9611,37 @@ app.patch(
                 );
 
             if (result.rows.length === 0) {
+
+                if (oldStatus !== status) {
+                    await pool.query(
+                        `
+                        INSERT INTO crm_work_order_events (
+                            service_id,
+                            work_order_id,
+                            event_type,
+                            old_status,
+                            new_status,
+                            message
+                        )
+                        VALUES (
+                            $1,
+                            $2,
+                            'status_changed',
+                            $3,
+                            $4,
+                            $5
+                        )
+                        `,
+                        [
+                            serviceId,
+                            workOrderId,
+                            oldStatus,
+                            status,
+                            `Статус змінено: ${oldStatus} → ${status}`
+                        ]
+                    );
+                }
+
                 return res.status(404).json({
                     ok: false,
                     message:
