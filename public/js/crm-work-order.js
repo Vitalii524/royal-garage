@@ -76,15 +76,15 @@ async function loadWorkOrder() {
 
     try {
         const response =
-            await fetch(
-                `${getApiBaseUrl()}/api/crm/work-orders`,
-                {
-                    headers: {
-                        Authorization:
-                            `Bearer ${getToken()}`
-                    }
-                }
-            );
+    await fetch(
+        `${getApiBaseUrl()}/api/crm/work-orders/${encodeURIComponent(workOrderId)}`,
+        {
+            headers: {
+                Authorization:
+                    `Bearer ${getToken()}`
+            }
+        }
+    );
 
         const data =
             await response.json();
@@ -96,19 +96,11 @@ async function loadWorkOrder() {
             );
         }
 
-        const workOrders =
-            Array.isArray(data.workOrders)
-                ? data.workOrders
-                : [];
-
         const order =
-            workOrders.find(
-                (item) =>
-                    String(item.id) ===
-                    workOrderId
-            );
+            data.workOrder || null;
 
-            currentCrmWorkOrder = order || null;
+        currentCrmWorkOrder =
+            order;
 
         if (!order) {
             status.textContent =
