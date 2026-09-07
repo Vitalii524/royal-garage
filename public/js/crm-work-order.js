@@ -1,5 +1,7 @@
 const CRM_TOKEN_KEY = "royalGarageToken";
 
+let currentCrmWorkOrder = null;
+
 function getToken() {
     return localStorage.getItem(CRM_TOKEN_KEY);
 }
@@ -105,6 +107,8 @@ async function loadWorkOrder() {
                     String(item.id) ===
                     workOrderId
             );
+
+            currentCrmWorkOrder = order || null;
 
         if (!order) {
             status.textContent =
@@ -734,6 +738,170 @@ function bindPartForm() {
     );
 }
 
+function bindWorkOrderEdit() {
+    const editButton =
+        document.getElementById(
+            "crmEditWorkOrderButton"
+        );
+
+    const form =
+        document.getElementById(
+            "crmWorkOrderEditForm"
+        );
+
+    const mileageInput =
+        document.getElementById(
+            "crmWorkOrderMileage"
+        );
+
+    const complaintInput =
+        document.getElementById(
+            "crmWorkOrderComplaint"
+        );
+
+    const diagnosticsInput =
+        document.getElementById(
+            "crmWorkOrderDiagnostics"
+        );
+
+    const cancelButton =
+        document.getElementById(
+            "crmCancelWorkOrderEdit"
+        );
+
+    const message =
+        document.getElementById(
+            "crmWorkOrderEditMessage"
+        );
+
+    if (
+        !editButton ||
+        !form ||
+        !mileageInput ||
+        !complaintInput ||
+        !diagnosticsInput ||
+        !cancelButton
+    ) {
+        return;
+    }
+
+    editButton.addEventListener(
+        "click",
+        () => {
+            if (!currentCrmWorkOrder) {
+                return;
+            }
+
+            mileageInput.value =
+                currentCrmWorkOrder.mileage ?? "";
+
+            complaintInput.value =
+                currentCrmWorkOrder
+                    .customerComplaint || "";
+
+            diagnosticsInput.value =
+                currentCrmWorkOrder
+                    .diagnostics || "";
+
+            if (message) {
+                message.textContent = "";
+            }
+
+            form.hidden = false;
+        }
+    );
+
+    cancelButton.addEventListener(
+        "click",
+        () => {
+            form.hidden = true;
+
+            if (message) {
+                message.textContent = "";
+            }
+        }
+    );
+
+    form.addEventListener(
+        "submit",
+        async (event) => {
+            event.preventDefault();
+
+            const workOrderId =
+                getWorkOrderId();
+
+            if (!workOrderId) {
+                return;
+            }
+
+            const payload = {
+                mileage:
+                    mileageInput.value,
+
+                customerComplaint:
+                    complaintInput.value.trim(),
+
+                diagnostics:
+                    diagnosticsInput.value.trim()
+            };
+
+            if (message) {
+                message.textContent =
+                    "Збереження...";
+            }
+
+            try {
+                const response =
+                    await fetch(
+                        `${getApiBaseUrl()}/api/crm/work-orders/${encodeURIComponent(workOrderId)}`,
+                        {
+                            method: "PATCH",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+
+                                Authorization:
+                                    `Bearer ${getToken()}`
+                            },
+
+                            body:
+                                JSON.stringify(
+                                    payload
+                                )
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.message ||
+                        "Не вдалося зберегти зміни."
+                    );
+                }
+
+                form.hidden = true;
+
+                await loadWorkOrder();
+
+            } catch (error) {
+                console.error(
+                    "CRM work order edit error:",
+                    error
+                );
+
+                if (message) {
+                    message.textContent =
+                        error.message ||
+                        "Помилка збереження.";
+                }
+            }
+        }
+    );
+}
+
 function bindWorkOrderStatus() {
     const statusSelect =
         document.getElementById(
@@ -838,5 +1006,6 @@ document.addEventListener(
         bindServiceForm();
         bindPartForm();
         bindWorkOrderStatus();
+        bindWorkOrderEdit();
     }
 );
