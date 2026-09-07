@@ -345,46 +345,65 @@ async function loadWorkOrderParts(
             return;
         }
 
-        container.innerHTML =
-            items
-                .map(
-                    (item) => `
-                        <div style="
-                            padding: 12px 0;
-                            border-top: 1px solid #374151;
-                        ">
+        const partsTotal =
+        items.reduce(
+            (sum, item) =>
+                sum + Number(item.total || 0),
+            0
+        );
+    
+    container.innerHTML = `
+        ${items
+            .map(
+                (item) => `
+                    <div style="
+                        padding: 12px 0;
+                        border-top: 1px solid #374151;
+                        display: flex;
+                        justify-content: space-between;
+                        gap: 16px;
+                    ">
+                        <div>
                             <strong>
                                 ${item.name || ""}
                             </strong>
-
+    
                             ${
                                 item.partNumber
                                     ? `<div>Артикул: ${item.partNumber}</div>`
                                     : ""
                             }
-
-                            <div>
-                                Кількість:
-                                ${item.quantity || 0}
-                            </div>
-
-                            <div>
-                                Ціна:
-                                ${Number(
-                                    item.price || 0
-                                ).toFixed(2)} грн
-                            </div>
-
-                            <div>
-                                Разом:
-                                ${Number(
-                                    item.total || 0
-                                ).toFixed(2)} грн
+    
+                            <div style="
+                                opacity: 0.8;
+                                margin-top: 4px;
+                            ">
+                                ${Number(item.quantity || 0)}
+                                ×
+                                ${Number(item.price || 0).toFixed(2)} грн
                             </div>
                         </div>
-                    `
-                )
-                .join("");
+    
+                        <strong>
+                            ${Number(
+                                item.total || 0
+                            ).toFixed(2)} грн
+                        </strong>
+                    </div>
+                `
+            )
+            .join("")}
+    
+        <div style="
+            padding-top: 14px;
+            border-top: 1px solid #4b5563;
+            text-align: right;
+            font-weight: bold;
+        ">
+            Разом запчастини:
+            ${partsTotal.toFixed(2)} грн
+        </div>
+    `;
 
     } catch (error) {
         console.error(
