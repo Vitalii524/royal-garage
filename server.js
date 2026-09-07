@@ -9420,22 +9420,22 @@ app.patch(
                     `
                     UPDATE crm_work_orders
                     SET
-                        status = $1,
+                    status = $1::varchar,
 
-                        started_at =
-                            CASE
-                                WHEN $1 = 'in_progress'
-                                     AND started_at IS NULL
-                                THEN NOW()
-                                ELSE started_at
-                            END,
-
-                        completed_at =
-                            CASE
-                                WHEN $1 = 'completed'
-                                THEN NOW()
-                                ELSE completed_at
-                            END,
+                    started_at =
+                        CASE
+                            WHEN $1::varchar = 'in_progress'
+                                 AND started_at IS NULL
+                            THEN NOW()
+                            ELSE started_at
+                        END,
+                    
+                    completed_at =
+                        CASE
+                            WHEN $1::varchar = 'completed'
+                            THEN NOW()
+                            ELSE completed_at
+                        END,
 
                         updated_at = NOW()
 
