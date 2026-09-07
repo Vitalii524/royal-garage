@@ -9175,6 +9175,133 @@ app.get(
     }
 );
 
+app.get(
+    "/api/crm/work-orders/:workOrderId",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const workOrderId =
+                String(
+                    req.params.workOrderId || ""
+                ).trim();
+
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        wo.id,
+                        wo.order_number AS "orderNumber",
+                        wo.status,
+                        wo.mileage,
+                        wo.customer_complaint
+                            AS "customerComplaint",
+                        wo.diagnostics,
+                        wo.total_amount
+                            AS "totalAmount",
+                        wo.started_at
+                            AS "startedAt",
+                        wo.completed_at
+                            AS "completedAt",
+                        wo.created_at
+                            AS "createdAt",
+                        wo.updated_at
+                            AS "updatedAt",
+
+                        clients.id
+                            AS "clientId",
+                        clients.name
+                            AS "clientName",
+                        clients.phone
+                            AS "clientPhone",
+
+                        cars.id
+                            AS "carId",
+                        cars.brand,
+                        cars.model,
+                        cars.year,
+                        cars.vin,
+                        cars.plate
+
+                    FROM crm_work_orders AS wo
+
+                    JOIN crm_clients AS clients
+                        ON clients.id = wo.client_id
+                       AND clients.service_id =
+                           wo.service_id
+
+                    JOIN crm_cars AS cars
+                        ON cars.id = wo.car_id
+                       AND cars.service_id =
+                           wo.service_id
+
+                    WHERE wo.id = $1
+                      AND wo.service_id = $2
+
+                    LIMIT 1
+                    `,
+                    [
+                        workOrderId,
+                        serviceId
+                    ]
+                );
+
+            if (
+                result.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Замовлення-наряд не знайдено."
+                });
+            }
+
+            return res.json({
+                ok: true,
+                workOrder: result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM work order load error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити замовлення-наряд."
+            });
+        }
+    }
+);
+
 app.post(
     "/api/crm/work-orders",
     requireAuth,
