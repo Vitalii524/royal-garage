@@ -186,12 +186,10 @@ async function loadWorkOrder() {
             </div>
         `;
 
-        total.textContent =
-            `Сума: ${Number(
-                order.totalAmount || 0
-            ).toFixed(2)} грн`;
-
-        await Promise.all([
+        const [
+            servicesTotal,
+            partsTotal
+        ] = await Promise.all([
             loadWorkOrderServices(
                 workOrderId,
                 services
@@ -201,6 +199,47 @@ async function loadWorkOrder() {
                 parts
             )
         ]);
+        
+        const grandTotal =
+            servicesTotal + partsTotal;
+        
+        total.innerHTML = `
+            <div style="
+                display: flex;
+                justify-content: space-between;
+                padding: 6px 0;
+            ">
+                <span>Роботи</span>
+                <strong>
+                    ${servicesTotal.toFixed(2)} грн
+                </strong>
+            </div>
+        
+            <div style="
+                display: flex;
+                justify-content: space-between;
+                padding: 6px 0;
+            ">
+                <span>Запчастини</span>
+                <strong>
+                    ${partsTotal.toFixed(2)} грн
+                </strong>
+            </div>
+        
+            <div style="
+                display: flex;
+                justify-content: space-between;
+                padding-top: 12px;
+                margin-top: 8px;
+                border-top: 1px solid #4b5563;
+                font-size: 18px;
+            ">
+                <strong>Всього</strong>
+                <strong>
+                    ${grandTotal.toFixed(2)} грн
+                </strong>
+            </div>
+        `;
 
     } catch (error) {
         console.error(
@@ -251,7 +290,7 @@ async function loadWorkOrderServices(
         if (items.length === 0) {
             container.textContent =
                 "Робіт ще немає.";
-            return;
+            return 0;
         }
 
         const servicesTotal =
@@ -296,6 +335,8 @@ async function loadWorkOrderServices(
             ${servicesTotal.toFixed(2)} грн
         </div>
     `;
+
+    return servicesTotal;
 
     } catch (error) {
         console.error(
@@ -342,7 +383,7 @@ async function loadWorkOrderParts(
         if (items.length === 0) {
             container.textContent =
                 "Запчастин ще немає.";
-            return;
+                return 0;
         }
 
         const partsTotal =
@@ -404,6 +445,8 @@ async function loadWorkOrderParts(
             ${partsTotal.toFixed(2)} грн
         </div>
     `;
+
+    return partsTotal;
 
     } catch (error) {
         console.error(
