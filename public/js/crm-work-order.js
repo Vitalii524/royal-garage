@@ -811,12 +811,17 @@ function bindWorkOrderStatus() {
                     "CRM work order status update error:",
                     error
                 );
-
+            
+                alert(
+                    error.message ||
+                    "Не вдалося змінити статус."
+                );
+            
                 if (statusMessage) {
                     statusMessage.textContent =
                         "Помилка";
                 }
-
+            
                 await loadWorkOrder();
 
             } finally {
