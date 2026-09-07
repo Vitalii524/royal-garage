@@ -254,40 +254,48 @@ async function loadWorkOrderServices(
             return;
         }
 
-        container.innerHTML =
-            items
-                .map(
-                    (item) => `
-                        <div style="
-                            padding: 12px 0;
-                            border-top: 1px solid #374151;
-                        ">
-                            <strong>
-                                ${item.name || ""}
-                            </strong>
-
-                            <div>
-                                Кількість:
-                                ${item.quantity || 0}
-                            </div>
-
-                            <div>
-                                Ціна:
-                                ${Number(
-                                    item.price || 0
-                                ).toFixed(2)} грн
-                            </div>
-
-                            <div>
-                                Разом:
-                                ${Number(
-                                    item.total || 0
-                                ).toFixed(2)} грн
-                            </div>
-                        </div>
-                    `
-                )
-                .join("");
+        const servicesTotal =
+        items.reduce(
+            (sum, item) =>
+                sum + Number(item.total || 0),
+            0
+        );
+    
+    container.innerHTML = `
+        ${items
+            .map(
+                (item) => `
+                    <div style="
+                        padding: 12px 0;
+                        border-top: 1px solid #374151;
+                        display: flex;
+                        justify-content: space-between;
+                        gap: 16px;
+                    ">
+                        <strong>
+                            ${item.name || ""}
+                        </strong>
+    
+                        <strong>
+                            ${Number(
+                                item.total || 0
+                            ).toFixed(2)} грн
+                        </strong>
+                    </div>
+                `
+            )
+            .join("")}
+    
+        <div style="
+            padding-top: 14px;
+            border-top: 1px solid #4b5563;
+            text-align: right;
+            font-weight: bold;
+        ">
+            Разом роботи:
+            ${servicesTotal.toFixed(2)} грн
+        </div>
+    `;
 
     } catch (error) {
         console.error(
