@@ -972,6 +972,191 @@ async function bindWorkOrderForm() {
     );
 }
 
+let crmWorkOrdersCache = [];
+
+function normalizeCrmSearchValue(value) {
+    return String(value || "")
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function normalizeCrmPhone(value) {
+    return String(value || "")
+        .replace(/\D/g, "");
+}
+
+function renderWorkOrders(workOrders) {
+    const count =
+        document.getElementById(
+            "crmWorkOrdersCount"
+        );
+
+    const list =
+        document.getElementById(
+            "crmWorkOrdersList"
+        );
+
+    const searchInput =
+        document.getElementById(
+            "crmWorkOrdersSearch"
+        );
+
+    if (!count || !list) {
+        return;
+    }
+
+    const query =
+        normalizeCrmSearchValue(
+            searchInput?.value
+        );
+
+    const phoneQuery =
+        normalizeCrmPhone(
+            searchInput?.value
+        );
+
+    const filteredOrders =
+        workOrders.filter((order) => {
+            if (!query) {
+                return true;
+            }
+
+            const searchableText =
+                normalizeCrmSearchValue([
+                    order.orderNumber,
+                    order.clientName,
+                    order.clientPhone,
+                    order.brand,
+                    order.model,
+                    order.plate,
+                    order.vin,
+                    order.status
+                ].join(" "));
+
+            const orderPhone =
+                normalizeCrmPhone(
+                    order.clientPhone
+                );
+
+            return (
+                searchableText.includes(query) ||
+                (
+                    phoneQuery.length >= 3 &&
+                    orderPhone.includes(phoneQuery)
+                )
+            );
+        });
+
+    count.textContent =
+        query
+            ? `Знайдено: ${filteredOrders.length} з ${workOrders.length}`
+            : `Нарядів: ${workOrders.length}`;
+
+    if (workOrders.length === 0) {
+        list.innerHTML =
+            "<p>Замовлень-нарядів ще немає.</p>";
+        return;
+    }
+
+    if (filteredOrders.length === 0) {
+        list.innerHTML =
+            "<p>За цим запитом нарядів не знайдено.</p>";
+        return;
+    }
+
+    list.innerHTML =
+        filteredOrders
+            .map(
+                (order) => `
+                    <div style="
+                        display: grid;
+                        grid-template-columns:
+                            minmax(120px, 0.9fr)
+                            minmax(120px, 1fr)
+                            minmax(150px, 1.3fr)
+                            auto;
+                        gap: 14px;
+                        align-items: center;
+                        padding: 14px 0;
+                        border-top: 1px solid #333;
+                    ">
+                        <div>
+                            <a
+                                href="crm-work-order.html?id=${encodeURIComponent(order.id)}"
+                                style="
+                                    color: #fff;
+                                    text-decoration: none;
+                                    font-weight: 700;
+                                "
+                            >
+                                ${order.orderNumber || "Наряд"}
+                            </a>
+
+                            <div style="
+                                color: #aaa;
+                                font-size: 14px;
+                            ">
+                                ${order.status || "—"}
+                            </div>
+                        </div>
+
+                        <div>
+                            <strong>
+                                ${order.clientName || "—"}
+                            </strong>
+
+                            ${
+                                order.clientPhone
+                                    ? `<div style="color:#aaa;font-size:14px;">${order.clientPhone}</div>`
+                                    : ""
+                            }
+                        </div>
+
+                        <div>
+                            ${order.brand || ""}
+                            ${order.model || ""}
+
+                            ${
+                                order.plate
+                                    ? `<div style="color:#aaa;font-size:14px;">${order.plate}</div>`
+                                    : ""
+                            }
+                        </div>
+
+                        <div style="
+                            text-align: right;
+                            font-weight: 700;
+                            white-space: nowrap;
+                        ">
+                            ${Number(order.totalAmount || 0).toFixed(2)} грн
+                        </div>
+                    </div>
+                `
+            )
+            .join("");
+}
+
+function bindWorkOrdersSearch() {
+    const searchInput =
+        document.getElementById(
+            "crmWorkOrdersSearch"
+        );
+
+    if (!searchInput) {
+        return;
+    }
+
+    searchInput.addEventListener(
+        "input",
+        () => {
+            renderWorkOrders(
+                crmWorkOrdersCache
+            );
+        }
+    );
+}
+
 async function loadWorkOrders() {
     const count =
         document.getElementById(
@@ -1009,94 +1194,14 @@ async function loadWorkOrders() {
             );
         }
 
-        const workOrders =
+        crmWorkOrdersCache =
             Array.isArray(data.workOrders)
                 ? data.workOrders
                 : [];
 
-        count.textContent =
-            `Нарядів: ${workOrders.length}`;
-
-        if (workOrders.length === 0) {
-            list.innerHTML =
-                "<p>Замовлень-нарядів ще немає.</p>";
-            return;
-        }
-
-        list.innerHTML =
-            workOrders
-                .map(
-                    (order) => `
-                        <div style="
-                            padding: 12px 0;
-                            border-top: 1px solid #333;
-                        ">
-                        <a
-                            href="crm-work-order.html?id=${encodeURIComponent(order.id)}"
-                            style="
-                                color: inherit;
-                                text-decoration: none;
-                                font-weight: bold;
-                            "
-                        >
-                            ${order.orderNumber || ""}
-                        </a>
-
-                            <div>
-                                Статус:
-                                ${order.status || ""}
-                            </div>
-
-                            ${
-                                order.clientName
-                                    ? `<div>Клієнт: ${order.clientName}</div>`
-                                    : ""
-                            }
-
-                            <div>
-                                Авто:
-                                ${order.brand || ""}
-                                ${order.model || ""}
-                            </div>
-
-                            ${
-                                order.plate
-                                    ? `<div>Номер: ${order.plate}</div>`
-                                    : ""
-                            }
-
-                            ${
-                                order.vin
-                                    ? `<div>VIN: ${order.vin}</div>`
-                                    : ""
-                            }
-
-                            ${
-                                order.mileage != null
-                                    ? `<div>Пробіг: ${order.mileage} км</div>`
-                                    : ""
-                            }
-
-                            ${
-                                order.customerComplaint
-                                    ? `<div>Скарга: ${order.customerComplaint}</div>`
-                                    : ""
-                            }
-
-                            ${
-                                order.diagnostics
-                                    ? `<div>Діагностика: ${order.diagnostics}</div>`
-                                    : ""
-                            }
-
-                            <div>
-                                Сума:
-                                ${Number(order.totalAmount || 0).toFixed(2)} грн
-                            </div>
-                        </div>
-                    `
-                )
-                .join("");
+        renderWorkOrders(
+            crmWorkOrdersCache
+        );
 
     } catch (error) {
         console.error(
@@ -1121,5 +1226,6 @@ document.addEventListener(
         bindClientForm();
         bindCarForm();
         bindWorkOrderForm();
+        bindWorkOrdersSearch();
     }
 );
