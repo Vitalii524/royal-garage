@@ -9779,6 +9779,24 @@ app.patch(
                 });
             }
 
+            await pool.query(
+                `
+                INSERT INTO crm_work_order_events (
+                    service_id,
+                    work_order_id,
+                    event_type,
+                    message
+                )
+                VALUES ($1, $2, $3, $4)
+                `,
+                [
+                    serviceId,
+                    workOrderId,
+                    "work_order_updated",
+                    "Відредаговано дані наряду"
+                ]
+            );
+
             return res.json({
                 ok: true,
                 workOrder: result.rows[0]
@@ -9955,6 +9973,24 @@ app.post(
                     await recalculateCrmWorkOrderTotal(
                         serviceId,
                         workOrderId
+                    );
+
+                    await pool.query(
+                        `
+                        INSERT INTO crm_work_order_events (
+                            service_id,
+                            work_order_id,
+                            event_type,
+                            message
+                        )
+                        VALUES ($1, $2, $3, $4)
+                        `,
+                        [
+                            serviceId,
+                            workOrderId,
+                            "service_added",
+                            `Додано роботу: ${cleanName}`
+                        ]
                     );
 
                     return res.status(201).json({
@@ -10245,6 +10281,24 @@ app.post(
                     await recalculateCrmWorkOrderTotal(
                         serviceId,
                         workOrderId
+                    );
+
+                    await pool.query(
+                        `
+                        INSERT INTO crm_work_order_events (
+                            service_id,
+                            work_order_id,
+                            event_type,
+                            message
+                        )
+                        VALUES ($1, $2, $3, $4)
+                        `,
+                        [
+                            serviceId,
+                            workOrderId,
+                            "part_added",
+                            `Додано запчастину: ${cleanName}`
+                        ]
                     );
 
                     return res.status(201).json({
