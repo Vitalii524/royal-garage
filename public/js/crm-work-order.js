@@ -894,6 +894,159 @@ function bindWorkOrderEdit() {
     );
 }
 
+async function loadWorkOrderHistory(
+    workOrderId
+) {
+    const container =
+        document.getElementById(
+            "crmWorkOrderHistory"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    const statusLabels = {
+        new: "Новий",
+        in_progress: "В роботі",
+        ready: "Готовий",
+        completed: "Виданий"
+    };
+
+    try {
+        const response =
+            await fetch(
+                `${getApiBaseUrl()}/api/crm/work-orders/${encodeURIComponent(workOrderId)}/events`,
+                {
+                    headers: {
+                        Authorization:
+                            `Bearer ${getToken()}`
+                    }
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити історію."
+            );
+        }
+
+        const events =
+            Array.isArray(data.events)
+                ? data.events
+                : [];
+
+        container.innerHTML = "";
+
+        if (events.length === 0) {
+            container.textContent =
+                "Історія змін ще порожня.";
+
+            return;
+        }
+
+        events.forEach(
+            (event) => {
+                const row =
+                    document.createElement(
+                        "div"
+                    );
+
+                row.style.padding =
+                    "12px 0";
+
+                row.style.borderTop =
+                    "1px solid #374151";
+
+                const title =
+                    document.createElement(
+                        "div"
+                    );
+
+                title.style.fontWeight =
+                    "600";
+
+                if (
+                    event.eventType ===
+                    "status_changed"
+                ) {
+                    const oldStatus =
+                        statusLabels[
+                            event.oldStatus
+                        ] ||
+                        event.oldStatus ||
+                        "—";
+
+                    const newStatus =
+                        statusLabels[
+                            event.newStatus
+                        ] ||
+                        event.newStatus ||
+                        "—";
+
+                    title.textContent =
+                        `${oldStatus} → ${newStatus}`;
+
+                } else {
+                    title.textContent =
+                        event.message ||
+                        "Подія";
+                }
+
+                const date =
+                    document.createElement(
+                        "div"
+                    );
+
+                date.className =
+                    "crm-muted";
+
+                date.style.marginTop =
+                    "4px";
+
+                if (event.createdAt) {
+                    date.textContent =
+                        new Date(
+                            event.createdAt
+                        ).toLocaleString(
+                            "uk-UA"
+                        );
+                }
+
+                row.appendChild(
+                    title
+                );
+
+                row.appendChild(
+                    date
+                );
+
+                container.appendChild(
+                    row
+                );
+            }
+        );
+
+        await loadWorkOrderHistory(
+            workOrderId
+        );
+
+    } catch (error) {
+        console.error(
+            "CRM work order history load error:",
+            error
+        );
+
+        container.textContent =
+            error.message ||
+            "Не вдалося завантажити історію.";
+    }
+}
+
 function bindWorkOrderStatus() {
     const statusSelect =
         document.getElementById(
@@ -965,6 +1118,10 @@ function bindWorkOrderStatus() {
                     statusMessage.textContent =
                         "Збережено";
                 }
+
+                await loadWorkOrderHistory(
+                    workOrderId
+                );
 
             } catch (error) {
                 console.error(
