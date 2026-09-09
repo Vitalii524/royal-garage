@@ -9064,6 +9064,109 @@ app.get(
 );
 
 app.get(
+    "/api/crm/work-orders/:workOrderId/events",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const workOrderId =
+                String(
+                    req.params.workOrderId || ""
+                ).trim();
+
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const workOrderResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_work_orders
+                    WHERE id = $1
+                      AND service_id = $2
+                    LIMIT 1
+                    `,
+                    [
+                        workOrderId,
+                        serviceId
+                    ]
+                );
+
+            if (
+                workOrderResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Замовлення-наряд не знайдено."
+                });
+            }
+
+            const eventsResult =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        event_type AS "eventType",
+                        old_status AS "oldStatus",
+                        new_status AS "newStatus",
+                        message,
+                        created_at AS "createdAt"
+                    FROM crm_work_order_events
+                    WHERE service_id = $1
+                      AND work_order_id = $2
+                    ORDER BY created_at DESC
+                    `,
+                    [
+                        serviceId,
+                        workOrderId
+                    ]
+                );
+
+            return res.json({
+                ok: true,
+                events: eventsResult.rows
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM work order events load error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити історію наряду."
+            });
+        }
+    }
+);
+
+app.get(
     "/api/crm/work-orders/:workOrderId",
     requireAuth,
     requireCrmAccess,
