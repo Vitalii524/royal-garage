@@ -253,6 +253,10 @@ async function loadWorkOrder() {
             </div>
         `;
 
+        await loadWorkOrderHistory(
+            workOrderId
+        );
+
     } catch (error) {
         console.error(
             "CRM work order load error:",
@@ -1029,10 +1033,6 @@ async function loadWorkOrderHistory(
                     row
                 );
             }
-        );
-
-        await loadWorkOrderHistory(
-            workOrderId
         );
 
     } catch (error) {
