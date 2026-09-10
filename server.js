@@ -11940,6 +11940,518 @@ app.delete(
     }
 );
 
+/* =========================
+   CRM ПРАЦІВНИКИ
+   ========================= */
+
+   app.get(
+    "/api/crm/employees",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        name,
+                        phone,
+                        email,
+                        role,
+                        specialization,
+                        status,
+                        notes,
+                        created_at AS "createdAt",
+                        updated_at AS "updatedAt"
+                    FROM crm_employees
+                    WHERE service_id = $1
+                    ORDER BY
+                        status ASC,
+                        name ASC
+                    `,
+                    [
+                        serviceId
+                    ]
+                );
+
+            return res.json({
+                ok: true,
+                employees: result.rows
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM employees load error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити працівників."
+            });
+        }
+    }
+);
+
+
+app.post(
+    "/api/crm/employees",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const {
+                name,
+                phone,
+                email,
+                role,
+                specialization,
+                notes
+            } = req.body || {};
+
+            const cleanName =
+                String(name || "").trim();
+
+            const cleanPhone =
+                String(phone || "").trim();
+
+            const cleanEmail =
+                String(email || "")
+                    .trim()
+                    .toLowerCase();
+
+            const cleanRole =
+                String(
+                    role || "mechanic"
+                ).trim();
+
+            const cleanSpecialization =
+                String(
+                    specialization || ""
+                ).trim();
+
+            const cleanNotes =
+                String(notes || "").trim();
+
+            if (!cleanName) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть ім’я працівника."
+                });
+            }
+
+            const allowedRoles =
+                new Set([
+                    "mechanic",
+                    "master",
+                    "manager",
+                    "admin"
+                ]);
+
+            if (
+                !allowedRoles.has(cleanRole)
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Некоректна посада працівника."
+                });
+            }
+
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const result =
+                await pool.query(
+                    `
+                    INSERT INTO crm_employees (
+                        service_id,
+                        name,
+                        phone,
+                        email,
+                        role,
+                        specialization,
+                        status,
+                        notes
+                    )
+                    VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        $4,
+                        $5,
+                        $6,
+                        'active',
+                        $7
+                    )
+                    RETURNING
+                        id,
+                        name,
+                        phone,
+                        email,
+                        role,
+                        specialization,
+                        status,
+                        notes,
+                        created_at AS "createdAt",
+                        updated_at AS "updatedAt"
+                    `,
+                    [
+                        serviceId,
+                        cleanName,
+                        cleanPhone || null,
+                        cleanEmail || null,
+                        cleanRole,
+                        cleanSpecialization || null,
+                        cleanNotes || null
+                    ]
+                );
+
+            return res.status(201).json({
+                ok: true,
+                employee:
+                    result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM employee create error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося додати працівника."
+            });
+        }
+    }
+);
+
+app.patch(
+    "/api/crm/employees/:employeeId",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const employeeId =
+                String(
+                    req.params.employeeId || ""
+                ).trim();
+
+            const {
+                name,
+                phone,
+                email,
+                role,
+                specialization,
+                status,
+                notes
+            } = req.body || {};
+
+            const cleanName =
+                String(name || "").trim();
+
+            const cleanPhone =
+                String(phone || "").trim();
+
+            const cleanEmail =
+                String(email || "")
+                    .trim()
+                    .toLowerCase();
+
+            const cleanRole =
+                String(
+                    role || "mechanic"
+                ).trim();
+
+            const cleanSpecialization =
+                String(
+                    specialization || ""
+                ).trim();
+
+            const cleanStatus =
+                String(
+                    status || "active"
+                ).trim();
+
+            const cleanNotes =
+                String(notes || "").trim();
+
+            if (!cleanName) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть ім’я працівника."
+                });
+            }
+
+            const allowedRoles =
+                new Set([
+                    "mechanic",
+                    "master",
+                    "manager",
+                    "admin"
+                ]);
+
+            if (
+                !allowedRoles.has(cleanRole)
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Некоректна посада працівника."
+                });
+            }
+
+            const allowedStatuses =
+                new Set([
+                    "active",
+                    "inactive"
+                ]);
+
+            if (
+                !allowedStatuses.has(
+                    cleanStatus
+                )
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Некоректний статус працівника."
+                });
+            }
+
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const result =
+                await pool.query(
+                    `
+                    UPDATE crm_employees
+                    SET
+                        name = $1,
+                        phone = $2,
+                        email = $3,
+                        role = $4,
+                        specialization = $5,
+                        status = $6,
+                        notes = $7,
+                        updated_at = NOW()
+                    WHERE id = $8
+                      AND service_id = $9
+                    RETURNING
+                        id,
+                        name,
+                        phone,
+                        email,
+                        role,
+                        specialization,
+                        status,
+                        notes,
+                        created_at AS "createdAt",
+                        updated_at AS "updatedAt"
+                    `,
+                    [
+                        cleanName,
+                        cleanPhone || null,
+                        cleanEmail || null,
+                        cleanRole,
+                        cleanSpecialization || null,
+                        cleanStatus,
+                        cleanNotes || null,
+                        employeeId,
+                        serviceId
+                    ]
+                );
+
+            if (
+                result.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Працівника не знайдено."
+                });
+            }
+
+            return res.json({
+                ok: true,
+                employee:
+                    result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM employee update error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося оновити працівника."
+            });
+        }
+    }
+);
+
+
+app.delete(
+    "/api/crm/employees/:employeeId",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const employeeId =
+                String(
+                    req.params.employeeId || ""
+                ).trim();
+
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const result =
+                await pool.query(
+                    `
+                    DELETE FROM crm_employees
+                    WHERE id = $1
+                      AND service_id = $2
+                    RETURNING id
+                    `,
+                    [
+                        employeeId,
+                        serviceId
+                    ]
+                );
+
+            if (
+                result.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Працівника не знайдено."
+                });
+            }
+
+            return res.json({
+                ok: true
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM employee delete error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося видалити працівника."
+            });
+        }
+    }
+);
+
 app.post(
     "/api/phone/send-code",
     requireAuth,

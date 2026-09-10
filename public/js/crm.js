@@ -1980,6 +1980,590 @@ function bindAppointmentForm() {
         }
     );
 }
+
+function getCrmEmployeeRoleLabel(role) {
+    const labels = {
+        mechanic: "Механік",
+        master: "Майстер-приймальник",
+        manager: "Менеджер",
+        admin: "Адміністратор"
+    };
+
+    return labels[role] || role || "—";
+}
+
+
+function getCrmEmployeeStatusLabel(status) {
+    const labels = {
+        active: "Працює",
+        inactive: "Неактивний"
+    };
+
+    return labels[status] || status || "—";
+}
+
+
+async function loadEmployees() {
+    const count =
+        document.getElementById(
+            "crmEmployeesCount"
+        );
+
+    const list =
+        document.getElementById(
+            "crmEmployeesList"
+        );
+
+    if (!count || !list) {
+        return;
+    }
+
+    try {
+        const response =
+            await fetch(
+                `${getApiBaseUrl()}/api/crm/employees`,
+                {
+                    headers: {
+                        Authorization:
+                            `Bearer ${getToken()}`
+                    }
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити працівників."
+            );
+        }
+
+        const employees =
+            Array.isArray(data.employees)
+                ? data.employees
+                : [];
+
+        count.textContent =
+            `Працівників: ${employees.length}`;
+
+        if (employees.length === 0) {
+            list.innerHTML = `
+                <div class="crm-empty-block">
+                    Працівників ще немає.
+                </div>
+            `;
+
+            return;
+        }
+
+        list.innerHTML =
+            employees
+                .map(
+                    (employee) => `
+                        <div style="
+                            padding: 14px 0;
+                            border-top: 1px solid #333;
+                        ">
+                            <div style="
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: flex-start;
+                                gap: 16px;
+                                flex-wrap: wrap;
+                            ">
+                                <div>
+                                    <strong>
+                                        ${employee.name || "Без імені"}
+                                    </strong>
+
+                                    <div style="
+                                        margin-top: 4px;
+                                        color: #aaa;
+                                    ">
+                                        ${getCrmEmployeeRoleLabel(
+                                            employee.role
+                                        )}
+                                    </div>
+
+                                    ${
+                                        employee.specialization
+                                            ? `
+                                                <div style="
+                                                    margin-top: 4px;
+                                                ">
+                                                    🔧
+                                                    ${employee.specialization}
+                                                </div>
+                                            `
+                                            : ""
+                                    }
+
+                                    ${
+                                        employee.phone
+                                            ? `
+                                                <div style="
+                                                    margin-top: 4px;
+                                                ">
+                                                    📞
+                                                    ${employee.phone}
+                                                </div>
+                                            `
+                                            : ""
+                                    }
+
+                                    ${
+                                        employee.email
+                                            ? `
+                                                <div style="
+                                                    margin-top: 4px;
+                                                ">
+                                                    ✉️
+                                                    ${employee.email}
+                                                </div>
+                                            `
+                                            : ""
+                                    }
+
+                                    ${
+                                        employee.notes
+                                            ? `
+                                                <div style="
+                                                    margin-top: 6px;
+                                                    color: #aaa;
+                                                ">
+                                                    ${employee.notes}
+                                                </div>
+                                            `
+                                            : ""
+                                    }
+
+                                    <div style="
+                                        display: flex;
+                                        gap: 8px;
+                                        flex-wrap: wrap;
+                                        margin-top: 10px;
+                                    ">
+                                        <button
+                                            type="button"
+                                            class="crm-employee-edit"
+                                            data-employee-id="${employee.id}"
+                                        >
+                                            Редагувати
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            class="crm-employee-delete"
+                                            data-employee-id="${employee.id}"
+                                        >
+                                            Видалити
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div style="
+                                    color: #aaa;
+                                    white-space: nowrap;
+                                ">
+                                    ${getCrmEmployeeStatusLabel(
+                                        employee.status
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    `
+                )
+                .join("");
+
+        list
+            .querySelectorAll(
+                ".crm-employee-edit"
+            )
+            .forEach((button) => {
+                button.addEventListener(
+                    "click",
+                    async () => {
+                        const employeeId =
+                            button.dataset.employeeId;
+
+                        const employee =
+                            employees.find(
+                                (item) =>
+                                    String(item.id) ===
+                                    String(employeeId)
+                            );
+
+                        if (!employee) {
+                            return;
+                        }
+
+                        const name =
+                            prompt(
+                                "Ім'я працівника:",
+                                employee.name || ""
+                            );
+
+                        if (name === null) {
+                            return;
+                        }
+
+                        const phone =
+                            prompt(
+                                "Телефон:",
+                                employee.phone || ""
+                            );
+
+                        if (phone === null) {
+                            return;
+                        }
+
+                        const email =
+                            prompt(
+                                "Email:",
+                                employee.email || ""
+                            );
+
+                        if (email === null) {
+                            return;
+                        }
+
+                        const role =
+                            prompt(
+                                "Посада: mechanic / master / manager / admin",
+                                employee.role || "mechanic"
+                            );
+
+                        if (role === null) {
+                            return;
+                        }
+
+                        const specialization =
+                            prompt(
+                                "Спеціалізація:",
+                                employee.specialization || ""
+                            );
+
+                        if (specialization === null) {
+                            return;
+                        }
+
+                        const status =
+                            prompt(
+                                "Статус: active / inactive",
+                                employee.status || "active"
+                            );
+
+                        if (status === null) {
+                            return;
+                        }
+
+                        const notes =
+                            prompt(
+                                "Примітки:",
+                                employee.notes || ""
+                            );
+
+                        if (notes === null) {
+                            return;
+                        }
+
+                        try {
+                            const response =
+                                await fetch(
+                                    `${getApiBaseUrl()}/api/crm/employees/${encodeURIComponent(employeeId)}`,
+                                    {
+                                        method: "PATCH",
+
+                                        headers: {
+                                            "Content-Type":
+                                                "application/json",
+
+                                            Authorization:
+                                                `Bearer ${getToken()}`
+                                        },
+
+                                        body:
+                                            JSON.stringify({
+                                                name:
+                                                    String(name).trim(),
+
+                                                phone:
+                                                    String(phone).trim(),
+
+                                                email:
+                                                    String(email).trim(),
+
+                                                role:
+                                                    String(role).trim(),
+
+                                                specialization:
+                                                    String(
+                                                        specialization
+                                                    ).trim(),
+
+                                                status:
+                                                    String(status).trim(),
+
+                                                notes:
+                                                    String(notes).trim()
+                                            })
+                                    }
+                                );
+
+                            const data =
+                                await response.json();
+
+                            if (!response.ok) {
+                                throw new Error(
+                                    data.message ||
+                                    "Не вдалося оновити працівника."
+                                );
+                            }
+
+                            await loadEmployees();
+
+                        } catch (error) {
+                            console.error(
+                                "CRM employee update error:",
+                                error
+                            );
+
+                            alert(
+                                error.message ||
+                                "Не вдалося оновити працівника."
+                            );
+                        }
+                    }
+                );
+            });
+
+        list
+            .querySelectorAll(
+                ".crm-employee-delete"
+            )
+            .forEach((button) => {
+                button.addEventListener(
+                    "click",
+                    async () => {
+                        const employeeId =
+                            button.dataset.employeeId;
+
+                        const employee =
+                            employees.find(
+                                (item) =>
+                                    String(item.id) ===
+                                    String(employeeId)
+                            );
+
+                        if (!employee) {
+                            return;
+                        }
+
+                        const confirmed =
+                            window.confirm(
+                                `Видалити працівника "${employee.name}"?`
+                            );
+
+                        if (!confirmed) {
+                            return;
+                        }
+
+                        try {
+                            const response =
+                                await fetch(
+                                    `${getApiBaseUrl()}/api/crm/employees/${encodeURIComponent(employeeId)}`,
+                                    {
+                                        method: "DELETE",
+
+                                        headers: {
+                                            Authorization:
+                                                `Bearer ${getToken()}`
+                                        }
+                                    }
+                                );
+
+                            const data =
+                                await response.json();
+
+                            if (!response.ok) {
+                                throw new Error(
+                                    data.message ||
+                                    "Не вдалося видалити працівника."
+                                );
+                            }
+
+                            await loadEmployees();
+
+                        } catch (error) {
+                            console.error(
+                                "CRM employee delete error:",
+                                error
+                            );
+
+                            alert(
+                                error.message ||
+                                "Не вдалося видалити працівника."
+                            );
+                        }
+                    }
+                );
+            });
+
+    } catch (error) {
+        console.error(
+            "CRM employees load error:",
+            error
+        );
+
+        count.textContent =
+            "Не вдалося завантажити працівників.";
+
+        list.innerHTML = "";
+    }
+}
+
+
+function bindEmployeeForm() {
+    const addButton =
+        document.getElementById(
+            "crmAddEmployeeButton"
+        );
+
+    const form =
+        document.getElementById(
+            "crmEmployeeForm"
+        );
+
+    if (!addButton || !form) {
+        return;
+    }
+
+    addButton.addEventListener(
+        "click",
+        () => {
+            form.hidden =
+                !form.hidden;
+        }
+    );
+
+    form.addEventListener(
+        "submit",
+        async (event) => {
+            event.preventDefault();
+
+            const name =
+                document
+                    .getElementById(
+                        "crmEmployeeName"
+                    )
+                    ?.value.trim() || "";
+
+            const phone =
+                document
+                    .getElementById(
+                        "crmEmployeePhone"
+                    )
+                    ?.value.trim() || "";
+
+            const email =
+                document
+                    .getElementById(
+                        "crmEmployeeEmail"
+                    )
+                    ?.value.trim() || "";
+
+            const role =
+                document
+                    .getElementById(
+                        "crmEmployeeRole"
+                    )
+                    ?.value || "mechanic";
+
+            const specialization =
+                document
+                    .getElementById(
+                        "crmEmployeeSpecialization"
+                    )
+                    ?.value.trim() || "";
+
+            const notes =
+                document
+                    .getElementById(
+                        "crmEmployeeNotes"
+                    )
+                    ?.value.trim() || "";
+
+            if (!name) {
+                alert(
+                    "Вкажіть ім'я працівника."
+                );
+
+                return;
+            }
+
+            try {
+                const response =
+                    await fetch(
+                        `${getApiBaseUrl()}/api/crm/employees`,
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+
+                                Authorization:
+                                    `Bearer ${getToken()}`
+                            },
+
+                            body:
+                                JSON.stringify({
+                                    name,
+                                    phone,
+                                    email,
+                                    role,
+                                    specialization,
+                                    notes
+                                })
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.message ||
+                        "Не вдалося додати працівника."
+                    );
+                }
+
+                alert(
+                    "Працівника додано."
+                );
+
+                form.reset();
+                form.hidden = true;
+
+                await loadEmployees();
+
+            } catch (error) {
+                console.error(
+                    "CRM employee create error:",
+                    error
+                );
+
+                alert(
+                    error.message ||
+                    "Не вдалося додати працівника."
+                );
+            }
+        }
+    );
+}
+
 document.addEventListener(
     "DOMContentLoaded",
     () => {
@@ -1988,11 +2572,13 @@ document.addEventListener(
         loadCars();
         loadWorkOrders();
         loadAppointments();
+        loadEmployees();
 
         bindClientForm();
         bindCarForm();
         bindWorkOrderForm();
         bindWorkOrdersSearch();
         bindAppointmentForm();
+        bindEmployeeForm();
     }
 );

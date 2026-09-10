@@ -878,7 +878,7 @@
                         </div>
                     </div>
                 </section>
-                
+
                     <section
                         id="crmWorkersSection"
                         class="crm-section"
@@ -890,10 +890,85 @@
                                 <p>Менеджери та механіки.</p>
                             </div>
                         </div>
+<section class="crm-status">
+    <button
+        id="crmAddEmployeeButton"
+        type="button"
+    >
+        + Додати працівника
+    </button>
 
-                        <div class="crm-empty-block">
-                            Керування працівниками буде додано наступним етапом.
-                        </div>
+    <form
+        id="crmEmployeeForm"
+        class="crm-form"
+        hidden
+    >
+        <input
+            id="crmEmployeeName"
+            type="text"
+            placeholder="Ім'я працівника"
+            required
+        >
+
+        <input
+            id="crmEmployeePhone"
+            type="text"
+            placeholder="Телефон"
+        >
+
+        <input
+            id="crmEmployeeEmail"
+            type="email"
+            placeholder="Email"
+        >
+
+        <select
+            id="crmEmployeeRole"
+            required
+        >
+            <option value="mechanic">
+                Механік
+            </option>
+
+            <option value="master">
+                Майстер-приймальник
+            </option>
+
+            <option value="manager">
+                Менеджер
+            </option>
+
+            <option value="admin">
+                Адміністратор
+            </option>
+        </select>
+
+        <input
+            id="crmEmployeeSpecialization"
+            type="text"
+            placeholder="Спеціалізація"
+        >
+
+        <textarea
+            id="crmEmployeeNotes"
+            placeholder="Примітки"
+        ></textarea>
+
+        <button type="submit">
+            Зберегти працівника
+        </button>
+    </form>
+</section>
+
+<div class="crm-card crm-list-card">
+    <h2>Список працівників</h2>
+
+    <p id="crmEmployeesCount">
+        Завантаження...
+    </p>
+
+    <div id="crmEmployeesList"></div>
+</div>
                     </section>
 
                     <section
