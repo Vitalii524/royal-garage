@@ -11185,6 +11185,761 @@ app.get(
     }
 );
 
+/* =========================
+   CRM КАЛЕНДАР / ЗАПИСИ
+   ========================= */
+
+   app.post(
+    "/api/crm/appointments",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const {
+                clientId,
+                carId,
+                title,
+                scheduledAt,
+                durationMinutes,
+                notes
+            } = req.body || {};
+
+            const cleanClientId =
+                String(clientId || "").trim();
+
+            const cleanCarId =
+                String(carId || "").trim();
+
+            const cleanTitle =
+                String(title || "").trim();
+
+            const cleanNotes =
+                String(notes || "").trim();
+
+            const cleanDuration =
+                durationMinutes === "" ||
+                durationMinutes == null
+                    ? 60
+                    : Number(durationMinutes);
+
+            if (!cleanTitle) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть назву запису."
+                });
+            }
+
+            if (!scheduledAt) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть дату та час запису."
+                });
+            }
+
+            const scheduledDate =
+                new Date(scheduledAt);
+
+            if (
+                Number.isNaN(
+                    scheduledDate.getTime()
+                )
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Некоректна дата або час запису."
+                });
+            }
+
+            if (
+                !Number.isInteger(cleanDuration) ||
+                cleanDuration <= 0 ||
+                cleanDuration > 1440
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть коректну тривалість запису."
+                });
+            }
+
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            /*
+             * Якщо переданий клієнт —
+             * перевіряємо, що він належить
+             * саме цьому CRM сервісу.
+             */
+            if (cleanClientId) {
+                const clientResult =
+                    await pool.query(
+                        `
+                        SELECT id
+                        FROM crm_clients
+                        WHERE id = $1
+                          AND service_id = $2
+                        LIMIT 1
+                        `,
+                        [
+                            cleanClientId,
+                            serviceId
+                        ]
+                    );
+
+                if (
+                    clientResult.rows.length === 0
+                ) {
+                    return res.status(404).json({
+                        ok: false,
+                        message:
+                            "Клієнта не знайдено."
+                    });
+                }
+            }
+
+            /*
+             * Якщо передане авто —
+             * перевіряємо tenant і,
+             * якщо є clientId,
+             * відповідність клієнту.
+             */
+            if (cleanCarId) {
+                const carResult =
+                    await pool.query(
+                        `
+                        SELECT
+                            id,
+                            client_id
+                        FROM crm_cars
+                        WHERE id = $1
+                          AND service_id = $2
+                        LIMIT 1
+                        `,
+                        [
+                            cleanCarId,
+                            serviceId
+                        ]
+                    );
+
+                if (
+                    carResult.rows.length === 0
+                ) {
+                    return res.status(404).json({
+                        ok: false,
+                        message:
+                            "Автомобіль не знайдено."
+                    });
+                }
+
+                if (
+                    cleanClientId &&
+                    String(
+                        carResult.rows[0].client_id
+                    ) !== cleanClientId
+                ) {
+                    return res.status(400).json({
+                        ok: false,
+                        message:
+                            "Автомобіль не належить вибраному клієнту."
+                    });
+                }
+            }
+
+            const result =
+                await pool.query(
+                    `
+                    INSERT INTO crm_appointments (
+                        service_id,
+                        client_id,
+                        car_id,
+                        title,
+                        scheduled_at,
+                        duration_minutes,
+                        status,
+                        notes
+                    )
+                    VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        $4,
+                        $5,
+                        $6,
+                        'scheduled',
+                        $7
+                    )
+                    RETURNING
+                        id,
+                        client_id
+                            AS "clientId",
+                        car_id
+                            AS "carId",
+                        work_order_id
+                            AS "workOrderId",
+                        title,
+                        scheduled_at
+                            AS "scheduledAt",
+                        duration_minutes
+                            AS "durationMinutes",
+                        status,
+                        notes,
+                        created_at
+                            AS "createdAt",
+                        updated_at
+                            AS "updatedAt"
+                    `,
+                    [
+                        serviceId,
+                        cleanClientId || null,
+                        cleanCarId || null,
+                        cleanTitle,
+                        scheduledDate,
+                        cleanDuration,
+                        cleanNotes || null
+                    ]
+                );
+
+            return res.status(201).json({
+                ok: true,
+                appointment:
+                    result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM appointment create error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося створити запис."
+            });
+        }
+    }
+);
+
+app.get(
+    "/api/crm/appointments",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        a.id,
+
+                        a.client_id
+                            AS "clientId",
+
+                        a.car_id
+                            AS "carId",
+
+                        a.work_order_id
+                            AS "workOrderId",
+
+                        a.title,
+
+                        a.scheduled_at
+                            AS "scheduledAt",
+
+                        a.duration_minutes
+                            AS "durationMinutes",
+
+                        a.status,
+
+                        a.notes,
+
+                        a.created_at
+                            AS "createdAt",
+
+                        a.updated_at
+                            AS "updatedAt",
+
+                        c.name
+                            AS "clientName",
+
+                        c.phone
+                            AS "clientPhone",
+
+                        car.brand,
+
+                        car.model,
+
+                        car.year,
+
+                        car.plate,
+
+                        car.vin
+
+                    FROM crm_appointments a
+
+                    LEFT JOIN crm_clients c
+                        ON c.id = a.client_id
+                       AND c.service_id = a.service_id
+
+                    LEFT JOIN crm_cars car
+                        ON car.id = a.car_id
+                       AND car.service_id = a.service_id
+
+                    WHERE a.service_id = $1
+
+                    ORDER BY
+                        a.scheduled_at ASC
+                    `,
+                    [
+                        serviceId
+                    ]
+                );
+
+            return res.json({
+                ok: true,
+                appointments:
+                    result.rows
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM appointments load error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити записи."
+            });
+        }
+    }
+);
+
+app.patch(
+    "/api/crm/appointments/:appointmentId",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const appointmentId =
+                String(
+                    req.params.appointmentId || ""
+                ).trim();
+
+            const {
+                clientId,
+                carId,
+                title,
+                scheduledAt,
+                durationMinutes,
+                status,
+                notes
+            } = req.body || {};
+
+            const cleanClientId =
+                String(clientId || "").trim();
+
+            const cleanCarId =
+                String(carId || "").trim();
+
+            const cleanTitle =
+                String(title || "").trim();
+
+            const cleanNotes =
+                String(notes || "").trim();
+
+            const cleanDuration =
+                durationMinutes === "" ||
+                durationMinutes == null
+                    ? 60
+                    : Number(durationMinutes);
+
+            const allowedStatuses =
+                new Set([
+                    "scheduled",
+                    "confirmed",
+                    "in_progress",
+                    "completed",
+                    "cancelled"
+                ]);
+
+            if (!cleanTitle) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть назву запису."
+                });
+            }
+
+            if (!scheduledAt) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть дату та час запису."
+                });
+            }
+
+            const scheduledDate =
+                new Date(scheduledAt);
+
+            if (
+                Number.isNaN(
+                    scheduledDate.getTime()
+                )
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Некоректна дата або час запису."
+                });
+            }
+
+            if (
+                !Number.isInteger(cleanDuration) ||
+                cleanDuration <= 0 ||
+                cleanDuration > 1440
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть коректну тривалість запису."
+                });
+            }
+
+            if (
+                !allowedStatuses.has(status)
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Некоректний статус запису."
+                });
+            }
+
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const existingResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_appointments
+                    WHERE id = $1
+                      AND service_id = $2
+                    LIMIT 1
+                    `,
+                    [
+                        appointmentId,
+                        serviceId
+                    ]
+                );
+
+            if (
+                existingResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Запис не знайдено."
+                });
+            }
+
+            if (cleanClientId) {
+                const clientResult =
+                    await pool.query(
+                        `
+                        SELECT id
+                        FROM crm_clients
+                        WHERE id = $1
+                          AND service_id = $2
+                        LIMIT 1
+                        `,
+                        [
+                            cleanClientId,
+                            serviceId
+                        ]
+                    );
+
+                if (
+                    clientResult.rows.length === 0
+                ) {
+                    return res.status(404).json({
+                        ok: false,
+                        message:
+                            "Клієнта не знайдено."
+                    });
+                }
+            }
+
+            if (cleanCarId) {
+                const carResult =
+                    await pool.query(
+                        `
+                        SELECT
+                            id,
+                            client_id
+                        FROM crm_cars
+                        WHERE id = $1
+                          AND service_id = $2
+                        LIMIT 1
+                        `,
+                        [
+                            cleanCarId,
+                            serviceId
+                        ]
+                    );
+
+                if (
+                    carResult.rows.length === 0
+                ) {
+                    return res.status(404).json({
+                        ok: false,
+                        message:
+                            "Автомобіль не знайдено."
+                    });
+                }
+
+                if (
+                    cleanClientId &&
+                    String(
+                        carResult.rows[0].client_id
+                    ) !== cleanClientId
+                ) {
+                    return res.status(400).json({
+                        ok: false,
+                        message:
+                            "Автомобіль не належить вибраному клієнту."
+                    });
+                }
+            }
+
+            const result =
+                await pool.query(
+                    `
+                    UPDATE crm_appointments
+                    SET
+                        client_id = $1,
+                        car_id = $2,
+                        title = $3,
+                        scheduled_at = $4,
+                        duration_minutes = $5,
+                        status = $6,
+                        notes = $7,
+                        updated_at = NOW()
+                    WHERE id = $8
+                      AND service_id = $9
+                    RETURNING
+                        id,
+                        client_id
+                            AS "clientId",
+                        car_id
+                            AS "carId",
+                        work_order_id
+                            AS "workOrderId",
+                        title,
+                        scheduled_at
+                            AS "scheduledAt",
+                        duration_minutes
+                            AS "durationMinutes",
+                        status,
+                        notes,
+                        created_at
+                            AS "createdAt",
+                        updated_at
+                            AS "updatedAt"
+                    `,
+                    [
+                        cleanClientId || null,
+                        cleanCarId || null,
+                        cleanTitle,
+                        scheduledDate,
+                        cleanDuration,
+                        status,
+                        cleanNotes || null,
+                        appointmentId,
+                        serviceId
+                    ]
+                );
+
+            return res.json({
+                ok: true,
+                appointment:
+                    result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM appointment update error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося оновити запис."
+            });
+        }
+    }
+);
+
+app.delete(
+    "/api/crm/appointments/:appointmentId",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const appointmentId =
+                String(
+                    req.params.appointmentId || ""
+                ).trim();
+
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const result =
+                await pool.query(
+                    `
+                    DELETE FROM crm_appointments
+                    WHERE id = $1
+                      AND service_id = $2
+                    RETURNING
+                        id,
+                        title
+                    `,
+                    [
+                        appointmentId,
+                        serviceId
+                    ]
+                );
+
+            if (
+                result.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Запис не знайдено."
+                });
+            }
+
+            return res.json({
+                ok: true
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM appointment delete error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося видалити запис."
+            });
+        }
+    }
+);
+
 app.post(
     "/api/phone/send-code",
     requireAuth,

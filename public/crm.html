@@ -790,22 +790,95 @@
                     </section>
 
                     <section
-                        id="crmCalendarSection"
-                        class="crm-section"
+                    id="crmCalendarSection"
+                    class="crm-section"
+                    hidden
+                >
+                    <div class="crm-page-header">
+                        <div>
+                            <h1>Календар</h1>
+                            <p>
+                                Записи клієнтів та планування робіт.
+                            </p>
+                        </div>
+                
+                        <button
+                            id="crmAddAppointmentButton"
+                            type="button"
+                            class="crm-primary-button"
+                        >
+                            + Додати запис
+                        </button>
+                    </div>
+                
+                    <form
+                        id="crmAppointmentForm"
+                        class="crm-card crm-form"
                         hidden
                     >
-                        <div class="crm-page-header">
-                            <div>
-                                <h1>Календар</h1>
-                                <p>Записи та планування робіт.</p>
-                            </div>
+                        <h2>Новий запис</h2>
+                
+                        <select
+                            id="crmAppointmentClient"
+                        >
+                            <option value="">
+                                Виберіть клієнта
+                            </option>
+                        </select>
+                
+                        <select
+                            id="crmAppointmentCar"
+                        >
+                            <option value="">
+                                Спочатку виберіть клієнта
+                            </option>
+                        </select>
+                
+                        <input
+                            id="crmAppointmentTitle"
+                            type="text"
+                            placeholder="Причина звернення / роботи"
+                            required
+                        >
+                
+                        <input
+                            id="crmAppointmentDateTime"
+                            type="datetime-local"
+                            required
+                        >
+                
+                        <input
+                            id="crmAppointmentDuration"
+                            type="number"
+                            min="1"
+                            max="1440"
+                            value="60"
+                            placeholder="Тривалість, хв"
+                            required
+                        >
+                
+                        <textarea
+                            id="crmAppointmentNotes"
+                            placeholder="Примітка"
+                        ></textarea>
+                
+                        <button type="submit">
+                            Створити запис
+                        </button>
+                    </form>
+                
+                    <div class="crm-card crm-list-card">
+                        <h2>Записи</h2>
+                
+                        <p id="crmAppointmentsCount">
+                            Завантаження...
+                        </p>
+                
+                        <div id="crmAppointmentsList">
                         </div>
-
-                        <div class="crm-empty-block">
-                            Календар CRM RG буде підключено наступним етапом.
-                        </div>
-                    </section>
-
+                    </div>
+                </section>
+                
                     <section
                         id="crmWorkersSection"
                         class="crm-section"

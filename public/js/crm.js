@@ -1227,6 +1227,759 @@ async function loadWorkOrders() {
     }
 }
 
+async function loadAppointments() {
+    const count =
+        document.getElementById(
+            "crmAppointmentsCount"
+        );
+
+    const list =
+        document.getElementById(
+            "crmAppointmentsList"
+        );
+
+    if (!count || !list) {
+        return;
+    }
+
+    try {
+        const response =
+            await fetch(
+                `${getApiBaseUrl()}/api/crm/appointments`,
+                {
+                    headers: {
+                        Authorization:
+                            `Bearer ${getToken()}`
+                    }
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити записи."
+            );
+        }
+
+        const appointments =
+            Array.isArray(data.appointments)
+                ? data.appointments
+                : [];
+
+        count.textContent =
+            `Записів: ${appointments.length}`;
+
+        if (appointments.length === 0) {
+            list.innerHTML = `
+                <div class="crm-empty-block">
+                    Записів ще немає.
+                </div>
+            `;
+
+            return;
+        }
+
+        list.innerHTML =
+            appointments
+                .map((appointment) => {
+                    const date =
+                        new Date(
+                            appointment.scheduledAt
+                        );
+
+                    const dateText =
+                        date.toLocaleString(
+                            "uk-UA",
+                            {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit"
+                            }
+                        );
+
+                    const carText = [
+                        appointment.brand,
+                        appointment.model
+                    ]
+                        .filter(Boolean)
+                        .join(" ");
+
+                        return `
+                        <div style="
+                            padding: 14px 0;
+                            border-top: 1px solid #333;
+                        ">
+                            <div style="
+                                display: flex;
+                                justify-content: space-between;
+                                gap: 16px;
+                                align-items: flex-start;
+                            ">
+                                <div>
+                                    <strong>
+                                        ${appointment.title || "Запис"}
+                                    </strong>
+                    
+                                    <div style="
+                                        color: #aaa;
+                                        margin-top: 4px;
+                                    ">
+                                        ${dateText}
+                                    </div>
+                    
+                                    ${
+                                        appointment.clientName
+                                            ? `
+                                                <div style="
+                                                    margin-top: 6px;
+                                                ">
+                                                    👤
+                                                    ${appointment.clientName}
+                                                </div>
+                                            `
+                                            : ""
+                                    }
+                    
+                                    ${
+                                        carText
+                                            ? `
+                                                <div style="
+                                                    color: #aaa;
+                                                    margin-top: 3px;
+                                                ">
+                                                    🚗
+                                                    ${carText}
+                                                    ${
+                                                        appointment.plate
+                                                            ? ` · ${appointment.plate}`
+                                                            : ""
+                                                    }
+                                                </div>
+                                            `
+                                            : ""
+                                    }
+                    
+                                    ${
+                                        appointment.notes
+                                            ? `
+                                                <div style="
+                                                    color: #aaa;
+                                                    margin-top: 6px;
+                                                ">
+                                                    ${appointment.notes}
+                                                </div>
+                                            `
+                                            : ""
+                                    }
+                    
+                                    <div style="
+                                        display: flex;
+                                        gap: 8px;
+                                        margin-top: 10px;
+                                        flex-wrap: wrap;
+                                    ">
+                                        <button
+                                            type="button"
+                                            class="crm-appointment-edit"
+                                            data-appointment-id="${appointment.id}"
+                                        >
+                                            Редагувати
+                                        </button>
+                    
+                                        <button
+                                            type="button"
+                                            class="crm-appointment-delete"
+                                            data-appointment-id="${appointment.id}"
+                                        >
+                                            Видалити
+                                        </button>
+                                    </div>
+                                </div>
+                    
+                                <div style="
+                                    color: #aaa;
+                                    white-space: nowrap;
+                                ">
+                                    ${
+                                        appointment.durationMinutes || 60
+                                    } хв
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                })
+                .join("");
+
+                list
+    .querySelectorAll(
+        ".crm-appointment-edit"
+    )
+    .forEach((button) => {
+        button.addEventListener(
+            "click",
+            async () => {
+                const appointmentId =
+                    button.dataset
+                        .appointmentId;
+
+                const appointment =
+                    appointments.find(
+                        (item) =>
+                            String(item.id) ===
+                            String(appointmentId)
+                    );
+
+                if (!appointment) {
+                    return;
+                }
+
+                const title =
+                    prompt(
+                        "Назва запису:",
+                        appointment.title || ""
+                    );
+
+                if (title === null) {
+                    return;
+                }
+
+                const durationMinutes =
+                    prompt(
+                        "Тривалість, хв:",
+                        appointment.durationMinutes || 60
+                    );
+
+                if (durationMinutes === null) {
+                    return;
+                }
+
+                const notes =
+                    prompt(
+                        "Примітка:",
+                        appointment.notes || ""
+                    );
+
+                if (notes === null) {
+                    return;
+                }
+
+                const currentDate =
+                    new Date(
+                        appointment.scheduledAt
+                    );
+
+                const localDateTime =
+                    new Date(
+                        currentDate.getTime() -
+                        currentDate.getTimezoneOffset() *
+                        60000
+                    )
+                        .toISOString()
+                        .slice(0, 16);
+
+                const scheduledAtInput =
+                    prompt(
+                        "Дата і час (YYYY-MM-DDTHH:MM):",
+                        localDateTime
+                    );
+
+                if (scheduledAtInput === null) {
+                    return;
+                }
+
+                const scheduledDate =
+                    new Date(
+                        scheduledAtInput
+                    );
+
+                if (
+                    Number.isNaN(
+                        scheduledDate.getTime()
+                    )
+                ) {
+                    alert(
+                        "Невірна дата або час."
+                    );
+                    return;
+                }
+
+                const payload = {
+                    clientId:
+                        appointment.clientId || null,
+
+                    carId:
+                        appointment.carId || null,
+
+                    title:
+                        String(title).trim(),
+
+                    scheduledAt:
+                        scheduledDate.toISOString(),
+
+                    durationMinutes:
+                        Number(durationMinutes),
+
+                    status:
+                        appointment.status ||
+                        "scheduled",
+
+                    notes:
+                        String(notes).trim()
+                };
+
+                try {
+                    const response =
+                        await fetch(
+                            `${getApiBaseUrl()}/api/crm/appointments/${encodeURIComponent(appointmentId)}`,
+                            {
+                                method: "PATCH",
+
+                                headers: {
+                                    "Content-Type":
+                                        "application/json",
+
+                                    Authorization:
+                                        `Bearer ${getToken()}`
+                                },
+
+                                body:
+                                    JSON.stringify(
+                                        payload
+                                    )
+                            }
+                        );
+
+                    const data =
+                        await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(
+                            data.message ||
+                            "Не вдалося відредагувати запис."
+                        );
+                    }
+
+                    await loadAppointments();
+
+                } catch (error) {
+                    console.error(
+                        "CRM appointment update error:",
+                        error
+                    );
+
+                    alert(
+                        error.message ||
+                        "Не вдалося відредагувати запис."
+                    );
+                }
+            }
+        );
+    });
+
+                list
+    .querySelectorAll(
+        ".crm-appointment-delete"
+    )
+    .forEach((button) => {
+        button.addEventListener(
+            "click",
+            async () => {
+                const appointmentId =
+                    button.dataset
+                        .appointmentId;
+
+                const appointment =
+                    appointments.find(
+                        (item) =>
+                            String(item.id) ===
+                            String(appointmentId)
+                    );
+
+                if (!appointment) {
+                    return;
+                }
+
+                const confirmed =
+                    window.confirm(
+                        `Видалити запис "${appointment.title}"?`
+                    );
+
+                if (!confirmed) {
+                    return;
+                }
+
+                try {
+                    const response =
+                        await fetch(
+                            `${getApiBaseUrl()}/api/crm/appointments/${encodeURIComponent(appointmentId)}`,
+                            {
+                                method: "DELETE",
+
+                                headers: {
+                                    Authorization:
+                                        `Bearer ${getToken()}`
+                                }
+                            }
+                        );
+
+                    const data =
+                        await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(
+                            data.message ||
+                            "Не вдалося видалити запис."
+                        );
+                    }
+
+                    await loadAppointments();
+
+                } catch (error) {
+                    console.error(
+                        "CRM appointment delete error:",
+                        error
+                    );
+
+                    alert(
+                        error.message ||
+                        "Не вдалося видалити запис."
+                    );
+                }
+            }
+        );
+    });
+
+    } catch (error) {
+        console.error(
+            "CRM appointments load error:",
+            error
+        );
+
+        count.textContent =
+            "Не вдалося завантажити записи.";
+
+        list.innerHTML = "";
+    }
+}
+
+function bindAppointmentForm() {
+    const addButton =
+        document.getElementById(
+            "crmAddAppointmentButton"
+        );
+
+    const form =
+        document.getElementById(
+            "crmAppointmentForm"
+        );
+
+    const clientSelect =
+        document.getElementById(
+            "crmAppointmentClient"
+        );
+
+    const carSelect =
+        document.getElementById(
+            "crmAppointmentCar"
+        );
+
+    if (
+        !addButton ||
+        !form ||
+        !clientSelect ||
+        !carSelect
+    ) {
+        return;
+    }
+
+    let carsCache = [];
+
+    async function loadClientsAndCars() {
+        try {
+            const [
+                clientsResponse,
+                carsResponse
+            ] = await Promise.all([
+                fetch(
+                    `${getApiBaseUrl()}/api/crm/clients`,
+                    {
+                        headers: {
+                            Authorization:
+                                `Bearer ${getToken()}`
+                        }
+                    }
+                ),
+
+                fetch(
+                    `${getApiBaseUrl()}/api/crm/cars`,
+                    {
+                        headers: {
+                            Authorization:
+                                `Bearer ${getToken()}`
+                        }
+                    }
+                )
+            ]);
+
+            const clientsData =
+                await clientsResponse.json();
+
+            const carsData =
+                await carsResponse.json();
+
+            if (!clientsResponse.ok) {
+                throw new Error(
+                    clientsData.message ||
+                    "Не вдалося завантажити клієнтів."
+                );
+            }
+
+            if (!carsResponse.ok) {
+                throw new Error(
+                    carsData.message ||
+                    "Не вдалося завантажити автомобілі."
+                );
+            }
+
+            const clients =
+                Array.isArray(
+                    clientsData.clients
+                )
+                    ? clientsData.clients
+                    : [];
+
+            carsCache =
+                Array.isArray(
+                    carsData.cars
+                )
+                    ? carsData.cars
+                    : [];
+
+            clientSelect.innerHTML = `
+                <option value="">
+                    Виберіть клієнта
+                </option>
+
+                ${clients
+                    .map(
+                        (client) => `
+                            <option value="${client.id}">
+                                ${client.name}
+                            </option>
+                        `
+                    )
+                    .join("")}
+            `;
+
+            carSelect.innerHTML = `
+                <option value="">
+                    Спочатку виберіть клієнта
+                </option>
+            `;
+
+        } catch (error) {
+            console.error(
+                "CRM appointment form load error:",
+                error
+            );
+
+            alert(
+                error.message ||
+                "Не вдалося підготувати форму запису."
+            );
+        }
+    }
+
+    clientSelect.addEventListener(
+        "change",
+        () => {
+            const clientId =
+                clientSelect.value;
+
+            if (!clientId) {
+                carSelect.innerHTML = `
+                    <option value="">
+                        Спочатку виберіть клієнта
+                    </option>
+                `;
+
+                return;
+            }
+
+            const clientCars =
+                carsCache.filter(
+                    (car) =>
+                        String(car.clientId) ===
+                        String(clientId)
+                );
+
+            carSelect.innerHTML = `
+                <option value="">
+                    Без автомобіля
+                </option>
+
+                ${clientCars
+                    .map(
+                        (car) => `
+                            <option value="${car.id}">
+                                ${
+                                    [
+                                        car.brand,
+                                        car.model,
+                                        car.plate
+                                    ]
+                                        .filter(Boolean)
+                                        .join(" · ")
+                                }
+                            </option>
+                        `
+                    )
+                    .join("")}
+            `;
+        }
+    );
+
+    addButton.addEventListener(
+        "click",
+        async () => {
+            form.hidden =
+                !form.hidden;
+
+            if (!form.hidden) {
+                await loadClientsAndCars();
+            }
+        }
+    );
+
+    form.addEventListener(
+        "submit",
+        async (event) => {
+            event.preventDefault();
+
+            const title =
+                document
+                    .getElementById(
+                        "crmAppointmentTitle"
+                    )
+                    ?.value.trim() || "";
+
+            const dateTimeValue =
+                document
+                    .getElementById(
+                        "crmAppointmentDateTime"
+                    )
+                    ?.value || "";
+
+            const durationMinutes =
+                document
+                    .getElementById(
+                        "crmAppointmentDuration"
+                    )
+                    ?.value || "60";
+
+            const notes =
+                document
+                    .getElementById(
+                        "crmAppointmentNotes"
+                    )
+                    ?.value.trim() || "";
+
+            if (!title) {
+                alert(
+                    "Вкажіть назву запису."
+                );
+                return;
+            }
+
+            if (!dateTimeValue) {
+                alert(
+                    "Вкажіть дату та час запису."
+                );
+                return;
+            }
+
+            const scheduledAt =
+                new Date(
+                    dateTimeValue
+                ).toISOString();
+
+            const payload = {
+                clientId:
+                    clientSelect.value || null,
+
+                carId:
+                    carSelect.value || null,
+
+                title,
+
+                scheduledAt,
+
+                durationMinutes:
+                    Number(durationMinutes),
+
+                notes
+            };
+
+            try {
+                const response =
+                    await fetch(
+                        `${getApiBaseUrl()}/api/crm/appointments`,
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+
+                                Authorization:
+                                    `Bearer ${getToken()}`
+                            },
+
+                            body:
+                                JSON.stringify(
+                                    payload
+                                )
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.message ||
+                        "Не вдалося створити запис."
+                    );
+                }
+
+                alert(
+                    "Запис створено."
+                );
+
+                form.reset();
+                form.hidden = true;
+
+                await loadAppointments();
+
+            } catch (error) {
+                console.error(
+                    "CRM appointment create error:",
+                    error
+                );
+
+                alert(
+                    error.message ||
+                    "Не вдалося створити запис."
+                );
+            }
+        }
+    );
+}
 document.addEventListener(
     "DOMContentLoaded",
     () => {
@@ -1234,9 +1987,12 @@ document.addEventListener(
         loadClients();
         loadCars();
         loadWorkOrders();
+        loadAppointments();
+
         bindClientForm();
         bindCarForm();
         bindWorkOrderForm();
         bindWorkOrdersSearch();
+        bindAppointmentForm();
     }
 );
