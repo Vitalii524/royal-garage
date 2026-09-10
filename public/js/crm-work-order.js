@@ -316,26 +316,51 @@ async function loadWorkOrderServices(
             0
         );
     
-    container.innerHTML = `
+        container.innerHTML = `
         ${items
             .map(
                 (item) => `
                     <div style="
                         padding: 12px 0;
                         border-top: 1px solid #374151;
-                        display: flex;
-                        justify-content: space-between;
-                        gap: 16px;
                     ">
-                        <strong>
-                            ${item.name || ""}
-                        </strong>
+                        <div style="
+                            display: flex;
+                            justify-content: space-between;
+                            gap: 16px;
+                        ">
+                            <strong>
+                                ${item.name || ""}
+                            </strong>
     
-                        <strong>
-                            ${Number(
-                                item.total || 0
-                            ).toFixed(2)} грн
-                        </strong>
+                            <strong>
+                                ${Number(
+                                    item.total || 0
+                                ).toFixed(2)} грн
+                            </strong>
+                        </div>
+    
+                        <div style="
+                            display: flex;
+                            gap: 8px;
+                            margin-top: 8px;
+                        ">
+                            <button
+                                type="button"
+                                class="crm-service-edit"
+                                data-service-id="${item.id}"
+                            >
+                                Редагувати
+                            </button>
+    
+                            <button
+                                type="button"
+                                class="crm-service-delete"
+                                data-service-id="${item.id}"
+                            >
+                                Видалити
+                            </button>
+                        </div>
                     </div>
                 `
             )
@@ -351,6 +376,194 @@ async function loadWorkOrderServices(
             ${servicesTotal.toFixed(2)} грн
         </div>
     `;
+
+    container
+    .querySelectorAll(
+        ".crm-service-edit"
+    )
+    .forEach((button) => {
+        button.addEventListener(
+            "click",
+            async () => {
+                const serviceId =
+                    button.dataset.serviceId;
+
+                const item =
+                    items.find(
+                        (service) =>
+                            String(service.id) ===
+                            String(serviceId)
+                    );
+
+                if (!item) {
+                    return;
+                }
+
+                const name =
+                    prompt(
+                        "Назва роботи:",
+                        item.name || ""
+                    );
+
+                if (name === null) {
+                    return;
+                }
+
+                const price =
+                    prompt(
+                        "Ціна роботи:",
+                        item.price ?? 0
+                    );
+
+                if (price === null) {
+                    return;
+                }
+
+                const notes =
+                    prompt(
+                        "Примітка:",
+                        item.notes || ""
+                    );
+
+                if (notes === null) {
+                    return;
+                }
+
+                const payload = {
+                    name:
+                        String(name).trim(),
+                    quantity:
+                        Number(
+                            item.quantity || 1
+                        ),
+                    price:
+                        price,
+                    notes:
+                        String(notes).trim()
+                };
+
+                try {
+                    const response =
+                        await fetch(
+                            `${getApiBaseUrl()}/api/crm/work-orders/${encodeURIComponent(workOrderId)}/services/${encodeURIComponent(serviceId)}`,
+                            {
+                                method:
+                                    "PATCH",
+
+                                headers: {
+                                    "Content-Type":
+                                        "application/json",
+
+                                    Authorization:
+                                        `Bearer ${getToken()}`
+                                },
+
+                                body:
+                                    JSON.stringify(
+                                        payload
+                                    )
+                            }
+                        );
+
+                    const data =
+                        await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(
+                            data.message ||
+                            "Не вдалося відредагувати роботу."
+                        );
+                    }
+
+                    await loadWorkOrder();
+
+                } catch (error) {
+                    console.error(
+                        "CRM service update error:",
+                        error
+                    );
+
+                    alert(
+                        error.message ||
+                        "Не вдалося відредагувати роботу."
+                    );
+                }
+            }
+        );
+    });
+
+    container
+    .querySelectorAll(
+        ".crm-service-delete"
+    )
+    .forEach((button) => {
+        button.addEventListener(
+            "click",
+            async () => {
+                const serviceId =
+                    button.dataset.serviceId;
+
+                const item =
+                    items.find(
+                        (service) =>
+                            String(service.id) ===
+                            String(serviceId)
+                    );
+
+                if (!item) {
+                    return;
+                }
+
+                const confirmed =
+                    window.confirm(
+                        `Видалити роботу "${item.name}"?`
+                    );
+
+                if (!confirmed) {
+                    return;
+                }
+
+                try {
+                    const response =
+                        await fetch(
+                            `${getApiBaseUrl()}/api/crm/work-orders/${encodeURIComponent(workOrderId)}/services/${encodeURIComponent(serviceId)}`,
+                            {
+                                method:
+                                    "DELETE",
+
+                                headers: {
+                                    Authorization:
+                                        `Bearer ${getToken()}`
+                                }
+                            }
+                        );
+
+                    const data =
+                        await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(
+                            data.message ||
+                            "Не вдалося видалити роботу."
+                        );
+                    }
+
+                    await loadWorkOrder();
+
+                } catch (error) {
+                    console.error(
+                        "CRM service delete error:",
+                        error
+                    );
+
+                    alert(
+                        error.message ||
+                        "Не вдалося видалити роботу."
+                    );
+                }
+            }
+        );
+    });
 
     return servicesTotal;
 
@@ -409,43 +622,68 @@ async function loadWorkOrderParts(
             0
         );
     
-    container.innerHTML = `
+        container.innerHTML = `
         ${items
             .map(
                 (item) => `
                     <div style="
                         padding: 12px 0;
                         border-top: 1px solid #374151;
-                        display: flex;
-                        justify-content: space-between;
-                        gap: 16px;
                     ">
-                        <div>
-                            <strong>
-                                ${item.name || ""}
-                            </strong>
+                        <div style="
+                            display: flex;
+                            justify-content: space-between;
+                            gap: 16px;
+                        ">
+                            <div>
+                                <strong>
+                                    ${item.name || ""}
+                                </strong>
     
-                            ${
-                                item.partNumber
-                                    ? `<div>Артикул: ${item.partNumber}</div>`
-                                    : ""
-                            }
+                                ${
+                                    item.partNumber
+                                        ? `<div>Артикул: ${item.partNumber}</div>`
+                                        : ""
+                                }
     
-                            <div style="
-                                opacity: 0.8;
-                                margin-top: 4px;
-                            ">
-                                ${Number(item.quantity || 0)}
-                                ×
-                                ${Number(item.price || 0).toFixed(2)} грн
+                                <div style="
+                                    opacity: 0.8;
+                                    margin-top: 4px;
+                                ">
+                                    ${Number(item.quantity || 0)}
+                                    ×
+                                    ${Number(item.price || 0).toFixed(2)} грн
+                                </div>
                             </div>
+    
+                            <strong>
+                                ${Number(
+                                    item.total || 0
+                                ).toFixed(2)} грн
+                            </strong>
                         </div>
     
-                        <strong>
-                            ${Number(
-                                item.total || 0
-                            ).toFixed(2)} грн
-                        </strong>
+                        <div style="
+                            display: flex;
+                            gap: 8px;
+                            margin-top: 8px;
+                        ">
+                            <button
+                                type="button"
+                                class="crm-part-edit"
+                                data-part-id="${item.id}"
+                            >
+                                Редагувати
+                            </button>
+    
+                            <button
+                                type="button"
+                                class="crm-part-delete"
+                                data-part-id="${item.id}"
+                            >
+                                Видалити
+                            </button>
+                        </div>
                     </div>
                 `
             )
@@ -461,6 +699,220 @@ async function loadWorkOrderParts(
             ${partsTotal.toFixed(2)} грн
         </div>
     `;
+
+    container
+    .querySelectorAll(
+        ".crm-part-edit"
+    )
+    .forEach((button) => {
+        button.addEventListener(
+            "click",
+            async () => {
+                const partId =
+                    button.dataset.partId;
+
+                const item =
+                    items.find(
+                        (part) =>
+                            String(part.id) ===
+                            String(partId)
+                    );
+
+                if (!item) {
+                    return;
+                }
+
+                const name =
+                    prompt(
+                        "Назва запчастини:",
+                        item.name || ""
+                    );
+
+                if (name === null) {
+                    return;
+                }
+
+                const partNumber =
+                    prompt(
+                        "Артикул:",
+                        item.partNumber || ""
+                    );
+
+                if (partNumber === null) {
+                    return;
+                }
+
+                const quantity =
+                    prompt(
+                        "Кількість:",
+                        item.quantity ?? 1
+                    );
+
+                if (quantity === null) {
+                    return;
+                }
+
+                const price =
+                    prompt(
+                        "Ціна за одиницю:",
+                        item.price ?? 0
+                    );
+
+                if (price === null) {
+                    return;
+                }
+
+                const notes =
+                    prompt(
+                        "Примітка:",
+                        item.notes || ""
+                    );
+
+                if (notes === null) {
+                    return;
+                }
+
+                const payload = {
+                    name:
+                        String(name).trim(),
+
+                    partNumber:
+                        String(
+                            partNumber
+                        ).trim(),
+
+                    quantity:
+                        quantity,
+
+                    price:
+                        price,
+
+                    notes:
+                        String(notes).trim()
+                };
+
+                try {
+                    const response =
+                        await fetch(
+                            `${getApiBaseUrl()}/api/crm/work-orders/${encodeURIComponent(workOrderId)}/parts/${encodeURIComponent(partId)}`,
+                            {
+                                method:
+                                    "PATCH",
+
+                                headers: {
+                                    "Content-Type":
+                                        "application/json",
+
+                                    Authorization:
+                                        `Bearer ${getToken()}`
+                                },
+
+                                body:
+                                    JSON.stringify(
+                                        payload
+                                    )
+                            }
+                        );
+
+                    const data =
+                        await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(
+                            data.message ||
+                            "Не вдалося відредагувати запчастину."
+                        );
+                    }
+
+                    await loadWorkOrder();
+
+                } catch (error) {
+                    console.error(
+                        "CRM part update error:",
+                        error
+                    );
+
+                    alert(
+                        error.message ||
+                        "Не вдалося відредагувати запчастину."
+                    );
+                }
+            }
+        );
+    });
+
+    container
+    .querySelectorAll(
+        ".crm-part-delete"
+    )
+    .forEach((button) => {
+        button.addEventListener(
+            "click",
+            async () => {
+                const partId =
+                    button.dataset.partId;
+
+                const item =
+                    items.find(
+                        (part) =>
+                            String(part.id) ===
+                            String(partId)
+                    );
+
+                if (!item) {
+                    return;
+                }
+
+                const confirmed =
+                    window.confirm(
+                        `Видалити запчастину "${item.name}"?`
+                    );
+
+                if (!confirmed) {
+                    return;
+                }
+
+                try {
+                    const response =
+                        await fetch(
+                            `${getApiBaseUrl()}/api/crm/work-orders/${encodeURIComponent(workOrderId)}/parts/${encodeURIComponent(partId)}`,
+                            {
+                                method:
+                                    "DELETE",
+
+                                headers: {
+                                    Authorization:
+                                        `Bearer ${getToken()}`
+                                }
+                            }
+                        );
+
+                    const data =
+                        await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(
+                            data.message ||
+                            "Не вдалося видалити запчастину."
+                        );
+                    }
+
+                    await loadWorkOrder();
+
+                } catch (error) {
+                    console.error(
+                        "CRM part delete error:",
+                        error
+                    );
+
+                    alert(
+                        error.message ||
+                        "Не вдалося видалити запчастину."
+                    );
+                }
+            }
+        );
+    });
 
     return partsTotal;
 
