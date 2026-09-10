@@ -1309,6 +1309,11 @@ async function loadAppointments() {
                         .filter(Boolean)
                         .join(" ");
 
+                    const employeeText =
+                          appointment.employeeName
+                                ? `👨‍🔧 ${appointment.employeeName}`
+                                : "👨‍🔧 Працівника не призначено";
+
                         return `
                         <div style="
                             padding: 14px 0;
@@ -1363,6 +1368,13 @@ async function loadAppointments() {
                                             `
                                             : ""
                                     }
+
+                                    <div style="
+                                        color: #aaa;
+                                        margin-top: 6px;
+                                    ">
+                                        ${employeeText}
+                                    </div>
                     
                                     ${
                                         appointment.notes
@@ -1514,6 +1526,9 @@ async function loadAppointments() {
 
                     carId:
                         appointment.carId || null,
+
+                    employeeId:
+                        appointment.employeeId || null,
 
                     title:
                         String(title).trim(),
@@ -1688,6 +1703,11 @@ function bindAppointmentForm() {
             "crmAppointmentCar"
         );
 
+    const employeeSelect =
+        document.getElementById(
+            "crmAppointmentEmployee"
+        );
+
     if (
         !addButton ||
         !form ||
@@ -1725,6 +1745,55 @@ function bindAppointmentForm() {
                     }
                 )
             ]);
+
+            try {
+                const employeesResponse =
+                    await fetch(
+                        `${getApiBaseUrl()}/api/crm/employees`,
+                        {
+                            headers: {
+                                Authorization:
+                                    `Bearer ${getToken()}`
+                            }
+                        }
+                    );
+            
+                const employeesData =
+                    await employeesResponse.json();
+            
+                if (employeesResponse.ok) {
+                    const employees =
+                        Array.isArray(employeesData.employees)
+                            ? employeesData.employees
+                            : [];
+            
+                    employeeSelect.innerHTML =
+                        `<option value="">Без призначеного працівника</option>`;
+            
+                    employees
+                        .filter(
+                            employee =>
+                                employee.status === "active"
+                        )
+                        .forEach(employee => {
+                            const option =
+                                document.createElement("option");
+            
+                            option.value =
+                                employee.id;
+            
+                            option.textContent =
+                                employee.name;
+            
+                            employeeSelect.appendChild(option);
+                        });
+                }
+            } catch (error) {
+                console.error(
+                    "Помилка завантаження працівників:",
+                    error
+                );
+            }
 
             const clientsData =
                 await clientsResponse.json();
@@ -1908,22 +1977,15 @@ function bindAppointmentForm() {
                     dateTimeValue
                 ).toISOString();
 
-            const payload = {
-                clientId:
-                    clientSelect.value || null,
-
-                carId:
-                    carSelect.value || null,
-
-                title,
-
-                scheduledAt,
-
-                durationMinutes:
-                    Number(durationMinutes),
-
-                notes
-            };
+                const payload = {
+                    clientId: clientSelect.value || null,
+                    carId: carSelect.value || null,
+                    employeeId: employeeSelect.value || null,
+                    title,
+                    scheduledAt,
+                    durationMinutes: Number(durationMinutes),
+                    notes
+                };
 
             try {
                 const response =

@@ -11198,6 +11198,7 @@ app.get(
             const {
                 clientId,
                 carId,
+                employeeId,
                 title,
                 scheduledAt,
                 durationMinutes,
@@ -11209,6 +11210,9 @@ app.get(
 
             const cleanCarId =
                 String(carId || "").trim();
+
+            const cleanEmployeeId =
+                String(employeeId || "").trim();
 
             const cleanTitle =
                 String(title || "").trim();
@@ -11371,6 +11375,34 @@ app.get(
                 }
             }
 
+            if (cleanEmployeeId) {
+                const employeeResult =
+                    await pool.query(
+                        `
+                        SELECT id
+                        FROM crm_employees
+                        WHERE id = $1
+                          AND service_id = $2
+                          AND status = 'active'
+                        LIMIT 1
+                        `,
+                        [
+                            cleanEmployeeId,
+                            serviceId
+                        ]
+                    );
+            
+                if (
+                    employeeResult.rows.length === 0
+                ) {
+                    return res.status(404).json({
+                        ok: false,
+                        message:
+                            "Працівника не знайдено або він неактивний."
+                    });
+                }
+            }
+
             const result =
                 await pool.query(
                     `
@@ -11378,6 +11410,7 @@ app.get(
                         service_id,
                         client_id,
                         car_id,
+                        employee_id,
                         title,
                         scheduled_at,
                         duration_minutes,
@@ -11391,8 +11424,9 @@ app.get(
                         $4,
                         $5,
                         $6,
+                        $7,
                         'scheduled',
-                        $7
+                        $8
                     )
                     RETURNING
                         id,
@@ -11400,6 +11434,8 @@ app.get(
                             AS "clientId",
                         car_id
                             AS "carId",
+                        employee_id 
+                            AS "employeeId",
                         work_order_id
                             AS "workOrderId",
                         title,
@@ -11418,6 +11454,7 @@ app.get(
                         serviceId,
                         cleanClientId || null,
                         cleanCarId || null,
+                        cleanEmployeeId || null,
                         cleanTitle,
                         scheduledDate,
                         cleanDuration,
@@ -11490,6 +11527,9 @@ app.get(
                         a.car_id
                             AS "carId",
 
+                        a.employee_id
+                            AS "employeeId",
+
                         a.work_order_id
                             AS "workOrderId",
 
@@ -11525,7 +11565,10 @@ app.get(
 
                         car.plate,
 
-                        car.vin
+                        car.vin,
+
+                        e.name
+                            AS "employeeName"
 
                     FROM crm_appointments a
 
@@ -11536,6 +11579,10 @@ app.get(
                     LEFT JOIN crm_cars car
                         ON car.id = a.car_id
                        AND car.service_id = a.service_id
+
+                    LEFT JOIN crm_employees e
+                         ON e.id = a.employee_id
+                        AND e.service_id = a.service_id
 
                     WHERE a.service_id = $1
 
@@ -11579,21 +11626,25 @@ app.patch(
                     req.params.appointmentId || ""
                 ).trim();
 
-            const {
-                clientId,
-                carId,
-                title,
-                scheduledAt,
-                durationMinutes,
-                status,
-                notes
-            } = req.body || {};
+                const {
+                    clientId,
+                    carId,
+                    employeeId,
+                    title,
+                    scheduledAt,
+                    durationMinutes,
+                    status,
+                    notes
+                } = req.body || {};
 
             const cleanClientId =
                 String(clientId || "").trim();
 
             const cleanCarId =
                 String(carId || "").trim();
+
+            const cleanEmployeeId =
+                String(employeeId || "").trim();
 
             const cleanTitle =
                 String(title || "").trim();
@@ -11789,27 +11840,58 @@ app.patch(
                 }
             }
 
+            if (cleanEmployeeId) {
+                const employeeResult =
+                    await pool.query(
+                        `
+                        SELECT id
+                        FROM crm_employees
+                        WHERE id = $1
+                          AND service_id = $2
+                          AND status = 'active'
+                        LIMIT 1
+                        `,
+                        [
+                            cleanEmployeeId,
+                            serviceId
+                        ]
+                    );
+            
+                if (
+                    employeeResult.rows.length === 0
+                ) {
+                    return res.status(404).json({
+                        ok: false,
+                        message:
+                            "Працівника не знайдено або він неактивний."
+                    });
+                }
+            }
+
             const result =
                 await pool.query(
                     `
                     UPDATE crm_appointments
                     SET
-                        client_id = $1,
-                        car_id = $2,
-                        title = $3,
-                        scheduled_at = $4,
-                        duration_minutes = $5,
-                        status = $6,
-                        notes = $7,
-                        updated_at = NOW()
-                    WHERE id = $8
-                      AND service_id = $9
+                    client_id = $1,
+                    car_id = $2,
+                    employee_id = $3,
+                    title = $4,
+                    scheduled_at = $5,
+                    duration_minutes = $6,
+                    status = $7,
+                    notes = $8,
+                    updated_at = NOW()
+                WHERE id = $9
+                  AND service_id = $10
                     RETURNING
                         id,
                         client_id
                             AS "clientId",
                         car_id
                             AS "carId",
+                        employee_id
+                            AS "employeeId",
                         work_order_id
                             AS "workOrderId",
                         title,
@@ -11827,6 +11909,7 @@ app.patch(
                     [
                         cleanClientId || null,
                         cleanCarId || null,
+                        cleanEmployeeId || null,
                         cleanTitle,
                         scheduledDate,
                         cleanDuration,
