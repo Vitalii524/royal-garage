@@ -9124,6 +9124,8 @@ app.get(
                         wo.completed_at AS "completedAt",
                         wo.created_at AS "createdAt",
                         wo.updated_at AS "updatedAt",
+                        wo.employee_id AS "employeeId",
+                        employees.name AS "employeeName",
 
                         clients.id AS "clientId",
                         clients.name AS "clientName",
@@ -9143,6 +9145,10 @@ app.get(
 
                     JOIN crm_cars AS cars
                         ON cars.id = wo.car_id
+
+                    LEFT JOIN crm_employees AS employees
+                        ON employees.id = wo.employee_id
+                    AND employees.service_id = wo.service_id
 
                     WHERE wo.service_id = $1
 
