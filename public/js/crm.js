@@ -695,11 +695,17 @@ async function bindWorkOrderForm() {
             "crmWorkOrderCar"
         );
 
+        const employeeSelect =
+    document.getElementById(
+        "crmWorkOrderEmployee"
+    );
+
     if (
         !addButton ||
         !form ||
         !clientSelect ||
-        !carSelect
+        !carSelect ||
+        !employeeSelect
     ) {
         return;
     }
@@ -710,7 +716,8 @@ async function bindWorkOrderForm() {
         try {
             const [
                 clientsResponse,
-                carsResponse
+                carsResponse,
+                employeesResponse
             ] = await Promise.all([
                 fetch(
                     `${getApiBaseUrl()}/api/crm/clients`,
@@ -721,6 +728,7 @@ async function bindWorkOrderForm() {
                         }
                     }
                 ),
+
                 fetch(
                     `${getApiBaseUrl()}/api/crm/cars`,
                     {
@@ -729,14 +737,30 @@ async function bindWorkOrderForm() {
                                 `Bearer ${getToken()}`
                         }
                     }
+                ),
+
+                fetch(
+                    `${getApiBaseUrl()}/api/crm/employees`,
+                    {
+                        headers: {
+                            Authorization:
+                                `Bearer ${getToken()}`
+                        }
+                    }
                 )
+                
             ]);
+
+
 
             const clientsData =
                 await clientsResponse.json();
 
             const carsData =
                 await carsResponse.json();
+
+            const employeesData =
+                await employeesResponse.json();
 
             if (!clientsResponse.ok) {
                 throw new Error(
@@ -752,6 +776,13 @@ async function bindWorkOrderForm() {
                 );
             }
 
+            if (!employeesResponse.ok) {
+                throw new Error(
+                    employeesData.message ||
+                    "Не вдалося завантажити працівників."
+                );
+            }
+
             const clients =
                 Array.isArray(clientsData.clients)
                     ? clientsData.clients
@@ -761,6 +792,32 @@ async function bindWorkOrderForm() {
                 Array.isArray(carsData.cars)
                     ? carsData.cars
                     : [];
+
+            const employees =
+                Array.isArray(employeesData.employees)
+                    ? employeesData.employees
+                    : [];
+
+                                employeeSelect.innerHTML =
+                `<option value="">Без призначеного працівника</option>`;
+
+            employees
+                .filter(
+                    employee =>
+                        employee.status === "active"
+                )
+                .forEach(employee => {
+                    const option =
+                        document.createElement("option");
+
+                    option.value =
+                        employee.id;
+
+                    option.textContent =
+                        employee.name;
+
+                    employeeSelect.appendChild(option);
+                });
 
             clientSelect.innerHTML = `
                 <option value="">
@@ -871,6 +928,9 @@ async function bindWorkOrderForm() {
             const carId =
                 carSelect.value;
 
+            const employeeId =
+                employeeSelect.value || null;
+
             const mileage =
                 document
                     .getElementById(
@@ -924,6 +984,7 @@ async function bindWorkOrderForm() {
                             body: JSON.stringify({
                                 clientId,
                                 carId,
+                                employeeId,
                                 mileage,
                                 customerComplaint,
                                 diagnostics
@@ -1800,6 +1861,9 @@ function bindAppointmentForm() {
 
             const carsData =
                 await carsResponse.json();
+
+            const employeesData =
+                await employeesResponse.json();
 
             if (!clientsResponse.ok) {
                 throw new Error(

@@ -9208,6 +9208,7 @@ app.get(
                     `
                     SELECT
                         wo.id,
+                        wo.employee_id AS "employeeId",
                         wo.order_number AS "orderNumber",
                         wo.status,
                         wo.mileage,
@@ -9238,7 +9239,8 @@ app.get(
                         cars.model,
                         cars.year,
                         cars.vin,
-                        cars.plate
+                        cars.plate,
+                        employees.name AS "employeeName"
 
                     FROM crm_work_orders AS wo
 
@@ -9249,8 +9251,13 @@ app.get(
 
                     JOIN crm_cars AS cars
                         ON cars.id = wo.car_id
+                  
+                       AND employees.service_id = wo.service_id
                        AND cars.service_id =
                            wo.service_id
+
+                           LEFT JOIN crm_employees AS employees
+                           ON employees.id = wo.employee_id
 
                     WHERE wo.id = $1
                       AND wo.service_id = $2
@@ -9277,8 +9284,7 @@ app.get(
                 ok: true,
                 workOrder: result.rows[0]
             });
-
-        } catch (error) {
+      } catch (error) {
             console.error(
                 "CRM work order load error:",
                 error
@@ -9302,6 +9308,7 @@ app.post(
             const {
                 clientId,
                 carId,
+                employeeId,
                 mileage,
                 customerComplaint,
                 diagnostics
@@ -9312,6 +9319,9 @@ app.post(
 
             const cleanCarId =
                 String(carId || "").trim();
+
+            const cleanEmployeeId =
+                String(employeeId || "").trim();
 
             const cleanCustomerComplaint =
                 String(customerComplaint || "").trim();
@@ -9395,6 +9405,34 @@ app.post(
                 });
             }
 
+            if (cleanEmployeeId) {
+                const employeeResult =
+                    await pool.query(
+                        `
+                        SELECT id
+                        FROM crm_employees
+                        WHERE id = $1
+                          AND service_id = $2
+                          AND status = 'active'
+                        LIMIT 1
+                        `,
+                        [
+                            cleanEmployeeId,
+                            serviceId
+                        ]
+                    );
+            
+                if (
+                    employeeResult.rows.length === 0
+                ) {
+                    return res.status(404).json({
+                        ok: false,
+                        message:
+                            "Працівника не знайдено або він неактивний."
+                    });
+                }
+            }
+
             const numberResult =
                 await pool.query(
                     `
@@ -9422,6 +9460,7 @@ app.post(
                         service_id,
                         client_id,
                         car_id,
+                        employee_id,
                         order_number,
                         status,
                         mileage,
@@ -9429,12 +9468,13 @@ app.post(
                         diagnostics
                     )
                     VALUES (
-                        $1,$2,$3,$4,
+                        $1,$2,$3,$4,$5,
                         'new',
-                        $5,$6,$7
+                        $6,$7,$8
                     )
                     RETURNING
                         id,
+                        employee_id AS "employeeId",
                         order_number AS "orderNumber",
                         status,
                         mileage,
@@ -9447,6 +9487,7 @@ app.post(
                         serviceId,
                         cleanClientId,
                         cleanCarId,
+                        cleanEmployeeId || null,
                         orderNumber,
                         Number.isFinite(cleanMileage)
                             ? cleanMileage
@@ -9677,11 +9718,15 @@ app.patch(
                     req.params.workOrderId || ""
                 ).trim();
 
-            const {
-                mileage,
-                customerComplaint,
-                diagnostics
-            } = req.body || {};
+                const {
+                    employeeId,
+                    mileage,
+                    customerComplaint,
+                    diagnostics
+                } = req.body || {};
+
+            const cleanEmployeeId =
+                String(employeeId || "").trim();
 
             const cleanMileage =
                 mileage === "" ||
@@ -9711,6 +9756,34 @@ app.patch(
                     message:
                         "Вкажіть коректний пробіг."
                 });
+            }
+
+            if (cleanEmployeeId) {
+                const employeeResult =
+                    await pool.query(
+                        `
+                        SELECT id
+                        FROM crm_employees
+                        WHERE id = $1
+                          AND service_id = $2
+                          AND status = 'active'
+                        LIMIT 1
+                        `,
+                        [
+                            cleanEmployeeId,
+                            serviceId
+                        ]
+                    );
+            
+                if (
+                    employeeResult.rows.length === 0
+                ) {
+                    return res.status(404).json({
+                        ok: false,
+                        message:
+                            "Працівника не знайдено або він неактивний."
+                    });
+                }
             }
 
             const serviceResult =
@@ -9744,15 +9817,17 @@ app.patch(
                     `
                     UPDATE crm_work_orders
                     SET
-                        mileage = $1,
-                        customer_complaint = $2,
-                        diagnostics = $3,
+                        employee_id = $1,
+                        mileage = $2,
+                        customer_complaint = $3,
+                        diagnostics = $4,
                         updated_at = NOW()
-                    WHERE id = $4
-                      AND service_id = $5
-                    RETURNING
-                        id,
-                        order_number AS "orderNumber",
+                        WHERE id = $5
+                      AND service_id = $6
+                      RETURNING
+                      id,
+                      employee_id AS "employeeId",
+                      order_number AS "orderNumber",
                         status,
                         mileage,
                         customer_complaint
@@ -9761,6 +9836,7 @@ app.patch(
                         updated_at AS "updatedAt"
                     `,
                     [
+                        cleanEmployeeId || null,
                         cleanMileage,
                         cleanCustomerComplaint || null,
                         cleanDiagnostics || null,
