@@ -9249,15 +9249,15 @@ app.get(
                        AND clients.service_id =
                            wo.service_id
 
-                    JOIN crm_cars AS cars
-                        ON cars.id = wo.car_id
-                  
-                       AND employees.service_id = wo.service_id
-                       AND cars.service_id =
-                           wo.service_id
-
-                           LEFT JOIN crm_employees AS employees
+                           JOIN crm_cars AS cars
+                           ON cars.id = wo.car_id
+                          AND cars.service_id =
+                              wo.service_id
+                       
+                       LEFT JOIN crm_employees AS employees
                            ON employees.id = wo.employee_id
+                          AND employees.service_id =
+                              wo.service_id
 
                     WHERE wo.id = $1
                       AND wo.service_id = $2
