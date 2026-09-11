@@ -179,6 +179,12 @@ async function loadWorkOrder() {
                 <strong>Приймання</strong>
 
                 ${
+                    order.employeeName
+                        ? `<div>Працівник: ${order.employeeName}</div>`
+                        : "<div>Працівник: не призначено</div>"
+                }
+
+                ${
                     order.mileage != null
                         ? `<div>Пробіг: ${order.mileage} км</div>`
                         : "<div>Пробіг: —</div>"
@@ -841,78 +847,7 @@ async function loadWorkOrderParts(
         );
     });
 
-    container
-    .querySelectorAll(
-        ".crm-part-delete"
-    )
-    .forEach((button) => {
-        button.addEventListener(
-            "click",
-            async () => {
-                const partId =
-                    button.dataset.partId;
-
-                const item =
-                    items.find(
-                        (part) =>
-                            String(part.id) ===
-                            String(partId)
-                    );
-
-                if (!item) {
-                    return;
-                }
-
-                const confirmed =
-                    window.confirm(
-                        `Видалити запчастину "${item.name}"?`
-                    );
-
-                if (!confirmed) {
-                    return;
-                }
-
-                try {
-                    const response =
-                        await fetch(
-                            `${getApiBaseUrl()}/api/crm/work-orders/${encodeURIComponent(workOrderId)}/parts/${encodeURIComponent(partId)}`,
-                            {
-                                method:
-                                    "DELETE",
-
-                                headers: {
-                                    Authorization:
-                                        `Bearer ${getToken()}`
-                                }
-                            }
-                        );
-
-                    const data =
-                        await response.json();
-
-                    if (!response.ok) {
-                        throw new Error(
-                            data.message ||
-                            "Не вдалося видалити запчастину."
-                        );
-                    }
-
-                    await loadWorkOrder();
-
-                } catch (error) {
-                    console.error(
-                        "CRM part delete error:",
-                        error
-                    );
-
-                    alert(
-                        error.message ||
-                        "Не вдалося видалити запчастину."
-                    );
-                }
-            }
-        );
-    });
+    
 
     return partsTotal;
 
