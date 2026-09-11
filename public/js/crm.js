@@ -1141,7 +1141,9 @@ function renderWorkOrders(workOrders) {
         filteredOrders
             .map(
                 (order) => `
-                    <div style="
+                <div
+                class="crm-order-row"
+                style="
                         display: grid;
                         grid-template-columns:
                             minmax(120px, 0.9fr)
@@ -1193,7 +1195,7 @@ function renderWorkOrders(workOrders) {
                             </div>
                         </div>
 
-                        <div>
+                        <div class="crm-order-car">
                             ${order.brand || ""}
                             ${order.model || ""}
 
