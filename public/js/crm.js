@@ -1183,6 +1183,14 @@ function renderWorkOrders(workOrders) {
                                     ? `<div style="color:#aaa;font-size:14px;">${order.clientPhone}</div>`
                                     : ""
                             }
+
+                            <div style="
+                                color:#aaa;
+                                font-size:14px;
+                                margin-top:4px;
+                            ">
+                                👨‍🔧 ${order.employeeName || "Не призначено"}
+                            </div>
                         </div>
 
                         <div>
