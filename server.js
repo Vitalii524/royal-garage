@@ -9868,33 +9868,7 @@ app.patch(
                 });
             }
 
-            if (cleanEmployeeId) {
-                const employeeResult =
-                    await pool.query(
-                        `
-                        SELECT id
-                        FROM crm_employees
-                        WHERE id = $1
-                          AND service_id = $2
-                          AND status = 'active'
-                        LIMIT 1
-                        `,
-                        [
-                            cleanEmployeeId,
-                            serviceId
-                        ]
-                    );
-            
-                if (
-                    employeeResult.rows.length === 0
-                ) {
-                    return res.status(404).json({
-                        ok: false,
-                        message:
-                            "Працівника не знайдено або він неактивний."
-                    });
-                }
-            }
+        
 
             const serviceResult =
                 await pool.query(
@@ -9921,6 +9895,34 @@ app.patch(
 
             const serviceId =
                 serviceResult.rows[0].id;
+
+                if (cleanEmployeeId) {
+                    const employeeResult =
+                        await pool.query(
+                            `
+                            SELECT id
+                            FROM crm_employees
+                            WHERE id = $1
+                              AND service_id = $2
+                              AND status = 'active'
+                            LIMIT 1
+                            `,
+                            [
+                                cleanEmployeeId,
+                                serviceId
+                            ]
+                        );
+                
+                    if (
+                        employeeResult.rows.length === 0
+                    ) {
+                        return res.status(404).json({
+                            ok: false,
+                            message:
+                                "Працівника не знайдено або він неактивний."
+                        });
+                    }
+                }
 
             const result =
                 await pool.query(
