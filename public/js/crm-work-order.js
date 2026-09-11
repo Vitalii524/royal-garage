@@ -1132,6 +1132,11 @@ function bindWorkOrderEdit() {
             "crmWorkOrderEditForm"
         );
 
+    const employeeSelect =
+        document.getElementById(
+            "crmWorkOrderEmployee"
+        );
+
     const mileageInput =
         document.getElementById(
             "crmWorkOrderMileage"
@@ -1157,16 +1162,66 @@ function bindWorkOrderEdit() {
             "crmWorkOrderEditMessage"
         );
 
-    if (
-        !editButton ||
-        !form ||
-        !mileageInput ||
-        !complaintInput ||
-        !diagnosticsInput ||
-        !cancelButton
-    ) {
-        return;
-    }
+        if (
+            !editButton ||
+            !form ||
+            !employeeSelect ||
+            !mileageInput ||
+            !complaintInput ||
+            !diagnosticsInput ||
+            !cancelButton
+        ) {
+            return;
+        }
+
+        async function loadEmployees() {
+            const response =
+                await fetch(
+                    `${getApiBaseUrl()}/api/crm/employees`,
+                    {
+                        headers: {
+                            Authorization:
+                                `Bearer ${getToken()}`
+                        }
+                    }
+                );
+        
+            const data =
+                await response.json();
+        
+            if (!response.ok) {
+                throw new Error(
+                    data.message ||
+                    "Не вдалося завантажити працівників."
+                );
+            }
+        
+            const employees =
+                Array.isArray(data.employees)
+                    ? data.employees
+                    : [];
+        
+            employeeSelect.innerHTML =
+                `<option value="">Без призначеного працівника</option>`;
+        
+            employees
+                .filter(
+                    employee =>
+                        employee.status === "active"
+                )
+                .forEach(employee => {
+                    const option =
+                        document.createElement("option");
+        
+                    option.value =
+                        employee.id;
+        
+                    option.textContent =
+                        employee.name;
+        
+                    employeeSelect.appendChild(option);
+                });
+        }
 
     editButton.addEventListener(
         "click",
@@ -1174,6 +1229,11 @@ function bindWorkOrderEdit() {
             if (!currentCrmWorkOrder) {
                 return;
             }
+
+            loadEmployees().then(() => {
+                employeeSelect.value =
+                    currentCrmWorkOrder.employeeId || "";
+            });
 
             mileageInput.value =
                 currentCrmWorkOrder.mileage ?? "";
@@ -1218,6 +1278,10 @@ function bindWorkOrderEdit() {
             }
 
             const payload = {
+
+                employeeId:
+                    employeeSelect.value || null,
+
                 mileage:
                     mileageInput.value,
 
