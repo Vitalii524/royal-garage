@@ -1875,9 +1875,6 @@ function bindAppointmentForm() {
                         }
                     );
             
-                const employeesData =
-                    await employeesResponse.json();
-            
                 if (employeesResponse.ok) {
                     const employees =
                         Array.isArray(employeesData.employees)
