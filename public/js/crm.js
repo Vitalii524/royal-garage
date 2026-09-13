@@ -1399,13 +1399,12 @@ const filteredAppointments =
         ? appointments.filter((appointment) => {
             const date =
             new Date(appointment.scheduledAt);
-        
-        const appointmentDate =
+            const appointmentDate =
             `${date.getFullYear()}-${
                 String(date.getMonth() + 1).padStart(2, "0")
             }-${
                 String(date.getDate()).padStart(2, "0")
-            }`;slice(0, 10);
+            }`;
 
             return appointmentDate === selectedDate;
         })
