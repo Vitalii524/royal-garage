@@ -1522,6 +1522,45 @@ async function loadAppointments() {
             Array.isArray(data.appointments)
                 ? data.appointments
                 : [];
+                
+                const todayNotice =
+    document.getElementById(
+        "crmTodayAppointmentsNotice"
+    );
+
+const now = new Date();
+
+const today =
+    `${now.getFullYear()}-${
+        String(now.getMonth() + 1).padStart(2, "0")
+    }-${
+        String(now.getDate()).padStart(2, "0")
+    }`;
+
+const todayAppointments =
+    appointments.filter((appointment) => {
+        const date =
+            new Date(
+                appointment.scheduledAt
+            );
+
+        const appointmentDate =
+            `${date.getFullYear()}-${
+                String(date.getMonth() + 1).padStart(2, "0")
+            }-${
+                String(date.getDate()).padStart(2, "0")
+            }`;
+
+        return appointmentDate === today;
+    });
+
+if (todayNotice) {
+    todayNotice.hidden =
+        todayAppointments.length === 0;
+
+    todayNotice.textContent =
+        `🔔 Сьогодні записів: ${todayAppointments.length}`;
+}
 
                 const selectedDate =
     dateFilter?.value || "";
