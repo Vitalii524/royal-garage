@@ -1355,6 +1355,11 @@ async function loadAppointments() {
             "crmAppointmentsList"
         );
 
+    const dateFilter =
+        document.getElementById(
+            "crmAppointmentsDateFilter"
+        );
+
     if (!count || !list) {
         return;
     }
@@ -1386,8 +1391,30 @@ async function loadAppointments() {
                 ? data.appointments
                 : [];
 
+                const selectedDate =
+    dateFilter?.value || "";
+
+const filteredAppointments =
+    selectedDate
+        ? appointments.filter((appointment) => {
+            const date =
+            new Date(appointment.scheduledAt);
+        
+        const appointmentDate =
+            `${date.getFullYear()}-${
+                String(date.getMonth() + 1).padStart(2, "0")
+            }-${
+                String(date.getDate()).padStart(2, "0")
+            }`;slice(0, 10);
+
+            return appointmentDate === selectedDate;
+        })
+        : appointments;
+
         count.textContent =
-            `Записів: ${appointments.length}`;
+        selectedDate
+            ? `Записів на дату: ${filteredAppointments.length}`
+            : `Записів: ${appointments.length}`;
 
         if (appointments.length === 0) {
             list.innerHTML = `
@@ -1400,8 +1427,8 @@ async function loadAppointments() {
         }
 
         list.innerHTML =
-            appointments
-                .map((appointment) => {
+                filteredAppointments
+                    .map((appointment) => {
                     const date =
                         new Date(
                             appointment.scheduledAt
@@ -1798,6 +1825,15 @@ async function loadAppointments() {
         list.innerHTML = "";
     }
 }
+
+document
+    .getElementById(
+        "crmAppointmentsDateFilter"
+    )
+    ?.addEventListener(
+        "change",
+        loadAppointments
+    );
 
 function bindAppointmentForm() {
     const addButton =
