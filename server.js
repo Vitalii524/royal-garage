@@ -6,6 +6,8 @@ const { Pool } = require("pg");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
+const OPENAI_API_KEY =
+    process.env.OPENAI_API_KEY;
 const nodemailer = require("nodemailer");
 const mailTransporter =
     nodemailer.createTransport({
@@ -2423,6 +2425,119 @@ app.post(
            });
        }
    }
+);
+
+/* =========================
+   ROYAL GARAGE AI
+   ========================= */
+
+   app.post(
+    "/api/ai/chat",
+    requireAuth,
+    async (req, res) => {
+        try {
+            if (!OPENAI_API_KEY) {
+                return res.status(500).json({
+                    ok: false,
+                    message:
+                        "OpenAI не налаштований на сервері."
+                });
+            }
+
+            const message =
+                String(
+                    req.body?.message || ""
+                ).trim();
+
+            if (!message) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Введіть повідомлення."
+                });
+            }
+
+            if (message.length > 3000) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Повідомлення занадто довге."
+                });
+            }
+
+            const response =
+                await fetch(
+                    "https://api.openai.com/v1/responses",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json",
+
+                            Authorization:
+                                `Bearer ${OPENAI_API_KEY}`
+                        },
+
+                        body: JSON.stringify({
+                            model:
+                                "gpt-5.4-mini",
+
+                            input: [
+                                {
+                                    role: "system",
+
+                                    content:
+                                        "Ти ШІ-помічник автомобільної платформи Royal Garage. Відповідай українською мовою, зрозуміло та практично. Допомагай з автомобілями, обслуговуванням, несправностями, вибором СТО та функціями Royal Garage."
+                                },
+
+                                {
+                                    role: "user",
+                                    content:
+                                        message
+                                }
+                            ]
+                        })
+                    }
+                );
+
+            const data =
+                await response.json();
+
+            if (!response.ok) {
+                console.error(
+                    "OpenAI API error:",
+                    data
+                );
+
+                return res.status(502).json({
+                    ok: false,
+                    message:
+                        "ШІ тимчасово недоступний."
+                });
+            }
+
+            const answer =
+                data.output_text || "";
+
+            return res.json({
+                ok: true,
+                answer
+            });
+
+        } catch (error) {
+            console.error(
+                "Royal Garage AI error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося отримати відповідь ШІ."
+            });
+        }
+    }
 );
 
 app.get(
