@@ -1850,6 +1850,11 @@ function bindAppointmentForm() {
             "crmAppointmentClient"
         );
 
+    const clientInfo =
+        document.getElementById(
+            "crmAppointmentClientInfo"
+        );
+
     const carSelect =
         document.getElementById(
             "crmAppointmentCar"
@@ -1869,6 +1874,7 @@ function bindAppointmentForm() {
         return;
     }
 
+    let clientsCache = [];
     let carsCache = [];
 
     async function loadClientsAndCars() {
@@ -1974,6 +1980,8 @@ function bindAppointmentForm() {
                     ? clientsData.clients
                     : [];
 
+                    clientsCache = clients;
+
             carsCache =
                 Array.isArray(
                     carsData.cars
@@ -2022,12 +2030,36 @@ function bindAppointmentForm() {
             const clientId =
                 clientSelect.value;
 
+                const selectedClient =
+    clientsCache.find(
+        (client) =>
+            String(client.id) ===
+            String(clientId)
+    );
+
+clientInfo.innerHTML =
+    selectedClient?.phone
+        ? `
+            <a
+                href="tel:${selectedClient.phone}"
+                style="
+                    color: #fff;
+                    text-decoration: none;
+                "
+            >
+                📞 ${selectedClient.phone}
+            </a>
+        `
+        : "";
+
             if (!clientId) {
                 carSelect.innerHTML = `
                     <option value="">
                         Спочатку виберіть клієнта
                     </option>
                 `;
+
+                clientInfo.innerHTML = "";
 
                 return;
             }
