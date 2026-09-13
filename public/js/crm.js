@@ -302,10 +302,142 @@ async function loadClients() {
                                     ? `<div>${client.notes}</div>`
                                     : ""
                             }
+
+                                    <button
+                                        type="button"
+                                        class="crm-client-edit"
+                                        data-client-id="${client.id}"
+                                        style="
+                                            margin-top: 8px;
+                                        "
+                                    >
+                                        Редагувати
+                                    </button>
                         </div>
                     `
                 )
                 .join("");
+
+                list
+    .querySelectorAll(
+        ".crm-client-edit"
+    )
+    .forEach((button) => {
+        button.addEventListener(
+            "click",
+            async () => {
+                const clientId =
+                    button.dataset.clientId;
+
+                const client =
+                    clients.find(
+                        (item) =>
+                            String(item.id) ===
+                            String(clientId)
+                    );
+
+                if (!client) {
+                    return;
+                }
+
+                const name =
+                prompt(
+                    "Ім'я клієнта:",
+                    client.name || ""
+                );
+            
+            if (name === null) {
+                return;
+            }
+            
+            const phone =
+                prompt(
+                    "Телефон:",
+                    client.phone || ""
+                );
+            
+            if (phone === null) {
+                return;
+            }
+            
+            const email =
+                prompt(
+                    "Email:",
+                    client.email || ""
+                );
+            
+            if (email === null) {
+                return;
+            }
+            
+            const notes =
+                prompt(
+                    "Примітки:",
+                    client.notes || ""
+                );
+            
+            if (notes === null) {
+                return;
+            }
+
+            try {
+                const response =
+                    await fetch(
+                        `${getApiBaseUrl()}/api/crm/clients/${encodeURIComponent(clientId)}`,
+                        {
+                            method: "PATCH",
+            
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+            
+                                Authorization:
+                                    `Bearer ${getToken()}`
+                            },
+            
+                            body: JSON.stringify({
+                                name:
+                                    String(name).trim(),
+            
+                                phone:
+                                    String(phone).trim(),
+            
+                                email:
+                                    String(email).trim(),
+            
+                                notes:
+                                    String(notes).trim()
+                            })
+                        }
+                    );
+            
+                const data =
+                    await response.json();
+            
+                if (!response.ok) {
+                    throw new Error(
+                        data.message ||
+                        "Не вдалося оновити клієнта."
+                    );
+                }
+            
+                await loadClients();
+            
+            } catch (error) {
+                console.error(
+                    "CRM client update error:",
+                    error
+                );
+            
+                alert(
+                    error.message ||
+                    "Не вдалося оновити клієнта."
+                );
+            }
+
+            }
+        );
+    });
 
     } catch (error) {
         console.error(

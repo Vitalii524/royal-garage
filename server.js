@@ -8740,6 +8740,131 @@ app.post(
     }
 );
 
+app.patch(
+    "/api/crm/clients/:clientId",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        try {
+            const clientId =
+                String(
+                    req.params.clientId || ""
+                ).trim();
+
+            const {
+                name,
+                phone,
+                email,
+                notes
+            } = req.body || {};
+
+            const cleanName =
+                String(name || "").trim();
+
+            const cleanPhone =
+                String(phone || "").trim();
+
+            const cleanEmail =
+                String(email || "").trim();
+
+            const cleanNotes =
+                String(notes || "").trim();
+
+            if (!cleanName) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть ім'я клієнта."
+                });
+            }
+
+            const serviceResult =
+                await pool.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const result =
+                await pool.query(
+                    `
+                    UPDATE crm_clients
+                    SET
+                        name = $1,
+                        phone = $2,
+                        email = $3,
+                        notes = $4,
+                        updated_at = NOW()
+                    WHERE id = $5
+                      AND service_id = $6
+                    RETURNING
+                        id,
+                        name,
+                        phone,
+                        email,
+                        notes,
+                        created_at AS "createdAt",
+                        updated_at AS "updatedAt"
+                    `,
+                    [
+                        cleanName,
+                        cleanPhone,
+                        cleanEmail,
+                        cleanNotes,
+                        clientId,
+                        serviceId
+                    ]
+                );
+
+            if (
+                result.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Клієнта не знайдено."
+                });
+            }
+
+            return res.json({
+                ok: true,
+                client: result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "CRM client update error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося оновити клієнта."
+            });
+        }
+    }
+);
+
 app.get(
     "/api/crm/cars",
     requireAuth,
