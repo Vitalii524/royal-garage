@@ -1915,9 +1915,6 @@ function bindAppointmentForm() {
             const carsData =
                 await carsResponse.json();
 
-            const employeesData =
-                await employeesResponse.json();
-
             if (!clientsResponse.ok) {
                 throw new Error(
                     clientsData.message ||
