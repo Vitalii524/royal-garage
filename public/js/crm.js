@@ -1492,6 +1492,26 @@ const filteredAppointments =
                                             `
                                             : ""
                                     }
+
+                                    ${
+                                        appointment.clientPhone
+                                            ? `
+                                                <div style="
+                                                    margin-top: 3px;
+                                                ">
+                                                    <a
+                                                        href="tel:${appointment.clientPhone}"
+                                                        style="
+                                                            color: #aaa;
+                                                            text-decoration: none;
+                                                        "
+                                                    >
+                                                        📞 ${appointment.clientPhone}
+                                                    </a>
+                                                </div>
+                                            `
+                                            : ""
+                                    }
                     
                                     ${
                                         carText
