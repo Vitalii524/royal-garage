@@ -700,6 +700,11 @@ async function bindWorkOrderForm() {
             "crmWorkOrderCar"
         );
 
+    const mileageInput =
+        document.getElementById(
+            "crmWorkOrderMileage"
+        );
+
         const employeeSelect =
     document.getElementById(
         "crmWorkOrderEmployee"
@@ -925,6 +930,24 @@ async function bindWorkOrderForm() {
 
             carSelect.disabled =
                 clientCars.length === 0;
+        }
+    );
+
+    carSelect.addEventListener(
+        "change",
+        () => {
+            const carId =
+                carSelect.value;
+    
+            const selectedCar =
+                carsCache.find(
+                    (car) =>
+                        String(car.id) ===
+                        String(carId)
+                );
+    
+            mileageInput.value =
+                selectedCar?.mileage || "";
         }
     );
 
