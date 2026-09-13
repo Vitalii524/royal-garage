@@ -690,6 +690,11 @@ async function bindWorkOrderForm() {
             "crmWorkOrderClient"
         );
 
+    const clientInfo =
+        document.getElementById(
+            "crmWorkOrderClientInfo"
+        );
+
     const carSelect =
         document.getElementById(
             "crmWorkOrderCar"
@@ -709,7 +714,7 @@ async function bindWorkOrderForm() {
     ) {
         return;
     }
-
+    let clientsCache = [];
     let carsCache = [];
 
     async function loadClientsAndCars() {
@@ -787,6 +792,8 @@ async function bindWorkOrderForm() {
                 Array.isArray(clientsData.clients)
                     ? clientsData.clients
                     : [];
+
+            clientsCache = clients;
 
             carsCache =
                 Array.isArray(carsData.cars)
@@ -869,8 +876,24 @@ async function bindWorkOrderForm() {
                 `;
 
                 carSelect.disabled = true;
+                clientInfo.innerHTML = "";
                 return;
             }
+
+            const selectedClient =
+                clientsCache.find(
+                    (client) =>
+                        String(client.id) ===
+                        String(clientId)
+                );
+
+            clientInfo.innerHTML =
+                selectedClient
+                    ? `
+                        <div>📞 ${selectedClient.phone || "Телефон не вказано"}</div>
+                        <div>✉️ ${selectedClient.email || "Email не вказано"}</div>
+                    `
+                    : "";
 
             const clientCars =
                 carsCache.filter(
