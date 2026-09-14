@@ -5981,6 +5981,10 @@ async function renderMyChats() {
         return;
     }
 
+    if (!currentUser?.id) {
+        return;
+    }
+
     const token =
         localStorage.getItem(
             "royalGarageToken"
