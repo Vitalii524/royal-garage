@@ -2540,6 +2540,128 @@ app.post(
     }
 );
 
+/* =========================
+   ІСТОРІЯ ОБСЛУГОВУВАННЯ ПО VIN
+   ========================= */
+
+   app.get(
+    "/api/garage/cars/:carId/service-history",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const carId =
+                String(
+                    req.params.carId || ""
+                ).trim();
+
+            const garageCarResult =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        owner_id,
+                        vin
+                    FROM garage_cars
+                    WHERE id = $1
+                      AND owner_id = $2
+                    LIMIT 1
+                    `,
+                    [
+                        carId,
+                        req.user.userId
+                    ]
+                );
+
+            if (
+                garageCarResult.rows.length === 0
+            ) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Автомобіль не знайдено."
+                });
+            }
+
+            const vin =
+                normalizeVin(
+                    garageCarResult.rows[0].vin
+                );
+
+            if (!vin) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Для автомобіля не вказано VIN."
+                });
+            }
+
+            const historyResult =
+                await pool.query(
+                    `
+                    SELECT
+                    wo.id,
+                    wo.order_number AS "orderNumber",
+                    wo.mileage,
+                    wo.completed_at AS "completedAt",
+                    wo.total_amount AS "totalAmount",
+
+                    COALESCE(
+                        (
+                            SELECT json_agg(
+                                json_build_object(
+                                    'name', services.name,
+                                    'quantity', services.quantity,
+                                    'price', services.price,
+                                    'total', services.total
+                                )
+                                ORDER BY services.created_at ASC
+                            )
+                            FROM crm_work_order_services AS services
+                            WHERE services.work_order_id = wo.id
+                            AND services.service_id = wo.service_id
+                        ),
+                        '[]'::json
+                    ) AS services
+
+                    FROM crm_work_orders AS wo
+
+                    JOIN crm_cars AS cars
+                        ON cars.id = wo.car_id
+
+                    WHERE wo.status = 'completed'
+                      AND UPPER(TRIM(cars.vin)) = $1
+
+                    ORDER BY
+                        wo.completed_at DESC NULLS LAST,
+                        wo.created_at DESC
+                    `,
+                    [
+                        vin
+                    ]
+                );
+
+            return res.json({
+                ok: true,
+                vin,
+                history:
+                    historyResult.rows
+            });
+
+        } catch (error) {
+            console.error(
+                "Garage VIN service history error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити історію обслуговування."
+            });
+        }
+    }
+);
+
 app.get(
     "/api/garage/cars",
     requireAuth,
@@ -9093,7 +9215,7 @@ app.post(
                 String(model || "").trim();
 
             const cleanVin =
-                String(vin || "").trim();
+                normalizeVin(vin);
 
             const cleanPlate =
                 String(plate || "").trim();
