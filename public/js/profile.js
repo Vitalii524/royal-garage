@@ -2780,6 +2780,9 @@ function renderCrmServiceHistoryCard(
     card.className =
         "service-card crm-service-history-card";
 
+    card.dataset.serviceDate =
+        record.completedAt || "";
+
     const works =
         Array.isArray(record.services)
             ? record.services
@@ -2878,6 +2881,9 @@ function renderServiceCard(
 
     card.className =
         "service-card";
+
+    card.dataset.serviceDate =
+        service.date || "";
 
     card.innerHTML = `
         <div class="service-card-top">
@@ -6835,16 +6841,41 @@ elements.openHistoryButton
                             )} грн`;
                     }
 
-            crmHistory.forEach(
-                (record) => {
-                    elements.serviceHistory
-                        ?.appendChild(
-                            renderCrmServiceHistoryCard(
-                                record
-                            )
+                        crmHistory.forEach(
+                            (record) => {
+                                elements.serviceHistory
+                                    ?.appendChild(
+                                        renderCrmServiceHistoryCard(
+                                            record
+                                        )
+                                    );
+                            }
                         );
-                }
-            );
+
+                        const allServiceCards =
+                Array.from(
+                    elements.serviceHistory
+                        ?.querySelectorAll(
+                            ".service-card"
+                        ) || []
+                );
+
+            allServiceCards
+                .sort(
+                    (first, second) =>
+                        new Date(
+                            second.dataset.serviceDate || 0
+                        ).getTime() -
+                        new Date(
+                            first.dataset.serviceDate || 0
+                        ).getTime()
+                )
+                .forEach(
+                    (card) => {
+                        elements.serviceHistory
+                            ?.appendChild(card);
+                    }
+                );
 
             openModal(
                 elements.historyModal
