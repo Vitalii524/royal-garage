@@ -6797,6 +6797,44 @@ elements.openHistoryButton
                 crmHistory
             );
 
+            const ownerServices =
+                        Array.isArray(car.services)
+                            ? car.services
+                            : [];
+
+                    const ownerTotal =
+                        ownerServices.reduce(
+                            (total, service) =>
+                                total +
+                                Number(service.cost || 0),
+                            0
+                        );
+
+                    const crmTotal =
+                        crmHistory.reduce(
+                            (total, record) =>
+                                total +
+                                Number(
+                                    record.totalAmount || 0
+                                ),
+                            0
+                        );
+
+                    if (elements.serviceCount) {
+                        elements.serviceCount.textContent =
+                            String(
+                                ownerServices.length +
+                                crmHistory.length
+                            );
+                    }
+
+                    if (elements.totalServiceCost) {
+                        elements.totalServiceCost.textContent =
+                            `${formatNumber(
+                                ownerTotal + crmTotal
+                            )} грн`;
+                    }
+
             crmHistory.forEach(
                 (record) => {
                     elements.serviceHistory
