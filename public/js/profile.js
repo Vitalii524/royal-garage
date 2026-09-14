@@ -2814,6 +2814,32 @@ function renderCrmServiceHistoryCard(
                 </p>
             `;
 
+            const parts =
+    Array.isArray(record.parts)
+        ? record.parts
+        : [];
+
+            const partsHtml =
+                parts.length > 0
+                    ? parts
+                        .map(
+                            (part) => `
+                                <p>
+                                    ⚙️ ${escapeHtml(
+                                        part.name || "Запчастина"
+                                    )}
+                                    — ${formatNumber(
+                                        part.quantity || 1
+                                    )} шт.
+                                    — <strong>${formatNumber(
+                                        part.total || 0
+                                    )} грн</strong>
+                                </p>
+                            `
+                        )
+                        .join("")
+                    : "";
+
     card.innerHTML = `
         <div class="service-card-top">
 
@@ -2865,6 +2891,7 @@ function renderCrmServiceHistoryCard(
 
         <div>
             ${worksHtml}
+            ${partsHtml}
         </div>
     `;
 
