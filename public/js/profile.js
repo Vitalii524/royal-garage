@@ -2816,9 +2816,15 @@ function renderCrmServiceHistoryCard(
 
             <div>
                 <p class="service-date">
-                    ${formatDate(
-                        record.completedAt
-                    )}
+                ${
+                    record.completedAt
+                        ? new Date(
+                            record.completedAt
+                        ).toLocaleDateString(
+                            "uk-UA"
+                        )
+                        : "Дата не вказана"
+                }
                 </p>
 
                 <h3>
