@@ -2769,6 +2769,99 @@ function openServiceEditor(
     );
 }
 
+function renderCrmServiceHistoryCard(
+    record
+) {
+    const card =
+        document.createElement(
+            "article"
+        );
+
+    card.className =
+        "service-card crm-service-history-card";
+
+    const works =
+        Array.isArray(record.services)
+            ? record.services
+            : [];
+
+    const worksHtml =
+        works.length > 0
+            ? works
+                .map(
+                    (work) => `
+                        <p>
+                            🔧 ${escapeHtml(
+                                work.name || "Робота"
+                            )}
+                            ${
+                                Number(work.total || 0) > 0
+                                    ? ` — <strong>${formatNumber(
+                                        work.total
+                                    )} грн</strong>`
+                                    : ""
+                            }
+                        </p>
+                    `
+                )
+                .join("")
+            : `
+                <p>
+                    Виконані роботи не вказані.
+                </p>
+            `;
+
+    card.innerHTML = `
+        <div class="service-card-top">
+
+            <div>
+                <p class="service-date">
+                    ${formatDate(
+                        record.completedAt
+                    )}
+                </p>
+
+                <h3>
+                    Обслуговування на СТО
+                </h3>
+            </div>
+
+            <span class="service-visibility">
+                Підтверджено СТО
+            </span>
+
+        </div>
+
+        <div class="service-details">
+
+            <span>
+                Пробіг:
+                <strong>
+                    ${formatNumber(
+                        record.mileage || 0
+                    )} км
+                </strong>
+            </span>
+
+            <span>
+                Вартість:
+                <strong>
+                    ${formatNumber(
+                        record.totalAmount || 0
+                    )} грн
+                </strong>
+            </span>
+
+        </div>
+
+        <div>
+            ${worksHtml}
+        </div>
+    `;
+
+    return card;
+}
+
 function renderServiceCard(
     service
 ) {
@@ -6700,6 +6793,17 @@ elements.openHistoryButton
             console.log(
                 "CRM VIN history:",
                 crmHistory
+            );
+
+            crmHistory.forEach(
+                (record) => {
+                    elements.serviceHistory
+                        ?.appendChild(
+                            renderCrmServiceHistoryCard(
+                                record
+                            )
+                        );
+                }
             );
 
             openModal(
