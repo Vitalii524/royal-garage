@@ -2621,7 +2621,26 @@ app.post(
                             AND services.service_id = wo.service_id
                         ),
                         '[]'::json
-                    ) AS services
+                    ) AS services,
+
+                    COALESCE(
+                        (
+                            SELECT json_agg(
+                                json_build_object(
+                                    'name', parts.name,
+                                    'partNumber', parts.part_number,
+                                    'quantity', parts.quantity,
+                                    'price', parts.price,
+                                    'total', parts.total
+                                )
+                                ORDER BY parts.created_at ASC
+                            )
+                            FROM crm_work_order_parts AS parts
+                            WHERE parts.work_order_id = wo.id
+                              AND parts.service_id = wo.service_id
+                        ),
+                        '[]'::json
+                    ) AS parts
 
                     FROM crm_work_orders AS wo
 
