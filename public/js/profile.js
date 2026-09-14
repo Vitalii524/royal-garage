@@ -2891,11 +2891,7 @@ function renderServiceCard(
             </div>
 
             <span class="service-visibility">
-                ${
-                    service.isPublic
-                        ? tr("profile.dynamic.public", "Публічний")
-                        : tr("profile.dynamic.private", "Приватний")
-                }
+                Додано власником
             </span>
 
         </div>
