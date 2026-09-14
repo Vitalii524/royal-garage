@@ -437,6 +437,58 @@ const elements = {
         )
 };
 
+async function loadGarageServiceHistory(
+    carId
+) {
+    const token =
+        localStorage.getItem(
+            "royalGarageToken"
+        );
+
+    if (!token || !carId) {
+        return [];
+    }
+
+    try {
+        const response =
+            await fetch(
+                `/api/garage/cars/${
+                    encodeURIComponent(carId)
+                }/service-history`,
+                {
+                    headers: {
+                        Authorization:
+                            `Bearer ${token}`
+                    }
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити історію СТО."
+            );
+        }
+
+        return Array.isArray(
+            data.history
+        )
+            ? data.history
+            : [];
+
+    } catch (error) {
+        console.error(
+            "Garage service history load error:",
+            error
+        );
+
+        return [];
+    }
+}
+
 async function loadGarageCarsFromServer() {
     const token =
         localStorage.getItem(
@@ -6624,7 +6676,7 @@ elements.openServiceButton
 elements.openHistoryButton
     ?.addEventListener(
         "click",
-        () => {
+        async () => {
             if (
                 !getSelectedCar()
             ) {
@@ -6636,6 +6688,19 @@ elements.openHistoryButton
             }
 
             renderSelectedCar();
+
+            const car =
+                getSelectedCar();
+
+            const crmHistory =
+                await loadGarageServiceHistory(
+                    car.id
+                );
+
+            console.log(
+                "CRM VIN history:",
+                crmHistory
+            );
 
             openModal(
                 elements.historyModal
