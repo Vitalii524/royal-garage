@@ -394,6 +394,78 @@
         }
     }
 
+    async function saveBusinessReview(event) {
+        event.preventDefault();
+    
+        const ownerId =
+            state.profile?.ownerId;
+    
+        const rating =
+            Number(
+                $("businessReviewRating")
+                    ?.value
+            );
+    
+        const review =
+            String(
+                $("businessReviewText")
+                    ?.value || ""
+            ).trim();
+    
+        const error =
+            $("businessReviewFormError");
+    
+        if (!ownerId) {
+            error.textContent =
+                "Не вдалося визначити бізнес.";
+            return;
+        }
+    
+        if (
+            !Number.isInteger(rating) ||
+            rating < 1 ||
+            rating > 5
+        ) {
+            error.textContent =
+                "Оберіть оцінку від 1 до 5.";
+            return;
+        }
+    
+        error.textContent = "";
+    
+        try {
+            const body = {
+                rating
+            };
+    
+            if (review) {
+                body.review = review;
+            }
+    
+            await api(
+                `/api/sellers/${
+                    encodeURIComponent(ownerId)
+                }/rating`,
+                {
+                    method: "POST",
+                    body: JSON.stringify(body)
+                }
+            );
+    
+            closeModal(
+                "businessReviewModal"
+            );
+    
+            await loadReviews(
+                ownerId
+            );
+    
+        } catch (saveError) {
+            error.textContent =
+                saveError.message;
+        }
+    }
+
     async function renderProfile(profile) {
         state.profile = profile;
         renderLogo(profile);
@@ -787,8 +859,32 @@
         });
         $("businessPlanButton")?.addEventListener("click", openPlanModal);
 
+        $("businessWriteReviewButton")?.addEventListener(
+            "click",
+            () => {
+                if (!token()) {
+                    alert(
+                        "Щоб написати відгук, спочатку увійдіть у профіль."
+                    );
+                    return;
+                }
+        
+                $("businessReviewRating").value = "";
+                $("businessReviewText").value = "";
+                $("businessReviewFormError").textContent = "";
+        
+                openModal(
+                    "businessReviewModal"
+                );
+            }
+        );
+
         $("businessProfileForm")?.addEventListener("submit", saveProfile);
         $("businessItemForm")?.addEventListener("submit", saveItem);
+        $("businessReviewForm")?.addEventListener(
+            "submit",
+            saveBusinessReview
+        );
         $("businessSendPhoneCodeButton")?.addEventListener("click", sendPhoneCode);
         $("businessPhoneCodeForm")?.addEventListener("submit", verifyPhoneCode);
 

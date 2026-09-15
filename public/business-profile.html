@@ -184,6 +184,13 @@
                     <span id="businessRatingCount">Відгуків ще немає</span>
                 </div>
             </div>
+            <button
+                id="businessWriteReviewButton"
+                type="button"
+                class="business-primary-button"
+            >
+                Написати відгук
+            </button>
             <div id="businessReviewsList" class="business-reviews-list"></div>
             <p id="businessReviewsEmpty" class="business-empty">Відгуків ще немає.</p>
         </section>
@@ -333,6 +340,84 @@
             </label>
             <p id="businessPhoneFormError" class="business-form-error"></p>
             <button type="submit" class="business-primary-button">Підтвердити</button>
+        </form>
+    </div>
+</div>
+
+<!-- Відгук про бізнес -->
+<div id="businessReviewModal" class="business-modal" hidden>
+    <div
+        class="business-modal-backdrop"
+        data-close-modal="businessReviewModal"
+    ></div>
+
+    <div
+        class="business-modal-card business-modal-small"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="businessReviewModalTitle"
+    >
+        <div class="business-modal-head">
+            <h2 id="businessReviewModalTitle">
+                Написати відгук
+            </h2>
+
+            <button
+                type="button"
+                class="business-icon-button"
+                data-close-modal="businessReviewModal"
+            >
+                ×
+            </button>
+        </div>
+
+        <form
+            id="businessReviewForm"
+            class="business-form"
+        >
+            <label>
+                Оцінка
+                <select id="businessReviewRating" required>
+                    <option value="">Оберіть оцінку</option>
+                    <option value="5">⭐⭐⭐⭐⭐</option>
+                    <option value="4">⭐⭐⭐⭐</option>
+                    <option value="3">⭐⭐⭐</option>
+                    <option value="2">⭐⭐</option>
+                    <option value="1">⭐</option>
+                </select>
+            </label>
+
+            <label>
+                Відгук
+                <textarea
+                    id="businessReviewText"
+                    rows="5"
+                    maxlength="1000"
+                    placeholder="Напишіть кілька слів..."
+                ></textarea>
+            </label>
+
+            <p
+                id="businessReviewFormError"
+                class="business-form-error"
+            ></p>
+
+            <div class="business-modal-actions">
+                <button
+                    type="button"
+                    class="business-secondary-button"
+                    data-close-modal="businessReviewModal"
+                >
+                    Скасувати
+                </button>
+
+                <button
+                    type="submit"
+                    class="business-primary-button"
+                >
+                    Опублікувати
+                </button>
+            </div>
         </form>
     </div>
 </div>
