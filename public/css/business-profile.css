@@ -171,7 +171,55 @@
 .business-review-card p { color: var(--business-muted); }
 .business-review-card small { color: rgba(255,255,255,.48); }
 .business-empty { color: var(--business-muted); margin: 18px 0 0; }
+.business-portfolio-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+}
 
+.business-portfolio-card {
+    overflow: hidden;
+    border-radius: 16px;
+    background: rgba(255,255,255,.045);
+    border: 1px solid var(--business-border);
+}
+
+.business-portfolio-card img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+}
+
+.business-portfolio-card p {
+    margin: 0;
+    padding: 14px 16px;
+    color: var(--business-muted);
+    line-height: 1.5;
+}
+
+.business-portfolio-video {
+    display: grid;
+    place-items: center;
+    min-height: 170px;
+    padding: 20px;
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
+    background: rgba(255,255,255,.06);
+}
+
+.business-portfolio-delete {
+    margin: 0 16px 16px;
+    padding: 9px 12px;
+    border: 1px solid var(--business-border);
+    border-radius: 10px;
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+}
 .business-bottom-contact { display: flex; justify-content: space-between; align-items: center; gap: 26px; }
 .business-bottom-contact p { color: var(--business-muted); }
 

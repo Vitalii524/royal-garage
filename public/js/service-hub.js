@@ -18,7 +18,8 @@
         profile: null,
         isOwner: false,
         editingItemPhotos: [],
-        editingLogo: null
+        editingLogo: null,
+        editingPortfolioImage: null
     };
 
     const $ = (id) => document.getElementById(id);
@@ -233,6 +234,7 @@
         const manage = $("businessManageButton");
 
         manage.hidden = !state.isOwner;
+        $("businessAddPortfolioButton").hidden = !state.isOwner;
         $("businessOwnerDraftBadge").hidden = !(state.isOwner && profile.profileStatus !== "active");
 
         if (!state.isOwner) {
@@ -399,6 +401,125 @@
         }
     }
 
+    function renderPortfolio(profile) {
+        const root =
+            $("businessPortfolioList");
+    
+        const empty =
+            $("businessPortfolioEmpty");
+    
+        const portfolio =
+            Array.isArray(profile.portfolio)
+                ? profile.portfolio
+                : [];
+    
+        root.innerHTML = "";
+        empty.hidden =
+            portfolio.length > 0;
+    
+        for (const item of portfolio) {
+            const card =
+                document.createElement(
+                    "article"
+                );
+    
+            card.className =
+                "business-portfolio-card";
+    
+            if (
+                item.mediaType === "image" &&
+                item.mediaUrl
+            ) {
+                const image =
+                    document.createElement(
+                        "img"
+                    );
+    
+                image.src =
+                    item.mediaUrl;
+    
+                image.alt =
+                    item.description ||
+                    "Робота SERVICE HUB LVIV";
+    
+                image.loading =
+                    "lazy";
+    
+                card.appendChild(
+                    image
+                );
+            }
+    
+            if (
+                item.mediaType === "video" &&
+                item.mediaUrl
+            ) {
+                const link =
+                    document.createElement(
+                        "a"
+                    );
+    
+                link.href =
+                    item.mediaUrl;
+    
+                link.target =
+                    "_blank";
+    
+                link.rel =
+                    "noopener noreferrer";
+    
+                link.className =
+                    "business-portfolio-video";
+    
+                link.textContent =
+                    "▶ Переглянути відео";
+    
+                card.appendChild(
+                    link
+                );
+            }
+    
+            if (item.description) {
+                const description =
+                    document.createElement(
+                        "p"
+                    );
+    
+                description.textContent =
+                    item.description;
+    
+                card.appendChild(
+                    description
+                );
+            }
+    
+            if (state.isOwner) {
+                const deleteButton =
+                    document.createElement(
+                        "button"
+                    );
+    
+                deleteButton.type =
+                    "button";
+    
+                deleteButton.className =
+                    "business-portfolio-delete";
+    
+                deleteButton.dataset.portfolioDelete =
+                    item.id;
+    
+                deleteButton.textContent =
+                    "🗑 Видалити";
+    
+                card.appendChild(
+                    deleteButton
+                );
+            }
+    
+            root.appendChild(card);
+        }
+    }
+
     async function renderProfile(profile) {
         state.profile = profile;
         renderLogo(profile);
@@ -417,6 +538,7 @@
         renderSchedule(profile);
         renderOwnerControls(profile);
         renderServices(profile);
+        renderPortfolio(profile);
         loadReviews(profile.ownerId || SERVICE_HUB_OWNER_ID);
 
         document.title = `${profile.name || "SERVICE HUB LVIV"} | Royal Garage`;
@@ -636,6 +758,72 @@
         }
     }
 
+    async function savePortfolio(event) {
+        event.preventDefault();
+    
+        const error =
+            $("businessPortfolioFormError");
+    
+        error.textContent = "";
+    
+        try {
+            const mediaType =
+                $("businessPortfolioType").value;
+    
+            let mediaUrl = "";
+    
+            if (mediaType === "image") {
+                mediaUrl =
+                    state.editingPortfolioImage || "";
+    
+                if (!mediaUrl) {
+                    throw new Error(
+                        "Оберіть фото."
+                    );
+                }
+            } else {
+                mediaUrl =
+                    $("businessPortfolioVideoUrl")
+                        .value
+                        .trim();
+    
+                if (!mediaUrl) {
+                    throw new Error(
+                        "Вкажіть посилання на відео."
+                    );
+                }
+            }
+    
+            await api(
+                "/api/business/portfolio",
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        mediaType,
+                        mediaUrl,
+                        description:
+                            $("businessPortfolioDescription")
+                                .value
+                                .trim()
+                    })
+                }
+            );
+    
+            state.editingPortfolioImage =
+                null;
+    
+            closeModal(
+                "businessPortfolioModal"
+            );
+    
+            await refreshOwnerProfile();
+    
+        } catch (e) {
+            error.textContent =
+                e.message;
+        }
+    }
+
     async function deleteService(id) {
         if (!confirm("Видалити послугу?")) return;
 
@@ -646,6 +834,29 @@
             await refreshOwnerProfile();
         } catch (error) {
             alert(error.message);
+        }
+    }
+
+    async function deletePortfolioItem(id) {
+        if (!confirm("Видалити цю роботу з портфоліо?")) {
+            return;
+        }
+    
+        try {
+            await api(
+                `/api/business/portfolio/${encodeURIComponent(id)}`,
+                {
+                    method: "DELETE"
+                }
+            );
+    
+            await refreshOwnerProfile();
+    
+        } catch (error) {
+            alert(
+                error.message ||
+                "Не вдалося видалити роботу."
+            );
         }
     }
 
@@ -713,6 +924,36 @@
 
         $("businessAddServiceButton")?.addEventListener("click", () => openServiceModal());
 
+        $("businessAddPortfolioButton")?.addEventListener("click", () => {
+            state.editingPortfolioImage = null;
+        
+            $("businessPortfolioForm").reset();
+            $("businessPortfolioType").value = "image";
+            $("businessPortfolioImageField").hidden = false;
+            $("businessPortfolioVideoField").hidden = true;
+            $("businessPortfolioFormError").textContent = "";
+        
+            openModal("businessPortfolioModal");
+        });
+        
+        $("businessPortfolioType")?.addEventListener("change", () => {
+            const isVideo =
+                $("businessPortfolioType").value === "video";
+        
+            $("businessPortfolioImageField").hidden =
+                isVideo;
+        
+            $("businessPortfolioVideoField").hidden =
+                !isVideo;
+        
+            if (isVideo) {
+                state.editingPortfolioImage = null;
+                $("businessPortfolioImageInput").value = "";
+            } else {
+                $("businessPortfolioVideoUrl").value = "";
+            }
+        });
+
         $("businessWriteReviewButton")?.addEventListener(
             "click",
             () => {
@@ -742,6 +983,10 @@
 
         $("businessProfileForm")?.addEventListener("submit", saveProfile);
         $("businessItemForm")?.addEventListener("submit", saveService);
+        $("businessPortfolioForm")?.addEventListener(
+            "submit",
+            savePortfolio
+        );
         $("businessReviewForm")?.addEventListener(
             "submit",
             saveBusinessReview
@@ -760,6 +1005,36 @@
                 $("businessProfileFormError").textContent = error.message;
             }
         });
+
+        $("businessPortfolioImageInput")?.addEventListener(
+            "change",
+            async (event) => {
+                const file =
+                    event.target.files?.[0];
+        
+                if (!file) {
+                    state.editingPortfolioImage = null;
+                    return;
+                }
+        
+                try {
+                    state.editingPortfolioImage =
+                        await compressImage(
+                            file,
+                            1200,
+                            0.82
+                        );
+        
+                    $("businessPortfolioFormError").textContent =
+                        "";
+                } catch (error) {
+                    state.editingPortfolioImage = null;
+        
+                    $("businessPortfolioFormError").textContent =
+                        error.message;
+                }
+            }
+        );
 
         $("businessItemPhotosInput")?.addEventListener("change", async (event) => {
             const files = Array.from(event.target.files || []);
@@ -796,6 +1071,17 @@
 
             const del = event.target.closest("[data-delete-service]");
             if (del) deleteService(del.dataset.deleteService);
+            const portfolioDelete =
+    event.target.closest(
+        "[data-portfolio-delete]"
+    );
+
+if (portfolioDelete) {
+    deletePortfolioItem(
+        portfolioDelete.dataset
+            .portfolioDelete
+    );
+}
         });
 
         document.addEventListener("keydown", (event) => {

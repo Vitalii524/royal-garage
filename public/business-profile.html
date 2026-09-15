@@ -195,6 +195,44 @@
             <p id="businessReviewsEmpty" class="business-empty">Відгуків ще немає.</p>
         </section>
 
+        <section
+    id="businessPortfolioSection"
+    class="business-section"
+>
+    <div class="business-section-head">
+        <div>
+            <span class="business-eyebrow">
+                Портфоліо
+            </span>
+
+            <h2>
+                Фото та відео робіт
+            </h2>
+        </div>
+
+        <button
+            id="businessAddPortfolioButton"
+            type="button"
+            class="business-primary-button"
+            hidden
+        >
+            + Додати роботу
+        </button>
+    </div>
+
+    <div
+        id="businessPortfolioList"
+        class="business-portfolio-grid"
+    ></div>
+
+    <p
+        id="businessPortfolioEmpty"
+        class="business-empty"
+    >
+        Роботи ще не додані.
+    </p>
+</section>
+
         <section id="businessBottomContact" class="business-bottom-contact">
             <div>
                 <span class="business-eyebrow">Зв’язок</span>
@@ -340,6 +378,101 @@
             </label>
             <p id="businessPhoneFormError" class="business-form-error"></p>
             <button type="submit" class="business-primary-button">Підтвердити</button>
+        </form>
+    </div>
+</div>
+
+<!-- Портфоліо -->
+<div id="businessPortfolioModal" class="business-modal" hidden>
+    <div
+        class="business-modal-backdrop"
+        data-close-modal="businessPortfolioModal"
+    ></div>
+
+    <div
+        class="business-modal-card business-modal-small"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="businessPortfolioModalTitle"
+    >
+        <div class="business-modal-head">
+            <h2 id="businessPortfolioModalTitle">
+                Додати в портфоліо
+            </h2>
+
+            <button
+                type="button"
+                class="business-icon-button"
+                data-close-modal="businessPortfolioModal"
+            >
+                ×
+            </button>
+        </div>
+
+        <form
+            id="businessPortfolioForm"
+            class="business-form"
+        >
+            <label>
+                Тип
+                <select id="businessPortfolioType">
+                    <option value="image">Фото</option>
+                    <option value="video">Відео</option>
+                </select>
+            </label>
+
+            <label id="businessPortfolioImageField">
+                Фото
+                <input
+                    id="businessPortfolioImageInput"
+                    type="file"
+                    accept="image/*"
+                >
+            </label>
+
+            <label
+                id="businessPortfolioVideoField"
+                hidden
+            >
+                Посилання на відео
+                <input
+                    id="businessPortfolioVideoUrl"
+                    type="url"
+                    placeholder="https://..."
+                >
+            </label>
+
+            <label>
+                Опис роботи
+                <textarea
+                    id="businessPortfolioDescription"
+                    rows="4"
+                    maxlength="1000"
+                    placeholder="Коротко опишіть виконану роботу..."
+                ></textarea>
+            </label>
+
+            <p
+                id="businessPortfolioFormError"
+                class="business-form-error"
+            ></p>
+
+            <div class="business-modal-actions">
+                <button
+                    type="button"
+                    class="business-secondary-button"
+                    data-close-modal="businessPortfolioModal"
+                >
+                    Скасувати
+                </button>
+
+                <button
+                    type="submit"
+                    class="business-primary-button"
+                >
+                    Додати
+                </button>
+            </div>
         </form>
     </div>
 </div>

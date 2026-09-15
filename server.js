@@ -346,6 +346,49 @@ await pool.query(`
 `);
 
 await pool.query(`
+    CREATE TABLE IF NOT EXISTS business_portfolio (
+        id UUID PRIMARY KEY,
+
+        business_id UUID NOT NULL
+            REFERENCES business_profiles(id)
+            ON DELETE CASCADE,
+
+        media_type VARCHAR(20) NOT NULL
+            CHECK (
+                media_type IN (
+                    'image',
+                    'video'
+                )
+            ),
+
+        media_url TEXT NOT NULL,
+
+        description TEXT NOT NULL
+            DEFAULT '',
+
+        sort_order INTEGER NOT NULL
+            DEFAULT 0,
+
+        created_at TIMESTAMPTZ NOT NULL
+            DEFAULT NOW(),
+
+        updated_at TIMESTAMPTZ NOT NULL
+            DEFAULT NOW()
+    )
+`);
+
+await pool.query(`
+    CREATE INDEX IF NOT EXISTS
+        idx_business_portfolio_business
+
+    ON business_portfolio (
+        business_id,
+        sort_order,
+        created_at
+    )
+`);
+
+await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_business_products_business
     ON business_products (business_id, active, sort_order, created_at)
 `);
@@ -6577,7 +6620,27 @@ async function loadPrivateBusinessProfile(ownerId) {
                       AND pr.active = TRUE
                 ),
                 '[]'::json
-            ) AS products
+                ) AS products,
+
+                COALESCE(
+                    (
+                        SELECT json_agg(
+                            json_build_object(
+                                'id', pf.id,
+                                'mediaType', pf.media_type,
+                                'mediaUrl', pf.media_url,
+                                'description', pf.description,
+                                'createdAt', pf.created_at
+                            )
+                            ORDER BY
+                                pf.sort_order ASC,
+                                pf.created_at DESC
+                        )
+                        FROM business_portfolio pf
+                        WHERE pf.business_id = bp.id
+                    ),
+                    '[]'::json
+                ) AS portfolio
 
         FROM business_profiles bp
         JOIN users u
@@ -6652,7 +6715,27 @@ async function loadPublicBusinessProfile(ownerId) {
                       AND pr.active = TRUE
                 ),
                 '[]'::json
-            ) AS products
+                ) AS products,
+
+                COALESCE(
+                    (
+                        SELECT json_agg(
+                            json_build_object(
+                                'id', pf.id,
+                                'mediaType', pf.media_type,
+                                'mediaUrl', pf.media_url,
+                                'description', pf.description,
+                                'createdAt', pf.created_at
+                            )
+                            ORDER BY
+                                pf.sort_order ASC,
+                                pf.created_at DESC
+                        )
+                        FROM business_portfolio pf
+                        WHERE pf.business_id = bp.id
+                    ),
+                    '[]'::json
+                ) AS portfolio
 
         FROM business_profiles bp
         JOIN users u
@@ -7090,6 +7173,186 @@ app.delete(
     }
 );
 
+app.post(
+    "/api/business/portfolio",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const businessId =
+                await getOwnedBusinessId(
+                    req.user.userId
+                );
+
+            if (!businessId) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Бізнес-профіль не знайдено."
+                });
+            }
+
+            const mediaType =
+                String(
+                    req.body.mediaType || ""
+                ).trim();
+
+            const mediaUrl =
+                String(
+                    req.body.mediaUrl || ""
+                ).trim();
+
+            const description =
+                String(
+                    req.body.description || ""
+                )
+                    .trim()
+                    .slice(0, 1000);
+
+            if (
+                mediaType !== "image" &&
+                mediaType !== "video"
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Неправильний тип файлу."
+                });
+            }
+
+            if (!mediaUrl) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Фото або відео не вибрано."
+                });
+            }
+
+            if (
+                mediaType === "video" &&
+                !/^https?:\/\//i.test(mediaUrl)
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Вкажіть правильне посилання на відео."
+                });
+            }
+            
+            if (
+                mediaType === "image" &&
+                !/^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(mediaUrl) &&
+                !/^https?:\/\//i.test(mediaUrl)
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Неправильний формат зображення."
+                });
+            }
+
+            const result =
+                await pool.query(
+                    `
+                    INSERT INTO business_portfolio (
+                        id,
+                        business_id,
+                        media_type,
+                        media_url,
+                        description
+                    )
+                    VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        $4,
+                        $5
+                    )
+                    RETURNING
+                        id,
+                        media_type AS "mediaType",
+                        media_url AS "mediaUrl",
+                        description,
+                        created_at AS "createdAt"
+                    `,
+                    [
+                        crypto.randomUUID(),
+                        businessId,
+                        mediaType,
+                        mediaUrl,
+                        description
+                    ]
+                );
+
+            return res
+                .status(201)
+                .json({
+                    ok: true,
+                    item: result.rows[0]
+                });
+
+        } catch (error) {
+            console.error(
+                "Business portfolio create error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося додати роботу в портфоліо."
+            });
+        }
+    }
+);
+
+app.delete(
+    "/api/business/portfolio/:itemId",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const result =
+                await pool.query(
+                    `
+                    DELETE FROM business_portfolio pf
+                    USING business_profiles bp
+                    WHERE
+                        pf.business_id = bp.id
+                        AND bp.owner_id = $1
+                        AND pf.id = $2
+                    RETURNING pf.id
+                    `,
+                    [
+                        req.user.userId,
+                        req.params.itemId
+                    ]
+                );
+
+            if (!result.rows.length) {
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Роботу не знайдено."
+                });
+            }
+
+            return res.json({
+                ok: true
+            });
+
+        } catch (error) {
+            console.error(
+                "Business portfolio delete error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося видалити роботу."
+            });
+        }
+    }
+);
 
 app.post("/api/register", async (req, res) => {
     const client = await pool.connect();
