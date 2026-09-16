@@ -174,9 +174,10 @@
 .business-portfolio-grid {
     display: grid;
     grid-template-columns:
-        repeat(auto-fit, minmax(220px, 1fr));
+        repeat(auto-fill, minmax(280px, 320px));
     gap: 16px;
     margin-top: 20px;
+    justify-content: start;
 }
 
 .business-portfolio-card {
