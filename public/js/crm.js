@@ -60,6 +60,28 @@ async function loadCrm() {
             );
         }
 
+        const bootstrapResponse =
+    await fetch(
+        `${apiBaseUrl}/api/crm/bootstrap`,
+        {
+            method: "POST",
+            headers: {
+                Authorization:
+                    `Bearer ${token}`
+            }
+        }
+    );
+
+            const bootstrapData =
+                await bootstrapResponse.json();
+
+            if (!bootstrapResponse.ok) {
+                throw new Error(
+                    bootstrapData.message ||
+                    "Не вдалося підготувати CRM RG."
+                );
+            }
+
         if (businessName) {
             businessName.textContent =
                 data.crm?.businessName ||
