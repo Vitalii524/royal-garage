@@ -1015,6 +1015,12 @@ async function loginUser(event) {
             data.token
         );
 
+        if (typeof gtag === "function") {
+            gtag("event", "login", {
+                method: "email"
+            });
+        }
+
         document
             .getElementById(
                 "loginForm"
