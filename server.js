@@ -8066,7 +8066,7 @@ app.post("/api/login", async (req, res) => {
         const token = jwt.sign(
             { userId: user.id, role: user.role || "user" },
             process.env.JWT_SECRET,
-            { expiresIn: "7d" }
+            { expiresIn: "30d" }
         );
 
         return res.json({
@@ -8457,7 +8457,7 @@ await mailTransporter.sendMail({
         process.env.JWT_SECRET,
 
         {
-            expiresIn: "7d"
+            expiresIn: "30d"
         }
     );
 
