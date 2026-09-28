@@ -335,6 +335,19 @@ async function loadClients() {
                                     >
                                         Редагувати
                                     </button>
+
+                                    <button
+                                        type="button"
+                                        class="crm-client-delete"
+                                        data-client-id="${client.id}"
+                                        style="
+                                            margin-top: 8px;
+                                            margin-left: 8px;
+                                            color: #d9534f;
+                                        "
+                                    >
+                                        Видалити
+                                    </button>
                         </div>
                     `
                 )
@@ -457,6 +470,89 @@ async function loadClients() {
                 );
             }
 
+            }
+        );
+    });
+
+    list
+    .querySelectorAll(
+        ".crm-client-delete"
+    )
+    .forEach((button) => {
+        button.addEventListener(
+            "click",
+            async () => {
+                const clientId =
+                    button.dataset.clientId;
+
+                if (!clientId) {
+                    return;
+                }
+
+                const client =
+                    clients.find(
+                        (item) =>
+                            String(item.id) ===
+                            String(clientId)
+                    );
+
+                const clientName =
+                    client?.name ||
+                    "цього клієнта";
+
+                const confirmed =
+                    confirm(
+                        `Видалити клієнта "${clientName}"?`
+                    );
+
+                if (!confirmed) {
+                    return;
+                }
+
+                button.disabled = true;
+
+                try {
+                    const response =
+                        await fetch(
+                            `${getApiBaseUrl()}/api/crm/clients/${encodeURIComponent(
+                                clientId
+                            )}`,
+                            {
+                                method: "DELETE",
+
+                                headers: {
+                                    Authorization:
+                                        `Bearer ${getToken()}`
+                                }
+                            }
+                        );
+
+                    const data =
+                        await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(
+                            data.message ||
+                            "Не вдалося видалити клієнта."
+                        );
+                    }
+
+                    await loadClients();
+
+                } catch (error) {
+                    console.error(
+                        "CRM client delete error:",
+                        error
+                    );
+
+                    alert(
+                        error.message ||
+                        "Не вдалося видалити клієнта."
+                    );
+
+                } finally {
+                    button.disabled = false;
+                }
             }
         );
     });

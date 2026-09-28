@@ -9384,6 +9384,188 @@ app.patch(
     }
 );
 
+app.delete(
+    "/api/crm/clients/:clientId",
+    requireAuth,
+    requireCrmAccess,
+    async (req, res) => {
+        const db =
+            await pool.connect();
+
+        try {
+            const clientId =
+                String(
+                    req.params.clientId || ""
+                ).trim();
+
+            await db.query("BEGIN");
+
+            const serviceResult =
+                await db.query(
+                    `
+                    SELECT id
+                    FROM crm_services
+                    WHERE business_profile_id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        req.crm.businessProfileId
+                    ]
+                );
+
+            if (
+                serviceResult.rows.length === 0
+            ) {
+                await db.query("ROLLBACK");
+
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "CRM сервіс не знайдено."
+                });
+            }
+
+            const serviceId =
+                serviceResult.rows[0].id;
+
+            const clientResult =
+                await db.query(
+                    `
+                    SELECT id
+                    FROM crm_clients
+                    WHERE id = $1
+                      AND service_id = $2
+                    LIMIT 1
+                    FOR UPDATE
+                    `,
+                    [
+                        clientId,
+                        serviceId
+                    ]
+                );
+
+            if (
+                clientResult.rows.length === 0
+            ) {
+                await db.query("ROLLBACK");
+
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Клієнта не знайдено."
+                });
+            }
+
+            const usageResult =
+                await db.query(
+                    `
+                    SELECT
+                        EXISTS (
+                            SELECT 1
+                            FROM crm_work_orders wo
+
+                            LEFT JOIN crm_cars car
+                                ON car.id = wo.car_id
+                               AND car.service_id = wo.service_id
+
+                            WHERE wo.service_id = $2
+                              AND (
+                                    wo.client_id = $1
+                                    OR car.client_id = $1
+                              )
+                        ) AS "hasWorkOrders",
+
+                        EXISTS (
+                            SELECT 1
+                            FROM crm_appointments a
+
+                            LEFT JOIN crm_cars car
+                                ON car.id = a.car_id
+                               AND car.service_id = a.service_id
+
+                            WHERE a.service_id = $2
+                              AND (
+                                    a.client_id = $1
+                                    OR car.client_id = $1
+                              )
+                        ) AS "hasAppointments"
+                    `,
+                    [
+                        clientId,
+                        serviceId
+                    ]
+                );
+
+            const usage =
+                usageResult.rows[0];
+
+            if (
+                usage.hasWorkOrders ||
+                usage.hasAppointments
+            ) {
+                await db.query("ROLLBACK");
+
+                return res.status(409).json({
+                    ok: false,
+                    message:
+                        "Клієнта не можна видалити, оскільки він має записи або історію обслуговування."
+                });
+            }
+
+            await db.query(
+                `
+                DELETE FROM crm_cars
+                WHERE client_id = $1
+                  AND service_id = $2
+                `,
+                [
+                    clientId,
+                    serviceId
+                ]
+            );
+
+            await db.query(
+                `
+                DELETE FROM crm_clients
+                WHERE id = $1
+                  AND service_id = $2
+                `,
+                [
+                    clientId,
+                    serviceId
+                ]
+            );
+
+            await db.query("COMMIT");
+
+            return res.json({
+                ok: true,
+                message:
+                    "Клієнта видалено."
+            });
+
+        } catch (error) {
+            try {
+                await db.query("ROLLBACK");
+            } catch {}
+
+            console.error(
+                "CRM client delete error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося видалити клієнта."
+            });
+
+        } finally {
+            db.release();
+        }
+    }
+);
+
 app.get(
     "/api/crm/cars",
     requireAuth,
