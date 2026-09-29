@@ -150,6 +150,54 @@
 </aside>
 </div>
 </header>
+
+<section class="first-members-section" aria-labelledby="firstMembersTitle">
+    <div class="first-members-card">
+        <div class="first-members-copy">
+            <p class="first-members-label">🏁 ПЕРШІ 100 УЧАСНИКІВ</p>
+
+            <h2 id="firstMembersTitle">
+                Стань одним із перших у Royal Garage
+            </h2>
+
+            <p class="first-members-intro">
+                Перші 100 підтверджених учасників отримують постійний статус
+                <strong>«ПЕРШИЙ»</strong> у профілі та
+                <strong>перше оголошення безкоштовно</strong>.
+            </p>
+
+            <p class="first-members-note">
+                Перед публікацією першого оголошення зверніться до служби підтримки,
+                щоб активувати безкоштовне розміщення. Якщо оголошення вже оплачено —
+                Royal Garage поверне <strong>100% оплати за перше оголошення</strong>.
+            </p>
+        </div>
+
+        <div class="first-members-counter" id="firstMembersCounter" aria-live="polite">
+            <div class="first-members-number">
+                <span id="firstMembersCount">—</span>
+                <span class="first-members-limit">/ 100</span>
+            </div>
+
+            <div
+                class="first-members-progress"
+                role="progressbar"
+                aria-label="Заповнення перших 100 місць"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="0"
+                id="firstMembersProgress"
+            >
+                <span id="firstMembersProgressBar"></span>
+            </div>
+
+            <p id="firstMembersRemaining">
+                Завантажуємо лічильник...
+            </p>
+        </div>
+    </div>
+</section>
+
 <main class="main-content">
 <section class="panel">
 <div class="panel-title">
@@ -261,7 +309,7 @@
 <div id="modalBody"></div>
 </div>
 </div>
-<script src="js/script.js"></script>
+<script src="js/script.js?v=20260929-first100"></script>
 <script src="js/auth.js"></script>
 <script src="js/loader.js"></script>
 

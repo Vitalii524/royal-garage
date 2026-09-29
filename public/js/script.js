@@ -1169,3 +1169,117 @@ document.addEventListener("royalGarageLanguageChange", () => {
     try { renderHomeMarketListings(); } catch {}
     try { renderHomeForumTopics(); } catch {}
 });
+
+/* ===== ПЕРШІ 100 УЧАСНИКІВ ===== */
+
+async function renderFirstMembersCounter() {
+    const countElement =
+        document.getElementById(
+            "firstMembersCount"
+        );
+
+    const remainingElement =
+        document.getElementById(
+            "firstMembersRemaining"
+        );
+
+    const progressElement =
+        document.getElementById(
+            "firstMembersProgress"
+        );
+
+    const progressBar =
+        document.getElementById(
+            "firstMembersProgressBar"
+        );
+
+    if (
+        !countElement ||
+        !remainingElement ||
+        !progressElement ||
+        !progressBar
+    ) {
+        return;
+    }
+
+    try {
+        const response =
+            await fetch(
+                "/api/community/first-members",
+                { cache: "no-store" }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Не вдалося завантажити лічильник."
+            );
+        }
+
+        const limit =
+            Math.max(
+                Number(data.limit) || 100,
+                1
+            );
+
+        const count =
+            Math.min(
+                Math.max(Number(data.count) || 0, 0),
+                limit
+            );
+
+        const remaining =
+            Math.max(limit - count, 0);
+
+        const percent =
+            Math.min(
+                100,
+                Math.max(
+                    0,
+                    (count / limit) * 100
+                )
+            );
+
+        countElement.textContent =
+            count.toLocaleString("uk-UA");
+
+        progressBar.style.width =
+            `${percent}%`;
+
+        progressElement.setAttribute(
+            "aria-valuemax",
+            String(limit)
+        );
+
+        progressElement.setAttribute(
+            "aria-valuenow",
+            String(count)
+        );
+
+        remainingElement.textContent =
+            remaining > 0
+                ? `Залишилося ${remaining} із ${limit} місць зі статусом «ПЕРШИЙ».`
+                : `Перші ${limit} місць уже зайняті.`;
+
+    } catch (error) {
+        console.error(
+            "First members counter load error:",
+            error
+        );
+
+        countElement.textContent =
+            "—";
+
+        remainingElement.textContent =
+            "Лічильник тимчасово недоступний.";
+    }
+}
+
+document.addEventListener(
+    "DOMContentLoaded",
+    renderFirstMembersCounter
+);
+

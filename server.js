@@ -212,6 +212,49 @@ async function initDatabase() {
         phone_verified BOOLEAN NOT NULL DEFAULT FALSE
 `);
 
+    // Перші 100 підтверджених звичайних користувачів Royal Garage.
+    // Статус зберігається в базі назавжди та не залежить від поточного лічильника.
+    await pool.query(`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS
+            is_first_member BOOLEAN NOT NULL DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS
+            first_member_number INTEGER
+    `);
+
+    await pool.query(`
+        WITH ranked_members AS (
+            SELECT
+                id,
+                ROW_NUMBER() OVER (
+                    ORDER BY created_at ASC, id ASC
+                )::integer AS member_number
+            FROM users
+            WHERE
+                account_type = 'user'
+                AND email_verified = TRUE
+        )
+        UPDATE users AS u
+        SET
+            is_first_member = TRUE,
+            first_member_number = ranked_members.member_number
+        FROM ranked_members
+        WHERE
+            u.id = ranked_members.id
+            AND ranked_members.member_number <= 100
+            AND (
+                u.is_first_member IS DISTINCT FROM TRUE
+                OR u.first_member_number IS DISTINCT FROM ranked_members.member_number
+            )
+    `);
+
+    await pool.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS
+            idx_users_first_member_number
+        ON users (first_member_number)
+        WHERE first_member_number IS NOT NULL
+    `);
+
     await pool.query(`
     CREATE TABLE IF NOT EXISTS business_types (
         id UUID PRIMARY KEY,
@@ -5466,6 +5509,49 @@ app.get("/api", (req, res) => {
     });
 });
 
+app.get(
+    "/api/community/first-members",
+    async (req, res) => {
+        try {
+            const result =
+                await pool.query(`
+                    SELECT
+                        COUNT(*)::integer AS count
+                    FROM users
+                    WHERE
+                        account_type = 'user'
+                        AND is_first_member = TRUE
+                `);
+
+            const limit = 100;
+            const count = Math.min(
+                Number(result.rows[0]?.count || 0),
+                limit
+            );
+
+            return res.json({
+                ok: true,
+                count,
+                limit,
+                remaining: Math.max(limit - count, 0),
+                complete: count >= limit
+            });
+
+        } catch (error) {
+            console.error(
+                "First members counter error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити лічильник учасників."
+            });
+        }
+    }
+);
+
 app.get("/api/db-test", async (req, res) => {
     try {
         const result = await pool.query(
@@ -8056,6 +8142,65 @@ app.get(
                     verification.user_id
                 ]
             );
+
+            // Серіалізуємо видачу місць, щоб два одночасні підтвердження
+            // не отримали один і той самий номер серед перших 100.
+            await client.query(
+                "SELECT pg_advisory_xact_lock(73100100)"
+            );
+
+            const verifiedUserResult =
+                await client.query(
+                    `
+                    SELECT
+                        account_type,
+                        is_first_member
+                    FROM users
+                    WHERE id = $1
+                    LIMIT 1
+                    `,
+                    [verification.user_id]
+                );
+
+            const verifiedUser =
+                verifiedUserResult.rows[0] || null;
+
+            if (
+                verifiedUser?.account_type === "user" &&
+                !verifiedUser?.is_first_member
+            ) {
+                const firstMemberCountResult =
+                    await client.query(`
+                        SELECT
+                            COUNT(*)::integer AS count
+                        FROM users
+                        WHERE
+                            account_type = 'user'
+                            AND is_first_member = TRUE
+                    `);
+
+                const firstMemberCount =
+                    Number(
+                        firstMemberCountResult.rows[0]?.count || 0
+                    );
+
+                if (firstMemberCount < 100) {
+                    await client.query(
+                        `
+                        UPDATE users
+                        SET
+                            is_first_member = TRUE,
+                            first_member_number = $2,
+                            updated_at = NOW()
+                        WHERE id = $1
+                        `,
+                        [
+                            verification.user_id,
+                            firstMemberCount + 1
+                        ]
+                    );
+                }
+            }
 
             await client.query(
                 `
