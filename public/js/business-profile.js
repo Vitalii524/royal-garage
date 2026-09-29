@@ -1025,6 +1025,76 @@
         form.submit();
     }
 
+    async function deleteBusinessAccount() {
+        if (!state.isOwner) {
+            return;
+        }
+
+        const confirmed = window.confirm(
+            "Видалити бізнес-профіль?\n\n" +
+            "Профіль буде приховано з Royal Garage, вхід у цей бізнес-акаунт буде вимкнено.\n\n" +
+            "Історія ремонтів і дані CRM залишаться збереженими."
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        const confirmationText =
+            window.prompt(
+                "Для підтвердження введіть слово ВИДАЛИТИ"
+            );
+
+        if (
+            String(confirmationText || "")
+                .trim()
+                .toUpperCase() !==
+            "ВИДАЛИТИ"
+        ) {
+            return;
+        }
+
+        const button =
+            $("businessDeleteAccountButton");
+
+        if (button) {
+            button.disabled = true;
+        }
+
+        try {
+            const data = await api(
+                "/api/business/account",
+                { method: "DELETE" }
+            );
+
+            localStorage.removeItem(
+                "royalGarageToken"
+            );
+            localStorage.removeItem(
+                "royalGarageCurrentUser"
+            );
+
+            alert(
+                data.message ||
+                "Бізнес-профіль видалено. Історію ремонтів збережено."
+            );
+
+            window.location.href =
+                "index.html";
+
+        } catch (error) {
+            alert(
+                error.message ||
+                "Не вдалося видалити бізнес-профіль."
+            );
+
+        } finally {
+            if (button) {
+                button.disabled = false;
+            }
+        }
+    }
+
     function bindEvents() {
         $("businessManageButton")?.addEventListener("click", () => {
             $("businessOwnerPanel").hidden = false;
@@ -1098,6 +1168,10 @@
             openModal("businessPhoneModal");
         });
         $("businessPlanButton")?.addEventListener("click", openPlanModal);
+        $("businessDeleteAccountButton")?.addEventListener(
+            "click",
+            deleteBusinessAccount
+        );
 
         $("businessWriteReviewButton")?.addEventListener(
             "click",

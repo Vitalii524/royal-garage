@@ -212,6 +212,14 @@ async function initDatabase() {
         phone_verified BOOLEAN NOT NULL DEFAULT FALSE
 `);
 
+    await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS
+        account_disabled BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS
+        account_disabled_at TIMESTAMPTZ
+`);
+
     // Перші 100 підтверджених звичайних користувачів Royal Garage.
     // Статус зберігається в базі назавжди та не залежить від поточного лічильника.
     await pool.query(`
@@ -348,6 +356,15 @@ await pool.query(`
         business_content_type VARCHAR(20) NOT NULL DEFAULT 'services',
     ADD COLUMN IF NOT EXISTS
         work_schedule JSONB NOT NULL DEFAULT '{}'::jsonb
+`);
+
+
+await pool.query(`
+    ALTER TABLE business_profiles
+    ADD COLUMN IF NOT EXISTS
+        is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS
+        deleted_at TIMESTAMPTZ
 `);
 
 await pool.query(`
@@ -1142,7 +1159,9 @@ app.get(
                         ON u.id = bp.owner_id
 
                     WHERE
-                        sp.is_active = TRUE
+                        bp.is_deleted = FALSE
+                        AND u.account_disabled = FALSE
+                        AND sp.is_active = TRUE
                         AND (
                             bp.complimentary_subscription = TRUE
                             OR bp.subscription_expires_at > NOW()
@@ -4445,7 +4464,9 @@ app.get(
                     ON u.id = bp.owner_id
 
                 WHERE
-                    sp.is_active = TRUE
+                    bp.is_deleted = FALSE
+                    AND u.account_disabled = FALSE
+                    AND sp.is_active = TRUE
                     AND (
                         bp.complimentary_subscription = TRUE
                         OR bp.subscription_expires_at > NOW()
@@ -4523,6 +4544,8 @@ app.get(
 
                 WHERE
                     bt.code = $1
+                    AND bp.is_deleted = FALSE
+                    AND u.account_disabled = FALSE
                     AND sp.is_active = TRUE
                     AND (
                         bp.complimentary_subscription = TRUE
@@ -7122,6 +7145,8 @@ async function loadPrivateBusinessProfile(ownerId) {
         LEFT JOIN subscription_plans sp
             ON sp.id = bp.subscription_plan_id
         WHERE bp.owner_id = $1
+          AND bp.is_deleted = FALSE
+          AND u.account_disabled = FALSE
         LIMIT 1
         `,
         [ownerId]
@@ -7217,6 +7242,8 @@ async function loadPublicBusinessProfile(ownerId) {
         JOIN subscription_plans sp
             ON sp.id = bp.subscription_plan_id
         WHERE bp.owner_id = $1
+          AND bp.is_deleted = FALSE
+          AND u.account_disabled = FALSE
           AND u.email_verified = TRUE
           AND u.phone_verified = TRUE
           AND sp.is_active = TRUE
@@ -7286,6 +7313,119 @@ app.get(
         }
     }
 );
+
+app.delete(
+    "/api/business/account",
+    requireAuth,
+    async (req, res) => {
+        if (
+            req.user.accountType !==
+            "business"
+        ) {
+            return res.status(403).json({
+                ok: false,
+                message:
+                    "Це не бізнес-акаунт."
+            });
+        }
+
+        const client =
+            await pool.connect();
+
+        try {
+            await client.query("BEGIN");
+
+            const profileResult =
+                await client.query(
+                    `
+                    SELECT id
+                    FROM business_profiles
+                    WHERE owner_id = $1
+                      AND is_deleted = FALSE
+                    LIMIT 1
+                    FOR UPDATE
+                    `,
+                    [req.user.userId]
+                );
+
+            if (
+                profileResult.rows.length ===
+                0
+            ) {
+                await client.query(
+                    "ROLLBACK"
+                );
+
+                return res.status(404).json({
+                    ok: false,
+                    message:
+                        "Бізнес-профіль не знайдено або його вже видалено."
+                });
+            }
+
+            /*
+             * Архівне видалення.
+             * Нічого з CRM та історії ремонтів
+             * фізично не видаляємо.
+             */
+            await client.query(
+                `
+                UPDATE business_profiles
+                SET
+                    is_deleted = TRUE,
+                    deleted_at = NOW(),
+                    complimentary_subscription = FALSE,
+                    subscription_expires_at = NOW(),
+                    updated_at = NOW()
+                WHERE owner_id = $1
+                `,
+                [req.user.userId]
+            );
+
+            await client.query(
+                `
+                UPDATE users
+                SET
+                    account_disabled = TRUE,
+                    account_disabled_at = NOW(),
+                    updated_at = NOW()
+                WHERE id = $1
+                `,
+                [req.user.userId]
+            );
+
+            await client.query("COMMIT");
+
+            return res.json({
+                ok: true,
+                message:
+                    "Бізнес-профіль видалено. Історію ремонтів збережено."
+            });
+
+        } catch (error) {
+            try {
+                await client.query(
+                    "ROLLBACK"
+                );
+            } catch {}
+
+            console.error(
+                "Business account archive error:",
+                error
+            );
+
+            return res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося видалити бізнес-профіль."
+            });
+
+        } finally {
+            client.release();
+        }
+    }
+);
+
 
 app.patch(
     "/api/business/profile",
@@ -8520,6 +8660,7 @@ app.post("/api/login", async (req, res) => {
                 role,
                 email_verified,
                 phone_verified,
+                account_disabled,
                 created_at
             FROM users
             WHERE email = $1
@@ -8536,6 +8677,14 @@ app.post("/api/login", async (req, res) => {
         const passwordMatches = await bcrypt.compare(password, user.password_hash);
         if (!passwordMatches) {
             return res.status(401).json({ ok: false, message: "Неправильний email або пароль." });
+        }
+
+        if (user.account_disabled) {
+            return res.status(403).json({
+                ok: false,
+                code: "ACCOUNT_DISABLED",
+                message: "Цей акаунт деактивовано."
+            });
         }
 
         // Звичайний користувач підтверджує email до входу.
@@ -8562,6 +8711,7 @@ app.post("/api/login", async (req, res) => {
                 FROM business_profiles bp
                 JOIN subscription_plans sp ON sp.id = bp.subscription_plan_id
                 WHERE bp.owner_id = $1
+                  AND bp.is_deleted = FALSE
                 LIMIT 1
                 `,
                 [user.id]
@@ -9147,7 +9297,8 @@ async function requireAuth(req, res, next) {
                 SELECT
                     id,
                     role,
-                    account_type
+                    account_type,
+                    account_disabled
                 FROM users
                 WHERE id = $1
                 LIMIT 1
@@ -9167,6 +9318,15 @@ async function requireAuth(req, res, next) {
 
         const user =
             userResult.rows[0];
+
+        if (user.account_disabled) {
+            return res.status(401).json({
+                ok: false,
+                code: "ACCOUNT_DISABLED",
+                message:
+                    "Акаунт деактивовано."
+            });
+        }
 
         req.user = {
             ...decoded,
@@ -9228,6 +9388,7 @@ async function requireCrmAccess(req, res, next) {
                         bp.subscription_plan_id
 
                 WHERE bp.owner_id = $1
+                  AND bp.is_deleted = FALSE
                   AND sp.is_active = TRUE
 
                 LIMIT 1
@@ -16530,7 +16691,7 @@ app.patch(
                                     AND $1 <> phone
                                 THEN FALSE
                                 ELSE phone_verified
-                            ,
+                            END,
                     
 
                         city =
@@ -16701,6 +16862,17 @@ app.delete(
         try {
             const userId =
                 req.user.userId;
+
+            if (
+                req.user.accountType ===
+                "business"
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    message:
+                        "Бізнес-акаунт потрібно видаляти через керування бізнес-профілем, щоб зберегти історію ремонтів."
+                });
+            }
 
             const result =
                 await pool.query(
