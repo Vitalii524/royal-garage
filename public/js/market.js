@@ -92,6 +92,34 @@ const listingModel =
     );
 
 
+const listingCustomBrandField =
+    document.getElementById(
+        "listingCustomBrandField"
+    );
+
+
+const listingCustomBrand =
+    document.getElementById(
+        "listingCustomBrand"
+    );
+
+
+const listingCustomModelField =
+    document.getElementById(
+        "listingCustomModelField"
+    );
+
+
+const listingCustomModel =
+    document.getElementById(
+        "listingCustomModel"
+    );
+
+
+const OTHER_VEHICLE_OPTION =
+    "__other__";
+
+
 const listingYear =
     document.getElementById(
         "listingYear"
@@ -579,6 +607,9 @@ function fillBrandSelect() {
         return;
     }
 
+    const currentBrand =
+        listingBrand.value;
+
     listingBrand.innerHTML = `
         <option value="">${rgTr("market.form.chooseBrand", "Обери марку")}</option>
     `;
@@ -604,6 +635,72 @@ function fillBrandSelect() {
             );
         }
     );
+
+
+    const otherOption =
+        document.createElement(
+            "option"
+        );
+
+    otherOption.value =
+        OTHER_VEHICLE_OPTION;
+
+    otherOption.textContent =
+        "Інше";
+
+    listingBrand.appendChild(
+        otherOption
+    );
+
+
+    if (
+        currentBrand &&
+        Array.from(
+            listingBrand.options
+        ).some(
+            (option) =>
+                option.value ===
+                currentBrand
+        )
+    ) {
+        listingBrand.value =
+            currentBrand;
+    }
+}
+
+
+function setCustomVehicleFieldsVisibility() {
+    const isOtherBrand =
+        listingBrand?.value ===
+        OTHER_VEHICLE_OPTION;
+
+    const isOtherModel =
+        listingModel?.value ===
+        OTHER_VEHICLE_OPTION;
+
+
+    if (listingCustomBrandField) {
+        listingCustomBrandField.hidden =
+            !isOtherBrand;
+    }
+
+
+    if (listingCustomBrand) {
+        listingCustomBrand.required =
+            isOtherBrand;
+    }
+
+
+    if (listingCustomModelField) {
+        listingCustomModelField.hidden =
+            !isOtherModel;
+    }
+
+
+    if (listingCustomModel) {
+        listingCustomModel.required =
+            isOtherModel;
+    }
 }
 
 
@@ -619,8 +716,53 @@ function fillModelSelect(
     listingModel.innerHTML = "";
 
 
+    if (!brand) {
+        listingModel.innerHTML = `
+            <option value="">${rgTr("market.form.chooseBrandFirst", "Спочатку обери марку")}</option>
+        `;
+
+        listingModel.disabled =
+            true;
+
+        setCustomVehicleFieldsVisibility();
+
+        return;
+    }
+
+
+    listingModel.disabled =
+        false;
+
+
     if (
-        !brand ||
+        brand ===
+        OTHER_VEHICLE_OPTION
+    ) {
+        const otherOption =
+            document.createElement(
+                "option"
+            );
+
+        otherOption.value =
+            OTHER_VEHICLE_OPTION;
+
+        otherOption.textContent =
+            "Інше";
+
+        listingModel.appendChild(
+            otherOption
+        );
+
+        listingModel.value =
+            OTHER_VEHICLE_OPTION;
+
+        setCustomVehicleFieldsVisibility();
+
+        return;
+    }
+
+
+    if (
         !CAR_BRANDS_MODELS[brand]
     ) {
         listingModel.innerHTML = `
@@ -630,12 +772,10 @@ function fillModelSelect(
         listingModel.disabled =
             true;
 
+        setCustomVehicleFieldsVisibility();
+
         return;
     }
-
-
-    listingModel.disabled =
-        false;
 
 
     const defaultOption =
@@ -646,7 +786,10 @@ function fillModelSelect(
     defaultOption.value = "";
 
     defaultOption.textContent =
-        rgTr("market.dynamic.chooseModel", "Обери модель");
+        rgTr(
+            "market.dynamic.chooseModel",
+            "Обери модель"
+        );
 
     listingModel.appendChild(
         defaultOption
@@ -675,28 +818,87 @@ function fillModelSelect(
     );
 
 
+    const otherOption =
+        document.createElement(
+            "option"
+        );
+
+    otherOption.value =
+        OTHER_VEHICLE_OPTION;
+
+    otherOption.textContent =
+        "Інше";
+
+    listingModel.appendChild(
+        otherOption
+    );
+
+
     if (selectedModel) {
         listingModel.value =
-            selectedModel;
+            Array.from(
+                listingModel.options
+            ).some(
+                (option) =>
+                    option.value ===
+                    selectedModel
+            )
+                ? selectedModel
+                : OTHER_VEHICLE_OPTION;
     }
+
+
+    setCustomVehicleFieldsVisibility();
+}
+
+
+function getSelectedVehicleBrand() {
+    if (
+        listingBrand?.value ===
+        OTHER_VEHICLE_OPTION
+    ) {
+        return String(
+            listingCustomBrand?.value ||
+            ""
+        ).trim();
+    }
+
+    return String(
+        listingBrand?.value ||
+        ""
+    ).trim();
+}
+
+
+function getSelectedVehicleModel() {
+    if (
+        listingModel?.value ===
+        OTHER_VEHICLE_OPTION
+    ) {
+        return String(
+            listingCustomModel?.value ||
+            ""
+        ).trim();
+    }
+
+    return String(
+        listingModel?.value ||
+        ""
+    ).trim();
 }
 
 
 function updateListingNameFromBrandModel() {
-    if (
-        !listingName ||
-        !listingBrand ||
-        !listingModel
-    ) {
+    if (!listingName) {
         return;
     }
 
 
     const brand =
-        listingBrand.value.trim();
+        getSelectedVehicleBrand();
 
     const model =
-        listingModel.value.trim();
+        getSelectedVehicleModel();
 
 
     listingName.value =
@@ -704,6 +906,7 @@ function updateListingNameFromBrandModel() {
             .filter(Boolean)
             .join(" ");
 }
+
 
 function setBrandAndModelFromName(
     vehicleName
@@ -727,6 +930,18 @@ function setBrandAndModelFromName(
             )
             .trim();
 
+
+    if (listingCustomBrand) {
+        listingCustomBrand.value =
+            "";
+    }
+
+    if (listingCustomModel) {
+        listingCustomModel.value =
+            "";
+    }
+
+
     if (!name) {
         listingBrand.value = "";
 
@@ -736,8 +951,11 @@ function setBrandAndModelFromName(
             listingName.value = "";
         }
 
+        setCustomVehicleFieldsVisibility();
+
         return;
     }
+
 
     const brands =
         Object.keys(
@@ -752,6 +970,7 @@ function setBrandAndModelFromName(
                     firstBrand.length
             );
 
+
     const foundBrand =
         brands.find(
             (brand) =>
@@ -765,18 +984,45 @@ function setBrandAndModelFromName(
                     brand.toLowerCase()
         );
 
+
     if (!foundBrand) {
-        listingBrand.value = "";
+        const nameParts =
+            name.split(/\s+/);
 
-        fillModelSelect("");
+        const customBrand =
+            nameParts.shift() || "";
 
-        if (listingName) {
-            listingName.value =
-                name;
+        const customModel =
+            nameParts.join(" ");
+
+
+        listingBrand.value =
+            OTHER_VEHICLE_OPTION;
+
+        if (listingCustomBrand) {
+            listingCustomBrand.value =
+                customBrand;
         }
+
+
+        fillModelSelect(
+            OTHER_VEHICLE_OPTION,
+            OTHER_VEHICLE_OPTION
+        );
+
+
+        if (listingCustomModel) {
+            listingCustomModel.value =
+                customModel;
+        }
+
+
+        setCustomVehicleFieldsVisibility();
+        updateListingNameFromBrandModel();
 
         return;
     }
+
 
     const model =
         name
@@ -785,12 +1031,15 @@ function setBrandAndModelFromName(
             )
             .trim();
 
+
     listingBrand.value =
         foundBrand;
+
 
     fillModelSelect(
         foundBrand
     );
+
 
     if (model) {
         const modelExists =
@@ -802,33 +1051,24 @@ function setBrandAndModelFromName(
                     model
             );
 
-        if (!modelExists) {
-            const option =
-                document.createElement(
-                    "option"
-                );
 
-            option.value =
+        if (modelExists) {
+            listingModel.value =
                 model;
+        } else {
+            listingModel.value =
+                OTHER_VEHICLE_OPTION;
 
-            option.textContent =
-                model;
-
-            listingModel.appendChild(
-                option
-            );
+            if (listingCustomModel) {
+                listingCustomModel.value =
+                    model;
+            }
         }
-
-        listingModel.value =
-            model;
     }
 
-    if (listingName) {
-        listingName.value =
-            [foundBrand, model]
-                .filter(Boolean)
-                .join(" ");
-    }
+
+    setCustomVehicleFieldsVisibility();
+    updateListingNameFromBrandModel();
 }
 
 
@@ -836,10 +1076,26 @@ if (listingBrand) {
     listingBrand.addEventListener(
         "change",
         () => {
+            if (
+                listingBrand.value !==
+                OTHER_VEHICLE_OPTION &&
+                listingCustomBrand
+            ) {
+                listingCustomBrand.value =
+                    "";
+            }
+
+            if (listingCustomModel) {
+                listingCustomModel.value =
+                    "";
+            }
+
+
             fillModelSelect(
                 listingBrand.value
             );
 
+            setCustomVehicleFieldsVisibility();
             updateListingNameFromBrandModel();
         }
     );
@@ -849,9 +1105,38 @@ if (listingBrand) {
 if (listingModel) {
     listingModel.addEventListener(
         "change",
+        () => {
+            if (
+                listingModel.value !==
+                OTHER_VEHICLE_OPTION &&
+                listingCustomModel
+            ) {
+                listingCustomModel.value =
+                    "";
+            }
+
+            setCustomVehicleFieldsVisibility();
+            updateListingNameFromBrandModel();
+        }
+    );
+}
+
+
+if (listingCustomBrand) {
+    listingCustomBrand.addEventListener(
+        "input",
         updateListingNameFromBrandModel
     );
 }
+
+
+if (listingCustomModel) {
+    listingCustomModel.addEventListener(
+        "input",
+        updateListingNameFromBrandModel
+    );
+}
+
 
 /* =====================================================
    LOCAL STORAGE
@@ -2649,9 +2934,20 @@ function resetListingForm() {
     if (listingBrand) {
         listingBrand.value = "";
     }
-    
+
+    if (listingCustomBrand) {
+        listingCustomBrand.value = "";
+        listingCustomBrand.required = false;
+    }
+
+    if (listingCustomModel) {
+        listingCustomModel.value = "";
+        listingCustomModel.required = false;
+    }
+
     fillModelSelect("");
-    
+    setCustomVehicleFieldsVisibility();
+
     if (listingName) {
         listingName.value = "";
     }
@@ -3643,6 +3939,39 @@ if (listingForm) {
                 );
 
 
+            updateListingNameFromBrandModel();
+
+
+            if (
+                listingBrand?.value ===
+                    OTHER_VEHICLE_OPTION &&
+                !getSelectedVehicleBrand()
+            ) {
+                alert(
+                    "Вкажи марку автомобіля."
+                );
+
+                listingCustomBrand?.focus();
+
+                return;
+            }
+
+
+            if (
+                listingModel?.value ===
+                    OTHER_VEHICLE_OPTION &&
+                !getSelectedVehicleModel()
+            ) {
+                alert(
+                    "Вкажи модель автомобіля."
+                );
+
+                listingCustomModel?.focus();
+
+                return;
+            }
+
+
             const name =
                 listingName?.value
                     .trim() ||
@@ -4600,9 +4929,17 @@ if (
 }
 
 document.addEventListener("royalGarageLanguageChange", () => {
+    const selectedBrandBeforeLanguageChange =
+        listingBrand?.value || "";
+
+    const selectedModelBeforeLanguageChange =
+        listingModel?.value || "";
+
     try { fillBrandSelect(); } catch {}
+    try { if (listingBrand) listingBrand.value = selectedBrandBeforeLanguageChange; } catch {}
     try { fillCarSelect(); } catch {}
-    try { if (listingBrand) fillModelSelect(listingBrand.value, listingModel?.value || ""); } catch {}
+    try { if (listingBrand) fillModelSelect(selectedBrandBeforeLanguageChange, selectedModelBeforeLanguageChange); } catch {}
+    try { setCustomVehicleFieldsVisibility(); } catch {}
     try { updatePricePreview(); } catch {}
     try { updatePhotosCounter(); } catch {}
     try { updatePhotoCount(); } catch {}
