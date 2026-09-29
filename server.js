@@ -701,9 +701,15 @@ await pool.query(`
         title VARCHAR(200) NOT NULL,
         category VARCHAR(80) NOT NULL DEFAULT 'Загальне',
         content TEXT NOT NULL,
+        attachment JSONB,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+`);
+
+await pool.query(`
+    ALTER TABLE forum_topics
+    ADD COLUMN IF NOT EXISTS attachment JSONB
 `);
 
 await pool.query(`
@@ -8907,6 +8913,7 @@ app.get("/api/forum/topics", async (req, res) => {
                 t.title,
                 t.category,
                 t.content,
+                t.attachment,
                 t.created_at,
                 t.updated_at,
                 u.id AS user_id,
@@ -15691,17 +15698,74 @@ app.post(
     }
 );
 
+function normalizeForumTopicAttachment(value) {
+    if (value === null || value === undefined || value === "") {
+        return null;
+    }
+
+    if (!value || typeof value !== "object") {
+        throw new Error("Некоректне фото теми.");
+    }
+
+    const type = String(value.type || "").trim();
+    const mimeType = String(value.mimeType || "").trim();
+    const name = String(value.name || "photo.jpg").trim().slice(0, 180);
+    const data = String(value.data || "").trim();
+    const originalSize = Number(value.originalSize || 0);
+
+    if (type !== "image") {
+        throw new Error("До теми можна додати лише фото.");
+    }
+
+    if (!/^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(data)) {
+        throw new Error("Некоректний формат фото.");
+    }
+
+    if (data.length > 8_000_000) {
+        throw new Error("Фото після обробки надто велике.");
+    }
+
+    return {
+        type: "image",
+        mimeType: mimeType || "image/jpeg",
+        name,
+        originalSize: Number.isFinite(originalSize) ? originalSize : 0,
+        data
+    };
+}
+
 app.post(
     "/api/forum/topics",
     requireAuth,
     async (req, res) => {
         try {
-            const { title, category, content } = req.body;
+            const {
+                title,
+                category,
+                content,
+                attachment
+            } = req.body || {};
 
-            if (!title || !content) {
+            const cleanTitle = String(title || "").trim();
+            const cleanCategory = String(category || "Загальне").trim();
+            const cleanContent = String(content || "").trim();
+
+            if (!cleanTitle || !cleanContent) {
                 return res.status(400).json({
                     ok: false,
                     message: "Вкажи назву та текст теми."
+                });
+            }
+
+            let cleanAttachment = null;
+
+            try {
+                cleanAttachment =
+                    normalizeForumTopicAttachment(attachment);
+            } catch (attachmentError) {
+                return res.status(400).json({
+                    ok: false,
+                    message: attachmentError.message
                 });
             }
 
@@ -15714,17 +15778,19 @@ app.post(
                     user_id,
                     title,
                     category,
-                    content
+                    content,
+                    attachment
                 )
-                VALUES ($1, $2, $3, $4, $5)
+                VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING *
                 `,
                 [
                     topicId,
                     req.user.userId,
-                    String(title).trim(),
-                    String(category || "Загальне").trim(),
-                    String(content).trim()
+                    cleanTitle,
+                    cleanCategory,
+                    cleanContent,
+                    cleanAttachment
                 ]
             );
 
@@ -16070,6 +16136,111 @@ app.patch(
                 ok: false,
                 message:
                     "Не вдалося відредагувати відповідь."
+            });
+        }
+    }
+);
+
+app.patch(
+    "/api/forum/topics/:topicId",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const { topicId } = req.params;
+
+            const topicResult = await pool.query(
+                `
+                SELECT id, user_id
+                FROM forum_topics
+                WHERE id = $1
+                LIMIT 1
+                `,
+                [topicId]
+            );
+
+            if (topicResult.rows.length === 0) {
+                return res.status(404).json({
+                    ok: false,
+                    message: "Тему не знайдено."
+                });
+            }
+
+            if (
+                String(topicResult.rows[0].user_id) !==
+                String(req.user.userId)
+            ) {
+                return res.status(403).json({
+                    ok: false,
+                    message: "Редагувати тему може лише її автор."
+                });
+            }
+
+            const cleanTitle =
+                String(req.body?.title || "").trim();
+
+            const cleanCategory =
+                String(req.body?.category || "Загальне").trim();
+
+            const cleanContent =
+                String(req.body?.content || "").trim();
+
+            if (!cleanTitle || !cleanContent) {
+                return res.status(400).json({
+                    ok: false,
+                    message: "Вкажи назву та текст теми."
+                });
+            }
+
+            let cleanAttachment = null;
+
+            try {
+                cleanAttachment =
+                    normalizeForumTopicAttachment(
+                        req.body?.attachment ?? null
+                    );
+            } catch (attachmentError) {
+                return res.status(400).json({
+                    ok: false,
+                    message: attachmentError.message
+                });
+            }
+
+            const result = await pool.query(
+                `
+                UPDATE forum_topics
+                SET
+                    title = $1,
+                    category = $2,
+                    content = $3,
+                    attachment = $4,
+                    updated_at = NOW()
+                WHERE id = $5
+                RETURNING *
+                `,
+                [
+                    cleanTitle,
+                    cleanCategory,
+                    cleanContent,
+                    cleanAttachment,
+                    topicId
+                ]
+            );
+
+            res.json({
+                ok: true,
+                message: "Тему оновлено.",
+                topic: result.rows[0]
+            });
+
+        } catch (error) {
+            console.error(
+                "Forum topic edit error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message: "Не вдалося відредагувати тему."
             });
         }
     }

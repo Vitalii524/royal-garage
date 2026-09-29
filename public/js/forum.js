@@ -20,6 +20,37 @@ const topicCategory =
 const topicText =
     document.getElementById("topicText");
 
+const topicModalTitle =
+    document.getElementById("topicModalTitle");
+
+const topicSubmitButton =
+    document.getElementById("topicSubmitButton");
+
+const topicAttachmentInput =
+    document.getElementById("topicAttachmentInput");
+
+const topicAttachmentPreview =
+    document.getElementById("topicAttachmentPreview");
+
+const topicAttachmentPreviewImage =
+    document.getElementById("topicAttachmentPreviewImage");
+
+const removeTopicAttachment =
+    document.getElementById("removeTopicAttachment");
+
+const topicAttachmentStatus =
+    document.getElementById("topicAttachmentStatus");
+
+const FORUM_TOPIC_MAX_IMAGE_FILE_SIZE =
+    20 * 1024 * 1024;
+
+const FORUM_TOPIC_IMAGE_MAX_WIDTH = 1280;
+const FORUM_TOPIC_IMAGE_MAX_HEIGHT = 1280;
+const FORUM_TOPIC_IMAGE_QUALITY = 0.75;
+
+let editingTopicId = null;
+let selectedTopicAttachment = null;
+
 const forumSearch =
     document.getElementById("forumSearch");
 
@@ -100,8 +131,14 @@ async function loadForumTopics() {
                 text:
                     topic.content,
 
+                attachment:
+                    topic.attachment || null,
+
                 createdAt:
                     topic.created_at,
+
+                updatedAt:
+                    topic.updated_at,
 
                 replies: Array.isArray(topic.replies)
                     ? topic.replies
@@ -166,6 +203,245 @@ function escapeForumHtml(value) {
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+}
+
+function forumTopicFileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(
+            new Error("Не вдалося прочитати фото.")
+        );
+
+        reader.readAsDataURL(file);
+    });
+}
+
+function loadForumTopicImage(dataUrl) {
+    return new Promise((resolve, reject) => {
+        const image = new Image();
+
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(
+            new Error("Не вдалося завантажити фото.")
+        );
+
+        image.src = dataUrl;
+    });
+}
+
+async function compressForumTopicImage(file) {
+    const originalDataUrl =
+        await forumTopicFileToDataUrl(file);
+
+    const image =
+        await loadForumTopicImage(originalDataUrl);
+
+    let width = image.naturalWidth;
+    let height = image.naturalHeight;
+
+    const scale = Math.min(
+        1,
+        FORUM_TOPIC_IMAGE_MAX_WIDTH / width,
+        FORUM_TOPIC_IMAGE_MAX_HEIGHT / height
+    );
+
+    width = Math.round(width * scale);
+    height = Math.round(height * scale);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+        throw new Error(
+            "Ваш браузер не підтримує обробку фото."
+        );
+    }
+
+    context.drawImage(
+        image,
+        0,
+        0,
+        width,
+        height
+    );
+
+    return canvas.toDataURL(
+        "image/jpeg",
+        FORUM_TOPIC_IMAGE_QUALITY
+    );
+}
+
+function renderTopicAttachmentPreview() {
+    const hasPhoto =
+        Boolean(selectedTopicAttachment?.data);
+
+    if (topicAttachmentStatus) {
+        topicAttachmentStatus.textContent =
+            hasPhoto
+                ? "Фото додано"
+                : "Фото не обов’язкове";
+    }
+
+    if (
+        !topicAttachmentPreview ||
+        !topicAttachmentPreviewImage
+    ) {
+        return;
+    }
+
+    if (!hasPhoto) {
+        topicAttachmentPreview.hidden = true;
+        topicAttachmentPreviewImage.removeAttribute("src");
+        return;
+    }
+
+    topicAttachmentPreviewImage.src =
+        selectedTopicAttachment.data;
+
+    topicAttachmentPreview.hidden = false;
+}
+
+function clearTopicAttachment() {
+    selectedTopicAttachment = null;
+
+    if (topicAttachmentInput) {
+        topicAttachmentInput.value = "";
+    }
+
+    renderTopicAttachmentPreview();
+}
+
+function resetTopicEditor() {
+    editingTopicId = null;
+    selectedTopicAttachment = null;
+
+    topicForm?.reset();
+
+    if (topicAttachmentInput) {
+        topicAttachmentInput.value = "";
+    }
+
+    if (topicModalTitle) {
+        topicModalTitle.textContent =
+            "Створити тему";
+    }
+
+    if (topicSubmitButton) {
+        topicSubmitButton.textContent =
+            "Опублікувати тему";
+    }
+
+    renderTopicAttachmentPreview();
+}
+
+async function handleTopicAttachmentSelection(event) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+        return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+        alert("До теми можна додати лише фото.");
+        event.target.value = "";
+        return;
+    }
+
+    if (file.size > FORUM_TOPIC_MAX_IMAGE_FILE_SIZE) {
+        alert(
+            "Фото надто велике. Максимальний початковий розмір — 20 МБ."
+        );
+        event.target.value = "";
+        return;
+    }
+
+    try {
+        const compressedData =
+            await compressForumTopicImage(file);
+
+        selectedTopicAttachment = {
+            type: "image",
+            mimeType: "image/jpeg",
+            name: file.name,
+            originalSize: file.size,
+            data: compressedData
+        };
+
+        renderTopicAttachmentPreview();
+    } catch (error) {
+        console.error(
+            "Forum topic image prepare error:",
+            error
+        );
+
+        alert(
+            error.message ||
+            "Не вдалося підготувати фото."
+        );
+
+        clearTopicAttachment();
+    }
+}
+
+function openTopicEditor(topicId) {
+    const currentUser =
+        getCurrentForumUser();
+
+    const topic = topics.find(
+        (item) =>
+            String(item.id) ===
+            String(topicId)
+    );
+
+    if (!topic) {
+        alert("Тему не знайдено.");
+        return;
+    }
+
+    if (
+        !currentUser?.id ||
+        String(currentUser.id) !==
+            String(topic.authorId)
+    ) {
+        alert(
+            "Редагувати тему може лише її автор."
+        );
+        return;
+    }
+
+    editingTopicId = topic.id;
+
+    topicTitle.value = topic.title || "";
+    topicCategory.value = topic.category || "Загальне";
+    topicText.value = topic.text || "";
+
+    selectedTopicAttachment =
+        topic.attachment?.data
+            ? { ...topic.attachment }
+            : null;
+
+    if (topicAttachmentInput) {
+        topicAttachmentInput.value = "";
+    }
+
+    if (topicModalTitle) {
+        topicModalTitle.textContent =
+            "Редагувати тему";
+    }
+
+    if (topicSubmitButton) {
+        topicSubmitButton.textContent =
+            "Зберегти зміни";
+    }
+
+    renderTopicAttachmentPreview();
+    closeForumModal(topicViewModal);
+    openForumModal(topicModal);
 }
 
 function formatForumDate(value) {
@@ -419,6 +695,23 @@ function renderForumTopics() {
                 ${escapeForumHtml(topic.text)}
             </p>
 
+            ${
+                topic.attachment?.data
+                    ? `
+                        <img
+                            class="forum-topic-image"
+                            src="${escapeForumHtml(
+                                topic.attachment.data
+                            )}"
+                            alt="Фото до теми ${escapeForumHtml(
+                                topic.title
+                            )}"
+                            loading="lazy"
+                        >
+                    `
+                    : ""
+            }
+
             <div class="forum-topic-meta">
 
                 <span>
@@ -465,9 +758,17 @@ function renderForumTopics() {
                             <button
                                 type="button"
                                 class="forum-topic-button"
+                                data-action="edit"
+                                data-topic-id="${topic.id}">
+                                ✏️ Редагувати
+                            </button>
+
+                            <button
+                                type="button"
+                                class="forum-topic-button"
                                 data-action="delete"
                                 data-topic-id="${topic.id}">
-                                Видалити тему
+                                🗑 Видалити
                             </button>
                         `
                         : ""
@@ -546,6 +847,11 @@ function openTopicView(topicId) {
     const currentUser =
         getCurrentForumUser();
 
+    const isOwner =
+        currentUser?.id &&
+        String(currentUser.id) ===
+            String(topic.authorId);
+
     const replies = Array.isArray(topic.replies)
         ? topic.replies
         : [];
@@ -580,6 +886,48 @@ function openTopicView(topicId) {
         <p class="forum-topic-text">
             ${escapeForumHtml(topic.text)}
         </p>
+
+        ${
+            topic.attachment?.data
+                ? `
+                    <img
+                        class="forum-topic-image"
+                        src="${escapeForumHtml(
+                            topic.attachment.data
+                        )}"
+                        alt="Фото до теми ${escapeForumHtml(
+                            topic.title
+                        )}"
+                    >
+                `
+                : ""
+        }
+
+        ${
+            isOwner
+                ? `
+                    <div class="forum-topic-owner-actions">
+                        <button
+                            type="button"
+                            class="forum-topic-button"
+                            data-action="edit-topic"
+                            data-topic-id="${topic.id}"
+                        >
+                            ✏️ Редагувати тему
+                        </button>
+
+                        <button
+                            type="button"
+                            class="forum-topic-button"
+                            data-action="delete-topic"
+                            data-topic-id="${topic.id}"
+                        >
+                            🗑 Видалити тему
+                        </button>
+                    </div>
+                `
+                : ""
+        }
 
         <hr>
 
@@ -849,6 +1197,30 @@ async function toggleReplyLike(
 topicViewBody.addEventListener(
     "click",
     (event) => {
+
+        const editTopicButton =
+            event.target.closest(
+                '[data-action="edit-topic"]'
+            );
+
+        if (editTopicButton) {
+            openTopicEditor(
+                editTopicButton.dataset.topicId
+            );
+            return;
+        }
+
+        const deleteTopicButton =
+            event.target.closest(
+                '[data-action="delete-topic"]'
+            );
+
+        if (deleteTopicButton) {
+            deleteForumTopic(
+                deleteTopicButton.dataset.topicId
+            );
+            return;
+        }
 
         const deleteButton =
         event.target.closest(
@@ -1262,7 +1634,7 @@ openTopicButton.addEventListener(
             return;
         }
 
-        topicForm.reset();
+        resetTopicEditor();
         openForumModal(topicModal);
     }
 );
@@ -1277,9 +1649,8 @@ topicForm.addEventListener(
 
         if (!currentUser?.id) {
             alert(
-                "Увійди в акаунт, щоб створити тему."
+                "Увійди в акаунт, щоб зберегти тему."
             );
-
             return;
         }
 
@@ -1306,15 +1677,31 @@ topicForm.addEventListener(
             alert(
                 "Сесія не знайдена. Увійди ще раз."
             );
-
             return;
+        }
+
+        const topicIdBeingEdited =
+            editingTopicId;
+
+        const requestUrl =
+            topicIdBeingEdited
+                ? `/api/forum/topics/${topicIdBeingEdited}`
+                : "/api/forum/topics";
+
+        const requestMethod =
+            topicIdBeingEdited
+                ? "PATCH"
+                : "POST";
+
+        if (topicSubmitButton) {
+            topicSubmitButton.disabled = true;
         }
 
         try {
             const response = await fetch(
-                "/api/forum/topics",
+                requestUrl,
                 {
-                    method: "POST",
+                    method: requestMethod,
 
                     headers: {
                         "Content-Type":
@@ -1327,7 +1714,9 @@ topicForm.addEventListener(
                     body: JSON.stringify({
                         title,
                         category,
-                        content: text
+                        content: text,
+                        attachment:
+                            selectedTopicAttachment
                     })
                 }
             );
@@ -1338,34 +1727,59 @@ topicForm.addEventListener(
             if (!response.ok) {
                 alert(
                     data.message ||
-                    "Не вдалося створити тему."
+                    (
+                        topicIdBeingEdited
+                            ? "Не вдалося відредагувати тему."
+                            : "Не вдалося створити тему."
+                    )
                 );
-
                 return;
             }
 
-            topicForm.reset();
             closeForumModal(topicModal);
+
+            if (topicIdBeingEdited) {
+                clearForumTopicUrl();
+            }
 
             await loadForumTopics();
 
-            alert(
-                "Тему збережено в базі."
-            );
+            if (topicIdBeingEdited) {
+                const updatedTopic = topics.find(
+                    (item) =>
+                        String(item.id) ===
+                        String(topicIdBeingEdited)
+                );
+
+                resetTopicEditor();
+
+                if (updatedTopic) {
+                    openTopicView(updatedTopic.id);
+                }
+
+                alert("Зміни збережено.");
+                return;
+            }
+
+            resetTopicEditor();
+            alert("Тему збережено в базі.");
 
         } catch (error) {
             console.error(
-                "Create forum topic error:",
+                "Save forum topic error:",
                 error
             );
 
             alert(
                 "Не вдалося з’єднатися із сервером."
             );
+        } finally {
+            if (topicSubmitButton) {
+                topicSubmitButton.disabled = false;
+            }
         }
     }
 );
-
 
 /* ===== ВИДАЛЕННЯ ТЕМИ ===== */
 
@@ -1384,14 +1798,13 @@ async function deleteForumTopic(topicId) {
     }
 
     if (
-        !currentUser ||
+        !currentUser?.id ||
         String(currentUser.id) !==
             String(topic.authorId)
     ) {
         alert(
             "Видалити тему може лише її автор."
         );
-
         return;
     }
 
@@ -1399,64 +1812,62 @@ async function deleteForumTopic(topicId) {
         `Видалити тему "${topic.title}"?`
     );
 
+    if (!confirmed) {
+        return;
+    }
+
     const token =
-    localStorage.getItem(
-        "royalGarageToken"
-    );
+        localStorage.getItem(
+            "royalGarageToken"
+        );
 
-if (!token) {
-    alert(
-        "Сесія не знайдена. Увійди ще раз."
-    );
-    return;
-}
-
-try {
-    const response = await fetch(
-        `/api/forum/topics/${topicId}`,
-        {
-            method: "DELETE",
-            headers: {
-                Authorization:
-                    `Bearer ${token}`
-            }
-        }
-    );
-
-    const data =
-        await response.json();
-
-    if (!response.ok) {
+    if (!token) {
         alert(
-            data.message ||
-            "Не вдалося видалити тему."
+            "Сесія не знайдена. Увійди ще раз."
         );
         return;
     }
 
-    await loadForumTopics();
+    try {
+        const response = await fetch(
+            `/api/forum/topics/${topicId}`,
+            {
+                method: "DELETE",
+                headers: {
+                    Authorization:
+                        `Bearer ${token}`
+                }
+            }
+        );
 
-} catch (error) {
-    console.error(
-        "Forum topic delete error:",
-        error
-    );
+        const data =
+            await response.json();
 
-    alert(
-        "Не вдалося з’єднатися із сервером."
-    );
+        if (!response.ok) {
+            alert(
+                data.message ||
+                "Не вдалося видалити тему."
+            );
+            return;
+        }
+
+        closeForumModal(topicViewModal);
+        clearForumTopicUrl();
+        await loadForumTopics();
+
+        alert("Тему видалено.");
+
+    } catch (error) {
+        console.error(
+            "Forum topic delete error:",
+            error
+        );
+
+        alert(
+            "Не вдалося з’єднатися із сервером."
+        );
+    }
 }
-
-    topics = topics.filter(
-        (item) =>
-            String(item.id) !==
-            String(topicId)
-    );
-
-    saveForumTopics();
-    renderForumTopics();
-}
-
 
 /* ===== КНОПКИ В СПИСКУ ТЕМ ===== */
 
@@ -1484,11 +1895,30 @@ forumTopics.addEventListener(
             openTopicView(topicId);
         }
 
+        if (button.dataset.action === "edit") {
+            openTopicEditor(topicId);
+        }
+
         if (button.dataset.action === "delete") {
             deleteForumTopic(topicId);
         }
     }
 );
+
+
+if (topicAttachmentInput) {
+    topicAttachmentInput.addEventListener(
+        "change",
+        handleTopicAttachmentSelection
+    );
+}
+
+if (removeTopicAttachment) {
+    removeTopicAttachment.addEventListener(
+        "click",
+        clearTopicAttachment
+    );
+}
 
 
 /* ===== ПОШУК І ФІЛЬТР ===== */

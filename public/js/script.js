@@ -273,32 +273,322 @@ function addCar() {
 }
 
 
-function searchSite() {
-    const query = document.getElementById("searchInput").value.toLowerCase();
+async function searchSite() {
+    const searchInput =
+        document.getElementById("searchInput");
+
+    const query =
+        String(searchInput?.value || "")
+            .trim()
+            .toLowerCase();
 
     if (!query) {
         alert("Введи слово для пошуку");
         return;
     }
 
-    const cards = document.querySelectorAll(".topic-card, .car-card");
+    const modal =
+        document.getElementById("modal");
 
-    cards.forEach(card => {
-        const text = card.innerText.toLowerCase();
+    const modalBody =
+        document.getElementById("modalBody");
 
-        if (text.includes(query)) {
-            card.style.display = "block";
-        } else {
-            card.style.display = "none";
+    if (modal && modalBody) {
+        modalBody.innerHTML = `
+            <h2>Пошук</h2>
+            <p>Шукаємо «${escapeHomeHtml(query)}»...</p>
+        `;
+
+        modal.style.display = "flex";
+    }
+
+    try {
+        const [
+            forumResponse,
+            marketResponse
+        ] = await Promise.all([
+            fetch("/api/forum/topics"),
+            fetch("/api/market/listings")
+        ]);
+
+        const [
+            forumData,
+            marketData
+        ] = await Promise.all([
+            forumResponse.json(),
+            marketResponse.json()
+        ]);
+
+        if (!forumResponse.ok) {
+            throw new Error(
+                forumData.message ||
+                "Не вдалося завантажити теми форуму."
+            );
         }
-    });
+
+        if (!marketResponse.ok) {
+            throw new Error(
+                marketData.message ||
+                "Не вдалося завантажити оголошення."
+            );
+        }
+
+        const topics =
+            Array.isArray(forumData.topics)
+                ? forumData.topics
+                : [];
+
+        const listings =
+            Array.isArray(marketData.listings)
+                ? marketData.listings
+                : [];
+
+        const topicResults =
+            topics.filter((topic) => {
+                const searchableText = [
+                    topic.title,
+                    topic.category,
+                    topic.content,
+                    topic.author_name,
+                    topic.authorName
+                ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
+
+                return searchableText.includes(query);
+            });
+
+        const listingResults =
+            listings.filter((listing) => {
+                const searchableText = [
+                    listing.name,
+                    listing.year,
+                    listing.city,
+                    listing.fuel,
+                    listing.engine,
+                    listing.body,
+                    listing.transmission,
+                    listing.description,
+                    listing.seller_name,
+                    listing.sellerName
+                ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
+
+                return searchableText.includes(query);
+            });
+
+        const totalResults =
+            topicResults.length +
+            listingResults.length;
+
+        if (!modal || !modalBody) {
+            if (topicResults[0]) {
+                window.location.href =
+                    `forum.html?topicId=${
+                        encodeURIComponent(
+                            topicResults[0].id
+                        )
+                    }`;
+                return;
+            }
+
+            if (listingResults[0]) {
+                window.location.href =
+                    `listing.html?id=${
+                        encodeURIComponent(
+                            listingResults[0].id
+                        )
+                    }`;
+                return;
+            }
+
+            alert("Нічого не знайдено.");
+            return;
+        }
+
+        if (totalResults === 0) {
+            modalBody.innerHTML = `
+                <h2>Пошук</h2>
+                <p>
+                    За запитом
+                    <strong>«${escapeHomeHtml(query)}»</strong>
+                    нічого не знайдено.
+                </p>
+            `;
+            return;
+        }
+
+        const topicsHtml =
+            topicResults.length
+                ? `
+                    <section class="search-results-group">
+                        <h3>
+                            Теми форуму
+                            (${topicResults.length})
+                        </h3>
+
+                        ${topicResults
+                            .slice(0, 20)
+                            .map(
+                                (topic) => `
+                                    <a
+                                        class="topic-card"
+                                        href="forum.html?topicId=${
+                                            encodeURIComponent(
+                                                topic.id
+                                            )
+                                        }"
+                                    >
+                                        <h3>
+                                            ${escapeHomeHtml(
+                                                topic.title ||
+                                                "Без назви"
+                                            )}
+                                        </h3>
+
+                                        <p>
+                                            ${escapeHomeHtml(
+                                                topic.category ||
+                                                "Загальне"
+                                            )}
+                                        </p>
+                                    </a>
+                                `
+                            )
+                            .join("")}
+                    </section>
+                `
+                : "";
+
+        const listingsHtml =
+            listingResults.length
+                ? `
+                    <section class="search-results-group">
+                        <h3>
+                            Оголошення
+                            (${listingResults.length})
+                        </h3>
+
+                        ${listingResults
+                            .slice(0, 20)
+                            .map(
+                                (listing) => `
+                                    <a
+                                        class="car-card"
+                                        href="listing.html?id=${
+                                            encodeURIComponent(
+                                                listing.id
+                                            )
+                                        }"
+                                    >
+                                        <h3>
+                                            ${escapeHomeHtml(
+                                                listing.name ||
+                                                "Автомобіль"
+                                            )}
+                                            ${
+                                                listing.year
+                                                    ? `(${escapeHomeHtml(
+                                                        listing.year
+                                                    )})`
+                                                    : ""
+                                            }
+                                        </h3>
+
+                                        <p>
+                                            ${
+                                                listing.city
+                                                    ? `📍 ${escapeHomeHtml(
+                                                        listing.city
+                                                    )}`
+                                                    : ""
+                                            }
+                                        </p>
+                                    </a>
+                                `
+                            )
+                            .join("")}
+                    </section>
+                `
+                : "";
+
+        modalBody.innerHTML = `
+            <h2>
+                Результати пошуку
+            </h2>
+
+            <p>
+                За запитом
+                <strong>«${escapeHomeHtml(query)}»</strong>
+                знайдено: ${totalResults}
+            </p>
+
+            ${topicsHtml}
+            ${listingsHtml}
+        `;
+
+    } catch (error) {
+        console.error(
+            "Site search error:",
+            error
+        );
+
+        if (modal && modalBody) {
+            modalBody.innerHTML = `
+                <h2>Пошук</h2>
+                <p>
+                    Не вдалося виконати пошук.
+                    Спробуй ще раз.
+                </p>
+            `;
+        } else {
+            alert(
+                "Не вдалося виконати пошук."
+            );
+        }
+    }
 }
 
 
 function quickSearch(text) {
-    document.getElementById("searchInput").value = text;
+    const searchInput =
+        document.getElementById("searchInput");
+
+    if (!searchInput) {
+        return;
+    }
+
+    searchInput.value = text;
     searchSite();
 }
+
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+        const searchInput =
+            document.getElementById(
+                "searchInput"
+            );
+
+        if (!searchInput) {
+            return;
+        }
+
+        searchInput.addEventListener(
+            "keydown",
+            (event) => {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    searchSite();
+                }
+            }
+        );
+    }
+);
 
 /* ===== ОСТАННІ ОГОЛОШЕННЯ НА ГОЛОВНІЙ ===== */
 
