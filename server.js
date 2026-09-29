@@ -1105,6 +1105,15 @@ app.get(
                         bp.updated_at DESC
                 `);
 
+            const forumTopicsResult =
+                await pool.query(`
+                    SELECT
+                        id,
+                        updated_at
+                    FROM forum_topics
+                    ORDER BY updated_at DESC
+                `);
+
             const baseUrl =
                 "https://royalgarage.com.ua";
 
@@ -1153,12 +1162,26 @@ app.get(
                     )
                     .join("");
 
+            const forumTopicsXml =
+                forumTopicsResult.rows
+                    .map(
+                        (topic) => `
+    <url>
+        <loc>${baseUrl}/forum.html?topicId=${topic.id}</loc>
+        <lastmod>${new Date(
+            topic.updated_at
+        ).toISOString()}</lastmod>
+    </url>`
+                    )
+                    .join("");
+
             const sitemap =
 `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${staticXml}
 ${listingsXml}
 ${businessesXml}
+${forumTopicsXml}
 </urlset>`;
 
             res.type(
@@ -2244,6 +2267,363 @@ ${businessSchemaJson}
 
             return res.sendFile(
                 businessFile
+            );
+        }
+    }
+);
+
+
+/* =========================
+   SEO ТЕМ ФОРУМУ
+   ========================= */
+
+app.get(
+    "/forum.html",
+    async (req, res) => {
+        const topicId =
+            String(
+                req.query.topicId || ""
+            ).trim();
+
+        const forumFile =
+            path.join(
+                __dirname,
+                "public",
+                "forum.html"
+            );
+
+        try {
+            let html =
+                await fs.promises.readFile(
+                    forumFile,
+                    "utf8"
+                );
+
+            if (!topicId) {
+                return res
+                    .type("html")
+                    .send(html);
+            }
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        t.id,
+                        t.title,
+                        t.category,
+                        t.content,
+                        t.created_at,
+                        t.updated_at,
+                        u.name AS author_name
+                    FROM forum_topics t
+                    JOIN users u
+                        ON u.id = t.user_id
+                    WHERE t.id = $1
+                    LIMIT 1
+                    `,
+                    [
+                        topicId
+                    ]
+                );
+
+            if (
+                result.rows.length === 0
+            ) {
+                html =
+                    html.replace(
+                        /<title>[\s\S]*?<\/title>/i,
+                        "<title>Тему не знайдено | Royal Garage</title>"
+                    );
+
+                html =
+                    html.replace(
+                        /<meta[^>]+name=["']robots["'][^>]*>/i,
+                        ""
+                    );
+
+                html =
+                    html.replace(
+                        "</head>",
+                        `
+<meta name="robots" content="noindex, follow">
+</head>`
+                    );
+
+                return res
+                    .status(404)
+                    .type("html")
+                    .send(html);
+            }
+
+            const topic =
+                result.rows[0];
+
+            const topicTitle =
+                String(
+                    topic.title || "Тема форуму"
+                )
+                    .replace(/\s+/g, " ")
+                    .trim();
+
+            const topicText =
+                String(
+                    topic.content || ""
+                )
+                    .replace(/\s+/g, " ")
+                    .trim();
+
+            const topicCategory =
+                String(
+                    topic.category || "Загальне"
+                )
+                    .replace(/\s+/g, " ")
+                    .trim();
+
+            const authorName =
+                String(
+                    topic.author_name || "Користувач"
+                )
+                    .replace(/\s+/g, " ")
+                    .trim();
+
+            const title =
+                `${topicTitle} | Автофорум Royal Garage`;
+
+            const description =
+                (
+                    topicText ||
+                    `${topicCategory} — обговорення на автофорумі Royal Garage.`
+                )
+                    .slice(0, 160);
+
+            const canonical =
+                `https://royalgarage.com.ua/forum.html?topicId=${encodeURIComponent(
+                    topic.id
+                )}`;
+
+            const forumPostingSchema = {
+                "@context":
+                    "https://schema.org",
+
+                "@type":
+                    "DiscussionForumPosting",
+
+                "headline":
+                    topicTitle,
+
+                "articleBody":
+                    topicText,
+
+                "url":
+                    canonical,
+
+                "datePublished":
+                    new Date(
+                        topic.created_at
+                    ).toISOString(),
+
+                "dateModified":
+                    new Date(
+                        topic.updated_at
+                    ).toISOString(),
+
+                "author": {
+                    "@type":
+                        "Person",
+
+                    "name":
+                        authorName
+                },
+
+                "isPartOf": {
+                    "@type":
+                        "WebPage",
+
+                    "name":
+                        "Royal Garage Community",
+
+                    "url":
+                        "https://royalgarage.com.ua/forum.html"
+                }
+            };
+
+            const forumPostingSchemaJson =
+                safeSeoJson(
+                    forumPostingSchema
+                );
+
+            html =
+                html.replace(
+                    /<title>[\s\S]*?<\/title>/i,
+                    `<title>${escapeSeoHtml(
+                        title
+                    )}</title>`
+                );
+
+            html =
+                html.replace(
+                    /<meta[^>]+name=["']description["'][^>]*>/i,
+                    ""
+                );
+
+            html =
+                html.replace(
+                    /<meta[^>]+name=["']robots["'][^>]*>/i,
+                    ""
+                );
+
+            html =
+                html.replace(
+                    /<link[^>]+rel=["']canonical["'][^>]*>/i,
+                    ""
+                );
+
+            html =
+                html.replace(
+                    /<meta[^>]+property=["']og:type["'][^>]*>/i,
+                    ""
+                );
+
+            html =
+                html.replace(
+                    /<meta[^>]+property=["']og:title["'][^>]*>/i,
+                    ""
+                );
+
+            html =
+                html.replace(
+                    /<meta[^>]+property=["']og:description["'][^>]*>/i,
+                    ""
+                );
+
+            html =
+                html.replace(
+                    /<meta[^>]+property=["']og:url["'][^>]*>/i,
+                    ""
+                );
+
+            const seoTags = `
+<meta
+    name="description"
+    content="${escapeSeoHtml(
+        description
+    )}"
+>
+
+<meta
+    name="robots"
+    content="index, follow"
+>
+
+<link
+    rel="canonical"
+    href="${escapeSeoHtml(
+        canonical
+    )}"
+>
+
+<meta
+    property="og:type"
+    content="article"
+>
+
+<meta
+    property="og:site_name"
+    content="Royal Garage"
+>
+
+<meta
+    property="og:title"
+    content="${escapeSeoHtml(
+        title
+    )}"
+>
+
+<meta
+    property="og:description"
+    content="${escapeSeoHtml(
+        description
+    )}"
+>
+
+<meta
+    property="og:url"
+    content="${escapeSeoHtml(
+        canonical
+    )}"
+>
+
+<meta
+    property="og:locale"
+    content="uk_UA"
+>
+
+<script type="application/ld+json">
+${forumPostingSchemaJson}
+</script>
+`;
+
+            html =
+                html.replace(
+                    "</head>",
+                    `${seoTags}\n</head>`
+                );
+
+            const seoArticle = `
+<section
+    id="forumSeoTopic"
+    class="forum-topics"
+    aria-label="Тема форуму"
+>
+    <article class="forum-topic-card">
+        <p class="forum-label">
+            ${escapeSeoHtml(
+                topicCategory
+            )}
+        </p>
+
+        <h2 class="forum-topic-title">
+            ${escapeSeoHtml(
+                topicTitle
+            )}
+        </h2>
+
+        <p class="forum-topic-text">
+            ${escapeSeoHtml(
+                topicText
+            )}
+        </p>
+
+        <div class="forum-topic-meta">
+            <span>
+                👤 ${escapeSeoHtml(
+                    authorName
+                )}
+            </span>
+        </div>
+    </article>
+</section>
+`;
+
+            html =
+                html.replace(
+                    "</main>",
+                    `${seoArticle}\n</main>`
+                );
+
+            return res
+                .type("html")
+                .send(html);
+
+        } catch (error) {
+            console.error(
+                "Forum topic SEO render error:",
+                error
+            );
+
+            return res.sendFile(
+                forumFile
             );
         }
     }

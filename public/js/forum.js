@@ -449,13 +449,15 @@ function renderForumTopics() {
 
             <div class="forum-topic-actions">
 
-                <button
-                    type="button"
+                <a
                     class="forum-topic-button"
+                    href="/forum.html?topicId=${encodeURIComponent(
+                        topic.id
+                    )}"
                     data-action="open"
                     data-topic-id="${topic.id}">
                     Відкрити тему
-                </button>
+                </a>
 
                 ${
                     isOwner
@@ -479,6 +481,44 @@ function renderForumTopics() {
 }
 
 
+/* ===== URL ОКРЕМОЇ ТЕМИ ===== */
+
+function setForumTopicUrl(topicId) {
+    const url =
+        new URL(
+            window.location.href
+        );
+
+    url.searchParams.set(
+        "topicId",
+        topicId
+    );
+
+    window.history.replaceState(
+        {},
+        "",
+        url
+    );
+}
+
+function clearForumTopicUrl() {
+    const url =
+        new URL(
+            window.location.href
+        );
+
+    url.searchParams.delete(
+        "topicId"
+    );
+
+    window.history.replaceState(
+        {},
+        "",
+        url
+    );
+}
+
+
 /* ===== ВІДКРИТТЯ ОКРЕМОЇ ТЕМИ ===== */
 
 function openTopicView(topicId) {
@@ -492,6 +532,16 @@ function openTopicView(topicId) {
         alert("Тему не знайдено.");
         return;
     }
+
+    setForumTopicUrl(
+        topic.id
+    );
+
+    document
+        .getElementById(
+            "forumSeoTopic"
+        )
+        ?.remove();
 
     const currentUser =
         getCurrentForumUser();
@@ -1424,6 +1474,12 @@ forumTopics.addEventListener(
         const topicId =
             button.dataset.topicId;
 
+        if (
+            button.tagName === "A"
+        ) {
+            event.preventDefault();
+        }
+
         if (button.dataset.action === "open") {
             openTopicView(topicId);
         }
@@ -1467,6 +1523,7 @@ closeTopicViewModal.addEventListener(
     "click",
     () => {
         closeForumModal(topicViewModal);
+        clearForumTopicUrl();
     }
 );
 
@@ -1478,6 +1535,12 @@ document
             (event) => {
                 if (event.target === modal) {
                     closeForumModal(modal);
+
+                    if (
+                        modal === topicViewModal
+                    ) {
+                        clearForumTopicUrl();
+                    }
                 }
             }
         );
@@ -1492,6 +1555,7 @@ document.addEventListener(
 
         closeForumModal(topicModal);
         closeForumModal(topicViewModal);
+        clearForumTopicUrl();
     }
 );
 
