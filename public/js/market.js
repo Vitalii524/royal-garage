@@ -53,6 +53,18 @@ const listingCar =
     );
 
 
+const listingVehicleType =
+    document.getElementById(
+        "listingVehicleType"
+    );
+
+
+const listingCarField =
+    document.getElementById(
+        "listingCarField"
+    );
+
+
 const marketSearch =
     document.getElementById(
         "marketSearch"
@@ -602,6 +614,84 @@ const CAR_BRANDS_MODELS = {
     };
 
 
+const MOTO_BRANDS_MODELS = {
+    Geon: [
+        "Scrambler 250"
+    ],
+    Kovi: [],
+    Shineray: [],
+    Musstang: [],
+    Lifan: [],
+    Honda: [],
+    Yamaha: [],
+    Kawasaki: [],
+    Suzuki: [],
+    KTM: [],
+    Ducati: [],
+    "BMW Motorrad": [],
+    "Harley-Davidson": [],
+    Bajaj: [],
+    Benelli: [],
+    "Royal Enfield": [],
+    CFMOTO: []
+};
+
+
+function getVehicleTypeValue() {
+    return listingVehicleType?.value ===
+        "moto"
+            ? "moto"
+            : "car";
+}
+
+
+function getVehicleBrandsModels() {
+    return getVehicleTypeValue() ===
+        "moto"
+            ? MOTO_BRANDS_MODELS
+            : CAR_BRANDS_MODELS;
+}
+
+
+function updateVehicleTypeUi(
+    resetVehicleFields = false
+) {
+    const isMoto =
+        getVehicleTypeValue() ===
+        "moto";
+
+    if (listingCarField) {
+        listingCarField.hidden =
+            isMoto;
+    }
+
+    if (isMoto && listingCar) {
+        listingCar.value = "";
+        resetSelectedCarPreview();
+    }
+
+    if (resetVehicleFields) {
+        if (listingBrand) {
+            listingBrand.value = "";
+        }
+
+        if (listingCustomBrand) {
+            listingCustomBrand.value = "";
+        }
+
+        if (listingCustomModel) {
+            listingCustomModel.value = "";
+        }
+    }
+
+    fillBrandSelect();
+
+    if (resetVehicleFields) {
+        fillModelSelect("");
+    }
+}
+
+
 function fillBrandSelect() {
     if (!listingBrand) {
         return;
@@ -616,7 +706,7 @@ function fillBrandSelect() {
 
 
     Object.keys(
-        CAR_BRANDS_MODELS
+        getVehicleBrandsModels()
     ).forEach(
         (brand) => {
             const option =
@@ -763,7 +853,7 @@ function fillModelSelect(
 
 
     if (
-        !CAR_BRANDS_MODELS[brand]
+        !getVehicleBrandsModels()[brand]
     ) {
         listingModel.innerHTML = `
             <option value="">${rgTr("market.form.chooseBrandFirst", "Спочатку обери марку")}</option>
@@ -796,7 +886,7 @@ function fillModelSelect(
     );
 
 
-    CAR_BRANDS_MODELS[
+    getVehicleBrandsModels()[
         brand
     ].forEach(
         (model) => {
@@ -959,7 +1049,7 @@ function setBrandAndModelFromName(
 
     const brands =
         Object.keys(
-            CAR_BRANDS_MODELS
+            getVehicleBrandsModels()
         )
             .sort(
                 (
@@ -1072,6 +1162,17 @@ function setBrandAndModelFromName(
 }
 
 
+if (listingVehicleType) {
+    listingVehicleType.addEventListener(
+        "change",
+        () => {
+            updateVehicleTypeUi(true);
+            updateListingNameFromBrandModel();
+        }
+    );
+}
+
+
 if (listingBrand) {
     listingBrand.addEventListener(
         "change",
@@ -1136,6 +1237,9 @@ if (listingCustomModel) {
         updateListingNameFromBrandModel
     );
 }
+
+
+updateVehicleTypeUi(false);
 
 
 /* =====================================================
@@ -1415,8 +1519,41 @@ const sellerRatingsCache =
 
 async function loadMarketListings() {
     try {
+        const category =
+            window.__ROYAL_MARKET_CATEGORY__ ||
+            null;
+
+        const params =
+            new URLSearchParams();
+
+        if (category?.vehicleType) {
+            params.set(
+                "vehicleType",
+                category.vehicleType
+            );
+        }
+
+        if (category?.brand) {
+            params.set(
+                "brand",
+                category.brand
+            );
+        }
+
+        if (category?.model) {
+            params.set(
+                "model",
+                category.model
+            );
+        }
+
+        const query =
+            params.toString();
+
         const response = await fetch(
-            "/api/market/listings"
+            `/api/market/listings${
+                query ? `?${query}` : ""
+            }`
         );
 
         const data =
@@ -2760,13 +2897,37 @@ function fillEditForm(listing) {
     }
 
 
+    if (listingVehicleType) {
+        listingVehicleType.value =
+            listing.vehicleType === "moto" ||
+            listing.vehicle_type === "moto"
+                ? "moto"
+                : "car";
+    }
+
+    updateVehicleTypeUi(false);
+
+
     if (listingName) {
         listingName.value =
             listing.name || "";
     }
-    
-    
+
+
+    const savedBrand =
+        String(
+            listing.brand || ""
+        ).trim();
+
+    const savedModel =
+        String(
+            listing.model || ""
+        ).trim();
+
     setBrandAndModelFromName(
+        [savedBrand, savedModel]
+            .filter(Boolean)
+            .join(" ") ||
         listing.name
     );
 
@@ -2930,6 +3091,13 @@ function resetListingForm() {
     if (listingForm) {
         listingForm.reset();
     }
+
+    if (listingVehicleType) {
+        listingVehicleType.value =
+            "car";
+    }
+
+    updateVehicleTypeUi(false);
 
     if (listingBrand) {
         listingBrand.value = "";
@@ -3942,6 +4110,16 @@ if (listingForm) {
             updateListingNameFromBrandModel();
 
 
+            const vehicleType =
+                getVehicleTypeValue();
+
+            const brand =
+                getSelectedVehicleBrand();
+
+            const model =
+                getSelectedVehicleModel();
+
+
             if (
                 listingBrand?.value ===
                     OTHER_VEHICLE_OPTION &&
@@ -4359,6 +4537,9 @@ if (listingForm) {
                         null,
 
                     name,
+                    vehicleType,
+                    brand,
+                    model,
                     year,
                     vin,
 
@@ -4457,6 +4638,15 @@ if (listingForm) {
                 
                                 name:
                                     updatedListing.name,
+
+                                vehicleType:
+                                    updatedListing.vehicleType,
+
+                                brand:
+                                    updatedListing.brand,
+
+                                model:
+                                    updatedListing.model,
                 
                                 year:
                                     updatedListing.year,
@@ -4618,6 +4808,9 @@ if (listingForm) {
                             car?.id || null,
         
                         name,
+                        vehicleType,
+                        brand,
+                        model,
                         year,
                         vin,
         

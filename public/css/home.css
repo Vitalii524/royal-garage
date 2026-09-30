@@ -1388,4 +1388,140 @@
         border-radius: 12px;
         font-size: 14px;
     }
-}\n\n/* ===== ПЕРШІ 100 УЧАСНИКІВ ===== */\n\n.first-members-section {\n    max-width: 1200px;\n    margin: 30px auto 0;\n    padding: 0 20px;\n}\n\n.first-members-card {\n    display: grid;\n    grid-template-columns: minmax(0, 1.55fr) minmax(270px, 0.65fr);\n    gap: 28px;\n    align-items: center;\n    padding: 30px;\n    border: 1px solid rgba(214, 160, 58, 0.42);\n    border-radius: 18px;\n    background:\n        radial-gradient(\n            circle at 88% 20%,\n            rgba(214, 160, 58, 0.16),\n            transparent 34%\n        ),\n        linear-gradient(\n            145deg,\n            rgba(7, 31, 61, 0.98),\n            rgba(3, 13, 27, 0.98)\n        );\n    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);\n}\n\n.first-members-label {\n    margin: 0 0 10px;\n    color: var(--gold-light);\n    font-size: 13px;\n    font-weight: 800;\n    letter-spacing: 1.7px;\n}\n\n.first-members-copy h2 {\n    margin: 0 0 12px;\n    color: var(--white);\n    font-size: clamp(25px, 3vw, 36px);\n    line-height: 1.15;\n}\n\n.first-members-intro,\n.first-members-note {\n    max-width: 760px;\n    margin: 0;\n    color: var(--muted);\n    line-height: 1.6;\n}\n\n.first-members-intro strong,\n.first-members-note strong {\n    color: var(--gold-light);\n}\n\n.first-members-note {\n    margin-top: 12px;\n    font-size: 14px;\n}\n\n.first-members-counter {\n    padding: 22px;\n    border: 1px solid rgba(214, 160, 58, 0.28);\n    border-radius: 15px;\n    background: rgba(2, 7, 18, 0.72);\n}\n\n.first-members-number {\n    display: flex;\n    align-items: baseline;\n    gap: 7px;\n    color: var(--gold-light);\n    font-weight: 800;\n}\n\n#firstMembersCount {\n    font-size: clamp(42px, 6vw, 64px);\n    line-height: 1;\n}\n\n.first-members-limit {\n    color: var(--white);\n    font-size: 24px;\n}\n\n.first-members-progress {\n    height: 12px;\n    margin: 18px 0 12px;\n    overflow: hidden;\n    border: 1px solid rgba(214, 160, 58, 0.28);\n    border-radius: 999px;\n    background: #020712;\n}\n\n.first-members-progress span {\n    display: block;\n    width: 0;\n    height: 100%;\n    border-radius: inherit;\n    background: linear-gradient(\n        90deg,\n        var(--gold),\n        var(--gold-light)\n    );\n    transition: width 0.45s ease;\n}\n\n.first-members-counter p {\n    margin: 0;\n    color: var(--muted);\n    font-size: 14px;\n    line-height: 1.45;\n}\n\n@media (max-width: 800px) {\n    .first-members-section {\n        margin-top: 22px;\n        padding: 0 14px;\n    }\n\n    .first-members-card {\n        grid-template-columns: 1fr;\n        gap: 20px;\n        padding: 22px 18px;\n        border-radius: 15px;\n    }\n\n    .first-members-counter {\n        padding: 18px;\n    }\n}\n
+}
+
+/* ===== ПЕРШІ 100 УЧАСНИКІВ ===== */
+
+.first-members-section {
+    max-width: 1200px;
+    margin: 30px auto 0;
+    padding: 0 20px;
+}
+
+.first-members-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(270px, 0.65fr);
+    gap: 28px;
+    align-items: center;
+    padding: 30px;
+    border: 1px solid rgba(214, 160, 58, 0.42);
+    border-radius: 18px;
+    background:
+        radial-gradient(
+            circle at 88% 20%,
+            rgba(214, 160, 58, 0.16),
+            transparent 34%
+        ),
+        linear-gradient(
+            145deg,
+            rgba(7, 31, 61, 0.98),
+            rgba(3, 13, 27, 0.98)
+        );
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+}
+
+.first-members-label {
+    margin: 0 0 10px;
+    color: var(--gold-light);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1.7px;
+}
+
+.first-members-copy h2 {
+    margin: 0 0 12px;
+    color: var(--white);
+    font-size: clamp(25px, 3vw, 36px);
+    line-height: 1.15;
+}
+
+.first-members-intro,
+.first-members-note {
+    max-width: 760px;
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.6;
+}
+
+.first-members-intro strong,
+.first-members-note strong {
+    color: var(--gold-light);
+}
+
+.first-members-note {
+    margin-top: 12px;
+    font-size: 14px;
+}
+
+.first-members-counter {
+    padding: 22px;
+    border: 1px solid rgba(214, 160, 58, 0.28);
+    border-radius: 15px;
+    background: rgba(2, 7, 18, 0.72);
+}
+
+.first-members-number {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    color: var(--gold-light);
+    font-weight: 800;
+}
+
+#firstMembersCount {
+    font-size: clamp(42px, 6vw, 64px);
+    line-height: 1;
+}
+
+.first-members-limit {
+    color: var(--white);
+    font-size: 24px;
+}
+
+.first-members-progress {
+    height: 12px;
+    margin: 18px 0 12px;
+    overflow: hidden;
+    border: 1px solid rgba(214, 160, 58, 0.28);
+    border-radius: 999px;
+    background: #020712;
+}
+
+.first-members-progress span {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(
+        90deg,
+        var(--gold),
+        var(--gold-light)
+    );
+    transition: width 0.45s ease;
+}
+
+.first-members-counter p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+@media (max-width: 800px) {
+    .first-members-section {
+        margin-top: 22px;
+        padding: 0 14px;
+    }
+
+    .first-members-card {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        padding: 22px 18px;
+        border-radius: 15px;
+    }
+
+    .first-members-counter {
+        padding: 18px;
+    }
+}
+

@@ -840,6 +840,10 @@ await pool.query(`
 
         car_id TEXT,
 
+        vehicle_type VARCHAR(30) NOT NULL DEFAULT 'car',
+        brand VARCHAR(100),
+        model VARCHAR(160),
+
         name VARCHAR(255) NOT NULL,
         year VARCHAR(20),
         vin VARCHAR(50),
@@ -881,6 +885,28 @@ await pool.query(`
     ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS sold_at TIMESTAMPTZ
+`);
+
+/* ===== КАТЕГОРІЇ МАРКЕТУ ===== */
+
+await pool.query(`
+    ALTER TABLE market_listings
+    ADD COLUMN IF NOT EXISTS
+        vehicle_type VARCHAR(30) NOT NULL DEFAULT 'car',
+    ADD COLUMN IF NOT EXISTS
+        brand VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS
+        model VARCHAR(160)
+`);
+
+await pool.query(`
+    CREATE INDEX IF NOT EXISTS
+        idx_market_listings_vehicle_category
+    ON market_listings (
+        vehicle_type,
+        brand,
+        model
+    )
 `);
 
 await pool.query(`
@@ -1144,6 +1170,29 @@ app.get(
                     ORDER BY updated_at DESC
                 `);
 
+            const marketCategoriesResult =
+                await pool.query(`
+                    SELECT
+                        vehicle_type,
+                        brand,
+                        model,
+                        MAX(updated_at) AS updated_at
+                    FROM market_listings
+                    WHERE status = 'active'
+                      AND (
+                          expires_at IS NULL
+                          OR expires_at > NOW()
+                      )
+                    GROUP BY
+                        vehicle_type,
+                        brand,
+                        model
+                    ORDER BY
+                        vehicle_type,
+                        brand,
+                        model
+                `);
+
             const businessesResult =
                 await pool.query(`
                     SELECT
@@ -1217,6 +1266,82 @@ app.get(
                     )
                     .join("");
 
+            const marketCategoryUrls =
+                new Map();
+
+            const rememberMarketCategory =
+                (pathName, updatedAt) => {
+                    const existing =
+                        marketCategoryUrls.get(
+                            pathName
+                        );
+
+                    const nextDate =
+                        new Date(updatedAt);
+
+                    if (
+                        !existing ||
+                        nextDate > existing
+                    ) {
+                        marketCategoryUrls.set(
+                            pathName,
+                            nextDate
+                        );
+                    }
+                };
+
+            for (
+                const category
+                of marketCategoriesResult.rows
+            ) {
+                const vehiclePath =
+                    marketVehiclePathSegment(
+                        category.vehicle_type
+                    );
+
+                const brandSlug =
+                    marketSeoSlug(
+                        category.brand
+                    );
+
+                const modelSlug =
+                    marketSeoSlug(
+                        category.model
+                    );
+
+                rememberMarketCategory(
+                    `/market/${vehiclePath}`,
+                    category.updated_at
+                );
+
+                if (brandSlug) {
+                    rememberMarketCategory(
+                        `/market/${vehiclePath}/${brandSlug}`,
+                        category.updated_at
+                    );
+                }
+
+                if (brandSlug && modelSlug) {
+                    rememberMarketCategory(
+                        `/market/${vehiclePath}/${brandSlug}/${modelSlug}`,
+                        category.updated_at
+                    );
+                }
+            }
+
+            const marketCategoriesXml =
+                Array.from(
+                    marketCategoryUrls.entries()
+                )
+                    .map(
+                        ([pathName, updatedAt]) => `
+    <url>
+        <loc>${baseUrl}${pathName}</loc>
+        <lastmod>${updatedAt.toISOString()}</lastmod>
+    </url>`
+                    )
+                    .join("");
+
             const businessesXml =
                 businessesResult.rows
                     .map(
@@ -1247,6 +1372,7 @@ app.get(
 `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${staticXml}
+${marketCategoriesXml}
 ${listingsXml}
 ${businessesXml}
 ${forumTopicsXml}
@@ -1289,6 +1415,48 @@ ${forumTopicsXml}
 function safeSeoJson(data) {
     return JSON.stringify(data)
         .replace(/</g, "\\u003c");
+}
+
+
+/* ===== SEO / КАТЕГОРІЇ МАРКЕТУ ===== */
+
+function normalizeMarketVehicleType(value) {
+    const normalized =
+        String(value || "car")
+            .trim()
+            .toLowerCase();
+
+    if (
+        normalized === "moto" ||
+        normalized === "motorcycle" ||
+        normalized === "motorcycles"
+    ) {
+        return "moto";
+    }
+
+    return "car";
+}
+
+function marketVehiclePathSegment(vehicleType) {
+    return normalizeMarketVehicleType(vehicleType) === "moto"
+        ? "moto"
+        : "auto";
+}
+
+function marketSeoSlug(value) {
+    return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[’'`]/g, "")
+        .replace(/[^a-z0-9а-яіїєґ-]+/giu, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+}
+
+function marketVehicleLabel(vehicleType) {
+    return normalizeMarketVehicleType(vehicleType) === "moto"
+        ? "Мотоцикли"
+        : "Автомобілі";
 }
 
 
@@ -1442,6 +1610,9 @@ app.get(
                     `
                     SELECT
                         id,
+                        vehicle_type,
+                        brand,
+                        model,
                         name,
                         year,
                         city,
@@ -1575,6 +1746,28 @@ app.get(
                 
                     "name":
                         `${name}${year ? ` ${year}` : ""}`,
+
+                    ...(listing.brand
+                        ? {
+                            "brand": {
+                                "@type":
+                                    "Brand",
+                                "name":
+                                    String(
+                                        listing.brand
+                                    )
+                            }
+                        }
+                        : {}),
+
+                    ...(listing.model
+                        ? {
+                            "model":
+                                String(
+                                    listing.model
+                                )
+                        }
+                        : {}),
                 
                     "url":
                         canonical,
@@ -2695,6 +2888,396 @@ ${forumPostingSchemaJson}
             );
         }
     }
+);
+
+
+/* =========================
+   SEO КАТЕГОРІЙ МАРКЕТУ
+   ========================= */
+
+async function renderMarketCategoryPage(
+    req,
+    res
+) {
+    const marketFile =
+        path.join(
+            __dirname,
+            "public",
+            "market.html"
+        );
+
+    try {
+        let html =
+            await fs.promises.readFile(
+                marketFile,
+                "utf8"
+            );
+
+        const routeType =
+            String(
+                req.params.vehicleType || ""
+            )
+                .trim()
+                .toLowerCase();
+
+        if (
+            routeType !== "auto" &&
+            routeType !== "car" &&
+            routeType !== "moto"
+        ) {
+            return res.status(404).sendFile(
+                marketFile
+            );
+        }
+
+        const vehicleType =
+            routeType === "moto"
+                ? "moto"
+                : "car";
+
+        const brandSlug =
+            String(
+                req.params.brand || ""
+            ).trim();
+
+        const modelSlug =
+            String(
+                req.params.model || ""
+            ).trim();
+
+        let brand = "";
+        let model = "";
+
+        if (brandSlug) {
+            const brandsResult =
+                await pool.query(
+                    `
+                    SELECT DISTINCT brand
+                    FROM market_listings
+                    WHERE status = 'active'
+                      AND (
+                          expires_at IS NULL
+                          OR expires_at > NOW()
+                      )
+                      AND vehicle_type = $1
+                      AND brand IS NOT NULL
+                      AND TRIM(brand) <> ''
+                    `,
+                    [vehicleType]
+                );
+
+            brand =
+                String(
+                    brandsResult.rows.find(
+                        (row) =>
+                            marketSeoSlug(
+                                row.brand
+                            ) === brandSlug
+                    )?.brand || ""
+                ).trim();
+
+            if (!brand) {
+                return res.status(404).sendFile(
+                    marketFile
+                );
+            }
+        }
+
+        if (modelSlug) {
+            if (!brand) {
+                return res.status(404).sendFile(
+                    marketFile
+                );
+            }
+
+            const modelsResult =
+                await pool.query(
+                    `
+                    SELECT DISTINCT model
+                    FROM market_listings
+                    WHERE status = 'active'
+                      AND (
+                          expires_at IS NULL
+                          OR expires_at > NOW()
+                      )
+                      AND vehicle_type = $1
+                      AND LOWER(brand) = LOWER($2)
+                      AND model IS NOT NULL
+                      AND TRIM(model) <> ''
+                    `,
+                    [
+                        vehicleType,
+                        brand
+                    ]
+                );
+
+            model =
+                String(
+                    modelsResult.rows.find(
+                        (row) =>
+                            marketSeoSlug(
+                                row.model
+                            ) === modelSlug
+                    )?.model || ""
+                ).trim();
+
+            if (!model) {
+                return res.status(404).sendFile(
+                    marketFile
+                );
+            }
+        }
+
+        const categoryCountResult =
+            await pool.query(
+                `
+                SELECT COUNT(*)::integer AS count
+                FROM market_listings
+                WHERE status = 'active'
+                  AND (
+                      expires_at IS NULL
+                      OR expires_at > NOW()
+                  )
+                  AND vehicle_type = $1
+                  AND (
+                      $2::text IS NULL
+                      OR LOWER(brand) = LOWER($2)
+                  )
+                  AND (
+                      $3::text IS NULL
+                      OR LOWER(model) = LOWER($3)
+                  )
+                `,
+                [
+                    vehicleType,
+                    brand || null,
+                    model || null
+                ]
+            );
+
+        if (
+            Number(
+                categoryCountResult.rows[0]?.count ||
+                0
+            ) === 0
+        ) {
+            return res.status(404).sendFile(
+                marketFile
+            );
+        }
+
+        const vehicleLabel =
+            marketVehicleLabel(
+                vehicleType
+            );
+
+        const vehiclePath =
+            marketVehiclePathSegment(
+                vehicleType
+            );
+
+        const categoryName =
+            [brand, model]
+                .filter(Boolean)
+                .join(" ");
+
+        let h1 =
+            vehicleType === "moto"
+                ? "Мотоцикли на продаж"
+                : "Автомобілі на продаж";
+
+        let title =
+            `${h1} в Україні | Royal Garage`;
+
+        let description =
+            `${vehicleLabel} на продаж в Україні: фото, характеристики, ціни та оголошення продавців на Royal Garage.`;
+
+        if (brand && !model) {
+            h1 =
+                vehicleType === "moto"
+                    ? `${brand} — мотоцикли на продаж`
+                    : `${brand} — автомобілі на продаж`;
+
+            title =
+                `${brand} — купити в Україні | Royal Garage`;
+
+            description =
+                `${brand}: актуальні оголошення, фото, характеристики та ціни в Україні на Royal Garage.`;
+        }
+
+        if (brand && model) {
+            h1 =
+                `${brand} ${model} — оголошення`;
+
+            title =
+                `${brand} ${model} — купити в Україні | Royal Garage`;
+
+            description =
+                `${brand} ${model} на продаж в Україні: актуальні оголошення, фото, характеристики та ціни на Royal Garage.`;
+        }
+
+        const canonicalParts = [
+            "https://royalgarage.com.ua",
+            "market",
+            vehiclePath
+        ];
+
+        if (brand) {
+            canonicalParts.push(
+                marketSeoSlug(brand)
+            );
+        }
+
+        if (model) {
+            canonicalParts.push(
+                marketSeoSlug(model)
+            );
+        }
+
+        const canonical =
+            canonicalParts.join("/");
+
+        const categorySchema = {
+            "@context":
+                "https://schema.org",
+            "@type":
+                "CollectionPage",
+            "@id":
+                `${canonical}#market-category`,
+            "url":
+                canonical,
+            "name":
+                h1,
+            "description":
+                description,
+            "about": {
+                "@type":
+                    "Thing",
+                "name":
+                    categoryName ||
+                    vehicleLabel
+            },
+            "isPartOf": {
+                "@type":
+                    "WebSite",
+                "name":
+                    "Royal Garage",
+                "url":
+                    "https://royalgarage.com.ua/"
+            }
+        };
+
+        html = html.replace(
+            /<title[\s\S]*?<\/title>/i,
+            `<title>${escapeSeoHtml(
+                title
+            )}</title>`
+        );
+
+        html = html.replace(
+            /<meta\s+name=["']description["'][^>]*>/i,
+            ""
+        );
+
+        html = html.replace(
+            /<link\s+href=["']https:\/\/royalgarage\.com\.ua\/market\.html["']\s+rel=["']canonical["']\s*\/?\s*>/i,
+            ""
+        );
+
+        html = html.replace(
+            /<script\s+type=["']application\/ld\+json["']>[\s\S]*?<\/script>/i,
+            ""
+        );
+
+        html = html.replace(
+            /<h1\s+data-i18n=["']market\.title["']>[^<]*<\/h1>/i,
+            `<h1>${escapeSeoHtml(
+                h1
+            )}</h1>`
+        );
+
+        const categoryData = {
+            vehicleType,
+            brand,
+            model
+        };
+
+        const seoTags = `
+<base href="/">
+<meta
+    name="description"
+    content="${escapeSeoHtml(description)}"
+>
+<link
+    rel="canonical"
+    href="${escapeSeoHtml(canonical)}"
+>
+<meta
+    property="og:type"
+    content="website"
+>
+<meta
+    property="og:site_name"
+    content="Royal Garage"
+>
+<meta
+    property="og:title"
+    content="${escapeSeoHtml(title)}"
+>
+<meta
+    property="og:description"
+    content="${escapeSeoHtml(description)}"
+>
+<meta
+    property="og:url"
+    content="${escapeSeoHtml(canonical)}"
+>
+<meta
+    property="og:image"
+    content="https://royalgarage.com.ua/images/royal-garage-logo.png"
+>
+<script type="application/ld+json">
+${safeSeoJson(categorySchema)}
+</script>
+<script>
+window.__ROYAL_MARKET_CATEGORY__ = ${safeSeoJson(categoryData)};
+</script>
+`;
+
+        html = html.replace(
+            "</head>",
+            `${seoTags}\n</head>`
+        );
+
+        return res
+            .type("html")
+            .send(html);
+
+    } catch (error) {
+        console.error(
+            "Market category SEO render error:",
+            error
+        );
+
+        return res.sendFile(
+            marketFile
+        );
+    }
+}
+
+app.get(
+    "/market/:vehicleType",
+    renderMarketCategoryPage
+);
+
+app.get(
+    "/market/:vehicleType/:brand",
+    renderMarketCategoryPage
+);
+
+app.get(
+    "/market/:vehicleType/:brand/:model",
+    renderMarketCategoryPage
 );
 
 app.use(express.static(path.join(__dirname, "public")));
@@ -4584,12 +5167,38 @@ app.get(
     "/api/market/listings",
     async (req, res) => {
         try {
-            const result = await pool.query(`
+            const rawVehicleType =
+                String(
+                    req.query.vehicleType || ""
+                ).trim();
+
+            const vehicleType =
+                rawVehicleType
+                    ? normalizeMarketVehicleType(
+                        rawVehicleType
+                    )
+                    : null;
+
+            const brand =
+                String(
+                    req.query.brand || ""
+                ).trim() || null;
+
+            const model =
+                String(
+                    req.query.model || ""
+                ).trim() || null;
+
+            const result = await pool.query(
+                `
                 SELECT
                     id,
                     owner_id AS "ownerId",
                     seller_name AS "sellerName",
                     car_id AS "carId",
+                    vehicle_type AS "vehicleType",
+                    brand,
+                    model,
                     name,
                     year,
                     vin,
@@ -4611,17 +5220,40 @@ app.get(
                     description,
                     created_at AS "createdAt",
                     updated_at AS "updatedAt"
-                    FROM market_listings
-                    WHERE status = 'active'
-                      AND (
-                          expires_at IS NULL
-                          OR expires_at > NOW()
-                      )
-                    ORDER BY created_at DESC
-            `);
+                FROM market_listings
+                WHERE status = 'active'
+                  AND (
+                      expires_at IS NULL
+                      OR expires_at > NOW()
+                  )
+                  AND (
+                      $1::text IS NULL
+                      OR vehicle_type = $1
+                  )
+                  AND (
+                      $2::text IS NULL
+                      OR LOWER(brand) = LOWER($2)
+                  )
+                  AND (
+                      $3::text IS NULL
+                      OR LOWER(model) = LOWER($3)
+                  )
+                ORDER BY created_at DESC
+                `,
+                [
+                    vehicleType,
+                    brand,
+                    model
+                ]
+            );
 
             res.json({
                 ok: true,
+                filters: {
+                    vehicleType,
+                    brand,
+                    model
+                },
                 listings: result.rows
             });
 
@@ -4635,6 +5267,77 @@ app.get(
                 ok: false,
                 message:
                     "Не вдалося завантажити оголошення."
+            });
+        }
+    }
+);
+
+/* ===== КАТЕГОРІЇ МАРКЕТУ ДЛЯ UI / SEO ===== */
+
+app.get(
+    "/api/market/categories",
+    async (req, res) => {
+        try {
+            const result =
+                await pool.query(`
+                    SELECT
+                        vehicle_type AS "vehicleType",
+                        brand,
+                        model,
+                        COUNT(*)::integer AS count,
+                        MAX(updated_at) AS "updatedAt"
+                    FROM market_listings
+                    WHERE status = 'active'
+                      AND (
+                          expires_at IS NULL
+                          OR expires_at > NOW()
+                      )
+                      AND brand IS NOT NULL
+                      AND TRIM(brand) <> ''
+                      AND model IS NOT NULL
+                      AND TRIM(model) <> ''
+                    GROUP BY
+                        vehicle_type,
+                        brand,
+                        model
+                    ORDER BY
+                        vehicle_type,
+                        brand,
+                        model
+                `);
+
+            res.json({
+                ok: true,
+                categories:
+                    result.rows.map(
+                        (category) => ({
+                            ...category,
+                            vehiclePath:
+                                marketVehiclePathSegment(
+                                    category.vehicleType
+                                ),
+                            brandSlug:
+                                marketSeoSlug(
+                                    category.brand
+                                ),
+                            modelSlug:
+                                marketSeoSlug(
+                                    category.model
+                                )
+                        })
+                    )
+            });
+
+        } catch (error) {
+            console.error(
+                "Market categories load error:",
+                error
+            );
+
+            res.status(500).json({
+                ok: false,
+                message:
+                    "Не вдалося завантажити категорії маркету."
             });
         }
     }
@@ -4692,6 +5395,9 @@ app.post(
             const {
                 carId,
                 name,
+                vehicleType,
+                brand,
+                model,
                 year,
                 vin,
                 photos,
@@ -4711,6 +5417,21 @@ app.post(
                 phone,
                 description
             } = req.body;
+
+            const normalizedVehicleType =
+                normalizeMarketVehicleType(
+                    vehicleType || "car"
+                );
+
+            const normalizedBrand =
+                String(brand || "")
+                    .trim()
+                    .slice(0, 100);
+
+            const normalizedModel =
+                String(model || "")
+                    .trim()
+                    .slice(0, 160);
 
             if (!name) {
                 return res.status(400).json({
@@ -4939,13 +5660,17 @@ if (
                     description,
                     status,
                     published_at,
-                    expires_at
+                    expires_at,
+                    vehicle_type,
+                    brand,
+                    model
               )
                 VALUES (
                     $1, $2, $3, $4, $5, $6, $7,
                     $8, $9, $10, $11, $12, $13,
                     $14, $15, $16, $17, $18,
-                    $19, $20, $21, $22, $23, $24, $25, $26
+                    $19, $20, $21, $22, $23, $24, $25, $26,
+                    $27, $28, $29
                 )
                 RETURNING *
                 `,
@@ -4985,7 +5710,10 @@ if (
                     description || "",
                     listingStatus,
                     publishedAt,
-                    expiresAt
+                    expiresAt,
+                    normalizedVehicleType,
+                    normalizedBrand,
+                    normalizedModel
                 ]
             );
 
@@ -5047,6 +5775,9 @@ app.patch(
             const {
                 carId,
                 name,
+                vehicleType,
+                brand,
+                model,
                 year,
                 vin,
                 photos,
@@ -5066,6 +5797,27 @@ app.patch(
                 phone,
                 description
             } = req.body;
+
+            const normalizedVehicleType =
+                vehicleType === undefined
+                    ? null
+                    : normalizeMarketVehicleType(
+                        vehicleType
+                    );
+
+            const normalizedBrand =
+                brand === undefined
+                    ? null
+                    : String(brand || "")
+                        .trim()
+                        .slice(0, 100);
+
+            const normalizedModel =
+                model === undefined
+                    ? null
+                    : String(model || "")
+                        .trim()
+                        .slice(0, 160);
 
                         const vinValidation =
                 validateVin(vin);
@@ -5130,8 +5882,11 @@ if (
                     city = $18,
                     phone = $19,
                     description = $20,
+                    vehicle_type = COALESCE($21, vehicle_type),
+                    brand = COALESCE($22, brand),
+                    model = COALESCE($23, model),
                     updated_at = NOW()
-                WHERE id = $21
+                WHERE id = $24
                 RETURNING *
                 `,
                 [
@@ -5165,6 +5920,9 @@ if (
                     city || "",
                     phone || "",
                     description || "",
+                    normalizedVehicleType,
+                    normalizedBrand,
+                    normalizedModel,
                     listingId
                 ]
             );

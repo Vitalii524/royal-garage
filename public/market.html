@@ -135,7 +135,15 @@
             </button>
 </div>
 <form id="listingForm">
-<label data-i18n-label="market.form.carFromGarage">
+<label>
+                Тип транспорту
+
+                <select id="listingVehicleType" required>
+<option selected value="car">Автомобіль</option>
+<option value="moto">Мотоцикл</option>
+</select>
+</label>
+<label data-i18n-label="market.form.carFromGarage" id="listingCarField">
                 Автомобіль із мого гаража
             
                 <select id="listingCar">
