@@ -713,6 +713,11 @@ async function loadProfileFromServer() {
                     )
         };
 
+        localStorage.setItem(
+            "royalGarageCurrentUser",
+            JSON.stringify(currentUser)
+        );
+
         return currentUser;
 
     } catch (error) {
@@ -7395,24 +7400,23 @@ const profileParams =
     new URLSearchParams(
         window.location.search
     );
-    if (
-        profileParams.get("section") ===
-        "chats"
-    ) {
-        (async () => {
-            await renderMyChats();
-    
-            openModal(
-                elements.chatsModal
-            );
-    
-            window.history.replaceState(
-                {},
-                document.title,
-                "profile.html"
-            );
-        })();
-    }
+
+if (
+    profileParams.get("section") ===
+    "chats"
+) {
+    renderMyChats();
+
+    openModal(
+        elements.chatsModal
+    );
+
+    window.history.replaceState(
+        {},
+        document.title,
+        "profile.html"
+    );
+}
 
 function updateGlobalChatsButton() {
     if (!globalOpenChatsButton) {
@@ -7422,10 +7426,13 @@ function updateGlobalChatsButton() {
     globalOpenChatsButton.hidden =
         cars.length > 0;
 
-    globalOpenChatsButton.onclick = async () => {
-        await renderMyChats();
-        openModal(elements.chatsModal);
-    };
+    globalOpenChatsButton.addEventListener(
+        "click",
+        () => {
+            renderMyChats();
+            openModal(elements.chatsModal);
+        }
+    );
 }
 
 document.addEventListener("royalGarageLanguageChange", async () => {
