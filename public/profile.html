@@ -16,6 +16,7 @@
 <title data-i18n="auto.001">Мій профіль | Royal Garage</title>
 <link href="images/favicon.png" rel="icon" type="image/png"/>
 <link href="css/styles.css" rel="stylesheet"/>
+<link href="css/profile.css?v=2" rel="stylesheet"/>
 </head>
 <body>
 <header class="site-header">
@@ -69,6 +70,23 @@
 <div>
 <p class="section-label" data-i18n="auto.007">Особистий кабінет</p>
 <h1 data-i18n="auto.006">Мій профіль</h1>
+<div
+    id="firstMemberBadge"
+    class="first-member-badge"
+    hidden
+    aria-live="polite"
+>
+    <span
+        id="firstMemberBadgeTitle"
+        class="first-member-badge-title"
+    >
+        🏁 ПЕРШИЙ
+    </span>
+    <span
+        id="firstMemberBadgeNumber"
+        class="first-member-badge-number"
+    ></span>
+</div>
 <p data-i18n-nodes="0:auto.012">
 <div class="profile-seller-reputation" id="profileSellerReputation">
 <span class="profile-reputation-label" data-i18n="auto.008">
@@ -538,7 +556,7 @@
         <span class="chats-button-badge" hidden="" id="profileUnreadCount"></span>
 </button>
 </div>
-<script src="js/profile.js"></script>
+<script src="js/profile.js?v=2"></script>
 <script src="js/loader.js"></script>
 <script src="js/lang.js"></script></body>
 </html>

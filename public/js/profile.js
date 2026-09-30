@@ -698,7 +698,19 @@ async function loadProfileFromServer() {
 
             role:
                 user.role ||
-                "user"
+                "user",
+
+            isFirstMember:
+                Boolean(
+                    user.is_first_member
+                ),
+
+            firstMemberNumber:
+                user.first_member_number == null
+                    ? null
+                    : Number(
+                        user.first_member_number
+                    )
         };
 
         return currentUser;
@@ -716,6 +728,76 @@ async function loadProfileFromServer() {
         return null;
     }
 }
+
+
+function renderFirstMemberBadge() {
+    const badge =
+        document.getElementById(
+            "firstMemberBadge"
+        );
+
+    const title =
+        document.getElementById(
+            "firstMemberBadgeTitle"
+        );
+
+    const numberText =
+        document.getElementById(
+            "firstMemberBadgeNumber"
+        );
+
+    if (
+        !badge ||
+        !title ||
+        !numberText
+    ) {
+        return;
+    }
+
+    const isFirstMember =
+        Boolean(
+            currentUser?.isFirstMember
+        );
+
+    badge.hidden =
+        !isFirstMember;
+
+    if (!isFirstMember) {
+        numberText.textContent = "";
+        return;
+    }
+
+    const isEnglish =
+        window.getRoyalGarageLanguage?.() ===
+        "en";
+
+    title.textContent =
+        isEnglish
+            ? "🏁 FIRST"
+            : "🏁 ПЕРШИЙ";
+
+    const memberNumber =
+        Number(
+            currentUser?.firstMemberNumber
+        );
+
+    if (
+        Number.isInteger(memberNumber) &&
+        memberNumber >= 1 &&
+        memberNumber <= 100
+    ) {
+        numberText.textContent =
+            isEnglish
+                ? `Member #${memberNumber} of the first 100`
+                : `Учасник №${memberNumber} із перших 100`;
+    } else {
+        numberText.textContent =
+            isEnglish
+                ? "One of the first 100 Royal Garage members"
+                : "Один із перших 100 учасників Royal Garage";
+    }
+}
+
 
 async function initializeGarageCars() {
     const serverCars =
@@ -7294,6 +7376,8 @@ document.addEventListener(
    async function initializeProfilePage() {
     await loadProfileFromServer();
 
+    renderFirstMemberBadge();
+
     await initializeGarageCars();
 
     fillSellerProfileSettings();
@@ -7347,6 +7431,7 @@ function updateGlobalChatsButton() {
 }
 
 document.addEventListener("royalGarageLanguageChange", async () => {
+    renderFirstMemberBadge();
     renderAccountSettings();
     renderCars();
     renderSelectedCar();
