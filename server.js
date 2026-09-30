@@ -6247,6 +6247,8 @@ app.delete(
 
 app.get(
     "/api/debug/users",
+    requireAuth,
+    requireAdmin,
     async (req, res) => {
         try {
             const result =
@@ -10104,6 +10106,21 @@ async function requireAuth(req, res, next) {
                 "Сесія недійсна або завершилась."
         });
     }
+}
+
+async function requireAdmin(req, res, next) {
+    if (
+        !req.user ||
+        req.user.role !== "admin"
+    ) {
+        return res.status(403).json({
+            ok: false,
+            message:
+                "Доступ дозволено лише адміністратору."
+        });
+    }
+
+    next();
 }
 
 async function requireCrmAccess(req, res, next) {
@@ -17571,7 +17588,9 @@ app.get(
                     show_phone,
                     show_telegram,
                     account_type,
-                    role
+                    role,
+                    is_first_member,
+                    first_member_number
                 FROM users
                     WHERE id = $1
                     LIMIT 1
