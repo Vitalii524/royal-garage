@@ -596,6 +596,14 @@ async function loadListingPage() {
             };
 
             updateListingSeo(listing);
+
+            if (typeof gtag === "function") {
+                gtag("event", "view_item", {
+                    item_id: listingId,
+                    item_name: listing.name || "",
+                    item_category: listing.vehicle_type || "car"
+                });
+            }
             
         }
 

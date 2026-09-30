@@ -892,6 +892,12 @@ resendVerificationButton
             return;
         }
 
+        if (typeof gtag === "function") {
+            gtag("event", "sign_up", {
+                method: "email"
+            });
+        }
+
         if (
             accountType === "business" &&
             data.requiresBusinessPayment &&

@@ -1761,6 +1761,13 @@ topicForm.addEventListener(
                 return;
             }
 
+            if (typeof gtag === "function") {
+                gtag("event", "create_forum_topic", {
+                    topic_id: data.topic?.id || "",
+                    category: category
+                });
+            }
+
             resetTopicEditor();
             alert("Тему збережено в базі.");
 

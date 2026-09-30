@@ -626,6 +626,15 @@
                 : await api(`/api/business/profiles/${encodeURIComponent(state.publicOwnerId)}`, { headers: { Authorization: "" } });
 
             await renderProfile(data.profile);
+
+            if (!state.isOwner && typeof gtag === "function") {
+                gtag("event", "view_service_profile", {
+                    business_id: data.profile?.ownerId || state.publicOwnerId,
+                    business_name: data.profile?.name || "",
+                    business_type: data.profile?.businessTypeName || ""
+                });
+            }
+
             $("businessPageLoading").hidden = true;
             $("businessPageError").hidden = true;
             $("businessPageContent").hidden = false;

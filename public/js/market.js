@@ -1488,11 +1488,17 @@ async function toggleFavoriteListing(
                         id !==
                         normalizedId
                 );
-        } else {
-            favoriteListingIds.push(
-                normalizedId
-            );
-        }
+            } else {
+                favoriteListingIds.push(
+                    normalizedId
+                );
+            
+                if (typeof gtag === "function") {
+                    gtag("event", "add_to_wishlist", {
+                        item_id: normalizedId
+                    });
+                }
+            }
 
         renderListings();
 
@@ -4860,6 +4866,13 @@ if (listingForm) {
                 );
         
                 return;
+            }
+
+            if (typeof gtag === "function") {
+                gtag("event", "create_listing", {
+                    listing_id: createdListingId,
+                    vehicle_type: vehicleType
+                });
             }
         
             const createdListingId =
