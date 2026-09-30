@@ -170,6 +170,13 @@ async function loginUser() {
             );
         }
 
+        if (data.user) {
+            localStorage.setItem(
+                "royalGarageCurrentUser",
+                JSON.stringify(data.user)
+            );
+        }
+
         alert(
             `Вітаю, ${
                 data.user?.name ||
