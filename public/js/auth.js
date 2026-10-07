@@ -163,7 +163,7 @@ function createAuthModal() {
         type="tel"
         id="registerPhone"
         autocomplete="tel"
-        placeholder="+380..."
+        placeholder="+380... / +1..."
         required
     >
 </label>
@@ -197,18 +197,6 @@ function createAuthModal() {
         >
             <option value="">
                 Оберіть тип бізнесу
-            </option>
-        </select>
-    </label>
-
-    <label>
-        Тариф
-
-        <select
-            id="registerBusinessPlan"
-        >
-            <option value="">
-                Спочатку оберіть тип бізнесу
             </option>
         </select>
     </label>
@@ -293,11 +281,6 @@ const businessTypeSelect =
         "registerBusinessType"
     );
 
-const businessPlanSelect =
-    document.getElementById(
-        "registerBusinessPlan"
-    );
-
 const businessContentTypeField =
     document.getElementById(
         "registerBusinessContentTypeField"
@@ -348,84 +331,6 @@ async function loadBusinessTypes() {
     }
 }
 
-async function loadBusinessPlans(
-    businessType
-) {
-    businessPlanSelect.innerHTML = `
-        <option value="">
-            Завантаження...
-        </option>
-    `;
-
-    try {
-        const response =
-            await fetch(
-                `/api/business/plans?type=${encodeURIComponent(
-                    businessType
-                )}`
-            );
-
-        const data =
-            await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                data.message ||
-                "Не вдалося завантажити тарифи."
-            );
-        }
-
-        businessPlanSelect.innerHTML = `
-            <option value="">
-                Оберіть тариф
-            </option>
-        `;
-
-        data.plans.forEach((plan) => {
-            const option =
-                document.createElement(
-                    "option"
-                );
-
-            option.value = plan.id;
-
-            let label =
-                `${plan.name} — ${plan.priceUah} грн/міс`;
-
-            if (plan.carLimit) {
-                label +=
-                    ` — до ${plan.carLimit} авто`;
-            }
-
-            if (plan.hasCrm) {
-                label += " — CRM";
-            }
-
-            if (plan.hasMap) {
-                label += " — карта";
-            }
-
-            option.textContent = label;
-
-            businessPlanSelect.appendChild(
-                option
-            );
-        });
-
-    } catch (error) {
-        console.error(
-            "Business plans load error:",
-            error
-        );
-
-        businessPlanSelect.innerHTML = `
-            <option value="">
-                Не вдалося завантажити тарифи
-            </option>
-        `;
-    }
-}
-
 accountTypeSelect
     ?.addEventListener(
         "change",
@@ -443,9 +348,6 @@ accountTypeSelect
             businessTypeSelect.required =
                 isBusiness;
 
-            businessPlanSelect.required =
-                isBusiness;
-
             if (isBusiness) {
                 await loadBusinessTypes();
             } else {
@@ -455,11 +357,6 @@ accountTypeSelect
                     .querySelectorAll('input[name="registerBusinessContentType"]')
                     .forEach((input) => { input.checked = false; input.required = false; });
 
-                businessPlanSelect.innerHTML = `
-                    <option value="">
-                        Спочатку оберіть тип бізнесу
-                    </option>
-                `;
             }
         }
     );
@@ -481,18 +378,8 @@ businessTypeSelect
                 });
 
             if (!businessType) {
-                businessPlanSelect.innerHTML = `
-                    <option value="">
-                        Спочатку оберіть тип бізнесу
-                    </option>
-                `;
-
                 return;
             }
-
-            await loadBusinessPlans(
-                businessType
-            );
         }
     );
 
@@ -822,9 +709,9 @@ resendVerificationButton
         return;
     }
 
-    if (!/^380\d{9}$/.test(phone)) {
+    if (!/^\d{8,15}$/.test(phone)) {
         errorElement.textContent =
-            "Введи правильний український номер телефону.";
+            "Введіть правильний номер телефону з кодом країни.";
         return;
     }
 
@@ -871,11 +758,6 @@ resendVerificationButton
                         document.getElementById(
                             "registerBusinessType"
                         )?.value || "",
-                
-                    businessPlanId:
-                        document.getElementById(
-                            "registerBusinessPlan"
-                        )?.value || "",
 
                     businessContentType
                 })
@@ -896,17 +778,6 @@ resendVerificationButton
             gtag("event", "sign_up", {
                 method: "email"
             });
-        }
-
-        if (
-            accountType === "business" &&
-            data.requiresBusinessPayment &&
-            data.registrationPaymentToken
-        ) {
-            await startRegistrationBusinessPayment(
-                data.registrationPaymentToken
-            );
-            return;
         }
 
         document

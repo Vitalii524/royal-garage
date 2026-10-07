@@ -679,6 +679,34 @@ await pool.query(`
     WHERE business_type_code <> 'road_assistance'
 `);
 
+// Єдиний бізнес-тариф Royal Garage: повний функціонал + CRM.
+// Нові бізнеси отримують 3 місяці безкоштовно; оплата потрібна лише після trial.
+await pool.query(`
+    INSERT INTO subscription_plans (
+        id, business_type_code, code, name, price_uah, car_limit, has_crm, has_map, is_active
+    )
+    SELECT
+        gen_random_uuid(), bt.code, 'business', 'Business', 1500, NULL, TRUE, TRUE, TRUE
+    FROM business_types bt
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM subscription_plans sp
+        WHERE sp.business_type_code = bt.code
+          AND sp.code = 'business'
+    )
+`);
+
+await pool.query(`
+    UPDATE subscription_plans
+    SET
+        name = 'Business',
+        price_uah = 1500,
+        car_limit = NULL,
+        has_crm = TRUE,
+        has_map = TRUE,
+        is_active = (code = 'business')
+`);
+
 await pool.query(`
     UPDATE business_profiles
     SET
@@ -7817,6 +7845,8 @@ async function loadPrivateBusinessProfile(ownerId) {
 
             bp.subscription_started_at AS "subscriptionStartedAt",
             bp.subscription_expires_at AS "subscriptionExpiresAt",
+            GREATEST(0, CEIL(EXTRACT(EPOCH FROM (bp.subscription_expires_at - NOW())) / 86400.0))::integer AS "subscriptionDaysLeft",
+            (bp.subscription_expires_at > NOW() AND bp.subscription_started_at IS NOT NULL) AS "trialActive",
 
             CASE
             WHEN sp.is_active = TRUE
@@ -8737,7 +8767,6 @@ app.post("/api/register", async (req, res) => {
             password,
             accountType,
             businessType,
-            businessPlanId,
             businessContentType
         } = req.body;
 
@@ -8752,8 +8781,8 @@ app.post("/api/register", async (req, res) => {
         if (!normalizedEmail || !normalizedEmail.includes("@")) {
             return res.status(400).json({ ok: false, message: "Введіть правильний email." });
         }
-        if (!/^380\d{9}$/.test(normalizedPhone)) {
-            return res.status(400).json({ ok: false, message: "Введи правильний український номер телефону." });
+        if (!/^\d{8,15}$/.test(normalizedPhone)) {
+            return res.status(400).json({ ok: false, message: "Введіть правильний номер телефону з кодом країни." });
         }
         if (String(password || "").length < 6) {
             return res.status(400).json({ ok: false, message: "Пароль повинен містити щонайменше 6 символів." });
@@ -8764,8 +8793,8 @@ app.post("/api/register", async (req, res) => {
         let resolvedContentType = null;
 
         if (normalizedAccountType === "business") {
-            if (!businessType || !businessPlanId) {
-                return res.status(400).json({ ok: false, message: "Оберіть тип бізнесу та тариф." });
+            if (!businessType) {
+                return res.status(400).json({ ok: false, message: "Оберіть тип бізнесу." });
             }
 
             const typeResult = await client.query(
@@ -8777,19 +8806,20 @@ app.post("/api/register", async (req, res) => {
             }
             businessTypeRow = typeResult.rows[0];
 
+            // Тариф користувач більше не обирає: для кожного типу бізнесу один повний пакет.
             const planResult = await client.query(
                 `
                 SELECT id, code, name, price_uah
                 FROM subscription_plans
-                WHERE id = $1
-                  AND business_type_code = $2
+                WHERE business_type_code = $1
+                  AND code = 'business'
                   AND is_active = TRUE
                 LIMIT 1
                 `,
-                [String(businessPlanId), String(businessType)]
+                [String(businessType)]
             );
             if (!planResult.rows.length) {
-                return res.status(400).json({ ok: false, message: "Невірний тариф для цього типу бізнесу." });
+                return res.status(500).json({ ok: false, message: "Єдиний бізнес-тариф не налаштований." });
             }
             planRow = planResult.rows[0];
 
@@ -8850,9 +8880,11 @@ app.post("/api/register", async (req, res) => {
                     subscription_plan_id,
                     business_content_type,
                     name,
-                    phone
+                    phone,
+                    subscription_started_at,
+                    subscription_expires_at
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW() + INTERVAL '3 months')
                 `,
                 [
                     crypto.randomUUID(),
@@ -8870,21 +8902,11 @@ app.post("/api/register", async (req, res) => {
         const newUser = userResult.rows[0];
 
         if (normalizedAccountType === "business") {
-            const registrationPaymentToken = jwt.sign(
-                {
-                    userId: newUser.id,
-                    planId: planRow.id,
-                    scope: "business_registration_payment"
-                },
-                process.env.JWT_SECRET,
-                { expiresIn: "30m" }
-            );
-
             return res.status(201).json({
                 ok: true,
-                requiresBusinessPayment: true,
-                registrationPaymentToken,
-                message: "Бізнес створено. Наступний крок — оплатити вибраний тариф.",
+                requiresBusinessPayment: false,
+                trialMonths: 3,
+                message: "Бізнес створено. Перші 3 місяці — безкоштовно, повний функціонал і CRM активні.",
                 user: {
                     id: newUser.id,
                     name: newUser.name,
