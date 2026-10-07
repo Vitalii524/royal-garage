@@ -299,3 +299,32 @@ body {
         padding: 14px;
     }
 }
+
+/* ===== СТАРТОВА ПРОПОЗИЦІЯ ===== */
+.launch-offer {
+    margin-top: 22px;
+    padding: 22px 24px;
+    background: linear-gradient(145deg, rgba(214,160,58,.14), rgba(4,22,53,.72));
+    border: 1px solid rgba(214,160,58,.55);
+    border-radius: 14px;
+}
+.launch-offer-badge {
+    display: inline-block;
+    margin-bottom: 10px;
+    padding: 6px 10px;
+    color: #07182e;
+    background: linear-gradient(135deg, #f2cc78, #d99a2b);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .08em;
+}
+.launch-offer h3 {
+    margin: 0 0 12px;
+    color: #f4d58d;
+    font-size: 22px;
+}
+@media (max-width: 650px) {
+    .launch-offer { padding: 18px 14px; }
+    .launch-offer h3 { font-size: 19px; }
+}
