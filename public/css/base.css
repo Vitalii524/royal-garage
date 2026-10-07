@@ -421,3 +421,85 @@ body {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.65);
 }
+
+/* ===== МОБІЛЬНА ШАПКА — 1 РЯДОК ===== */
+
+@media (max-width: 900px) {
+
+    .site-header {
+        padding: 10px 12px 14px;
+    }
+
+    .top-line {
+        display: grid;
+        grid-template-columns: auto auto auto 1fr;
+        align-items: center;
+        width: 100%;
+        gap: 7px;
+    }
+
+    .brand {
+        grid-column: 1;
+        margin: 0;
+    }
+
+    .brand img {
+        display: block;
+        width: 62px;
+        height: auto;
+    }
+
+    .language-switcher {
+        grid-column: 2;
+        gap: 3px;
+    }
+
+    .language-switcher button {
+        padding: 5px 6px;
+        font-size: 11px;
+    }
+
+    .burger-menu {
+        display: block;
+        grid-column: 3;
+        justify-self: start;
+        margin: 0;
+    }
+
+    .burger-button {
+        width: 36px;
+        height: 36px;
+        font-size: 19px;
+    }
+
+    .auth-area {
+        grid-column: 4;
+        display: flex;
+        justify-self: end;
+        align-items: center;
+        width: auto;
+        gap: 4px;
+        margin: 0;
+    }
+
+    .auth-header-button {
+        padding: 7px 7px;
+        font-size: 10px;
+        white-space: nowrap;
+    }
+
+    .logged-user {
+        gap: 4px;
+    }
+
+    .logged-user a {
+        font-size: 10px;
+        white-space: nowrap;
+    }
+
+    .logout-button {
+        padding: 7px 7px;
+        font-size: 10px;
+        white-space: nowrap;
+    }
+}
