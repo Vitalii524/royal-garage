@@ -432,6 +432,7 @@ body {
 
     .top-line {
         display: grid;
+        padding-left: 8px;
         grid-template-columns: auto auto auto 1fr;
         align-items: center;
         width: 100%;
