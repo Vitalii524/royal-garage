@@ -1,0 +1,24 @@
+/* Royal Garage — business category directory */
+.business-directory{width:min(1120px,calc(100% - 36px));margin:24px auto 76px;min-height:52vh}
+.business-list-back{display:inline-flex;align-items:center;gap:10px;color:#f0bd55;text-decoration:none;font-weight:700;margin:0 0 22px;padding:10px 0}
+.business-list-back:hover{color:#fff}
+.business-directory-hero{padding:30px 34px;margin-bottom:26px;border:1px solid rgba(214,160,58,.36);border-radius:20px;background:linear-gradient(135deg,rgba(10,43,85,.95),rgba(3,8,20,.92));box-shadow:0 16px 35px rgba(0,0,0,.2)}
+.business-directory-label{margin:0 0 10px;color:#f0bd55;font-size:12px;font-weight:800;letter-spacing:.2em}
+.business-directory-hero h1{margin:0;color:#f7f0e6;font-size:clamp(27px,4.5vw,43px);line-height:1.2;overflow-wrap:anywhere}
+.business-directory-hero #businessListDescription{margin:14px 0 0;color:#c7d2e2;font-size:16px}
+.business-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:18px}
+.business-list-card{display:flex;align-items:center;gap:18px;min-width:0;padding:22px;border:1px solid rgba(214,160,58,.35);border-radius:17px;background:linear-gradient(150deg,#0b284a,#07162c);color:#f7f0e6;text-decoration:none;box-shadow:0 8px 22px rgba(0,0,0,.2);transition:transform .2s,border-color .2s,box-shadow .2s}
+.business-list-card:hover,.business-list-card:focus-visible{transform:translateY(-3px);border-color:#f0bd55;box-shadow:0 14px 30px rgba(0,0,0,.3);outline:none}
+.business-list-logo{display:grid;place-items:center;flex:0 0 84px;width:84px;height:84px;border-radius:14px;border:1px solid rgba(214,160,58,.3);background:#041326;color:#f0bd55;font-size:30px;overflow:hidden}
+.business-list-logo img{width:100%;height:100%;object-fit:contain}
+.business-list-info{flex:1;min-width:0}
+.business-list-info h2{margin:0 0 9px;color:#f0bd55;font-size:22px;line-height:1.3;overflow-wrap:anywhere}
+.business-list-location{margin:0 0 8px;color:#d4dce7;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+.business-list-location i{color:#f0bd55;margin-right:4px}
+.business-list-description{margin:0;color:#bdc8d8;font-size:14px;line-height:1.6;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.business-list-arrow{flex:0 0 auto;color:#f0bd55;font-size:19px}
+.business-list-message,.business-empty-state{text-align:center;padding:28px;border:1px solid rgba(214,160,58,.3);border-radius:16px;background:rgba(6,27,53,.8);color:#dce5ef}
+.business-empty-state h2{color:#f0bd55;margin:0 0 10px}
+.business-empty-state p{margin:0}
+.business-list-message[hidden],.business-empty-state[hidden]{display:none!important}
+@media(max-width:600px){.business-directory{width:calc(100% - 28px);margin:14px auto 50px}.business-list-back{margin-bottom:12px;font-size:14px}.business-directory-hero{padding:22px 18px;border-radius:16px;margin-bottom:18px}.business-directory-hero #businessListDescription{font-size:14px}.business-list{grid-template-columns:minmax(0,1fr);gap:14px}.business-list-card{padding:16px;gap:13px;border-radius:14px}.business-list-logo{width:62px;height:62px;flex-basis:62px;font-size:24px}.business-list-info h2{font-size:19px}.business-list-location,.business-list-description{font-size:13px}.business-list-arrow{font-size:15px}}

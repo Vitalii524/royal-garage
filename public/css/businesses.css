@@ -306,3 +306,19 @@
   .business-modal-actions { flex-wrap: wrap; }
   .business-modal-actions > button { flex: 1 1 120px; min-width: 0; }
 }
+
+
+/* Royal Garage partner directory */
+.business-directory { width:min(1180px,calc(100% - 32px)); margin:0 auto; padding:36px 0 65px; }
+.business-directory-hero { text-align:center; padding:48px 24px; border:1px solid rgba(214,160,58,.36); border-radius:24px; background:linear-gradient(145deg,#0b2857,#06132f); box-shadow:0 18px 45px rgba(0,0,0,.2); }
+.business-directory-label { color:#f0d18a; font-size:12px; font-weight:800; letter-spacing:.2em; }
+.business-directory-hero h1 { margin:12px 0 18px; font-size:clamp(28px,5vw,48px); color:#f0d18a; }
+.partners-intro { max-width:760px; margin:0 auto; line-height:1.7; color:#e4e8f1; }
+.business-categories { display:grid; gap:22px; margin-top:28px; }
+.business-categories > * { min-width:0; }
+.business-empty-state { margin-top:28px; padding:35px 24px; text-align:center; border:1px solid rgba(214,160,58,.3); border-radius:20px; background:#071a3d; }
+.business-empty-state h2 { color:#f0d18a; }
+.business-directory-info { display:flex; flex-wrap:wrap; justify-content:center; gap:16px; margin:32px auto 0; }
+.business-directory-info a { display:inline-flex; align-items:center; justify-content:center; gap:10px; min-width:175px; padding:15px 20px; border-radius:13px; border:1px solid rgba(214,160,58,.45); background:linear-gradient(145deg,#0b2857,#061b35); color:#f0d18a; font-weight:750; text-decoration:none; }
+.business-directory-info a:hover { background:#d6a03a; color:#061b35; }
+@media(max-width:600px) { .business-directory { width:calc(100% - 20px); padding-top:16px; } .business-directory-hero { padding:30px 15px; } .business-directory-info { flex-direction:column; } .business-directory-info a { width:100%; } }
