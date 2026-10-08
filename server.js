@@ -8267,7 +8267,26 @@ app.patch(
                 nextContentType = String(businessContentType);
             }
 
-            await pool.query(
+            const normalizedBusinessPhone = phone == null ? null : String(phone).replace(/\D/g, "");
+            if (normalizedBusinessPhone !== null && !/^380\d{9}$/.test(normalizedBusinessPhone)) {
+                return res.status(400).json({ ok: false, message: "Вкажіть номер у форматі 380XXXXXXXXX." });
+            }
+
+            const client = await pool.connect();
+            try {
+                await client.query("BEGIN");
+                if (normalizedBusinessPhone !== null) {
+                    await client.query(`
+                        UPDATE users
+                        SET phone_verified = CASE WHEN phone = $2 THEN phone_verified ELSE FALSE END,
+                            phone = $2, updated_at = NOW()
+                        WHERE id = $1
+                    `, [req.user.userId, normalizedBusinessPhone]);
+                    await client.query(`
+                        DELETE FROM phone_verification_codes WHERE user_id = $1 AND used_at IS NULL
+                    `, [req.user.userId]);
+                }
+                await client.query(
                 `
                 UPDATE business_profiles
                 SET
@@ -8290,7 +8309,7 @@ app.patch(
                     logo == null ? null : String(logo),
                     city == null ? null : String(city).trim(),
                     address == null ? null : String(address).trim(),
-                    phone == null ? null : String(phone).replace(/\D/g, ""),
+                    normalizedBusinessPhone,
                     telegram == null ? null : String(telegram).trim(),
                     instagram == null ? null : String(instagram).trim(),
                     description == null ? null : String(description).trim(),
@@ -8299,7 +8318,17 @@ app.patch(
                         ? JSON.stringify(workSchedule)
                         : null
                 ]
-            );
+                );
+                await client.query("COMMIT");
+            } catch (updateError) {
+                await client.query("ROLLBACK");
+                if (updateError.code === "23505") {
+                    return res.status(409).json({ ok: false, message: "Цей номер уже використовується іншим акаунтом." });
+                }
+                throw updateError;
+            } finally {
+                client.release();
+            }
 
             const profile = await loadPrivateBusinessProfile(req.user.userId);
             return res.json({ ok: true, profile });
