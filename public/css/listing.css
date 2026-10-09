@@ -736,3 +736,53 @@ body.photo-viewer-open {
         flex: 0 0 90px;
     }
 }
+/* ===== КРАПОЧКИ ГАЛЕРЕЇ ROYAL GARAGE ===== */
+.listing-photo-dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 9px;
+    max-width: 100%;
+    padding: 14px 8px 6px;
+}
+.listing-photo-dot {
+    width: 12px;
+    height: 12px;
+    flex: 0 0 12px;
+    padding: 0;
+    border: 1px solid rgba(255,255,255,.35);
+    border-radius: 50%;
+    background: #8a8d96;
+    cursor: pointer;
+    transition: background .2s, transform .2s, box-shadow .2s;
+}
+.listing-photo-dot.is-active {
+    background: #f0c96b;
+    border-color: #f0c96b;
+    transform: scale(1.2);
+    box-shadow: 0 0 8px rgba(240,201,107,.5);
+}
+.listing-photo-dot:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 4px;
+}
+.photo-viewer {
+    flex-direction: column;
+}
+.photo-viewer-image {
+    max-height: calc(92vh - 55px);
+}
+.photo-viewer-dots {
+    flex: 0 0 auto;
+    max-height: 80px;
+    overflow-y: auto;
+    padding: 18px 8px 8px;
+    z-index: 10001;
+}
+@media (max-width: 650px) {
+    .photo-viewer-image {
+        max-height: calc(88vh - 55px);
+    }
+    .listing-photo-dots { gap: 8px; }
+}

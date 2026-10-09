@@ -709,7 +709,29 @@ if (!listing) {
                 String(listingOwnerId)
         );
 
-        /* ===== ДАНІ РЕПУТАЦІЇ ПРОДАВЦЯ ===== */
+        // Статистика тільки для автора; перегляд записує сервер за токеном.
+    let ownerListingViews = null;
+    const viewToken = localStorage.getItem("royalGarageToken");
+    if (viewToken) {
+        try {
+            const viewPath = isListingOwner ? "views" : "view";
+            const viewResponse = await fetch(
+                `/api/market/listings/${encodeURIComponent(listingId)}/${viewPath}`,
+                {
+                    method: isListingOwner ? "GET" : "POST",
+                    headers: { Authorization: `Bearer ${viewToken}` }
+                }
+            );
+            if (viewResponse.ok && isListingOwner) {
+                const viewData = await viewResponse.json();
+                ownerListingViews = Number(viewData.views) || 0;
+            }
+        } catch (viewError) {
+            console.warn("Не вдалося отримати статистику переглядів:", viewError);
+        }
+    }
+
+    /* ===== ДАНІ РЕПУТАЦІЇ ПРОДАВЦЯ ===== */
 
 const sellerRatingData =
 await getSellerRatingData(
@@ -763,30 +785,12 @@ Boolean(
                             <div
                                 class="listing-photo-stage"
                             >
-                                <button
-                                    type="button"
-                                    id="previousListingPhoto"
-                                    class="listing-photo-arrow listing-photo-arrow-left"
-                                    aria-label="Попереднє фото"
-                                >
-                                    ‹
-                                </button>
-
                                 <img
                                     id="listingMainPhoto"
                                     class="listing-main-photo"
                                     src="${mainPhoto}"
                                     alt="${listing.name || "Автомобіль"}"
                                 >
-
-                                <button
-                                    type="button"
-                                    id="nextListingPhoto"
-                                    class="listing-photo-arrow listing-photo-arrow-right"
-                                    aria-label="Наступне фото"
-                                >
-                                    ›
-                                </button>
 
                                 <div
                                     id="listingPhotoCounter"
@@ -797,6 +801,16 @@ Boolean(
                                     ${photos.length}
                                 </div>
                             </div>
+
+                            ${photos.length > 1 ? `
+                                <div id="listingPhotoDots" class="listing-photo-dots" role="group" aria-label="Вибір фотографії">
+                                    ${photos.map((_, index) => `
+                                        <button type="button" class="listing-photo-dot ${index === mainPhotoIndex ? "is-active" : ""}"
+                                            data-photo-index="${index}" aria-label="Фото ${index + 1} із ${photos.length}"
+                                            aria-current="${index === mainPhotoIndex ? "true" : "false"}"></button>
+                                    `).join("")}
+                                </div>
+                            ` : ""}
 
                             <div
                                 id="listingPhotoThumbnails"
@@ -879,6 +893,8 @@ Boolean(
                     )}
                     грн
                 </p>
+
+                ${isListingOwner ? `<p>👁️ Переглядів: <strong>${ownerListingViews === null ? "—" : ownerListingViews}</strong></p>` : ""}
 
                 <p>
                     📍
@@ -2567,18 +2583,6 @@ markListingSoldButton.addEventListener(
         );
 
 
-    const previousListingPhoto =
-        document.getElementById(
-            "previousListingPhoto"
-        );
-
-
-    const nextListingPhoto =
-        document.getElementById(
-            "nextListingPhoto"
-        );
-
-
     const listingPhotoCounter =
         document.getElementById(
             "listingPhotoCounter"
@@ -2611,17 +2615,43 @@ markListingSoldButton.addEventListener(
         );
 
 
-    const previousViewerPhoto =
-        document.getElementById(
-            "previousViewerPhoto"
-        );
+    const listingPhotoDots = document.getElementById("listingPhotoDots");
+    const photoViewerDots = document.getElementById("photoViewerDots");
 
+    function updatePhotoDots() {
+        [listingPhotoDots, photoViewerDots].forEach((container) => {
+            if (!container) return;
+            container.querySelectorAll(".listing-photo-dot").forEach((dot, index) => {
+                const active = index === currentPhotoIndex;
+                dot.classList.toggle("is-active", active);
+                dot.setAttribute("aria-current", String(active));
+            });
+        });
+    }
 
-    const nextViewerPhoto =
-        document.getElementById(
-            "nextViewerPhoto"
-        );
+    function makeViewerDots() {
+        if (!photoViewerDots) return;
+        photoViewerDots.replaceChildren();
+        if (photos.length <= 1) return;
+        photos.forEach((_, index) => {
+            const dot = document.createElement("button");
+            dot.type = "button";
+            dot.className = "listing-photo-dot";
+            dot.dataset.photoIndex = String(index);
+            dot.setAttribute("aria-label", `Фото ${index + 1} із ${photos.length}`);
+            photoViewerDots.appendChild(dot);
+        });
+        updatePhotoDots();
+    }
 
+    [listingPhotoDots, photoViewerDots].forEach((container) => {
+        container?.addEventListener("click", (event) => {
+            const dot = event.target.closest(".listing-photo-dot");
+            if (!dot || !container.contains(dot)) return;
+            showListingPhoto(Number(dot.dataset.photoIndex));
+        });
+    });
+    makeViewerDots();
 
     function showListingPhoto(index) {
         if (
@@ -2655,6 +2685,8 @@ markListingSoldButton.addEventListener(
                 currentPhotoIndex + 1
             }`;
 
+
+        updatePhotoDots();
 
         if (listingPhotoCounter) {
             listingPhotoCounter.textContent =
@@ -2803,24 +2835,6 @@ markListingSoldButton.addEventListener(
     }
 
 
-    /* ===== СТРІЛКИ ГАЛЕРЕЇ ===== */
-
-    if (previousListingPhoto) {
-        previousListingPhoto.addEventListener(
-            "click",
-            showPreviousPhoto
-        );
-    }
-
-
-    if (nextListingPhoto) {
-        nextListingPhoto.addEventListener(
-            "click",
-            showNextPhoto
-        );
-    }
-
-
     /* ===== МІНІАТЮРИ ===== */
 
     listingPhotoThumbnails.forEach(
@@ -2882,24 +2896,6 @@ markListingSoldButton.addEventListener(
                     openPhotoViewer();
                 }
             }
-        );
-    }
-
-
-    /* ===== СТРІЛКИ ПОВНОГО ЕКРАНА ===== */
-
-    if (previousViewerPhoto) {
-        previousViewerPhoto.addEventListener(
-            "click",
-            showPreviousPhoto
-        );
-    }
-
-
-    if (nextViewerPhoto) {
-        nextViewerPhoto.addEventListener(
-            "click",
-            showNextPhoto
         );
     }
 
@@ -3226,32 +3222,7 @@ if (photoViewerImage) {
     );
 
 
-    /* ===== ПРИХОВАТИ СТРІЛКИ ДЛЯ ОДНОГО ФОТО ===== */
 
-    if (photos.length <= 1) {
-        if (previousListingPhoto) {
-            previousListingPhoto.hidden =
-                true;
-        }
-
-
-        if (nextListingPhoto) {
-            nextListingPhoto.hidden =
-                true;
-        }
-
-
-        if (previousViewerPhoto) {
-            previousViewerPhoto.hidden =
-                true;
-        }
-
-
-        if (nextViewerPhoto) {
-            nextViewerPhoto.hidden =
-                true;
-        }
-    }
 }
 
 }
