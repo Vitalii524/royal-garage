@@ -48,6 +48,8 @@ async function watermarkMarketPhotos(inputPhotos, existingPhotos = []) {
                 brightness: 0.85,
                 saturation: 1.4
             })
+            // Increase watermark alpha (visibility) without changing its size.
+            .linear([1, 1, 1, 1.8], [0, 0, 0, 0])
             .png()
             .toBuffer();
         const overlayInfo = await sharp(overlay).metadata();
