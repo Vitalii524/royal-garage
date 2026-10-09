@@ -85,6 +85,21 @@
   .home-layout>.atelier-card .atelier-open-button,.home-layout>.atelier-card a.atelier-open-button{margin-top:auto!important;display:flex!important;justify-content:center!important;align-items:center!important;width:100%!important;min-height:46px!important;padding:9px 6px!important;box-sizing:border-box!important;text-align:center!important;font-size:12px!important;line-height:1.3!important;white-space:normal!important}
   .rg-mobile-slider{margin-top:24px!important}
 }
+
+/* Business promotion mirrors the First 100 card, including its inset footer. */
+.rg-business-card.first-members-card{display:flex;flex-direction:column;gap:22px;justify-content:space-between;align-content:normal}
+.rg-business-card .first-members-copy{min-width:0}
+.rg-business-card .rg-business-benefits{background:rgba(0,8,23,.75);border:1px solid rgba(214,160,58,.26);border-radius:18px;padding:24px 26px;box-sizing:border-box;margin-top:auto}
+.rg-business-card .rg-business-benefits strong{display:block;font-size:clamp(19px,2vw,25px);line-height:1.3;color:#efb94e;margin-bottom:10px}
+.rg-business-card .rg-business-benefits p{margin:0 0 18px;line-height:1.5;color:#c8c9d1}
+.rg-business-card .rg-business-link{margin-top:0}
+@media(max-width:767px){
+  .rg-mobile-slide>.rg-business-card.first-members-card{padding:30px 24px!important;border-radius:20px!important;background:linear-gradient(135deg,rgba(9,31,63,.98),rgba(4,18,35,.98))!important;box-shadow:0 18px 42px rgba(0,0,0,.28)}
+  .rg-mobile-slide>.rg-business-card h2{font-size:clamp(29px,7vw,40px)!important;line-height:1.22!important;color:#f7f0e6!important;margin:0 0 22px!important}
+  .rg-mobile-slide>.rg-business-card .first-members-intro,.rg-mobile-slide>.rg-business-card .first-members-note{font-size:inherit;line-height:1.6}
+  .rg-mobile-slide>.rg-business-card .rg-business-benefits{padding:25px 22px;border-radius:18px}
+  .rg-mobile-slide>.rg-business-card .rg-business-link{margin:0!important;padding:16px 10px!important}
+}
 </style>
 </head>
 <body>
@@ -256,12 +271,18 @@
         </div>
     </div>
 </section>
-<article class="rg-business-card" aria-labelledby="rgBusinessTitle">
-  <p class="first-members-label">📣 ДЛЯ АВТОБІЗНЕСУ</p>
-  <h2 id="rgBusinessTitle">Перші 3 місяці безкоштовно!</h2>
-  <p class="first-members-intro">Реклама та просування вашого СТО, автосалону, магазину запчастин чи іншого автобізнесу на Royal Garage.</p>
-  <p class="first-members-note">Розміщуйте свої послуги та пропозиції, залучайте клієнтів і розвивайте бізнес.</p>
-  <a class="rg-business-link" href="businesses.html">ДІЗНАТИСЯ ПРО МОЖЛИВОСТІ</a>
+<article class="rg-business-card first-members-card" aria-labelledby="rgBusinessTitle">
+  <div class="first-members-copy">
+    <p class="first-members-label">📣 ДЛЯ АВТОБІЗНЕСУ</p>
+    <h2 id="rgBusinessTitle">Перші 3 місяці безкоштовно!</h2>
+    <p class="first-members-intro">Реклама та просування вашого СТО, автосалону, магазину запчастин чи іншого автобізнесу на Royal Garage.</p>
+    <p class="first-members-note">Розміщуйте свої послуги та пропозиції, залучайте клієнтів і розвивайте бізнес.</p>
+  </div>
+  <div class="rg-business-benefits">
+    <strong>Розвивайте свій бізнес із Royal Garage</strong>
+    <p>Представляйте послуги та знаходьте нових клієнтів.</p>
+    <a class="rg-business-link" href="businesses.html">ДІЗНАТИСЯ ПРО МОЖЛИВОСТІ</a>
+  </div>
 </article>
 </div>
 
@@ -423,8 +444,20 @@
     if(!home||partners?.length!==2||!first||panels?.length!==2)return;
     const promo=document.querySelector('.rg-promo-pair > .rg-business-card');
     createSlider([first,promo],main,true);
+    // Keep business card as tall as the First 100 card, including the live counter.
+    if(promo){
+      const firstCard=first.querySelector('.first-members-card');
+      const syncBusinessHeight=()=>{
+        if(!mq.matches||!firstCard||!promo.isConnected)return;
+        promo.style.minHeight=Math.ceil(firstCard.getBoundingClientRect().height)+'px';
+      };
+      syncBusinessHeight();
+      const equalizer=new ResizeObserver(syncBusinessHeight);
+      if(firstCard)equalizer.observe(firstCard);
+      sliders[sliders.length-1].equalizer=equalizer;
+    }
   }
-  function restore(){sliders.forEach(s=>{s.stop();s.observer.disconnect()});saved.reverse().forEach(({node,marker})=>{marker.parentNode.insertBefore(node,marker);marker.remove();node.inert=false;node.removeAttribute('aria-hidden')});saved.length=0;sliders.forEach(s=>s.wrap.remove());sliders=[]}
+  function restore(){sliders.forEach(s=>{s.stop();s.observer.disconnect();s.equalizer?.disconnect()});saved.reverse().forEach(({node,marker})=>{marker.parentNode.insertBefore(node,marker);marker.remove();node.inert=false;node.removeAttribute('aria-hidden');if(node.classList.contains('rg-business-card'))node.style.minHeight=''});saved.length=0;sliders.forEach(s=>s.wrap.remove());sliders=[]}
   function update(){if(mq.matches)build();else restore()}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',update);else update();
   window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(update,150)});
