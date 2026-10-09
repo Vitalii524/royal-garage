@@ -40,11 +40,11 @@ async function watermarkMarketPhotos(inputPhotos, existingPhotos = []) {
             processed.push(photo);
             continue;
         }
-        const overlayWidth = Math.max(100, Math.round(metadata.width * 0.27));
+        const overlayWidth = Math.max(25, Math.round(metadata.width * 0.0675));
         const overlay = await sharp(MARKET_WATERMARK_PATH)
             .resize({ width: overlayWidth, withoutEnlargement: true })
             .ensureAlpha()
-            .linear([1, 1, 1, 0.40], [0, 0, 0, 0])
+            .linear([1, 1, 1, 0.75], [0, 0, 0, 0])
             .png()
             .toBuffer();
         const overlayInfo = await sharp(overlay).metadata();
