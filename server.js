@@ -6,6 +6,69 @@ const { Pool } = require("pg");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
+
+// Watermark for market listing photos. Other image uploads are unaffected.
+const sharp = require("sharp");
+const MARKET_WATERMARK_PATH = path.join(__dirname, "public", "images", "royal-garage-watermark.png");
+const MARKET_DATA_IMAGE_RE = /^data:image\/(png|jpe?g|webp);base64,([A-Za-z0-9+/=]+)$/i;
+
+async function watermarkMarketPhotos(inputPhotos, existingPhotos = []) {
+    if (!Array.isArray(inputPhotos)) return [];
+    const alreadySaved = new Set(Array.isArray(existingPhotos) ? existingPhotos : []);
+    const processed = [];
+    for (const photo of inputPhotos) {
+        if (typeof photo !== "string") {
+            processed.push(photo);
+            continue;
+        }
+        // Existing photos are left byte-for-byte intact; this prevents a second watermark.
+        if (alreadySaved.has(photo)) {
+            processed.push(photo);
+            continue;
+        }
+        const match = photo.match(MARKET_DATA_IMAGE_RE);
+        // Remote URLs are not downloaded or changed (no SSRF / remote mutation).
+        if (!match) {
+            processed.push(photo);
+            continue;
+        }
+        const original = Buffer.from(match[2], "base64");
+        const metadata = await sharp(original, { limitInputPixels: 50000000 }).metadata();
+        if (!metadata.width || !metadata.height) throw new Error("Invalid market photo dimensions");
+        // Skip tiny images rather than cover the photo.
+        if (metadata.width < 180 || metadata.height < 140) {
+            processed.push(photo);
+            continue;
+        }
+        const overlayWidth = Math.max(100, Math.round(metadata.width * 0.27));
+        const overlay = await sharp(MARKET_WATERMARK_PATH)
+            .resize({ width: overlayWidth, withoutEnlargement: true })
+            .ensureAlpha()
+            .linear([1, 1, 1, 0.40], [0, 0, 0, 0])
+            .png()
+            .toBuffer();
+        const overlayInfo = await sharp(overlay).metadata();
+        const inset = Math.max(8, Math.round(metadata.width * 0.018));
+        const left = Math.max(0, metadata.width - overlayInfo.width - inset);
+        const top = Math.max(0, metadata.height - overlayInfo.height - inset);
+        let pipeline = sharp(original, { limitInputPixels: 50000000 })
+            .rotate()
+            .composite([{ input: overlay, left, top }]);
+        const type = match[1].toLowerCase();
+        let mime;
+        if (type === "png") {
+            pipeline = pipeline.png(); mime = "image/png";
+        } else if (type === "webp") {
+            pipeline = pipeline.webp({ quality: 88 }); mime = "image/webp";
+        } else {
+            pipeline = pipeline.jpeg({ quality: 88, mozjpeg: true }); mime = "image/jpeg";
+        }
+        const watermarked = await pipeline.toBuffer();
+        processed.push(`data:${mime};base64,${watermarked.toString("base64")}`);
+    }
+    return processed;
+}
+
 const OPENAI_API_KEY =
     process.env.OPENAI_API_KEY;
 const nodemailer = require("nodemailer");
@@ -915,6 +978,11 @@ await pool.query(`
     ADD COLUMN IF NOT EXISTS sold_at TIMESTAMPTZ
 `);
 
+await pool.query(`
+    ALTER TABLE market_listings
+    ADD COLUMN IF NOT EXISTS watermark_version INTEGER NOT NULL DEFAULT 0
+`);
+
 /* ===== КАТЕГОРІЇ МАРКЕТУ ===== */
 
 await pool.query(`
@@ -934,6 +1002,15 @@ await pool.query(`
         vehicle_type,
         brand,
         model
+    )
+`);
+
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS market_listing_views (
+        listing_id UUID NOT NULL REFERENCES market_listings(id) ON DELETE CASCADE,
+        viewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        viewed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (listing_id, viewer_id)
     )
 `);
 
@@ -5415,6 +5492,63 @@ app.get(
 );
 
 
+// Один авторизований акаунт — один перегляд оголошення.
+// Власник і гості не збільшують статистику.
+app.get(
+    "/api/market/listings/:listingId/views",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const { listingId } = req.params;
+            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(listingId)) {
+                return res.status(400).json({ ok: false, message: "Некоректне ID оголошення." });
+            }
+            const result = await pool.query(`
+                SELECT (SELECT COUNT(*)::integer FROM market_listing_views WHERE listing_id = m.id) AS views
+                FROM market_listings m WHERE m.id = $1 AND m.owner_id = $2
+            `, [listingId, req.user.userId]);
+            if (!result.rows.length) return res.status(403).json({ ok: false, message: "Статистика доступна лише автору." });
+            res.json({ ok: true, views: result.rows[0].views });
+        } catch (error) {
+            console.error("Listing views load error:", error);
+            res.status(500).json({ ok: false, message: "Не вдалося завантажити перегляди." });
+        }
+    }
+);
+
+app.post(
+    "/api/market/listings/:listingId/view",
+    requireAuth,
+    async (req, res) => {
+        try {
+            const { listingId } = req.params;
+            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(listingId)) {
+                return res.status(400).json({ ok: false, message: "Некоректне ID оголошення." });
+            }
+            const result = await pool.query(`
+                WITH target AS (
+                    SELECT id, owner_id FROM market_listings WHERE id = $1
+                ), inserted AS (
+                    INSERT INTO market_listing_views (listing_id, viewer_id)
+                    SELECT id, $2 FROM target WHERE owner_id <> $2
+                    ON CONFLICT DO NOTHING
+                    RETURNING listing_id
+                )
+                SELECT
+                    EXISTS(SELECT 1 FROM target) AS found,
+                    EXISTS(SELECT 1 FROM inserted) AS counted,
+                    (SELECT COUNT(*)::integer FROM market_listing_views WHERE listing_id = $1) AS views
+            `, [listingId, req.user.userId]);
+            const data = result.rows[0];
+            if (!data.found) return res.status(404).json({ ok: false, message: "Оголошення не знайдено." });
+            res.json({ ok: true, counted: data.counted, views: data.views });
+        } catch (error) {
+            console.error("Listing view count error:", error);
+            res.status(500).json({ ok: false, message: "Не вдалося зарахувати перегляд." });
+        }
+    }
+);
+
 app.post(
     "/api/market/listings",
     requireAuth,
@@ -5691,14 +5825,15 @@ if (
                     expires_at,
                     vehicle_type,
                     brand,
-                    model
+                    model,
+                    watermark_version
               )
                 VALUES (
                     $1, $2, $3, $4, $5, $6, $7,
                     $8, $9, $10, $11, $12, $13,
                     $14, $15, $16, $17, $18,
                     $19, $20, $21, $22, $23, $24, $25, $26,
-                    $27, $28, $29
+                    $27, $28, $29, 1
                 )
                 RETURNING *
                 `,
@@ -5710,11 +5845,7 @@ if (
                     name,
                     year || null,
                     normalizedVin,
-                    JSON.stringify(
-                        Array.isArray(photos)
-                            ? photos
-                            : []
-                    ),
+                    JSON.stringify(await watermarkMarketPhotos(photos)),
                     Number.isInteger(activePhotoIndex)
                         ? activePhotoIndex
                         : 0,
@@ -5774,7 +5905,7 @@ app.patch(
 
             const listingResult = await pool.query(
                 `
-                SELECT id, owner_id
+                SELECT id, owner_id, photos, watermark_version
                 FROM market_listings
                 WHERE id = $1
                 LIMIT 1
@@ -5913,7 +6044,8 @@ if (
                     vehicle_type = COALESCE($21, vehicle_type),
                     brand = COALESCE($22, brand),
                     model = COALESCE($23, model),
-                    updated_at = NOW()
+                    updated_at = NOW(),
+                    watermark_version = 1
                 WHERE id = $24
                 RETURNING *
                 `,
@@ -5922,11 +6054,7 @@ if (
                     name || "",
                     year || null,
                     normalizedVin,
-                    JSON.stringify(
-                        Array.isArray(photos)
-                            ? photos
-                            : []
-                    ),
+                    JSON.stringify(await watermarkMarketPhotos(photos, Number(listingResult.rows[0].watermark_version) >= 1 ? listingResult.rows[0].photos : [])),
                     Number.isInteger(activePhotoIndex)
                         ? activePhotoIndex
                         : 0,
