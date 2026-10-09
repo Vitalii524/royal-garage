@@ -27,6 +27,7 @@
 <link href="manifest.json" rel="manifest"/>
 <meta content="#08101f" name="theme-color"/>
 <link href="css/styles.css" rel="stylesheet"/>
+<link href="css/royal-pairs.css?v=20261009" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet"/>
 </head>
 <body>
@@ -116,42 +117,10 @@
 </div>
 </div>
 </section>
-<aside class="atelier-card">
-<img alt="RoyalAuto Atelier" class="atelier-card-logo" src="images/royal-auto-atelier-logo.webp"/>
-<p class="atelier-card-label">
-                RoyalAuto
-            </p>
-<h2 data-i18n="home.royalAutoTitle">
-                Автомобілі та автоаксесуари
-            </h2>
-<p data-i18n="home.royalAutoText">
-                Автомобілі та аксесуари
-                для вашого авто.
-            </p>
-<button class="atelier-open-button" data-i18n="home.royalAutoButton" onclick="openAtelierModal()" type="button">
-                Переглянути RoyalAuto
-            </button>
-</aside>
-<aside class="atelier-card">
-<img alt="SERVICE HUB LVIV" class="atelier-card-logo service-hub-card-logo" src="images/service-hub-logo.jpg"/>
-<p class="atelier-label" data-i18n="home.servicePartner">
-                ПАРТНЕР ROYAL GARAGE
-            </p>
-<h2>
-                SERVICE HUB LVIV
-            </h2>
-<p data-i18n="home.serviceText">
-                Діагностика, технічне обслуговування
-                та ремонт автомобілів у Львові.
-            </p>
-<a class="atelier-open-button" data-i18n="home.serviceButton" href="service-hub.html">
-                Перейти до сервісу
-            </a>
-</aside>
 </div>
 </header>
 
-<section class="first-members-section" aria-labelledby="firstMembersTitle">
+<div class="rg-pair rg-pair-promo" data-rg-slider><section class="first-members-section" aria-labelledby="firstMembersTitle">
     <div class="first-members-card">
         <div class="first-members-copy">
             <p class="first-members-label">🏁 ПЕРШІ 100 УЧАСНИКІВ</p>
@@ -196,9 +165,9 @@
             </p>
         </div>
     </div>
-</section>
+</section><section class="business-promo-card" aria-labelledby="businessPromoTitle"><p class="business-promo-label">📢 ДЛЯ АВТОБІЗНЕСУ</p><h2 id="businessPromoTitle">Перші 3 місяці безкоштовно</h2><p>Розміщуйте інформацію про свій бізнес на Royal Garage, залучайте нових клієнтів та розвивайте свою справу.</p><p><strong>Реклама та просування</strong> ваших послуг, автомобілів і пропозицій на платформі.</p><a class="gold-btn business-promo-link" href="payment-info.html">Дізнатися про можливості</a></section></div>
 
-<main class="main-content">
+<main class="main-content rg-pair" data-rg-slider>
 <section class="panel">
 <div class="panel-title">
 <span>💬</span>
@@ -228,6 +197,40 @@
         </a>
 </section>
 </main>
+<div class="rg-pair rg-pair-partners" data-rg-slider><aside class="atelier-card">
+<img alt="RoyalAuto Atelier" class="atelier-card-logo" src="images/royal-auto-atelier-logo.webp"/>
+<p class="atelier-card-label">
+                RoyalAuto
+            </p>
+<h2 data-i18n="home.royalAutoTitle">
+                Автомобілі та автоаксесуари
+            </h2>
+<p data-i18n="home.royalAutoText">
+                Автомобілі та аксесуари
+                для вашого авто.
+            </p>
+<button class="atelier-open-button" data-i18n="home.royalAutoButton" onclick="openAtelierModal()" type="button">
+                Переглянути RoyalAuto
+            </button>
+</aside>
+<aside class="atelier-card">
+<img alt="SERVICE HUB LVIV" class="atelier-card-logo service-hub-card-logo" src="images/service-hub-logo.jpg"/>
+<p class="atelier-label" data-i18n="home.servicePartner">
+                ПАРТНЕР ROYAL GARAGE
+            </p>
+<h2>
+                SERVICE HUB LVIV
+            </h2>
+<p data-i18n="home.serviceText">
+                Діагностика, технічне обслуговування
+                та ремонт автомобілів у Львові.
+            </p>
+<a class="atelier-open-button" data-i18n="home.serviceButton" href="service-hub.html">
+                Перейти до сервісу
+            </a>
+</aside>
+</div>
+
 <section class="brands">
 <h2 data-i18n="home.popularBrands">Популярні марки</h2>
 <div class="brand-grid">
@@ -309,7 +312,8 @@
 <div id="modalBody"></div>
 </div>
 </div>
-<script src="js/script.js?v=20260929-first100"></script>
+<script src="js/script.js?v=20261009-pairs"></script>
+<script src="js/royal-pairs.js?v=20261009"></script>
 <script src="js/auth.js"></script>
 <script src="js/loader.js"></script>
 
