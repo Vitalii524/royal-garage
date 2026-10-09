@@ -29,6 +29,17 @@
 <link href="css/styles.css" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet"/>
 <style id="rg-mobile-slider-styles">
+/* Shared visual language for both promotional cards */
+.rg-promo-pair{max-width:1200px;margin:30px auto 0;padding:0 20px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:stretch}
+.rg-promo-pair>.first-members-section{margin:0;padding:0;max-width:none;min-width:0}
+.rg-promo-pair .first-members-card{height:100%;box-sizing:border-box;grid-template-columns:1fr;gap:22px;align-content:space-between}
+.rg-business-card{min-width:0;box-sizing:border-box;padding:30px;border:1px solid rgba(214,160,58,.42);border-radius:18px;background:radial-gradient(circle at 88% 20%,rgba(214,160,58,.16),transparent 34%),linear-gradient(145deg,rgba(7,31,61,.98),rgba(3,13,27,.98));box-shadow:0 18px 42px rgba(0,0,0,.28);color:#f7f0e6;display:flex;flex-direction:column}
+.rg-business-card h2{margin:0 0 20px;font-size:clamp(24px,2.3vw,34px);line-height:1.22;color:#f7f0e6}
+.rg-business-card .first-members-intro,.rg-business-card .first-members-note{line-height:1.6}
+.rg-business-card .rg-business-link{display:block;margin-top:auto;padding:15px 12px;border-radius:12px;background:linear-gradient(135deg,#f5cc76,#dda73f);color:#081a32;text-decoration:none;text-align:center;font-weight:800}
+.rg-business-card .first-members-note{margin-bottom:26px}
+@media(min-width:768px) and (max-width:1050px){.rg-promo-pair{gap:14px}.rg-business-card{padding:22px}.rg-promo-pair .first-members-card{padding:22px}}
+
 /* Royal Garage: ONLY mobile sliders; desktop styles untouched */
 @media(max-width:767px){
 .rg-mobile-slider{max-width:100%;margin:20px 14px 26px;overflow:hidden}
@@ -49,10 +60,31 @@
 .rg-business-card h2{font-size:27px;line-height:1.2;color:#f0bd55}
 .rg-business-card p{line-height:1.6}
 .rg-business-card a{display:block;text-align:center;text-decoration:none;margin-top:22px;padding:15px 10px;border-radius:9px;background:linear-gradient(#f0bd55,#d6a03a);color:#061b35;font-weight:800}
+
+.rg-promo-pair{display:none!important}
+.rg-mobile-slide>.rg-business-card{width:100%;height:auto;min-height:0;padding:22px 18px;border-radius:15px}
+.rg-mobile-slide>.rg-business-card h2{font-size:clamp(26px,7vw,36px);color:#f7f0e6;margin:0 0 20px}
+.rg-mobile-slide>.rg-business-card .first-members-label{font-size:13px;letter-spacing:1.7px}
+.rg-mobile-slide>.rg-business-card .first-members-intro,.rg-mobile-slide>.rg-business-card .first-members-note{font-size:inherit;line-height:1.6}
+.rg-mobile-slide>.rg-business-card .rg-business-link{margin-top:24px}
+
 .rg-mobile-slider .home-panel-link{width:100%}
 }
 @media(min-width:768px){.rg-mobile-slider{display:none!important}}
 @media(prefers-reduced-motion:reduce){.rg-mobile-track{transition:none!important}}
+
+/* Compact partner tiles, inspired by the two-column reference. Mobile only. */
+@media (max-width:767px){
+  .home-layout{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;align-items:stretch!important;padding:0 14px!important}
+  .home-layout>.hero{grid-column:1/-1!important;min-width:0}
+  .home-layout>.atelier-card{grid-column:auto!important;display:flex!important;flex-direction:column!important;min-width:0!important;width:100%!important;height:100%!important;min-height:0!important;margin:0!important;padding:16px 12px!important;border-radius:20px!important;box-sizing:border-box!important;overflow:hidden}
+  .home-layout>.atelier-card .atelier-card-logo{width:48px!important;height:48px!important;max-width:48px!important;object-fit:contain!important;margin:0 0 12px!important}
+  .home-layout>.atelier-card .atelier-card-label,.home-layout>.atelier-card .atelier-label{font-size:10px!important;letter-spacing:.6px!important;line-height:1.35!important;margin:0 0 10px!important}
+  .home-layout>.atelier-card h2{font-size:clamp(17px,4.3vw,23px)!important;line-height:1.2!important;overflow-wrap:anywhere;margin:0 0 10px!important}
+  .home-layout>.atelier-card p:not(.atelier-label):not(.atelier-card-label){font-size:12px!important;line-height:1.45!important;margin:0 0 15px!important;overflow-wrap:anywhere}
+  .home-layout>.atelier-card .atelier-open-button,.home-layout>.atelier-card a.atelier-open-button{margin-top:auto!important;display:flex!important;justify-content:center!important;align-items:center!important;width:100%!important;min-height:46px!important;padding:9px 6px!important;box-sizing:border-box!important;text-align:center!important;font-size:12px!important;line-height:1.3!important;white-space:normal!important}
+  .rg-mobile-slider{margin-top:24px!important}
+}
 </style>
 </head>
 <body>
@@ -177,6 +209,7 @@
 </div>
 </header>
 
+<div class="rg-promo-pair">
 <section class="first-members-section" aria-labelledby="firstMembersTitle">
     <div class="first-members-card">
         <div class="first-members-copy">
@@ -223,6 +256,14 @@
         </div>
     </div>
 </section>
+<article class="rg-business-card" aria-labelledby="rgBusinessTitle">
+  <p class="first-members-label">📣 ДЛЯ АВТОБІЗНЕСУ</p>
+  <h2 id="rgBusinessTitle">Перші 3 місяці безкоштовно!</h2>
+  <p class="first-members-intro">Реклама та просування вашого СТО, автосалону, магазину запчастин чи іншого автобізнесу на Royal Garage.</p>
+  <p class="first-members-note">Розміщуйте свої послуги та пропозиції, залучайте клієнтів і розвивайте бізнес.</p>
+  <a class="rg-business-link" href="businesses.html">ДІЗНАТИСЯ ПРО МОЖЛИВОСТІ</a>
+</article>
+</div>
 
 <main class="main-content">
 <section class="panel">
@@ -380,10 +421,8 @@
     const home=document.querySelector('.home-layout');const partners=home?.querySelectorAll('.atelier-card');
     const first=document.querySelector('.first-members-section');const main=document.querySelector('main.main-content');const panels=main?.querySelectorAll(':scope > .panel');
     if(!home||partners?.length!==2||!first||panels?.length!==2)return;
-    createSlider([...partners],home.closest('.site-header')||home);
-    const promo=document.createElement('article');promo.className='rg-business-card';promo.innerHTML='<p class="rg-kicker">📣 ДЛЯ АВТОБІЗНЕСУ</p><h2>Перші 3 місяці безкоштовно!</h2><p>Реклама та просування вашого СТО, автосалону, магазину запчастин чи іншого автобізнесу на Royal Garage.</p><p>Розміщуйте свої послуги та пропозиції, залучайте клієнтів і розвивайте бізнес.</p><a href="businesses.html">ДІЗНАТИСЯ ПРО МОЖЛИВОСТІ</a>';
+    const promo=document.querySelector('.rg-promo-pair > .rg-business-card');
     createSlider([first,promo],main,true);
-    createSlider([...panels],main);
   }
   function restore(){sliders.forEach(s=>{s.stop();s.observer.disconnect()});saved.reverse().forEach(({node,marker})=>{marker.parentNode.insertBefore(node,marker);marker.remove();node.inert=false;node.removeAttribute('aria-hidden')});saved.length=0;sliders.forEach(s=>s.wrap.remove());sliders=[]}
   function update(){if(mq.matches)build();else restore()}
