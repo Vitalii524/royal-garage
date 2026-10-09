@@ -27,8 +27,33 @@
 <link href="manifest.json" rel="manifest"/>
 <meta content="#08101f" name="theme-color"/>
 <link href="css/styles.css" rel="stylesheet"/>
-<link href="css/royal-pairs.css?v=20261009" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet"/>
+<style id="rg-mobile-slider-styles">
+/* Royal Garage: ONLY mobile sliders; desktop styles untouched */
+@media(max-width:767px){
+.rg-mobile-slider{max-width:100%;margin:20px 14px 26px;overflow:hidden}
+.rg-mobile-viewport{overflow:hidden;border-radius:16px;touch-action:pan-y}
+.rg-mobile-track{display:flex;align-items:flex-start;transition:transform .38s ease;will-change:transform}
+.rg-mobile-slide{flex:0 0 100%;min-width:0;box-sizing:border-box}
+.rg-mobile-slide[aria-hidden="true"]{visibility:hidden}
+.rg-mobile-slide>.atelier-card,.rg-mobile-slide>.panel,.rg-mobile-slide>.first-members-section{width:100%!important;max-width:none!important;margin:0!important;box-sizing:border-box}
+.rg-mobile-slide>.atelier-card{min-height:0}
+.rg-mobile-slide>.first-members-section{padding:0!important}
+.rg-mobile-slide>.panel{height:auto}
+.rg-mobile-slide .first-members-card{grid-template-columns:1fr}
+.rg-mobile-dots{display:flex;justify-content:center;gap:9px;padding:13px 0 3px}
+.rg-mobile-dot{width:9px;height:9px;border-radius:50%;border:0;background:rgba(214,160,58,.35);padding:0;cursor:pointer}
+.rg-mobile-dot.is-active{background:#f0bd55;width:21px;border-radius:9px}
+.rg-business-card{padding:22px 18px;border:1px solid rgba(214,160,58,.45);border-radius:16px;background:linear-gradient(145deg,#09234e,#031325);color:#f7f0e6}
+.rg-business-card .rg-kicker{color:#f0bd55;font-weight:800;letter-spacing:1px}
+.rg-business-card h2{font-size:27px;line-height:1.2;color:#f0bd55}
+.rg-business-card p{line-height:1.6}
+.rg-business-card a{display:block;text-align:center;text-decoration:none;margin-top:22px;padding:15px 10px;border-radius:9px;background:linear-gradient(#f0bd55,#d6a03a);color:#061b35;font-weight:800}
+.rg-mobile-slider .home-panel-link{width:100%}
+}
+@media(min-width:768px){.rg-mobile-slider{display:none!important}}
+@media(prefers-reduced-motion:reduce){.rg-mobile-track{transition:none!important}}
+</style>
 </head>
 <body>
 <div class="royal-loader" id="royalLoader">
@@ -117,10 +142,42 @@
 </div>
 </div>
 </section>
+<aside class="atelier-card">
+<img alt="RoyalAuto Atelier" class="atelier-card-logo" src="images/royal-auto-atelier-logo.webp"/>
+<p class="atelier-card-label">
+                RoyalAuto
+            </p>
+<h2 data-i18n="home.royalAutoTitle">
+                Автомобілі та автоаксесуари
+            </h2>
+<p data-i18n="home.royalAutoText">
+                Автомобілі та аксесуари
+                для вашого авто.
+            </p>
+<button class="atelier-open-button" data-i18n="home.royalAutoButton" onclick="openAtelierModal()" type="button">
+                Переглянути RoyalAuto
+            </button>
+</aside>
+<aside class="atelier-card">
+<img alt="SERVICE HUB LVIV" class="atelier-card-logo service-hub-card-logo" src="images/service-hub-logo.jpg"/>
+<p class="atelier-label" data-i18n="home.servicePartner">
+                ПАРТНЕР ROYAL GARAGE
+            </p>
+<h2>
+                SERVICE HUB LVIV
+            </h2>
+<p data-i18n="home.serviceText">
+                Діагностика, технічне обслуговування
+                та ремонт автомобілів у Львові.
+            </p>
+<a class="atelier-open-button" data-i18n="home.serviceButton" href="service-hub.html">
+                Перейти до сервісу
+            </a>
+</aside>
 </div>
 </header>
 
-<div class="rg-pair rg-pair-promo" data-rg-slider><section class="first-members-section" aria-labelledby="firstMembersTitle">
+<section class="first-members-section" aria-labelledby="firstMembersTitle">
     <div class="first-members-card">
         <div class="first-members-copy">
             <p class="first-members-label">🏁 ПЕРШІ 100 УЧАСНИКІВ</p>
@@ -165,9 +222,9 @@
             </p>
         </div>
     </div>
-</section><section class="business-promo-card" aria-labelledby="businessPromoTitle"><p class="business-promo-label">📢 ДЛЯ АВТОБІЗНЕСУ</p><h2 id="businessPromoTitle">Перші 3 місяці безкоштовно</h2><p>Розміщуйте інформацію про свій бізнес на Royal Garage, залучайте нових клієнтів та розвивайте свою справу.</p><p><strong>Реклама та просування</strong> ваших послуг, автомобілів і пропозицій на платформі.</p><a class="gold-btn business-promo-link" href="payment-info.html">Дізнатися про можливості</a></section></div>
+</section>
 
-<main class="main-content rg-pair" data-rg-slider>
+<main class="main-content">
 <section class="panel">
 <div class="panel-title">
 <span>💬</span>
@@ -197,40 +254,6 @@
         </a>
 </section>
 </main>
-<div class="rg-pair rg-pair-partners" data-rg-slider><aside class="atelier-card">
-<img alt="RoyalAuto Atelier" class="atelier-card-logo" src="images/royal-auto-atelier-logo.webp"/>
-<p class="atelier-card-label">
-                RoyalAuto
-            </p>
-<h2 data-i18n="home.royalAutoTitle">
-                Автомобілі та автоаксесуари
-            </h2>
-<p data-i18n="home.royalAutoText">
-                Автомобілі та аксесуари
-                для вашого авто.
-            </p>
-<button class="atelier-open-button" data-i18n="home.royalAutoButton" onclick="openAtelierModal()" type="button">
-                Переглянути RoyalAuto
-            </button>
-</aside>
-<aside class="atelier-card">
-<img alt="SERVICE HUB LVIV" class="atelier-card-logo service-hub-card-logo" src="images/service-hub-logo.jpg"/>
-<p class="atelier-label" data-i18n="home.servicePartner">
-                ПАРТНЕР ROYAL GARAGE
-            </p>
-<h2>
-                SERVICE HUB LVIV
-            </h2>
-<p data-i18n="home.serviceText">
-                Діагностика, технічне обслуговування
-                та ремонт автомобілів у Львові.
-            </p>
-<a class="atelier-open-button" data-i18n="home.serviceButton" href="service-hub.html">
-                Перейти до сервісу
-            </a>
-</aside>
-</div>
-
 <section class="brands">
 <h2 data-i18n="home.popularBrands">Популярні марки</h2>
 <div class="brand-grid">
@@ -312,10 +335,60 @@
 <div id="modalBody"></div>
 </div>
 </div>
-<script src="js/script.js?v=20261009-pairs"></script>
-<script src="js/royal-pairs.js?v=20261009"></script>
+<script src="js/script.js?v=20260929-first100"></script>
 <script src="js/auth.js"></script>
 <script src="js/loader.js"></script>
 
-<script src="js/lang.js"></script></body>
+<script src="js/lang.js"></script><script id="rg-mobile-slider-script">(function(){
+  const mq=window.matchMedia('(max-width:767px)');
+  const saved=[];let sliders=[];let resizeTimer;
+  function moveTo(node,parent){
+    if(!node)return;
+    const marker=document.createComment('rg-original-position');
+    node.parentNode.insertBefore(marker,node);
+    saved.push({node,marker});parent.appendChild(node);
+  }
+  function createSlider(nodes,anchor,before=false){
+    if(!anchor||nodes.some(n=>!n))return;
+    const wrap=document.createElement('section');wrap.className='rg-mobile-slider';wrap.setAttribute('aria-label','Блоки Royal Garage');
+    const viewport=document.createElement('div');viewport.className='rg-mobile-viewport';
+    const track=document.createElement('div');track.className='rg-mobile-track';
+    const dots=document.createElement('div');dots.className='rg-mobile-dots';
+    const slides=[];let index=0,timer=null,startX=null,startY=null;
+    nodes.forEach((node,i)=>{
+      const slide=document.createElement('div');slide.className='rg-mobile-slide';
+      if(node.isConnected)moveTo(node,slide);else slide.appendChild(node);
+      track.appendChild(slide);slides.push(slide);
+      const dot=document.createElement('button');dot.type='button';dot.className='rg-mobile-dot';dot.setAttribute('aria-label','Показати слайд '+(i+1));
+      dot.addEventListener('click',()=>{show(i);restart()});dots.appendChild(dot);
+    });
+    viewport.appendChild(track);wrap.append(viewport,dots);
+    if(before)anchor.parentNode.insertBefore(wrap,anchor);else anchor.insertAdjacentElement('afterend',wrap);
+    function show(i){index=(i+slides.length)%slides.length;track.style.transform='translateX(-'+index*100+'%)';
+      slides.forEach((s,j)=>{s.setAttribute('aria-hidden',String(j!==index));s.inert=j!==index});
+      [...dots.children].forEach((d,j)=>{d.classList.toggle('is-active',j===index);d.setAttribute('aria-current',String(j===index))});
+      viewport.style.height=slides[index].offsetHeight+'px';}
+    function stop(){if(timer){clearInterval(timer);timer=null}}
+    function restart(){stop();if(!window.matchMedia('(prefers-reduced-motion:reduce)').matches)timer=setInterval(()=>show(index+1),5000)}
+    viewport.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;startY=e.touches[0].clientY;stop()},{passive:true});
+    viewport.addEventListener('touchend',e=>{if(startX!==null){const dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy))show(index+(dx<0?1:-1));}startX=startY=null;restart()},{passive:true});
+    viewport.addEventListener('mouseenter',stop);viewport.addEventListener('mouseleave',restart);
+    const observer=new ResizeObserver(()=>{viewport.style.height=slides[index].offsetHeight+'px'});
+    slides.forEach(s=>observer.observe(s));show(0);restart();sliders.push({wrap,stop,observer});
+  }
+  function build(){if(!mq.matches||sliders.length)return;
+    const home=document.querySelector('.home-layout');const partners=home?.querySelectorAll('.atelier-card');
+    const first=document.querySelector('.first-members-section');const main=document.querySelector('main.main-content');const panels=main?.querySelectorAll(':scope > .panel');
+    if(!home||partners?.length!==2||!first||panels?.length!==2)return;
+    createSlider([...partners],home.closest('.site-header')||home);
+    const promo=document.createElement('article');promo.className='rg-business-card';promo.innerHTML='<p class="rg-kicker">📣 ДЛЯ АВТОБІЗНЕСУ</p><h2>Перші 3 місяці безкоштовно!</h2><p>Реклама та просування вашого СТО, автосалону, магазину запчастин чи іншого автобізнесу на Royal Garage.</p><p>Розміщуйте свої послуги та пропозиції, залучайте клієнтів і розвивайте бізнес.</p><a href="businesses.html">ДІЗНАТИСЯ ПРО МОЖЛИВОСТІ</a>';
+    createSlider([first,promo],main,true);
+    createSlider([...panels],main);
+  }
+  function restore(){sliders.forEach(s=>{s.stop();s.observer.disconnect()});saved.reverse().forEach(({node,marker})=>{marker.parentNode.insertBefore(node,marker);marker.remove();node.inert=false;node.removeAttribute('aria-hidden')});saved.length=0;sliders.forEach(s=>s.wrap.remove());sliders=[]}
+  function update(){if(mq.matches)build();else restore()}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',update);else update();
+  window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(update,150)});
+})();</script>
+</body>
 </html>
