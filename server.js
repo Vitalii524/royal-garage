@@ -44,7 +44,10 @@ async function watermarkMarketPhotos(inputPhotos, existingPhotos = []) {
         const overlay = await sharp(MARKET_WATERMARK_PATH)
             .resize({ width: overlayWidth, withoutEnlargement: true })
             .ensureAlpha()
-            .linear([1, 1, 1], [0, 0, 0, 0])
+            .modulate({
+                brightness: 0.85,
+                saturation: 1.4
+            })
             .png()
             .toBuffer();
         const overlayInfo = await sharp(overlay).metadata();
