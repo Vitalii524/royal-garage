@@ -150,7 +150,7 @@
             <p id="businessMainEmpty" class="business-empty" hidden></p>
         </section>
 
-        <section class="business-section business-about-section">
+        <section id="businessAboutSection" class="business-section business-about-section">
             <div class="business-section-head">
                 <div>
                     <span class="business-eyebrow">Інформація</span>
@@ -159,18 +159,18 @@
             </div>
 
             <div class="business-info-grid">
-                <article class="business-info-card business-info-wide">
+                <article id="businessAboutDescriptionCard" class="business-info-card business-info-wide">
                     <h3>Про компанію</h3>
                     <p id="businessDescription">Опис ще не додано.</p>
                 </article>
 
-                <article class="business-info-card">
+                <article id="businessAboutAddressCard" class="business-info-card">
                     <h3>Адреса</h3>
                     <p id="businessAddress">Не вказано</p>
                     <a id="businessMapLink" href="#" target="_blank" rel="noopener" class="business-inline-link" hidden>📍 Відкрити на Google Maps</a>
                 </article>
 
-                <article class="business-info-card">
+                <article id="businessAboutScheduleCard" class="business-info-card">
                     <h3>Графік роботи</h3>
                     <div id="businessSchedule" class="business-schedule"></div>
                 </article>
@@ -573,7 +573,7 @@
 </div>
 
 <script src="js/auth.js"></script>
-<script src="js/business-profile.js?v=12"></script>
+<script src="js/business-profile.js?v=13"></script>
 <script src="js/loader.js"></script>
 <script src="js/lang.js"></script>
 </body>

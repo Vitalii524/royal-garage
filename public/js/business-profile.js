@@ -587,6 +587,35 @@
         }
     }
 
+    // Hide unfilled sections only for visitors. Owners keep all editing placeholders.
+    function updatePublicSectionVisibility(profile) {
+        const show = (id, visible) => {
+            const element = $(id);
+            if (element) element.style.display = visible ? "" : "none";
+        };
+        const owner = state.isOwner;
+        const filled = (value) => typeof value === "string" && value.trim().length > 0;
+        const schedule = normalizeSchedule(profile.workSchedule);
+        const hasSchedule = DAYS.some(([key]) => schedule[key].enabled);
+        const hasAddress = filled(profile.city) || filled(profile.address);
+        const hasDescription = filled(profile.description);
+        const hasPortfolio = Array.isArray(profile.portfolio) && profile.portfolio.some(
+            (item) => filled(item?.mediaUrl)
+        );
+        const hasMainContent = $("businessMainGrid")?.children.length > 0;
+        const hasContacts = ["businessBottomPhone", "businessBottomTelegram", "businessBottomInstagram"]
+            .some((id) => $(id) && !$(id).hidden);
+
+        show("businessMainContentSection", owner || hasMainContent);
+        show("businessAboutDescriptionCard", owner || hasDescription);
+        show("businessAboutAddressCard", owner || hasAddress);
+        show("businessAboutScheduleCard", owner || hasSchedule);
+        show("businessAboutSection", owner || hasDescription || hasAddress || hasSchedule);
+        show("businessPortfolioSection", owner || hasPortfolio);
+        show("businessBottomContact", owner || hasContacts);
+        // Reviews stay visible so visitors can leave the first review.
+    }
+
     async function renderProfile(profile) {
         state.profile = profile;
         renderLogo(profile);
@@ -605,6 +634,7 @@
         renderOwnerControls(profile);
         await renderMainContent(profile);
         renderPortfolio(profile);
+        updatePublicSectionVisibility(profile);
         loadReviews(profile.ownerId);
 
         document.title = `${profile.name || "Бізнес"} | Royal Garage`;
