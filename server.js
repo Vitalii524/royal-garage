@@ -288,6 +288,18 @@ async function initDatabase() {
         account_disabled_at TIMESTAMPTZ
 `);
 
+    // One lifetime free market listing per account. Never reset on listing deletion.
+    await pool.query(`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS first_free_listing_used BOOLEAN NOT NULL DEFAULT FALSE
+    `);
+
+    // Lifetime free listing credits: 1 for everyone, 3 total for first 100 members.
+    await pool.query(`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS free_market_listings_used INTEGER NOT NULL DEFAULT 0
+    `);
+
     // Перші 100 підтверджених звичайних користувачів Royal Garage.
     // Статус зберігається в базі назавжди та не залежить від поточного лічильника.
     await pool.query(`
@@ -972,6 +984,25 @@ await pool.query(`
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+`);
+
+// Preserve already-used allowances and existing listing history, including after deletion.
+// Existing listings count toward the 1/3 lifetime quota; no previously used bonus is reset.
+await pool.query(`
+    UPDATE users u
+    SET free_market_listings_used = GREATEST(
+        u.free_market_listings_used,
+        CASE WHEN u.first_free_listing_used THEN 1 ELSE 0 END,
+        (SELECT LEAST(COUNT(*), 3)::integer FROM market_listings ml WHERE ml.owner_id = u.id)
+    )
+    WHERE u.free_market_listings_used < 3
+`);
+
+// Existing accounts with listings have already used their first-listing allowance.
+await pool.query(`
+    UPDATE users u SET first_free_listing_used = TRUE
+    WHERE first_free_listing_used = FALSE
+      AND EXISTS (SELECT 1 FROM market_listings ml WHERE ml.owner_id = u.id)
 `);
 
 await pool.query(`
@@ -5558,6 +5589,7 @@ app.post(
     "/api/market/listings",
     requireAuth,
     async (req, res) => {
+        let listingClient = null;
         try {
             const {
                 carId,
@@ -5663,6 +5695,18 @@ app.post(
                 userResult.rows[0].name ||
                 userResult.rows[0].email ||
                 "Продавець";
+
+            // Lock the account row so concurrent requests cannot both claim a free listing.
+            listingClient = await pool.connect();
+            await listingClient.query("BEGIN");
+            const freeListingUser = await listingClient.query(
+                `SELECT account_type, is_first_member, free_market_listings_used FROM users WHERE id = $1 FOR UPDATE`,
+                [req.user.userId]
+            );
+            if (!freeListingUser.rows.length) {
+                await listingClient.query("ROLLBACK");
+                return res.status(404).json({ ok: false, message: "Користувача не знайдено." });
+            }
 
             const id =
                 crypto.randomUUID();
@@ -5799,7 +5843,19 @@ if (
         null;
 }
 
-            const result = await pool.query(
+            // Automatic free allowance: first listing for everyone, three total for
+            // the first 100 verified members. The locked user row prevents double claims.
+            const freeListingLimit = freeListingUser.rows[0].is_first_member ? 3 : 1;
+            const freeListingUsed = Number(freeListingUser.rows[0].free_market_listings_used || 0);
+            const grantFreeListing = listingStatus === "pending_payment" &&
+                freeListingUsed < freeListingLimit;
+            if (grantFreeListing) {
+                listingStatus = "active";
+                publishedAt = new Date();
+                expiresAt = null;
+            }
+
+            const result = await listingClient.query(
                 `
                 INSERT INTO market_listings (
                     id,
@@ -5881,12 +5937,26 @@ if (
                 ]
             );
 
+            if (grantFreeListing) {
+                await listingClient.query(
+                    `UPDATE users
+                     SET free_market_listings_used = free_market_listings_used + 1,
+                         first_free_listing_used = TRUE
+                     WHERE id = $1`,
+                    [req.user.userId]
+                );
+            }
+            await listingClient.query("COMMIT");
+
             res.status(201).json({
                 ok: true,
                 listing: result.rows[0]
             });
 
         } catch (error) {
+            if (listingClient) {
+                try { await listingClient.query("ROLLBACK"); } catch (_) {}
+            }
             console.error(
                 "Market listing create error:",
                 error
@@ -5897,6 +5967,8 @@ if (
                 message:
                     "Не вдалося створити оголошення."
             });
+        } finally {
+            if (listingClient) listingClient.release();
         }
     }
 );
