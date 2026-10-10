@@ -780,7 +780,7 @@ await pool.query(`
     SET
         business_type_id = '11111111-1111-1111-1111-111111111111',
         business_content_type = 'services',
-        subscription_plan_id = 'a2222222-2222-2222-2222-222222222222',
+        subscription_plan_id = 'a1111111-1111-1111-1111-111111111111',
         complimentary_subscription = TRUE,
         subscription_started_at = COALESCE(subscription_started_at, NOW()),
         updated_at = NOW()
