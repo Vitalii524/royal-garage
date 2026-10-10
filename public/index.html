@@ -433,6 +433,11 @@
     function restart(){stop();if(!window.matchMedia('(prefers-reduced-motion:reduce)').matches)timer=setInterval(()=>show(index+1),5000)}
     viewport.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;startY=e.touches[0].clientY;stop()},{passive:true});
     viewport.addEventListener('touchend',e=>{if(startX!==null){const dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy))show(index+(dx<0?1:-1));}startX=startY=null;restart()},{passive:true});
+    viewport.addEventListener('touchcancel', () => {
+    startX = null;
+    startY = null;
+    restart();
+}, { passive: true });
     viewport.addEventListener('mouseenter',stop);viewport.addEventListener('mouseleave',restart);
     const observer=new ResizeObserver(()=>{viewport.style.height=slides[index].offsetHeight+'px'});
     slides.forEach(s=>observer.observe(s));show(0);restart();sliders.push({wrap,stop,observer});
