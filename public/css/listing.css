@@ -929,3 +929,20 @@ body.photo-viewer-open {
     .listing-card .seller-review-save-button { width: 100%; }
     .listing-card .copy-vin-button { margin-left: 0; }
 }
+
+/* Compact vertical rhythm for description and seller rating (2026-10-11). */
+.listing-card:has(> .listing-description) > h2 {
+    margin-bottom: 8px;
+}
+.listing-card .listing-description {
+    margin-top: 0;
+}
+.listing-card .seller-rating-form .seller-rating-status:empty {
+    display: none;
+}
+.listing-card .seller-rating-form .seller-rating-status {
+    margin: 6px 0 0;
+}
+.listing-card .seller-rating-form .seller-review-label {
+    margin-top: 10px;
+}
