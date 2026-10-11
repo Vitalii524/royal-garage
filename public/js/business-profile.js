@@ -1,7 +1,6 @@
 (() => {
     "use strict";
 
-    const DEFAULT_SERVICE_HUB_LOGO = "images/service-hub-logo.jpg";
     const MAX_ITEM_PHOTOS = 6;
     const DAYS = [
         ["mon", "Пн"],
@@ -95,13 +94,13 @@
     }
 
     function initials(name) {
-        const parts = String(name || "SERVICE HUB")
+        const parts = String(name || "Royal Garage")
             .trim()
             .split(/\s+/)
             .filter(Boolean)
             .slice(0, 2);
 
-        return parts.map((part) => part[0]?.toUpperCase() || "").join("") || "SH";
+        return parts.map((part) => part[0]?.toUpperCase() || "").join("") || "RG";
     }
 
     function formatPhone(phone) {
@@ -166,23 +165,20 @@
     function renderLogo(profile) {
         const image = $("businessLogo");
         const placeholder = $("businessLogoPlaceholder");
-        const source = String(profile.logo || "").trim() || DEFAULT_SERVICE_HUB_LOGO;
-
+        const source = String(profile.logo || "").trim();
         placeholder.textContent = initials(profile.name);
-        image.dataset.fallbackTried = "";
         image.onerror = () => {
-            if (!image.dataset.fallbackTried && source !== DEFAULT_SERVICE_HUB_LOGO) {
-                image.dataset.fallbackTried = "1";
-                image.src = DEFAULT_SERVICE_HUB_LOGO;
-                return;
-            }
-
             image.hidden = true;
             placeholder.hidden = false;
         };
-
+        if (!source) {
+            image.removeAttribute("src");
+            image.hidden = true;
+            placeholder.hidden = false;
+            return;
+        }
         image.src = source;
-        image.alt = profile.name || "SERVICE HUB LVIV";
+        image.alt = `Логотип ${profile.name || "бізнесу"}`;
         image.hidden = false;
         placeholder.hidden = true;
     }
@@ -432,7 +428,7 @@
     
                 image.alt =
                     item.description ||
-                    "Робота SERVICE HUB LVIV";
+                    "Робота бізнесу";
     
                 image.loading =
                     "lazy";
@@ -517,7 +513,7 @@
         renderLogo(profile);
 
         $("businessTypeLabel").textContent = profile.businessTypeName || "СТО / автосервіс";
-        $("businessName").textContent = profile.name || "SERVICE HUB LVIV";
+        $("businessName").textContent = profile.name || "Бізнес";
         $("businessHeroDescription").textContent = profile.description || "";
         $("businessDescription").textContent = profile.description || "Опис ще не додано.";
 
@@ -531,9 +527,31 @@
         renderOwnerControls(profile);
         renderServices(profile);
         renderPortfolio(profile);
+
+        // Публічно показуємо лише заповнені розділи.
+        // Власник бачить порожні розділи, щоб мати можливість їх заповнити.
+        const hasText = (value) => Boolean(String(value || "").trim());
+        const hasServices = Array.isArray(profile.services) && profile.services.length > 0;
+        const hasPortfolio = Array.isArray(profile.portfolio) && profile.portfolio.length > 0;
+        const hasDescription = hasText(profile.description);
+        const hasAddress = hasText(profile.city) || hasText(profile.address);
+        const schedule = normalizeSchedule(profile.workSchedule);
+        const hasSchedule = DAYS.some(([day]) => schedule[day].enabled);
+        const show = (id, visible) => { const el = $(id); if (el) el.hidden = !visible; };
+
+        show("businessMainContentSection", state.isOwner || hasServices);
+        show("businessAboutDescriptionCard", state.isOwner || hasDescription);
+        show("businessAboutAddressCard", state.isOwner || hasAddress);
+        show("businessAboutScheduleCard", state.isOwner || hasSchedule);
+        show("businessAboutSection", state.isOwner || hasDescription || hasAddress || hasSchedule);
+        show("businessPortfolioSection", state.isOwner || hasPortfolio);
+        const hasContacts = Boolean(formatPhone(profile.phone) || telegramUrl(profile.telegram) || instagramUrl(profile.instagram));
+        show("businessBottomContact", hasContacts);
+        show("businessHeroDescription", hasDescription);
+
         if (profile.ownerId) loadReviews(profile.ownerId);
 
-        document.title = `${profile.name || "SERVICE HUB LVIV"} | Royal Garage`;
+        document.title = `${profile.name || "Бізнес"} | Royal Garage`;
     }
 
     async function loadProfile() {
@@ -630,8 +648,10 @@
 
     function renderLogoEditPreview() {
         const root = $("businessLogoEditPreview");
-        const source = state.editingLogo || DEFAULT_SERVICE_HUB_LOGO;
-        root.innerHTML = `<img src="${escapeHtml(source)}" alt="Логотип SERVICE HUB LVIV">`;
+        const source = String(state.editingLogo || "").trim();
+        root.innerHTML = source
+            ? `<img src="${escapeHtml(source)}" alt="Логотип бізнесу">`
+            : '<span class="business-empty">Логотип ще не додано</span>';
     }
 
     async function compressImage(file, maxSize = 1200, quality = 0.82) {
