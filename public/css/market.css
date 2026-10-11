@@ -727,3 +727,30 @@
         grid-template-columns: 1fr;
     }
 }
+/* Consistent marketplace form controls and photo actions */
+.market-modal-content { width: min(760px, 100%); }
+.market-modal-header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.market-modal-header h2 { min-width:0; margin:0; }
+.market-modal-close {
+  display:grid; place-items:center; flex:0 0 36px;
+  width:36px; height:36px; padding:0;
+  color:#f0c96b; background:#08284d;
+  border:1px solid rgba(240,201,107,.55); border-radius:50%;
+  font-size:23px; line-height:1; cursor:pointer;
+}
+#listingForm label { min-width:0; }
+#listingForm input:not([type="checkbox"]):not([type="radio"]),
+#listingForm select, #listingForm textarea {
+  width:100%; max-width:100%; min-width:0; box-sizing:border-box;
+  padding:12px 14px; color:#fff; background:#0b2345;
+  border:1px solid rgba(240,201,107,.45); border-radius:10px;
+  font:inherit; font-size:16px;
+}
+#listingForm select option { color:#fff; background:#0b2345; }
+#listingForm input::placeholder, #listingForm textarea::placeholder { color:#b9c5d5; }
+.listing-photo-remove { font-size:19px; width:30px; height:30px; }
+@media(max-width:600px) {
+  .market-modal-header { align-items:flex-start; }
+  .market-modal-close { flex-basis:34px; width:34px; height:34px; }
+  .listing-car-name-fields, .listing-specs { min-width:0; }
+}

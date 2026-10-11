@@ -1293,3 +1293,20 @@
         font-size: 12px;
     }
 }
+
+/* Compact photo-viewer close and readable gallery actions */
+.photo-viewer-close {
+  display:grid; place-items:center;
+  width:40px; height:40px; padding:0;
+  color:#fff; background:rgba(8,34,74,.95);
+  border:1px solid rgba(240,201,107,.65); border-radius:50%;
+  font-size:25px; line-height:1;
+}
+.delete-car-photo-button, .replace-car-photo-button {
+  display:grid; place-items:center; color:#fff; line-height:1;
+}
+@media(max-width:600px) {
+  .photo-viewer-close { top:12px; right:12px; }
+  .garage-page { padding-left:12px; padding-right:12px; }
+  .garage-hero, .garage-sidebar, .service-panel { min-width:0; }
+}

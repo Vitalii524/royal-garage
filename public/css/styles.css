@@ -32,3 +32,56 @@
     background: #f3d27a;
     color: #0b1736;
   }
+/* Royal Garage — targeted responsive controls revision */
+.modal .modal-content, .auth-window, .business-modal-card {
+  box-sizing: border-box;
+  max-width: min(760px, calc(100vw - 24px));
+  max-height: min(90dvh, 900px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.modal .modal-content { position: relative; }
+.modal-close, .market-modal-close, .auth-close, .business-modal-head .business-icon-button {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 23px;
+  line-height: 1;
+  cursor: pointer;
+}
+.modal-close, .auth-close {
+  color: #f0bd55;
+  background: #08284d;
+  border: 1px solid rgba(214,160,58,.55);
+}
+.modal-close:focus-visible, .market-modal-close:focus-visible,
+.auth-close:focus-visible, .business-icon-button:focus-visible {
+  outline: 3px solid #f0bd55;
+  outline-offset: 2px;
+}
+.modal input:not([type="checkbox"]):not([type="radio"]),
+.modal select, .modal textarea,
+.business-modal input:not([type="checkbox"]):not([type="radio"]),
+.business-modal select, .business-modal textarea {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  font-size: 16px;
+}
+.modal select option, .business-modal select option { color: #fff; background: #08284d; }
+@media (max-width: 600px) {
+  .modal, .auth-modal, .business-modal { padding: 10px; }
+  .modal .modal-content, .auth-window, .business-modal-card {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - 20px);
+    padding: 18px 14px;
+    border-radius: 14px;
+  }
+  .modal form, .business-form { min-width: 0; }
+  .modal form > *, .business-form > * { max-width: 100%; }
+}
