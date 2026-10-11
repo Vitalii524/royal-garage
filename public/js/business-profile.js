@@ -1,7 +1,6 @@
 (() => {
     "use strict";
 
-    const SERVICE_HUB_OWNER_ID = "d2363e3d-4723-4755-9030-594cd3ccd6f0";
     const DEFAULT_SERVICE_HUB_LOGO = "images/service-hub-logo.jpg";
     const MAX_ITEM_PHOTOS = 6;
     const DAYS = [
@@ -47,10 +46,14 @@
         }
     }
 
-    function isServiceHubOwner() {
+    function requestedOwnerId() {
+        return new URLSearchParams(window.location.search).get("id")?.trim() || "";
+    }
+
+    function isCurrentBusinessOwner(ownerId) {
         const user = getStoredUser();
         const userId = user?.id ?? user?.userId ?? user?.user_id;
-        return Boolean(token() && userId && String(userId) === SERVICE_HUB_OWNER_ID);
+        return Boolean(token() && userId && (!ownerId || String(userId) === String(ownerId)));
     }
 
     async function api(url, options = {}) {
@@ -328,8 +331,7 @@
         event.preventDefault();
     
         const ownerId =
-            state.profile?.ownerId ||
-            SERVICE_HUB_OWNER_ID;
+            state.profile?.ownerId;
     
         const rating =
             Number(
@@ -529,23 +531,28 @@
         renderOwnerControls(profile);
         renderServices(profile);
         renderPortfolio(profile);
-        loadReviews(profile.ownerId || SERVICE_HUB_OWNER_ID);
+        if (profile.ownerId) loadReviews(profile.ownerId);
 
         document.title = `${profile.name || "SERVICE HUB LVIV"} | Royal Garage`;
     }
 
     async function loadProfile() {
-        state.isOwner = isServiceHubOwner();
+        const ownerId = requestedOwnerId();
+        state.isOwner = isCurrentBusinessOwner(ownerId);
 
         try {
+            if (!ownerId && !state.isOwner) {
+                throw new Error("Для перегляду бізнес-профілю відкрийте його з каталогу.");
+            }
+
             const data = state.isOwner
                 ? await api("/api/business/profile")
-                : await api(`/api/business/profiles/${encodeURIComponent(SERVICE_HUB_OWNER_ID)}`, {
+                : await api(`/api/business/profiles/${encodeURIComponent(ownerId)}`, {
                     headers: { Authorization: "" }
                 });
 
-            if (String(data.profile?.ownerId || "") !== SERVICE_HUB_OWNER_ID) {
-                throw new Error("Профіль SERVICE HUB LVIV не знайдено.");
+            if (!data.profile || (ownerId && String(data.profile.ownerId) !== ownerId)) {
+                throw new Error("Не вдалося завантажити вибраний бізнес-профіль.");
             }
 
             await renderProfile(data.profile);
@@ -553,12 +560,10 @@
             $("businessPageError").hidden = true;
             $("businessPageContent").hidden = false;
         } catch (error) {
-            console.error("Service Hub profile load error:", error);
-            setPageError(
-                error.status === 404
-                    ? "Профіль SERVICE HUB LVIV ще не опублікований."
-                    : error.message
-            );
+            console.error("Business profile load error:", error);
+            setPageError(error.status === 404
+                ? "Бізнес-профіль не знайдено або ще не опублікований."
+                : error.message);
         }
     }
 
