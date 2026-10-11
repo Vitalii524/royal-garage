@@ -338,3 +338,34 @@
 .forum-notification{padding:10px;border-bottom:1px solid rgba(255,255,255,.12);line-height:1.5}
 .forum-notification a{color:#f4d58d}
 @media(max-width:480px){.forum-topic-owner-actions .forum-topic-button{width:auto!important;padding:7px 10px!important;font-size:12px!important}.forum-topic-owner-actions{flex-direction:row!important}}
+
+/* ===== FIX: compact photo removal control in topic editor ===== */
+/* Limit the override to image-preview containers, not form submit buttons. */
+#topicModal :is(.image-preview, .photo-preview, .topic-photo-preview, .forum-image-preview, .forum-photo-preview, .preview-image, .image-preview-container, .photo-preview-container, #topicImagePreview, #topicPhotoPreview, #imagePreview, #photoPreview) {
+    position: relative;
+    max-width: 100%;
+}
+#topicModal :is(.image-preview, .photo-preview, .topic-photo-preview, .forum-image-preview, .forum-photo-preview, .preview-image, .image-preview-container, .photo-preview-container, #topicImagePreview, #topicPhotoPreview, #imagePreview, #photoPreview) :is(button, .remove-photo, .remove-image, .remove-preview, .photo-remove, .image-remove) {
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    left: auto !important;
+    bottom: auto !important;
+    display: grid !important;
+    place-items: center !important;
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 50% !important;
+    background: rgba(2, 7, 18, .85) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255,255,255,.5) !important;
+    font-size: 20px !important;
+    line-height: 1 !important;
+    z-index: 5;
+    cursor: pointer;
+}
