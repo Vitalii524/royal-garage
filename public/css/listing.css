@@ -786,3 +786,26 @@ body.photo-viewer-open {
     }
     .listing-photo-dots { gap: 8px; }
 }
+
+
+/* Consistent listing action buttons, independent of browser defaults. */
+.listing-card.seller-card > button,
+.listing-card.seller-card .primary-button,
+.listing-card.seller-card .secondary-button {
+  box-sizing: border-box; min-height: 42px; padding: 10px 14px;
+  background: #0b2b53; color: #f0c96b;
+  border: 1px solid rgba(240,201,107,.7); border-radius: 10px;
+  font: inherit; font-size: 15px; font-weight: 700;
+  line-height: 1.35; white-space: normal; cursor: pointer;
+}
+.listing-card.seller-card > button:hover,
+.listing-card.seller-card > button:focus-visible {
+  background: #173c6d; border-color: #f0c96b;
+}
+.listing-parameters { gap: 6px 22px; }
+.listing-parameters p { margin: 6px 0; line-height: 1.55; overflow-wrap: anywhere; }
+@media (max-width: 650px) {
+  .listing-parameters { gap: 2px; }
+  .listing-parameters p { margin: 5px 0; }
+  .listing-card.seller-card > button { display: block; width: 100%; margin: 8px 0 0; }
+}

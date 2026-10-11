@@ -754,3 +754,20 @@
   .market-modal-close { flex-basis:34px; width:34px; height:34px; }
   .listing-car-name-fields, .listing-specs { min-width:0; }
 }
+
+
+/* Photo remove buttons must never inherit full-width modal button styling. */
+#listingModal .listing-photo-preview-card .listing-photo-remove {
+  position: absolute; top: 6px; right: 6px; left: auto; bottom: auto;
+  width: 30px; height: 30px; min-width: 30px; min-height: 30px;
+  max-width: 30px; margin: 0; padding: 0; flex: none;
+  display: grid; place-items: center;
+  border-radius: 50%; background: #a61f2e; color: #fff;
+  border: 1px solid rgba(255,255,255,.45); font-size: 20px; line-height: 1;
+  transform: none; z-index: 10;
+}
+#listingModal .market-modal-header .market-modal-close {
+  width: 34px; height: 34px; min-width: 34px; max-width: 34px;
+  margin: 0; padding: 0; flex: 0 0 34px;
+  position: static; transform: none;
+}
