@@ -95,6 +95,35 @@
     gap: 10px;
     margin: 14px 0;
 }
+/* Кнопка видалення фото: захист від загальних стилів кнопок у модальному вікні */
+#topicAttachmentPreview { position: relative; isolation: isolate; }
+#topicAttachmentPreview #removeTopicAttachment {
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    left: auto !important;
+    bottom: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 50% !important;
+    line-height: 1 !important;
+    font-size: 22px !important;
+    flex: 0 0 34px !important;
+    transform: none !important;
+    z-index: 2;
+    background: rgba(8, 20, 38, .9) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255,255,255,.6) !important;
+}
 </style>
 </head>
 <body>
