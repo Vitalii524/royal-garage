@@ -140,6 +140,8 @@ async function loadForumTopics() {
                 updatedAt:
                     topic.updated_at,
 
+                likeUserIds: Array.isArray(topic.like_user_ids) ? topic.like_user_ids : [],
+                followersCount: Number(topic.followers_count || 0),
                 replies: Array.isArray(topic.replies)
                     ? topic.replies
                     : []
@@ -740,6 +742,7 @@ function renderForumTopics() {
 
             </div>
 
+            ${forumSocialActions(topic)}
             <div class="forum-topic-actions">
 
                 <a
@@ -903,6 +906,7 @@ function openTopicView(topicId) {
                 : ""
         }
 
+        ${forumSocialActions(topic)}
         ${
             isOwner
                 ? `
@@ -2000,3 +2004,90 @@ document.addEventListener(
 /* ===== ЗАПУСК ===== */
 
 loadForumTopics();
+/* ===== СОЦІАЛЬНІ ФУНКЦІЇ ФОРУМУ ===== */
+let forumFollowing=new Set();
+let forumNotifications=[];
+function forumSocialActions(topic){
+    const me=getCurrentForumUser();
+    const liked=Boolean(me?.id && topic.likeUserIds.some(id=>String(id)===String(me.id)));
+    const following=forumFollowing.has(String(topic.authorId));
+    const own=me?.id && String(me.id)===String(topic.authorId);
+    return `<div class="forum-social-actions">
+        <button type="button" data-forum-social="like" data-topic-id="${escapeForumHtml(topic.id)}" class="forum-social-button ${liked?'is-liked':''}" aria-pressed="${liked}">♥ ${topic.likeUserIds.length}</button>
+        ${!own?`<button type="button" data-forum-social="follow" data-author-id="${escapeForumHtml(topic.authorId)}" class="forum-social-button">${following?'✓ Підписаний':'+ Підписатися'} · ${topic.followersCount}</button>`:`<span class="forum-social-muted">Підписники: ${topic.followersCount}</span>`}
+    </div>`;
+}
+async function forumSocialRequest(path){
+    const token=localStorage.getItem('royalGarageToken');
+    if(!token){alert('Увійди в акаунт Royal Garage.');return false;}
+    try{
+        const response=await fetch(path,{method:'POST',headers:{Authorization:`Bearer ${token}`}});
+        const data=await response.json();
+        if(!response.ok) throw new Error(data.message||'Не вдалося виконати дію.');
+        await loadForumSocial();
+        await loadForumTopics();
+        const topicId=new URLSearchParams(location.search).get('topicId');
+        if(topicId) openTopicView(topicId);
+        return true;
+    }catch(error){alert(error.message);return false;}
+}
+document.addEventListener('click',event=>{
+    const button=event.target.closest('[data-forum-social]');
+    if(!button)return;
+    if(button.dataset.forumSocial==='like') forumSocialRequest(`/api/forum/topics/${encodeURIComponent(button.dataset.topicId)}/like`);
+    if(button.dataset.forumSocial==='follow') forumSocialRequest(`/api/forum/authors/${encodeURIComponent(button.dataset.authorId)}/follow`);
+});
+async function loadForumSocial(){
+    const token=localStorage.getItem('royalGarageToken');
+    if(!token)return;
+    try{
+        const response=await fetch('/api/forum/social',{headers:{Authorization:`Bearer ${token}`}});
+        if(!response.ok)return;
+        const data=await response.json();
+        forumFollowing=new Set((data.following||[]).map(String));
+        forumNotifications=data.notifications||[];
+        const count=forumNotifications.filter(n=>!n.is_read).length;
+        const bell=document.getElementById('forumBell');
+        if(bell)bell.textContent=`🔔 ${count||''}`;
+    }catch(error){console.warn('Forum notifications:',error);}
+}
+async function openForumNotifications(){
+    const box=document.getElementById('forumNotifications');
+    if(!box)return;
+    await loadForumSocial();
+    box.hidden=!box.hidden;
+    if(box.hidden)return;
+    box.innerHTML=forumNotifications.length?forumNotifications.map(n=>`<div class="forum-notification"><span>${escapeForumHtml(n.actor_name||'Користувач')}: ${escapeForumHtml(n.message)}</span>${n.topic_id?` <a href="forum.html?topicId=${encodeURIComponent(n.topic_id)}">Відкрити</a>`:''}</div>`).join(''):'<p>Нових сповіщень немає.</p>';
+    const token=localStorage.getItem('royalGarageToken');
+    if(token)await fetch('/api/forum/notifications/read',{method:'POST',headers:{Authorization:`Bearer ${token}`}});
+    await loadForumSocial();
+}
+document.getElementById('forumBell')?.addEventListener('click',openForumNotifications);
+loadForumSocial().then(()=>renderForumTopics());
+setInterval(loadForumSocial,45000);
+
+// Enable Web Push only after explicit user interaction.
+function forumUrlBase64ToUint8(base64) {
+    const padded=base64+'='.repeat((4-base64.length%4)%4);
+    const raw=atob(padded.replace(/-/g,'+').replace(/_/g,'/'));
+    return Uint8Array.from(raw, ch=>ch.charCodeAt(0));
+}
+async function forumEnablePush() {
+    const token=localStorage.getItem('royalGarageToken');
+    if(!token){alert('Увійди в акаунт, щоб увімкнути сповіщення.');return;}
+    if(!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)){
+        alert('Цей браузер не підтримує Web Push.');return;
+    }
+    try {
+        const config=await (await fetch('/api/forum/push/public-key')).json();
+        if(!config.enabled || !config.publicKey){alert('Push ще не налаштовано на сервері.');return;}
+        const permission=await Notification.requestPermission();
+        if(permission!=='granted'){alert('Дозвіл на сповіщення не надано.');return;}
+        const registration=await navigator.serviceWorker.register('/sw.js',{scope:'/'});
+        const subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:forumUrlBase64ToUint8(config.publicKey)});
+        const response=await fetch('/api/forum/push/subscribe',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({subscription:subscription.toJSON()})});
+        if(!response.ok) throw new Error((await response.json()).message||'Не вдалося зберегти підписку.');
+        alert('Push-сповіщення ввімкнено!');
+    }catch(error){console.error('Forum push:',error);alert(error.message||'Помилка підключення Push.');}
+}
+document.getElementById('forumEnablePush')?.addEventListener('click',forumEnablePush);

@@ -168,6 +168,31 @@ async function sendVerificationSms(
     return smsResult.data;
 }
 
+
+// Web Push is optional until VAPID environment variables and web-push are configured.
+let forumWebPush = null;
+try {
+    forumWebPush = require('web-push');
+    if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY && process.env.VAPID_SUBJECT) {
+        forumWebPush.setVapidDetails(process.env.VAPID_SUBJECT, process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
+    } else { forumWebPush = null; }
+} catch (error) { console.warn('Web Push disabled:', error.message); }
+const forumPushEnabled = () => Boolean(forumWebPush && process.env.VAPID_PUBLIC_KEY);
+async function forumSendPush(userId, message, topicId) {
+    if (!forumPushEnabled()) return;
+    try {
+        const rows = await pool.query('SELECT endpoint,subscription FROM forum_push_subscriptions WHERE user_id=$1', [userId]);
+        const payload = JSON.stringify({title:'Royal Garage · Форум',body:message,url:topicId ? '/forum.html?topicId='+encodeURIComponent(topicId) : '/forum.html'});
+        await Promise.allSettled(rows.rows.map(async row => {
+            try { await forumWebPush.sendNotification(row.subscription, payload, {TTL:86400}); }
+            catch (err) {
+                if ([404,410].includes(err.statusCode)) await pool.query('DELETE FROM forum_push_subscriptions WHERE endpoint=$1 AND user_id=$2',[row.endpoint,userId]);
+                else console.warn('Forum push send failed:', err.statusCode || err.message);
+            }
+        }));
+    } catch(err) { console.warn('Forum push lookup failed:',err.message); }
+}
+
 const app = express();
 
 const LIQPAY_PUBLIC_KEY =
@@ -906,6 +931,39 @@ await pool.query(`
         PRIMARY KEY (reply_id, user_id)
     )
 `);
+
+await pool.query(`CREATE TABLE IF NOT EXISTS forum_topic_likes (
+    topic_id UUID NOT NULL REFERENCES forum_topics(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY(topic_id,user_id)
+)`);
+await pool.query(`CREATE TABLE IF NOT EXISTS forum_follows (
+    follower_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY(follower_id,author_id),
+    CHECK(follower_id <> author_id)
+)`);
+await pool.query(`CREATE TABLE IF NOT EXISTS forum_notifications (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    actor_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    kind VARCHAR(32) NOT NULL,
+    topic_id UUID REFERENCES forum_topics(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`);
+await pool.query(`CREATE INDEX IF NOT EXISTS idx_forum_notifications_user ON forum_notifications(user_id,created_at DESC)`);
+await pool.query(`CREATE TABLE IF NOT EXISTS forum_push_subscriptions (
+    endpoint TEXT PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    subscription JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`);
+await pool.query(`CREATE INDEX IF NOT EXISTS idx_forum_push_user ON forum_push_subscriptions(user_id)`);
+
 
 await pool.query(`
     CREATE TABLE IF NOT EXISTS chat_messages (
@@ -10287,6 +10345,8 @@ app.get("/api/forum/topics", async (req, res) => {
                 t.updated_at,
                 u.id AS user_id,
                 u.name AS author_name,
+                COALESCE((SELECT json_agg(l.user_id) FROM forum_topic_likes l WHERE l.topic_id=t.id),'[]'::json) AS like_user_ids,
+                (SELECT COUNT(*)::int FROM forum_follows f WHERE f.author_id=u.id) AS followers_count,
 
                 COALESCE(
                     (
@@ -17263,6 +17323,77 @@ app.post(
 
 
 
+
+
+app.get('/api/forum/push/public-key', (req,res) => res.json({ok:true,enabled:forumPushEnabled(),publicKey:forumPushEnabled()?process.env.VAPID_PUBLIC_KEY:null}));
+app.post('/api/forum/push/subscribe', requireAuth, async(req,res)=>{
+    try {
+        if(!forumPushEnabled()) return res.status(503).json({ok:false,message:'Push ще не налаштовано на сервері.'});
+        const sub=req.body?.subscription;
+        if (!sub || typeof sub.endpoint!=='string' || !/^https:\/\//.test(sub.endpoint) || sub.endpoint.length>2048 || typeof sub.keys?.p256dh!=='string' || typeof sub.keys?.auth!=='string')
+            return res.status(400).json({ok:false,message:'Некоректна підписка.'});
+        await pool.query(`INSERT INTO forum_push_subscriptions(endpoint,user_id,subscription) VALUES($1,$2,$3)
+            ON CONFLICT(endpoint) DO UPDATE SET user_id=EXCLUDED.user_id,subscription=EXCLUDED.subscription`,[sub.endpoint,req.user.userId,JSON.stringify(sub)]);
+        res.json({ok:true});
+    } catch(err) {console.error('Forum push subscribe:',err);res.status(500).json({ok:false});}
+});
+app.post('/api/forum/push/unsubscribe', requireAuth, async(req,res)=>{
+    try {
+        const endpoint=req.body?.endpoint;
+        if(typeof endpoint!=='string') return res.status(400).json({ok:false});
+        await pool.query('DELETE FROM forum_push_subscriptions WHERE endpoint=$1 AND user_id=$2',[endpoint,req.user.userId]);
+        res.json({ok:true});
+    } catch(err){console.error('Forum push unsubscribe:',err);res.status(500).json({ok:false});}
+});
+
+// Forum social interactions: authenticated, persistent and account-scoped.
+async function forumNotify(userId, actorId, kind, topicId, message) {
+    if (!userId || String(userId) === String(actorId)) return;
+    await pool.query(`INSERT INTO forum_notifications (id,user_id,actor_id,kind,topic_id,message)
+        VALUES ($1,$2,$3,$4,$5,$6)`, [crypto.randomUUID(),userId,actorId,kind,topicId,message]);
+    await forumSendPush(userId, message, topicId);
+}
+app.post('/api/forum/topics/:topicId/like', requireAuth, async (req,res) => {
+    try {
+        const found=await pool.query('SELECT user_id,title FROM forum_topics WHERE id=$1',[req.params.topicId]);
+        if(!found.rowCount) return res.status(404).json({ok:false,message:'Тему не знайдено.'});
+        const userId=req.user.userId;
+        const removed=await pool.query('DELETE FROM forum_topic_likes WHERE topic_id=$1 AND user_id=$2 RETURNING user_id',[req.params.topicId,userId]);
+        let liked=false;
+        if(!removed.rowCount) {
+            const inserted=await pool.query('INSERT INTO forum_topic_likes(topic_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING user_id',[req.params.topicId,userId]);
+            liked=Boolean(inserted.rowCount);
+            if(liked) await forumNotify(found.rows[0].user_id,userId,'topic_like',req.params.topicId,'Ваш допис вподобали');
+        }
+        const count=await pool.query('SELECT COUNT(*)::int AS count FROM forum_topic_likes WHERE topic_id=$1',[req.params.topicId]);
+        res.json({ok:true,liked,count:count.rows[0].count});
+    } catch(e){console.error('Topic like:',e);res.status(500).json({ok:false,message:'Не вдалося змінити лайк.'});}
+});
+app.get('/api/forum/social',requireAuth,async(req,res)=>{
+    try {
+        const follows=await pool.query('SELECT author_id FROM forum_follows WHERE follower_id=$1',[req.user.userId]);
+        const notices=await pool.query(`SELECT n.id,n.kind,n.topic_id,n.message,n.is_read,n.created_at,u.name AS actor_name
+            FROM forum_notifications n LEFT JOIN users u ON u.id=n.actor_id
+            WHERE n.user_id=$1 ORDER BY n.created_at DESC LIMIT 40`,[req.user.userId]);
+        res.json({ok:true,following:follows.rows.map(x=>x.author_id),notifications:notices.rows});
+    }catch(e){console.error('Forum social:',e);res.status(500).json({ok:false});}
+});
+app.post('/api/forum/authors/:authorId/follow',requireAuth,async(req,res)=>{
+    try{
+        const authorId=req.params.authorId, me=req.user.userId;
+        if(String(authorId)===String(me)) return res.status(400).json({ok:false,message:'Не можна підписатися на себе.'});
+        const user=await pool.query('SELECT id FROM users WHERE id=$1',[authorId]);
+        if(!user.rowCount) return res.status(404).json({ok:false,message:'Автора не знайдено.'});
+        const removed=await pool.query('DELETE FROM forum_follows WHERE follower_id=$1 AND author_id=$2 RETURNING follower_id',[me,authorId]);
+        let following=false;
+        if(!removed.rowCount){const inserted=await pool.query('INSERT INTO forum_follows(follower_id,author_id) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING follower_id',[me,authorId]);following=Boolean(inserted.rowCount);if(following) await forumNotify(authorId,me,'follow',null,'На вас підписалися');}
+        res.json({ok:true,following});
+    }catch(e){console.error('Forum follow:',e);res.status(500).json({ok:false});}
+});
+app.post('/api/forum/notifications/read',requireAuth,async(req,res)=>{
+    try{await pool.query('UPDATE forum_notifications SET is_read=TRUE WHERE user_id=$1 AND is_read=FALSE',[req.user.userId]);res.json({ok:true});}
+    catch(e){console.error('Notifications read:',e);res.status(500).json({ok:false});}
+});
 
 app.post(
     "/api/forum/replies/:replyId/like",
