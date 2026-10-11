@@ -116,6 +116,32 @@
 }
 
 </style>
+<style id="rg-hero-buttons-mobile-fix">
+/* Ensure the two hero actions remain side by side on phones. */
+@media screen and (max-width: 767px) {
+  .home-layout .hero .hero-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    flex-direction: row !important;
+    gap: 9px !important;
+    width: 100% !important;
+  }
+  .home-layout .hero .hero-actions > a {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 44px !important;
+    padding: 9px 5px !important;
+    font-size: clamp(11px, 3.2vw, 14px) !important;
+    line-height: 1.25 !important;
+    text-align: center !important;
+    white-space: normal !important;
+  }
+}
+</style>
 </head>
 <body>
 <div class="royal-loader" id="royalLoader">
