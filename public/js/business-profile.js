@@ -1,6 +1,8 @@
 (() => {
     "use strict";
 
+    const SERVICE_HUB_OWNER_ID = "d2363e3d-4723-4755-9030-594cd3ccd6f0";
+    const DEFAULT_SERVICE_HUB_LOGO = "images/service-hub-logo.jpg";
     const MAX_ITEM_PHOTOS = 6;
     const DAYS = [
         ["mon", "Пн"],
@@ -15,7 +17,6 @@
     const state = {
         profile: null,
         isOwner: false,
-        publicOwnerId: null,
         editingItemPhotos: [],
         editingLogo: null,
         editingPortfolioImage: null
@@ -35,7 +36,8 @@
 
     function getStoredUser() {
         if (typeof window.getCurrentUser === "function") {
-            return window.getCurrentUser();
+            const user = window.getCurrentUser();
+            if (user) return user;
         }
 
         try {
@@ -43,6 +45,12 @@
         } catch {
             return null;
         }
+    }
+
+    function isServiceHubOwner() {
+        const user = getStoredUser();
+        const userId = user?.id ?? user?.userId ?? user?.user_id;
+        return Boolean(token() && userId && String(userId) === SERVICE_HUB_OWNER_ID);
     }
 
     async function api(url, options = {}) {
@@ -58,7 +66,7 @@
         }
 
         const response = await fetch(url, { ...options, headers });
-        let data = null;
+        let data = {};
 
         try {
             data = await response.json();
@@ -84,13 +92,13 @@
     }
 
     function initials(name) {
-        const parts = String(name || "Royal Garage")
+        const parts = String(name || "SERVICE HUB")
             .trim()
             .split(/\s+/)
             .filter(Boolean)
             .slice(0, 2);
 
-        return parts.map((part) => part[0]?.toUpperCase() || "").join("") || "RG";
+        return parts.map((part) => part[0]?.toUpperCase() || "").join("") || "SH";
     }
 
     function formatPhone(phone) {
@@ -118,17 +126,21 @@
         return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
     }
 
+    function money(value) {
+        const number = Number(value);
+        if (!Number.isFinite(number) || number <= 0) return "";
+        return `від ${Math.round(number).toLocaleString("uk-UA")} грн`;
+    }
+
     function formatDate(value) {
         if (!value) return "";
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return "";
-        return date.toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit", year: "numeric" });
-    }
-
-    function money(value, prefix = "") {
-        const number = Number(value);
-        if (!Number.isFinite(number) || number <= 0) return "";
-        return `${prefix}${Math.round(number).toLocaleString("uk-UA")} грн`;
+        return date.toLocaleDateString("uk-UA", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+        });
     }
 
     function normalizeSchedule(schedule) {
@@ -151,17 +163,25 @@
     function renderLogo(profile) {
         const image = $("businessLogo");
         const placeholder = $("businessLogoPlaceholder");
-        placeholder.textContent = initials(profile.name);
+        const source = String(profile.logo || "").trim() || DEFAULT_SERVICE_HUB_LOGO;
 
-        if (profile.logo) {
-            image.src = profile.logo;
-            image.hidden = false;
-            placeholder.hidden = true;
-        } else {
-            image.removeAttribute("src");
+        placeholder.textContent = initials(profile.name);
+        image.dataset.fallbackTried = "";
+        image.onerror = () => {
+            if (!image.dataset.fallbackTried && source !== DEFAULT_SERVICE_HUB_LOGO) {
+                image.dataset.fallbackTried = "1";
+                image.src = DEFAULT_SERVICE_HUB_LOGO;
+                return;
+            }
+
             image.hidden = true;
             placeholder.hidden = false;
-        }
+        };
+
+        image.src = source;
+        image.alt = profile.name || "SERVICE HUB LVIV";
+        image.hidden = false;
+        placeholder.hidden = true;
     }
 
     function setContactLink(id, href, visible) {
@@ -209,155 +229,73 @@
         }
     }
 
-    function contentMode(profile) {
-        const type = profile.businessTypeCode;
-        if (["car_service", "detailing", "tire_service", "road_assistance"].includes(type)) return "services";
-        if (type === "auto_shop") return "products";
-        if (type === "car_dealer") return "cars";
-        return profile.businessContentType || "services";
-    }
-
     function renderOwnerControls(profile) {
         const panel = $("businessOwnerPanel");
         const manage = $("businessManageButton");
-        panel.hidden = !state.isOwner;
+
         manage.hidden = !state.isOwner;
         $("businessAddPortfolioButton").hidden = !state.isOwner;
         $("businessOwnerDraftBadge").hidden = !(state.isOwner && profile.profileStatus !== "active");
 
-        if (!state.isOwner) return;
+        if (!state.isOwner) {
+            panel.hidden = true;
+            return;
+        }
 
         const active = profile.profileStatus === "active";
         $("businessProfileStatusText").textContent = active ? "Активний" : "Чернетка";
         $("businessProfileStatusHint").textContent = active
             ? "Профіль опублікований у «Партнерах»."
-            : "Для публікації потрібні активний тариф, підтверджений email і телефон.";
+            : "Перевірте підтвердження email і телефону.";
         $("businessProfileStatusDot").classList.toggle("active", active);
 
         $("businessEmailStatus").textContent = profile.emailVerified ? "Підтверджено ✓" : "Не підтверджено";
         $("businessPhoneStatus").textContent = profile.phoneVerified ? "Підтверджено ✓" : "Не підтверджено";
         $("businessVerifyEmailButton").hidden = Boolean(profile.emailVerified);
         $("businessVerifyPhoneButton").hidden = Boolean(profile.phoneVerified);
-
-        const subActive = profile.subscriptionStatus === "active";
-        $("businessPlanStatus").textContent = subActive
-            ? `${profile.planName || "Тариф"} — активний`
-            : `${profile.planName || "Тариф"} — неактивний`;
-        $("businessPlanExpires").textContent = profile.subscriptionExpiresAt
-            ? `До ${formatDate(profile.subscriptionExpiresAt)}`
-            : "";
-
-        const mode = contentMode(profile);
-        $("businessAddServiceButton").hidden = !(mode === "services" || mode === "both");
-        $("businessAddProductButton").hidden = !(mode === "products" || mode === "both");
-        $("businessAddCarButton").hidden = mode !== "cars";
     }
 
     function createPhotos(photos, alt) {
-        const list = Array.isArray(photos) ? photos.filter(Boolean).slice(0, MAX_ITEM_PHOTOS) : [];
+        const list = Array.isArray(photos)
+            ? photos.filter(Boolean).slice(0, MAX_ITEM_PHOTOS)
+            : [];
+
         if (!list.length) return "";
-        return `<div class="business-card-photos">${list.map((src) => `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy">`).join("")}</div>`;
+
+        return `<div class="business-card-photos">${list
+            .map((src) => `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy">`)
+            .join("")}</div>`;
     }
 
-    function itemCard(item, kind) {
+    function serviceCard(service) {
         const card = document.createElement("article");
         card.className = "business-content-card";
-        const priceText = kind === "service"
-            ? money(item.priceFrom, "від ")
-            : money(item.price);
+        const priceText = money(service.priceFrom);
 
         card.innerHTML = `
-            ${createPhotos(item.photos, item.title)}
+            ${createPhotos(service.photos, service.title)}
             <div class="business-content-body">
-                <h3>${escapeHtml(item.title || (kind === "service" ? "Послуга" : "Товар"))}</h3>
-                ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
+                <h3>${escapeHtml(service.title || "Послуга")}</h3>
+                ${service.description ? `<p>${escapeHtml(service.description)}</p>` : ""}
                 ${priceText ? `<span class="business-price">${priceText}</span>` : ""}
                 ${state.isOwner ? `
                     <div class="business-card-owner-actions">
-                        <button type="button" data-edit-kind="${kind}" data-edit-id="${escapeHtml(item.id)}">✏️ Редагувати</button>
-                        <button type="button" data-delete-kind="${kind}" data-delete-id="${escapeHtml(item.id)}">🗑 Видалити</button>
+                        <button type="button" data-edit-service="${escapeHtml(service.id)}">✏️ Редагувати</button>
+                        <button type="button" data-delete-service="${escapeHtml(service.id)}">🗑 Видалити</button>
                     </div>
                 ` : ""}
             </div>`;
+
         return card;
     }
 
-    async function renderCars(profile) {
+    function renderServices(profile) {
         const root = $("businessMainGrid");
         const empty = $("businessMainEmpty");
-        root.innerHTML = "";
-        $("businessMainTitle").textContent = "Автомобілі у продажу";
-        $("businessMainEyebrow").textContent = "Авторинок";
-        empty.textContent = "Активних оголошень ще немає.";
-
-        try {
-            const data = await api("/api/market/listings", { headers: { Authorization: "" } });
-            const listings = (Array.isArray(data.listings) ? data.listings : [])
-                .filter((listing) => String(listing.ownerId ?? listing.owner_id) === String(profile.ownerId));
-
-            empty.hidden = listings.length > 0;
-            for (const listing of listings) {
-                const photos = Array.isArray(listing.photos) ? listing.photos : [];
-                const activeIndex = Number(listing.activePhotoIndex ?? listing.active_photo_index ?? 0) || 0;
-                const photo = photos[activeIndex] || photos[0] || "";
-                const card = document.createElement("a");
-                card.className = "business-content-card";
-                card.href = `listing.html?id=${encodeURIComponent(listing.id)}`;
-                card.style.textDecoration = "none";
-                card.innerHTML = `
-                    ${photo ? `<div class="business-card-photos"><img src="${escapeHtml(photo)}" alt="${escapeHtml(listing.name || "Автомобіль")}" loading="lazy"></div>` : ""}
-                    <div class="business-content-body">
-                        <h3>${escapeHtml([listing.name, listing.year].filter(Boolean).join(" "))}</h3>
-                        ${listing.city ? `<p>${escapeHtml(listing.city)}</p>` : ""}
-                        ${money(listing.priceUsd) ? `<span class="business-price">${Math.round(Number(listing.priceUsd)).toLocaleString("uk-UA")} $</span>` : ""}
-                    </div>`;
-                root.appendChild(card);
-            }
-        } catch (error) {
-            console.error("Business cars load error:", error);
-            empty.hidden = false;
-            empty.textContent = "Не вдалося завантажити автомобілі.";
-        }
-    }
-
-    async function renderMainContent(profile) {
-        const root = $("businessMainGrid");
-        const empty = $("businessMainEmpty");
-        root.innerHTML = "";
-        empty.hidden = true;
-
-        const mode = contentMode(profile);
-        if (mode === "cars") {
-            await renderCars(profile);
-            return;
-        }
-
         const services = Array.isArray(profile.services) ? profile.services : [];
-        const products = Array.isArray(profile.products) ? profile.products : [];
 
-        if (mode === "products") {
-            $("businessMainTitle").textContent = "Товари";
-            $("businessMainEyebrow").textContent = "Каталог";
-            products.forEach((item) => root.appendChild(itemCard(item, "product")));
-            empty.textContent = "Товари ще не додано.";
-            empty.hidden = products.length > 0;
-            return;
-        }
-
-        if (mode === "both") {
-            $("businessMainTitle").textContent = "Послуги та товари";
-            $("businessMainEyebrow").textContent = "Пропозиції";
-            services.forEach((item) => root.appendChild(itemCard(item, "service")));
-            products.forEach((item) => root.appendChild(itemCard(item, "product")));
-            empty.textContent = "Пропозиції ще не додано.";
-            empty.hidden = services.length + products.length > 0;
-            return;
-        }
-
-        $("businessMainTitle").textContent = "Послуги";
-        $("businessMainEyebrow").textContent = "Послуги";
-        services.forEach((item) => root.appendChild(itemCard(item, "service")));
-        empty.textContent = "Послуги ще не додано.";
+        root.innerHTML = "";
+        services.forEach((service) => root.appendChild(serviceCard(service)));
         empty.hidden = services.length > 0;
     }
 
@@ -373,26 +311,16 @@
             $("businessRatingAverage").textContent = count ? `⭐ ${average.toFixed(1)}` : "⭐ —";
             $("businessRatingCount").textContent = count ? `${count} оцінок` : "Відгуків ще немає";
 
-            const reviews = Array.isArray(reviewsData.reviews) ? reviewsData.reviews : [];
-            const root = $("businessReviewsList");
-            root.innerHTML = "";
-            $("businessReviewsEmpty").hidden = reviews.length > 0;
-
-            for (const review of reviews) {
-                const card = document.createElement("article");
-                card.className = "business-review-card";
-                const stars = "⭐".repeat(Math.max(0, Math.min(5, Number(review.rating) || 0)));
-                card.innerHTML = `
-                    <div class="business-review-top">
-                        <strong>${escapeHtml(review.userName || "Користувач")}</strong>
-                        <span>${stars}</span>
-                    </div>
-                    <p>${escapeHtml(review.text || "")}</p>
-                    <small>${formatDate(review.updatedAt)}</small>`;
-                root.appendChild(card);
+            const link = $("businessReviewsLink");
+            const linkCount = $("businessReviewsLinkCount");
+            if (link && linkCount) {
+                link.hidden = false;
+                linkCount.textContent = `(${count})`;
+                const returnUrl = location.pathname.split("/").pop() + location.search;
+                link.href = `business-reviews.html?ownerId=${encodeURIComponent(ownerId)}&back=${encodeURIComponent(returnUrl)}`;
             }
         } catch (error) {
-            console.error("Business reviews error:", error);
+            console.error("Service Hub reviews error:", error);
         }
     }
 
@@ -400,7 +328,8 @@
         event.preventDefault();
     
         const ownerId =
-            state.profile?.ownerId;
+            state.profile?.ownerId ||
+            SERVICE_HUB_OWNER_ID;
     
         const rating =
             Number(
@@ -416,12 +345,6 @@
     
         const error =
             $("businessReviewFormError");
-    
-        if (!ownerId) {
-            error.textContent =
-                "Не вдалося визначити бізнес.";
-            return;
-        }
     
         if (
             !Number.isInteger(rating) ||
@@ -507,7 +430,7 @@
     
                 image.alt =
                     item.description ||
-                    "Робота бізнесу";
+                    "Робота SERVICE HUB LVIV";
     
                 image.loading =
                     "lazy";
@@ -587,40 +510,12 @@
         }
     }
 
-    // Hide unfilled sections only for visitors. Owners keep all editing placeholders.
-    function updatePublicSectionVisibility(profile) {
-        const show = (id, visible) => {
-            const element = $(id);
-            if (element) element.style.display = visible ? "" : "none";
-        };
-        const owner = state.isOwner;
-        const filled = (value) => typeof value === "string" && value.trim().length > 0;
-        const schedule = normalizeSchedule(profile.workSchedule);
-        const hasSchedule = DAYS.some(([key]) => schedule[key].enabled);
-        const hasAddress = filled(profile.city) || filled(profile.address);
-        const hasDescription = filled(profile.description);
-        const hasPortfolio = Array.isArray(profile.portfolio) && profile.portfolio.some(
-            (item) => filled(item?.mediaUrl)
-        );
-        const hasMainContent = $("businessMainGrid")?.children.length > 0;
-        const hasContacts = ["businessBottomPhone", "businessBottomTelegram", "businessBottomInstagram"]
-            .some((id) => $(id) && !$(id).hidden);
-
-        show("businessMainContentSection", owner || hasMainContent);
-        show("businessAboutDescriptionCard", owner || hasDescription);
-        show("businessAboutAddressCard", owner || hasAddress);
-        show("businessAboutScheduleCard", owner || hasSchedule);
-        show("businessAboutSection", owner || hasDescription || hasAddress || hasSchedule);
-        show("businessPortfolioSection", owner || hasPortfolio);
-        show("businessBottomContact", owner || hasContacts);
-        // Reviews stay visible so visitors can leave the first review.
-    }
-
     async function renderProfile(profile) {
         state.profile = profile;
         renderLogo(profile);
-        $("businessTypeLabel").textContent = profile.businessTypeName || "Автобізнес";
-        $("businessName").textContent = profile.name || "Бізнес";
+
+        $("businessTypeLabel").textContent = profile.businessTypeName || "СТО / автосервіс";
+        $("businessName").textContent = profile.name || "SERVICE HUB LVIV";
         $("businessHeroDescription").textContent = profile.description || "";
         $("businessDescription").textContent = profile.description || "Опис ще не додано.";
 
@@ -632,47 +527,38 @@
         renderContacts(profile);
         renderSchedule(profile);
         renderOwnerControls(profile);
-        await renderMainContent(profile);
+        renderServices(profile);
         renderPortfolio(profile);
-        updatePublicSectionVisibility(profile);
-        loadReviews(profile.ownerId);
+        loadReviews(profile.ownerId || SERVICE_HUB_OWNER_ID);
 
-        document.title = `${profile.name || "Бізнес"} | Royal Garage`;
+        document.title = `${profile.name || "SERVICE HUB LVIV"} | Royal Garage`;
     }
 
     async function loadProfile() {
-        const params = new URLSearchParams(location.search);
-        state.publicOwnerId = params.get("id");
-        state.isOwner = !state.publicOwnerId;
-
-        if (state.isOwner && !token()) {
-            location.href = "index.html";
-            return;
-        }
+        state.isOwner = isServiceHubOwner();
 
         try {
             const data = state.isOwner
                 ? await api("/api/business/profile")
-                : await api(`/api/business/profiles/${encodeURIComponent(state.publicOwnerId)}`, { headers: { Authorization: "" } });
-
-            await renderProfile(data.profile);
-
-            if (!state.isOwner && typeof gtag === "function") {
-                gtag("event", "view_service_profile", {
-                    business_id: data.profile?.ownerId || state.publicOwnerId,
-                    business_name: data.profile?.name || "",
-                    business_type: data.profile?.businessTypeName || ""
+                : await api(`/api/business/profiles/${encodeURIComponent(SERVICE_HUB_OWNER_ID)}`, {
+                    headers: { Authorization: "" }
                 });
+
+            if (String(data.profile?.ownerId || "") !== SERVICE_HUB_OWNER_ID) {
+                throw new Error("Профіль SERVICE HUB LVIV не знайдено.");
             }
 
+            await renderProfile(data.profile);
             $("businessPageLoading").hidden = true;
             $("businessPageError").hidden = true;
             $("businessPageContent").hidden = false;
         } catch (error) {
-            console.error("Business profile load error:", error);
-            setPageError(error.status === 404
-                ? "Бізнес-профіль не знайдено або він ще не опублікований."
-                : error.message);
+            console.error("Service Hub profile load error:", error);
+            setPageError(
+                error.status === 404
+                    ? "Профіль SERVICE HUB LVIV ще не опублікований."
+                    : error.message
+            );
         }
     }
 
@@ -723,31 +609,24 @@
     }
 
     function fillProfileForm() {
-        const p = state.profile;
-        $("businessEditName").value = p.name || "";
-        $("businessEditCity").value = p.city || "";
-        $("businessEditAddress").value = p.address || "";
-        $("businessEditPhone").value = p.phone || "";
-        $("businessEditTelegram").value = p.telegram || "";
-        $("businessEditInstagram").value = p.instagram || "";
-        $("businessEditDescription").value = p.description || "";
+        const profile = state.profile;
+        $("businessEditName").value = profile.name || "";
+        $("businessEditCity").value = profile.city || "";
+        $("businessEditAddress").value = profile.address || "";
+        $("businessEditPhone").value = profile.phone || "";
+        $("businessEditTelegram").value = profile.telegram || "";
+        $("businessEditInstagram").value = profile.instagram || "";
+        $("businessEditDescription").value = profile.description || "";
         $("businessProfileFormError").textContent = "";
-        state.editingLogo = p.logo || null;
+        state.editingLogo = profile.logo || null;
         renderLogoEditPreview();
-
-        const otherField = $("businessOtherContentTypeField");
-        otherField.hidden = p.businessTypeCode !== "other";
-        if (!otherField.hidden) {
-            const value = p.businessContentType || "services";
-            const radio = document.querySelector(`input[name="businessContentType"][value="${value}"]`);
-            if (radio) radio.checked = true;
-        }
         setupScheduleEditor();
     }
 
     function renderLogoEditPreview() {
         const root = $("businessLogoEditPreview");
-        root.innerHTML = state.editingLogo ? `<img src="${escapeHtml(state.editingLogo)}" alt="Логотип">` : "";
+        const source = state.editingLogo || DEFAULT_SERVICE_HUB_LOGO;
+        root.innerHTML = `<img src="${escapeHtml(source)}" alt="Логотип SERVICE HUB LVIV">`;
     }
 
     async function compressImage(file, maxSize = 1200, quality = 0.82) {
@@ -795,39 +674,32 @@
                 workSchedule: readScheduleEditor()
             };
 
-            if (state.profile.businessTypeCode === "other") {
-                body.businessContentType = document.querySelector('input[name="businessContentType"]:checked')?.value || "services";
-            }
-
             const data = await api("/api/business/profile", {
                 method: "PATCH",
                 body: JSON.stringify(body)
             });
 
-            state.profile = data.profile;
             closeModal("businessProfileModal");
-            await renderProfile(state.profile);
+            await renderProfile(data.profile);
         } catch (e) {
             error.textContent = e.message;
         }
     }
 
-    function findItem(kind, id) {
-        const list = kind === "service" ? state.profile.services : state.profile.products;
-        return (Array.isArray(list) ? list : []).find((item) => String(item.id) === String(id));
+    function findService(id) {
+        const list = Array.isArray(state.profile?.services) ? state.profile.services : [];
+        return list.find((service) => String(service.id) === String(id));
     }
 
-    function openItemModal(kind, item = null) {
-        $("businessItemKind").value = kind;
-        $("businessItemId").value = item?.id || "";
-        $("businessItemTitle").value = item?.title || "";
-        $("businessItemDescription").value = item?.description || "";
-        $("businessItemPrice").value = kind === "service" ? (item?.priceFrom || "") : (item?.price || "");
-        $("businessItemModalTitle").textContent = `${item ? "Редагувати" : "Додати"} ${kind === "service" ? "послугу" : "товар"}`;
-        $("businessItemPriceLabel").firstChild.textContent = kind === "service" ? "Ціна від, грн\n" : "Ціна, грн\n";
+    function openServiceModal(service = null) {
+        $("businessItemId").value = service?.id || "";
+        $("businessItemTitle").value = service?.title || "";
+        $("businessItemDescription").value = service?.description || "";
+        $("businessItemPrice").value = service?.priceFrom || "";
+        $("businessItemModalTitle").textContent = service ? "Редагувати послугу" : "Додати послугу";
         $("businessItemFormError").textContent = "";
         $("businessItemPhotosInput").value = "";
-        state.editingItemPhotos = Array.isArray(item?.photos) ? [...item.photos] : [];
+        state.editingItemPhotos = Array.isArray(service?.photos) ? [...service.photos] : [];
         renderItemPhotosPreview();
         openModal("businessItemModal");
     }
@@ -835,17 +707,17 @@
     function renderItemPhotosPreview() {
         const root = $("businessItemPhotosPreview");
         root.innerHTML = "";
+
         state.editingItemPhotos.forEach((src, index) => {
             const item = document.createElement("div");
             item.className = "business-photo-preview-item";
-            item.innerHTML = `<img src="${escapeHtml(src)}" alt="Фото"><button type="button" data-remove-photo="${index}" aria-label="Видалити">×</button>`;
+            item.innerHTML = `<img src="${escapeHtml(src)}" alt="Фото послуги"><button type="button" data-remove-photo="${index}" aria-label="Видалити">×</button>`;
             root.appendChild(item);
         });
     }
 
-    async function saveItem(event) {
+    async function saveService(event) {
         event.preventDefault();
-        const kind = $("businessItemKind").value;
         const id = $("businessItemId").value;
         const error = $("businessItemFormError");
         error.textContent = "";
@@ -855,17 +727,19 @@
             const body = {
                 title: $("businessItemTitle").value.trim(),
                 description: $("businessItemDescription").value.trim(),
+                priceFrom: price > 0 ? price : null,
                 photos: state.editingItemPhotos
             };
 
-            if (kind === "service") body.priceFrom = price > 0 ? price : null;
-            else body.price = price > 0 ? price : null;
-
-            const base = kind === "service" ? "/api/business/services" : "/api/business/products";
-            await api(id ? `${base}/${encodeURIComponent(id)}` : base, {
-                method: id ? "PATCH" : "POST",
-                body: JSON.stringify(body)
-            });
+            await api(
+                id
+                    ? `/api/business/services/${encodeURIComponent(id)}`
+                    : "/api/business/services",
+                {
+                    method: id ? "PATCH" : "POST",
+                    body: JSON.stringify(body)
+                }
+            );
 
             closeModal("businessItemModal");
             await refreshOwnerProfile();
@@ -940,11 +814,13 @@
         }
     }
 
-    async function deleteItem(kind, id) {
-        if (!confirm(`Видалити ${kind === "service" ? "послугу" : "товар"}?`)) return;
-        const base = kind === "service" ? "/api/business/services" : "/api/business/products";
+    async function deleteService(id) {
+        if (!confirm("Видалити послугу?")) return;
+
         try {
-            await api(`${base}/${encodeURIComponent(id)}`, { method: "DELETE" });
+            await api(`/api/business/services/${encodeURIComponent(id)}`, {
+                method: "DELETE"
+            });
             await refreshOwnerProfile();
         } catch (error) {
             alert(error.message);
@@ -994,7 +870,10 @@
 
     async function sendPhoneCode() {
         try {
-            const data = await api("/api/phone/send-code", { method: "POST", body: JSON.stringify({}) });
+            const data = await api("/api/phone/send-code", {
+                method: "POST",
+                body: JSON.stringify({})
+            });
             alert(data.message || "Код надіслано.");
             $("businessPhoneCodeForm").hidden = false;
             $("businessPhoneCode").focus();
@@ -1005,6 +884,7 @@
 
     async function verifyPhoneCode(event) {
         event.preventDefault();
+
         try {
             await api("/api/phone/verify-code", {
                 method: "POST",
@@ -1017,160 +897,23 @@
         }
     }
 
-    async function openPlanModal() {
-        $("businessPlanModalError").textContent = "";
-        $("businessPlansList").innerHTML = "Завантаження…";
-        openModal("businessPlanModal");
-
-        try {
-            const data = await api(`/api/business/plans?type=${encodeURIComponent(state.profile.businessTypeCode)}`, { headers: { Authorization: "" } });
-            const plans = Array.isArray(data.plans) ? data.plans : [];
-            const root = $("businessPlansList");
-            root.innerHTML = "";
-
-            for (const plan of plans) {
-                const card = document.createElement("div");
-                card.className = "business-plan-card";
-                card.innerHTML = `
-                    <div><strong>${escapeHtml(plan.name)}</strong><p>${Number(plan.priceUah || 0).toLocaleString("uk-UA")} грн / 30 днів</p></div>
-                    <button class="business-primary-button" type="button" data-pay-plan="${escapeHtml(plan.id)}">Оплатити</button>`;
-                root.appendChild(card);
-            }
-        } catch (error) {
-            $("businessPlanModalError").textContent = error.message;
-        }
-    }
-
-    async function payPlan(planId) {
-        try {
-            const data = await api("/api/payments/liqpay/create", {
-                method: "POST",
-                body: JSON.stringify({ planId })
-            });
-            submitLiqPay(data);
-        } catch (error) {
-            $("businessPlanModalError").textContent = error.message;
-        }
-    }
-
-    function submitLiqPay(data) {
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = data.checkoutUrl;
-        form.innerHTML = `
-            <input type="hidden" name="data" value="${escapeHtml(data.data)}">
-            <input type="hidden" name="signature" value="${escapeHtml(data.signature)}">`;
-        document.body.appendChild(form);
-        form.submit();
-    }
-
-    async function deleteBusinessAccount() {
-        if (!state.isOwner) {
-            return;
-        }
-
-        const confirmed = window.confirm(
-            "Видалити бізнес-профіль?\n\n" +
-            "Профіль буде приховано з Royal Garage, вхід у цей бізнес-акаунт буде вимкнено.\n\n" +
-            "Історія ремонтів і дані CRM залишаться збереженими."
-        );
-
-        if (!confirmed) {
-            return;
-        }
-
-        const confirmationText =
-            window.prompt(
-                "Для підтвердження введіть слово ВИДАЛИТИ"
-            );
-
-        if (
-            String(confirmationText || "")
-                .trim()
-                .toUpperCase() !==
-            "ВИДАЛИТИ"
-        ) {
-            return;
-        }
-
-        const button =
-            $("businessDeleteAccountButton");
-
-        if (button) {
-            button.disabled = true;
-        }
-
-        try {
-            const data = await api(
-                "/api/business/account",
-                { method: "DELETE" }
-            );
-
-            localStorage.removeItem(
-                "royalGarageToken"
-            );
-            localStorage.removeItem(
-                "royalGarageCurrentUser"
-            );
-
-            alert(
-                data.message ||
-                "Бізнес-профіль видалено. Історію ремонтів збережено."
-            );
-
-            window.location.href =
-                "index.html";
-
-        } catch (error) {
-            alert(
-                error.message ||
-                "Не вдалося видалити бізнес-профіль."
-            );
-
-        } finally {
-            if (button) {
-                button.disabled = false;
-            }
-        }
-    }
-
     function bindEvents() {
         $("businessManageButton")?.addEventListener("click", () => {
             $("businessOwnerPanel").hidden = false;
             $("businessOwnerPanel").scrollIntoView({ behavior: "smooth", block: "start" });
         });
-        $("businessOwnerPanelClose")?.addEventListener("click", () => { $("businessOwnerPanel").hidden = true; });
+
+        $("businessOwnerPanelClose")?.addEventListener("click", () => {
+            $("businessOwnerPanel").hidden = true;
+        });
 
         $("businessEditProfileButton")?.addEventListener("click", () => {
             fillProfileForm();
             openModal("businessProfileModal");
         });
-        $("businessCrmButton")?.addEventListener("click", async () => {
-            const button = $("businessCrmButton");
-        
-            if (!button) {
-                return;
-            }
-        
-            button.disabled = true;
-        
-            try {
-                await api("/api/crm/me");
-        
-                window.location.href = "crm.html";
-        
-            } catch (error) {
-                alert(
-                    error.message ||
-                    "Не вдалося відкрити CRM RG."
-                );
-        
-            } finally {
-                button.disabled = false;
-            }
-        });
-        $("businessAddServiceButton")?.addEventListener("click", () => openItemModal("service"));
-        $("businessAddProductButton")?.addEventListener("click", () => openItemModal("product"));
+
+        $("businessAddServiceButton")?.addEventListener("click", () => openServiceModal());
+
         $("businessAddPortfolioButton")?.addEventListener("click", () => {
             state.editingPortfolioImage = null;
         
@@ -1200,17 +943,6 @@
                 $("businessPortfolioVideoUrl").value = "";
             }
         });
-        $("businessVerifyEmailButton")?.addEventListener("click", sendVerificationEmail);
-        $("businessVerifyPhoneButton")?.addEventListener("click", () => {
-            $("businessPhoneCodeForm").hidden = true;
-            $("businessPhoneFormError").textContent = "";
-            openModal("businessPhoneModal");
-        });
-        $("businessPlanButton")?.addEventListener("click", openPlanModal);
-        $("businessDeleteAccountButton")?.addEventListener(
-            "click",
-            deleteBusinessAccount
-        );
 
         $("businessWriteReviewButton")?.addEventListener(
             "click",
@@ -1232,8 +964,15 @@
             }
         );
 
+        $("businessVerifyEmailButton")?.addEventListener("click", sendVerificationEmail);
+        $("businessVerifyPhoneButton")?.addEventListener("click", () => {
+            $("businessPhoneCodeForm").hidden = true;
+            $("businessPhoneFormError").textContent = "";
+            openModal("businessPhoneModal");
+        });
+
         $("businessProfileForm")?.addEventListener("submit", saveProfile);
-        $("businessItemForm")?.addEventListener("submit", saveItem);
+        $("businessItemForm")?.addEventListener("submit", saveService);
         $("businessPortfolioForm")?.addEventListener(
             "submit",
             savePortfolio
@@ -1248,6 +987,7 @@
         $("businessLogoInput")?.addEventListener("change", async (event) => {
             const file = event.target.files?.[0];
             if (!file) return;
+
             try {
                 state.editingLogo = await compressImage(file, 900, 0.84);
                 renderLogoEditPreview();
@@ -1289,6 +1029,7 @@
         $("businessItemPhotosInput")?.addEventListener("change", async (event) => {
             const files = Array.from(event.target.files || []);
             const free = MAX_ITEM_PHOTOS - state.editingItemPhotos.length;
+
             if (files.length > free) {
                 $("businessItemFormError").textContent = `Можна додати максимум ${MAX_ITEM_PHOTOS} фото.`;
             }
@@ -1300,6 +1041,7 @@
                     $("businessItemFormError").textContent = error.message;
                 }
             }
+
             renderItemPhotosPreview();
             event.target.value = "";
         });
@@ -1314,12 +1056,11 @@
                 renderItemPhotosPreview();
             }
 
-            const edit = event.target.closest("[data-edit-kind][data-edit-id]");
-            if (edit) openItemModal(edit.dataset.editKind, findItem(edit.dataset.editKind, edit.dataset.editId));
+            const edit = event.target.closest("[data-edit-service]");
+            if (edit) openServiceModal(findService(edit.dataset.editService));
 
-            const del = event.target.closest("[data-delete-kind][data-delete-id]");
-            if (del) deleteItem(del.dataset.deleteKind, del.dataset.deleteId);
-
+            const del = event.target.closest("[data-delete-service]");
+            if (del) deleteService(del.dataset.deleteService);
             const portfolioDelete =
     event.target.closest(
         "[data-portfolio-delete]"
@@ -1331,28 +1072,18 @@ if (portfolioDelete) {
             .portfolioDelete
     );
 }
-
-            const pay = event.target.closest("[data-pay-plan]");
-            if (pay) payPlan(pay.dataset.payPlan);
         });
 
         document.addEventListener("keydown", (event) => {
             if (event.key !== "Escape") return;
-            document.querySelectorAll(".business-modal:not([hidden])").forEach((modal) => closeModal(modal.id));
+            document
+                .querySelectorAll(".business-modal:not([hidden])")
+                .forEach((modal) => closeModal(modal.id));
         });
-
     }
 
     async function init() {
         bindEvents();
-        const current = getStoredUser();
-        if (!new URLSearchParams(location.search).get("id") && current) {
-            const accountType = current.accountType || current.account_type;
-            if (accountType !== "business") {
-                setPageError("Ця сторінка доступна для бізнес-акаунта.");
-                return;
-            }
-        }
         await loadProfile();
     }
 

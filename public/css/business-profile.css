@@ -292,3 +292,8 @@
     .business-photo-preview { grid-template-columns: repeat(2, minmax(0,1fr)); }
     .business-plan-card { align-items: flex-start; flex-direction: column; }
 }
+
+/* Compact reputation link: reviews live on their own page. */
+.business-reviews-link { display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%; margin-top:16px; padding:16px 18px; border:1px solid var(--business-border); border-radius:16px; background:rgba(3,15,38,.45); color:var(--business-gold); font-weight:800; text-decoration:none; box-sizing:border-box; }
+.business-reviews-link:hover { background:rgba(240,209,138,.10); }
+.business-reviews-link[hidden] { display:none!important; }

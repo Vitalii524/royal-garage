@@ -311,23 +311,13 @@
             $("businessRatingAverage").textContent = count ? `⭐ ${average.toFixed(1)}` : "⭐ —";
             $("businessRatingCount").textContent = count ? `${count} оцінок` : "Відгуків ще немає";
 
-            const reviews = Array.isArray(reviewsData.reviews) ? reviewsData.reviews : [];
-            const root = $("businessReviewsList");
-            root.innerHTML = "";
-            $("businessReviewsEmpty").hidden = reviews.length > 0;
-
-            for (const review of reviews) {
-                const card = document.createElement("article");
-                card.className = "business-review-card";
-                const stars = "⭐".repeat(Math.max(0, Math.min(5, Number(review.rating) || 0)));
-                card.innerHTML = `
-                    <div class="business-review-top">
-                        <strong>${escapeHtml(review.userName || "Користувач")}</strong>
-                        <span>${stars}</span>
-                    </div>
-                    <p>${escapeHtml(review.text || "")}</p>
-                    <small>${formatDate(review.updatedAt)}</small>`;
-                root.appendChild(card);
+            const link = $("businessReviewsLink");
+            const linkCount = $("businessReviewsLinkCount");
+            if (link && linkCount) {
+                link.hidden = false;
+                linkCount.textContent = `(${count})`;
+                const returnUrl = location.pathname.split("/").pop() + location.search;
+                link.href = `business-reviews.html?ownerId=${encodeURIComponent(ownerId)}&back=${encodeURIComponent(returnUrl)}`;
             }
         } catch (error) {
             console.error("Service Hub reviews error:", error);
