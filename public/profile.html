@@ -16,7 +16,7 @@
 <title data-i18n="auto.001">Мій профіль | Royal Garage</title>
 <link href="images/favicon.png" rel="icon" type="image/png"/>
 <link href="css/styles.css" rel="stylesheet"/>
-<link href="css/profile.css?v=3" rel="stylesheet"/>
+<link href="css/profile.css?v=4" rel="stylesheet"/>
 </head>
 <body>
 <header class="site-header">
@@ -69,7 +69,7 @@
 <section class="garage-hero">
 <div>
 <p class="section-label" data-i18n="auto.007">Особистий кабінет</p>
-<h1 data-i18n="auto.006">Мій профіль</h1>
+<div class="profile-heading-row"><h1 data-i18n="auto.006">Мій профіль</h1>
 <div
     id="firstMemberBadge"
     class="first-member-badge"
@@ -87,9 +87,10 @@
         class="first-member-badge-number"
     ></span>
 </div>
+</div>
 <div class="profile-seller-reputation" id="profileSellerReputation">
-<span class="profile-reputation-label" data-i18n="auto.008">
-                    Репутація продавця
+<span class="profile-reputation-label" >
+                    Репутація
                 </span>
 <div class="profile-reputation-row">
 <span class="profile-reputation-star">
@@ -103,14 +104,9 @@
                     </span>
 </div>
 </div>
-<div class="profile-seller-reviews" id="profileSellerReviews">
-<h3 data-i18n="auto.010">Відгуки про продавця</h3>
-<div id="profileSellerReviewsList">
-<p class="profile-seller-reviews-empty" data-i18n="auto.011">
-            Відгуків поки немає.
-        </p>
-</div>
-</div>
+<a class="profile-reviews-link" id="profileSellerReviewsLink" href="profile-reviews.html" aria-label="Переглянути відгуки">
+  <span id="profileSellerReviewsLinkText">Переглянути відгуки</span><span aria-hidden="true">→</span>
+</a>
 
         <p data-i18n="auto.012">
             Додавай автомобілі, веди історію обслуговування
@@ -556,7 +552,7 @@
         <span class="chats-button-badge" hidden="" id="profileUnreadCount"></span>
 </button>
 </div>
-<script src="js/profile.js?v=2"></script>
+<script src="js/profile.js?v=3"></script>
 <script src="js/loader.js"></script>
 <script src="js/lang.js"></script></body>
 </html>

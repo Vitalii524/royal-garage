@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Відгуки | Royal Garage</title><link rel="icon" href="images/favicon.png"><link rel="stylesheet" href="css/styles.css"><link rel="stylesheet" href="css/profile.css?v=4"></head>
+<body><header class="site-header"><div class="top-line"><div class="brand"><a href="index.html"><img src="images/royal-garage-logo.png" alt="Royal Garage"></a></div><nav class="nav"><a href="index.html">Головна</a><a href="forum.html">Форум</a><a href="market.html">Авторинок</a><a href="businesses.html">Партнери</a><a href="profile.html">Мій профіль</a></nav></div></header>
+<main class="profile-reviews-page"><a class="reviews-back" href="profile.html" id="reviewsBack">← Назад до профілю</a><section class="reviews-panel"><h1>Відгуки</h1><div id="reviewsPageList" aria-live="polite"><p class="profile-seller-reviews-empty">Завантаження відгуків...</p></div></section></main>
+<script>
+"use strict";
+const params = new URLSearchParams(location.search);
+const sellerId = params.get("id");
+const target = document.getElementById("reviewsPageList");
+function escapeReviewText(value) { return String(value ?? "").replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])); }
+async function loadReviewsPage() {
+ if (!sellerId) { target.textContent = "Не вказано профіль для перегляду відгуків."; return; }
+ try {
+  const response = await fetch(`/api/sellers/${encodeURIComponent(sellerId)}/reviews`);
+  if (!response.ok) throw new Error("Помилка завантаження відгуків");
+  const data = await response.json();
+  const reviews = Array.isArray(data.reviews) ? data.reviews : [];
+  if (!reviews.length) { target.innerHTML = '<p class="profile-seller-reviews-empty">Відгуків поки немає.</p>'; return; }
+  target.innerHTML = reviews.map(review => {
+    const score = Math.max(0, Math.min(5, Number(review.rating) || 0));
+    const date = review.updatedAt && !Number.isNaN(Date.parse(review.updatedAt)) ? new Date(review.updatedAt).toLocaleDateString('uk-UA') : '';
+    return `<article class="profile-seller-review-card"><div class="profile-seller-review-header"><strong>${escapeReviewText(review.userName || 'Користувач')}</strong><span>${escapeReviewText(date)}</span></div><div class="profile-seller-review-stars" aria-label="Оцінка ${score} з 5">${[1,2,3,4,5].map(star => `<span class="${star<=score?'is-filled':''}">★</span>`).join('')}</div><p>${escapeReviewText(review.text || '')}</p></article>`;
+  }).join('');
+ } catch(error) { console.error(error); target.textContent = 'Не вдалося завантажити відгуки. Спробуйте пізніше.'; }
+}
+loadReviewsPage();
+</script></body></html>

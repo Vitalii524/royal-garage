@@ -3566,139 +3566,21 @@ async function renderProfileSellerReputation() {
 }
 
 async function renderProfileSellerReviews() {
-    const reviewsList =
-        document.getElementById(
-            "profileSellerReviewsList"
-        );
-
-    if (!reviewsList) {
-        return;
-    }
-
-    const sellerId =
-        currentUser?.id ||
-        currentUser?.userId ||
-        "";
-
-    if (!sellerId) {
-        reviewsList.innerHTML = `
-            <p class="profile-seller-reviews-empty">
-                ${escapeHtml(tr("auto.011", "Відгуків поки немає."))}
-            </p>
-        `;
-
-        return;
-    }
-
+    const link = document.getElementById("profileSellerReviewsLink");
+    const label = document.getElementById("profileSellerReviewsLinkText");
+    const sellerId = currentUser?.id || currentUser?.userId || "";
+    if (!link || !label || !sellerId) return;
+    link.href = `profile-reviews.html?id=${encodeURIComponent(sellerId)}`;
+    const isEnglish = window.getRoyalGarageLanguage?.() === "en";
+    label.textContent = isEnglish ? "View reviews" : "Переглянути відгуки";
     try {
-        const response =
-            await fetch(
-                `/api/sellers/${encodeURIComponent(
-                    sellerId
-                )}/reviews`
-            );
-
-        const data =
-            await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                data.message ||
-                "Не вдалося завантажити відгуки продавця."
-            );
-        }
-
-        const reviews =
-            Array.isArray(
-                data.reviews
-            )
-                ? data.reviews
-                : [];
-
-        if (
-            reviews.length === 0
-        ) {
-            reviewsList.innerHTML = `
-                <p class="profile-seller-reviews-empty">
-                    ${escapeHtml(tr("auto.011", "Відгуків поки немає."))}
-                </p>
-            `;
-
-            return;
-        }
-
-        reviewsList.innerHTML =
-            reviews
-                .map(
-                    (review) => `
-                        <article class="profile-seller-review-card">
-
-                            <div class="profile-seller-review-header">
-
-                                <strong>
-                                    ${escapeHtml(
-                                        review.userName ||
-                                        tr("profile.dynamic.user", "Користувач")
-                                    )}
-                                </strong>
-
-                                <span>
-                                    ${
-                                        review.updatedAt
-                                            ? new Date(
-                                                review.updatedAt
-                                            ).toLocaleDateString(
-                                                currentLocale()
-                                            )
-                                            : ""
-                                    }
-                                </span>
-
-                            </div>
-
-                            <div class="profile-seller-review-stars">
-                                ${[1, 2, 3, 4, 5]
-                                    .map(
-                                        (star) => `
-                                            <span
-                                                class="${
-                                                    star <=
-                                                    Number(
-                                                        review.rating || 0
-                                                    )
-                                                        ? "is-filled"
-                                                        : ""
-                                                }"
-                                            >
-                                                ★
-                                            </span>
-                                        `
-                                    )
-                                    .join("")}
-                            </div>
-
-                            <p>
-                                ${escapeHtml(
-                                    review.text || ""
-                                )}
-                            </p>
-
-                        </article>
-                    `
-                )
-                .join("");
-
+        const response = await fetch(`/api/sellers/${encodeURIComponent(sellerId)}/reviews`);
+        if (!response.ok) throw new Error("Reviews request failed");
+        const data = await response.json();
+        const count = Array.isArray(data.reviews) ? data.reviews.length : 0;
+        label.textContent = `${isEnglish ? "View reviews" : "Переглянути відгуки"} (${count})`;
     } catch (error) {
-        console.error(
-            "Profile seller reviews load error:",
-            error
-        );
-
-        reviewsList.innerHTML = `
-            <p class="profile-seller-reviews-empty">
-                ${escapeHtml(tr("profile.dynamic.reviewsLoadError", "Не вдалося завантажити відгуки."))}
-            </p>
-        `;
+        console.error("Profile reviews count load error:", error);
     }
 }
 
