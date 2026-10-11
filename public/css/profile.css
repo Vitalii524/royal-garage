@@ -1310,3 +1310,24 @@
   .garage-page { padding-left:12px; padding-right:12px; }
   .garage-hero, .garage-sidebar, .service-panel { min-width:0; }
 }
+
+
+/* ===== COMPACT PROFILE HERO (MOBILE) ===== */
+@media (max-width: 600px) {
+  .garage-page { margin-top: 16px; }
+  .garage-hero { gap: 12px; padding: 20px 18px; margin-bottom: 16px; }
+  .garage-hero > div { width: 100%; min-width: 0; }
+  .garage-hero .section-label { font-size: 11px; letter-spacing: 1.2px; }
+  .garage-hero h1 { font-size: clamp(29px, 8vw, 36px); line-height: 1.12; margin: 6px 0 12px; }
+  .garage-hero .first-member-badge { margin-bottom: 8px; padding: 7px 11px; gap: 2px; }
+  .garage-hero .first-member-badge-title { font-size: 12px; }
+  .garage-hero .first-member-badge-number { font-size: 11px; }
+  .garage-hero .profile-seller-reputation { width: 100%; margin-top: 10px; padding: 10px 12px; gap: 3px; }
+  .garage-hero .profile-reputation-row { gap: 7px; flex-wrap: wrap; }
+  .garage-hero .profile-reputation-star, .garage-hero .profile-reputation-rating { font-size: 19px; }
+  .garage-hero .profile-seller-reviews { margin-top: 10px; padding: 12px; }
+  .garage-hero .profile-seller-reviews h3 { font-size: 17px; margin-bottom: 6px; }
+  .garage-hero .profile-seller-reviews-empty { font-size: 14px; }
+  .garage-hero > div > p:not(.section-label) { margin: 12px 0 0; font-size: 14px; line-height: 1.5; }
+  .garage-hero > .gold-btn { width: 100%; min-height: 46px; padding: 11px 14px; margin: 0; font-size: 14px; }
+}
