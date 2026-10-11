@@ -709,26 +709,25 @@ if (!listing) {
                 String(listingOwnerId)
         );
 
-        // Статистика тільки для автора; перегляд записує сервер за токеном.
+        // Count both logged-in visitors and anonymous browsers; owner sees totals.
     let ownerListingViews = null;
     const viewToken = localStorage.getItem("royalGarageToken");
-    if (viewToken) {
-        try {
-            const viewPath = isListingOwner ? "views" : "view";
-            const viewResponse = await fetch(
-                `/api/market/listings/${encodeURIComponent(listingId)}/${viewPath}`,
-                {
-                    method: isListingOwner ? "GET" : "POST",
-                    headers: { Authorization: `Bearer ${viewToken}` }
-                }
-            );
-            if (viewResponse.ok && isListingOwner) {
-                const viewData = await viewResponse.json();
-                ownerListingViews = Number(viewData.views) || 0;
+    try {
+        const viewPath = isListingOwner ? "views" : "view";
+        const viewResponse = await fetch(
+            `/api/market/listings/${encodeURIComponent(listingId)}/${viewPath}`,
+            {
+                method: isListingOwner ? "GET" : "POST",
+                headers: viewToken ? { Authorization: `Bearer ${viewToken}` } : {},
+                credentials: "same-origin"
             }
-        } catch (viewError) {
-            console.warn("Не вдалося отримати статистику переглядів:", viewError);
+        );
+        if (viewResponse.ok && isListingOwner) {
+            const viewData = await viewResponse.json();
+            ownerListingViews = Number(viewData.views) || 0;
         }
+    } catch (viewError) {
+        console.warn("Не вдалося отримати статистику переглядів:", viewError);
     }
 
     /* ===== ДАНІ РЕПУТАЦІЇ ПРОДАВЦЯ ===== */

@@ -1050,6 +1050,15 @@ await pool.query(`
     )
 `);
 
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS market_listing_guest_views (
+            listing_id UUID NOT NULL REFERENCES market_listings(id) ON DELETE CASCADE,
+            visitor_hash CHAR(64) NOT NULL,
+            viewed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            PRIMARY KEY (listing_id, visitor_hash)
+        )
+    `);
+
 await pool.query(`
     CREATE TABLE IF NOT EXISTS market_favorites (
         user_id UUID NOT NULL
@@ -5528,8 +5537,32 @@ app.get(
 );
 
 
-// Один авторизований акаунт — один перегляд оголошення.
-// Власник і гості не збільшують статистику.
+// One unique view per account or anonymous browser per listing.
+// Guest cookie is signed and HttpOnly; it is not an account identity.
+const MARKET_VIEW_COOKIE = "rg_market_viewer";
+function marketViewCookieId(req, res) {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) throw new Error("JWT_SECRET is required for guest view cookies");
+    const raw = String(req.headers.cookie || "").split(";")
+        .map(part => part.trim())
+        .find(part => part.startsWith(MARKET_VIEW_COOKIE + "="));
+    const value = raw ? raw.slice(MARKET_VIEW_COOKIE.length + 1) : "";
+    const [id, signature, extra] = value.split(".");
+    if (!extra && /^[a-f0-9]{32}$/.test(id || "") && /^[a-f0-9]{64}$/.test(signature || "")) {
+        const expected = crypto.createHmac("sha256", secret).update(id).digest("hex");
+        if (crypto.timingSafeEqual(Buffer.from(signature, "hex"), Buffer.from(expected, "hex"))) {
+            return id;
+        }
+    }
+    const nextId = crypto.randomBytes(16).toString("hex");
+    const nextSignature = crypto.createHmac("sha256", secret).update(nextId).digest("hex");
+    res.cookie(MARKET_VIEW_COOKIE, `${nextId}.${nextSignature}`, {
+        httpOnly: true, secure: process.env.NODE_ENV === "production",
+        sameSite: "lax", path: "/", maxAge: 365 * 24 * 60 * 60 * 1000
+    });
+    return nextId;
+}
+
 app.get(
     "/api/market/listings/:listingId/views",
     requireAuth,
@@ -5540,7 +5573,10 @@ app.get(
                 return res.status(400).json({ ok: false, message: "Некоректне ID оголошення." });
             }
             const result = await pool.query(`
-                SELECT (SELECT COUNT(*)::integer FROM market_listing_views WHERE listing_id = m.id) AS views
+                SELECT (
+                    (SELECT COUNT(*) FROM market_listing_views WHERE listing_id = m.id) +
+                    (SELECT COUNT(*) FROM market_listing_guest_views WHERE listing_id = m.id)
+                )::integer AS views
                 FROM market_listings m WHERE m.id = $1 AND m.owner_id = $2
             `, [listingId, req.user.userId]);
             if (!result.rows.length) return res.status(403).json({ ok: false, message: "Статистика доступна лише автору." });
@@ -5554,30 +5590,52 @@ app.get(
 
 app.post(
     "/api/market/listings/:listingId/view",
-    requireAuth,
     async (req, res) => {
         try {
             const { listingId } = req.params;
             if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(listingId)) {
                 return res.status(400).json({ ok: false, message: "Некоректне ID оголошення." });
             }
-            const result = await pool.query(`
-                WITH target AS (
-                    SELECT id, owner_id FROM market_listings WHERE id = $1
-                ), inserted AS (
-                    INSERT INTO market_listing_views (listing_id, viewer_id)
-                    SELECT id, $2 FROM target WHERE owner_id <> $2
-                    ON CONFLICT DO NOTHING
-                    RETURNING listing_id
-                )
-                SELECT
-                    EXISTS(SELECT 1 FROM target) AS found,
-                    EXISTS(SELECT 1 FROM inserted) AS counted,
-                    (SELECT COUNT(*)::integer FROM market_listing_views WHERE listing_id = $1) AS views
-            `, [listingId, req.user.userId]);
-            const data = result.rows[0];
-            if (!data.found) return res.status(404).json({ ok: false, message: "Оголошення не знайдено." });
-            res.json({ ok: true, counted: data.counted, views: data.views });
+            const auth = String(req.headers.authorization || "");
+            let userId = null;
+            if (auth) {
+                if (!auth.startsWith("Bearer ")) return res.status(401).json({ ok: false, message: "Некоректна авторизація." });
+                let decoded;
+                try { decoded = jwt.verify(auth.slice(7), process.env.JWT_SECRET); }
+                catch (_) { return res.status(401).json({ ok: false, message: "Сесія недійсна." }); }
+                const user = await pool.query(
+                    "SELECT id FROM users WHERE id = $1 AND account_disabled = FALSE", [decoded.userId]
+                );
+                if (!user.rows.length) return res.status(401).json({ ok: false, message: "Користувача не знайдено." });
+                userId = user.rows[0].id;
+            }
+            const target = await pool.query("SELECT id, owner_id FROM market_listings WHERE id = $1", [listingId]);
+            if (!target.rows.length) return res.status(404).json({ ok: false, message: "Оголошення не знайдено." });
+            let counted = false;
+            if (userId) {
+                if (String(target.rows[0].owner_id) !== String(userId)) {
+                    const inserted = await pool.query(`
+                        INSERT INTO market_listing_views (listing_id, viewer_id)
+                        VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING listing_id
+                    `, [listingId, userId]);
+                    counted = inserted.rowCount > 0;
+                }
+            } else {
+                const visitorId = marketViewCookieId(req, res);
+                const visitorHash = crypto.createHash("sha256").update(visitorId).digest("hex");
+                const inserted = await pool.query(`
+                    INSERT INTO market_listing_guest_views (listing_id, visitor_hash)
+                    VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING listing_id
+                `, [listingId, visitorHash]);
+                counted = inserted.rowCount > 0;
+            }
+            const totals = await pool.query(`
+                SELECT (
+                    (SELECT COUNT(*) FROM market_listing_views WHERE listing_id = $1) +
+                    (SELECT COUNT(*) FROM market_listing_guest_views WHERE listing_id = $1)
+                )::integer AS views
+            `, [listingId]);
+            res.json({ ok: true, counted, views: totals.rows[0].views });
         } catch (error) {
             console.error("Listing view count error:", error);
             res.status(500).json({ ok: false, message: "Не вдалося зарахувати перегляд." });
