@@ -524,7 +524,6 @@
 
         $("businessTypeLabel").textContent = profile.businessTypeName || "СТО / автосервіс";
         $("businessName").textContent = profile.name || "Бізнес";
-        $("businessHeroDescription").textContent = profile.description || "";
         $("businessDescription").textContent = profile.description || "Опис ще не додано.";
         const desc = $("businessDescription"), toggle = $("businessDescriptionToggle");
         desc.classList.add("business-description-clamped");
@@ -572,7 +571,7 @@
         show("businessPortfolioSection", state.isOwner || hasPortfolio);
         const hasContacts = Boolean(formatPhone(profile.phone) || telegramUrl(profile.telegram) || instagramUrl(profile.instagram));
 
-        show("businessHeroDescription", hasDescription);
+        show("businessBookingButton", !state.isOwner);
 
         if (profile.ownerId) loadReviews(profile.ownerId);
 
