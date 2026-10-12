@@ -4842,10 +4842,13 @@ async function ensureBusinessRequestsTable() {
     await pool.query(`CREATE TABLE IF NOT EXISTS business_service_requests (
         id UUID PRIMARY KEY, owner_id UUID NOT NULL REFERENCES users(id),
         name TEXT NOT NULL, phone TEXT NOT NULL, brand TEXT NOT NULL, model TEXT NOT NULL,
-        transmission TEXT, fuel TEXT, plate TEXT, vin TEXT, reason TEXT NOT NULL,
+        transmission TEXT, fuel TEXT, plate TEXT, vin TEXT, year INTEGER, mileage INTEGER, engine TEXT, reason TEXT NOT NULL,
         status TEXT NOT NULL DEFAULT 'pending', crm_client_id UUID, crm_car_id UUID,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), confirmed_at TIMESTAMPTZ
     )`);
+    await pool.query(`ALTER TABLE business_service_requests ADD COLUMN IF NOT EXISTS year INTEGER`);
+    await pool.query(`ALTER TABLE business_service_requests ADD COLUMN IF NOT EXISTS mileage INTEGER`);
+    await pool.query(`ALTER TABLE business_service_requests ADD COLUMN IF NOT EXISTS engine TEXT`);
     await pool.query(`CREATE INDEX IF NOT EXISTS business_service_requests_owner ON business_service_requests(owner_id,created_at DESC)`);
 }
 app.post('/api/businesses/:ownerId/requests', async(req,res)=>{
@@ -4857,10 +4860,13 @@ app.post('/api/businesses/:ownerId/requests', async(req,res)=>{
         if(!name||!/^\+?[0-9 ()-]{9,30}$/.test(phone)||!brand||!model||!reason) return res.status(400).json({ok:false,message:'Заповніть ім’я, телефон, авто та причину звернення'});
         const vin=value('vin',17).toUpperCase();
         if(vin && !/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) return res.status(400).json({ok:false,message:'VIN має містити 17 символів'});
+        const yearText=value('year',4), mileageText=value('mileage',7), engine=value('engine',100);
+        const year=yearText ? Number(yearText) : null, mileage=mileageText ? Number(mileageText) : null;
+        if ((yearText && (!Number.isInteger(year)||year<1886||year>2100)) || (mileageText && (!Number.isInteger(mileage)||mileage<0||mileage>9999999))) return res.status(400).json({ok:false,message:'Некоректний рік випуску або пробіг'});
         const found=await pool.query('SELECT id FROM business_profiles WHERE owner_id=$1',[ownerId]);
         if(!found.rowCount) return res.status(404).json({ok:false,message:'Бізнес не знайдено'});
         await ensureBusinessRequestsTable();
-        await pool.query(`INSERT INTO business_service_requests(id,owner_id,name,phone,brand,model,transmission,fuel,plate,vin,reason) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,[crypto.randomUUID(),ownerId,name,phone,brand,model,value('transmission',40),value('fuel',40),value('plate',20),vin,reason]);
+        await pool.query(`INSERT INTO business_service_requests(id,owner_id,name,phone,brand,model,transmission,fuel,plate,vin,reason,year,mileage,engine) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,[crypto.randomUUID(),ownerId,name,phone,brand,model,value('transmission',40),value('fuel',40),value('plate',20),vin,reason,year,mileage,engine]);
         res.status(201).json({ok:true});
     } catch(e){console.error('Business request create:',e);res.status(500).json({ok:false,message:'Не вдалося зберегти заявку'});}
 });
@@ -4886,7 +4892,7 @@ app.post('/api/business/requests/:id/confirm',requireAuth,requireCrmAccess,async
         if(!clientId){const added=await client.query('INSERT INTO crm_clients(service_id,name,phone,notes) VALUES($1,$2,$3,$4) RETURNING id',[serviceId,x.name,x.phone,x.reason]);clientId=added.rows[0].id;}
         let car=await client.query(`SELECT id FROM crm_cars WHERE service_id=$1 AND client_id=$2 AND (($3<>'' AND upper(vin)=$3) OR ($4<>'' AND upper(plate)=upper($4))) LIMIT 1`,[serviceId,clientId,x.vin||'',x.plate||'']);
         let carId=car.rows[0]?.id;
-        if(!carId){const added=await client.query(`INSERT INTO crm_cars(service_id,client_id,brand,model,vin,plate,fuel,transmission,notes) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,[serviceId,clientId,x.brand,x.model,x.vin||null,x.plate||null,x.fuel||null,x.transmission||null,x.reason]);carId=added.rows[0].id;}
+        if(!carId){const added=await client.query(`INSERT INTO crm_cars(service_id,client_id,brand,model,vin,plate,fuel,transmission,notes,year,mileage,engine) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,[serviceId,clientId,x.brand,x.model,x.vin||null,x.plate||null,x.fuel||null,x.transmission||null,x.reason,x.year??null,x.mileage??null,x.engine||null]);carId=added.rows[0].id;}
         await client.query(`UPDATE business_service_requests SET status='confirmed',crm_client_id=$2,crm_car_id=$3,confirmed_at=NOW() WHERE id=$1`,[x.id,clientId,carId]);
         await client.query('COMMIT');res.json({ok:true,clientId,carId});
     }catch(e){await client.query('ROLLBACK').catch(()=>{});console.error('Confirm business request:',e);res.status(500).json({ok:false,message:'Не вдалося підтвердити заявку'});}finally{client.release();}

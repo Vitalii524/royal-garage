@@ -957,7 +957,7 @@
             for(const request of requests){
                 const card=document.createElement('article');card.className='business-info-card';
                 const title=document.createElement('strong');title.textContent=`${request.name} · ${request.brand} ${request.model}`;
-                const detail=document.createElement('p');detail.textContent=`${request.phone} · ${request.plate||'Без номера'} · ${request.vin||'VIN не вказано'} · ${request.reason}`;
+                const detail=document.createElement('p');detail.style.whiteSpace='pre-line';detail.textContent=[`Телефон: ${request.phone}`,`Держномер: ${request.plate||'Не вказано'}`,`VIN: ${request.vin||'Не вказано'}`,`Рік: ${request.year??'Не вказано'}`,`Пробіг: ${request.mileage == null ? 'Не вказано' : request.mileage+' км'}`,`Двигун: ${request.engine||'Не вказано'}`,`Паливо: ${request.fuel||'Не вказано'}`,`Коробка: ${request.transmission||'Не вказано'}`,`Причина звернення: ${request.reason}`].join('\n');
                 const status=document.createElement('p');status.textContent=request.status==='confirmed'?'✓ Підтверджено та додано в CRM':'Очікує підтвердження';
                 const call=document.createElement('a');call.href=`tel:${String(request.phone||'').replace(/[^+0-9]/g,'')}`;call.textContent='📞 Зателефонувати';call.className='business-inline-link';
                 card.append(title,detail,status,call);
