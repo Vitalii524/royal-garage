@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/handmade.css">
     <link rel="stylesheet" href="css/business-profile.css?v=11">
-<link rel="stylesheet" href="css/business-profile-compact.css?v=1">
+<link rel="stylesheet" href="css/business-profile-compact.css?v=2">
 </head>
 <body>
 <header class="site-header">
@@ -81,6 +81,7 @@
                 <p id="businessHeroDescription" class="business-hero-description"></p>
 
                 <div class="business-contact-actions" id="businessHeroContacts">
+                    <button id="businessBookingButton" class="business-action primary" type="button">📝 Записатися</button>
                     <a id="businessChatLink" class="business-action" href="#" hidden>💬 Написати</a>
                     <a id="businessPhoneLink" class="business-action primary" href="#" hidden>📞 Зателефонувати</a>
                     <a id="businessTelegramLink" class="business-action" href="#" target="_blank" rel="noopener" hidden>Telegram</a>
@@ -141,6 +142,7 @@
             </p>
         </section>
 
+        <section id="businessRequestsSection" class="business-section" hidden><div class="business-section-head"><h2>Заявки на обслуговування <span id="businessRequestsCount"></span></h2><button id="businessRequestsRefresh" class="business-small-button" type="button">Оновити</button></div><div id="businessRequestsList"></div></section>
         <section id="businessMainContentSection" class="business-section">
             <div class="business-section-head">
                 <div>
@@ -148,6 +150,7 @@
                     <h2 id="businessMainTitle">Послуги</h2>
                 </div>
             </div>
+            <button id="businessAddServiceQuick" type="button" class="business-primary-button" hidden>+ Додати послугу</button>
             <div id="businessMainGrid" class="business-content-grid"></div>
             <a id="businessAllServicesLink" class="business-reviews-link" href="#" hidden>Переглянути всі послуги →</a>
             <p id="businessMainEmpty" class="business-empty" hidden></p>
@@ -164,7 +167,8 @@
             <div class="business-info-grid">
                 <article id="businessAboutDescriptionCard" class="business-info-card business-info-wide">
                     <h3>Про компанію</h3>
-                    <p id="businessDescription">Опис ще не додано.</p>
+                    <p id="businessDescription" class="business-description-clamped">Опис ще не додано.</p>
+                    <button id="businessDescriptionToggle" class="business-inline-link" type="button" hidden>Читати більше ↓</button>
                 </article>
 
                 <article id="businessAboutAddressCard" class="business-info-card">
@@ -253,6 +257,7 @@
     </div>
 </footer>
 
+<div id="businessBookingModal" class="business-modal" hidden><div class="business-modal-backdrop" data-close-modal="businessBookingModal"></div><div class="business-modal-card" role="dialog" aria-modal="true" aria-labelledby="businessBookingTitle"><div class="business-modal-head"><h2 id="businessBookingTitle">Заявка на обслуговування</h2><button type="button" class="business-icon-button" data-close-modal="businessBookingModal">×</button></div><form id="businessBookingForm" class="business-form"><label>Ім’я клієнта<input name="name" required maxlength="120" autocomplete="name"></label><label>Телефон<input name="phone" required type="tel" maxlength="30" autocomplete="tel"></label><div class="business-form-row"><label>Марка авто<input name="brand" required maxlength="80"></label><label>Модель авто<input name="model" required maxlength="80"></label></div><div class="business-form-row"><label>Коробка передач<select name="transmission"><option value="">Оберіть</option><option>Механіка</option><option>Автомат</option><option>Робот</option><option>Варіатор</option></select></label><label>Паливо<select name="fuel"><option value="">Оберіть</option><option>Бензин</option><option>Дизель</option><option>Газ/бензин</option><option>Гібрид</option><option>Електро</option></select></label></div><label>Державний номер<input name="plate" maxlength="20"></label><label>VIN-код<input name="vin" maxlength="17" minlength="17" pattern="[A-HJ-NPR-Za-hj-npr-z0-9]{17}" title="17 символів, без I, O, Q"></label><label>Причина звернення<textarea name="reason" rows="4" required maxlength="2000"></textarea></label><p id="businessBookingStatus" role="status"></p><div class="business-modal-actions"><button type="button" class="business-secondary-button" data-close-modal="businessBookingModal">Скасувати</button><button type="submit" class="business-primary-button">Надіслати заявку</button></div></form></div></div>
 <!-- Редагування профілю -->
 <div id="businessProfileModal" class="business-modal" hidden>
     <div class="business-modal-backdrop" data-close-modal="businessProfileModal"></div>
@@ -558,7 +563,7 @@
 </div>
 
 <script src="js/auth.js"></script>
-<script src="js/business-profile.js?v=15"></script>
+<script src="js/business-profile.js?v=16"></script>
 <script src="js/loader.js"></script>
 <script src="js/lang.js"></script>
 </body>

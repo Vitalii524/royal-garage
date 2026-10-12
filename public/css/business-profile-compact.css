@@ -7,3 +7,8 @@
 #businessReviewsSection{margin-bottom:22px}
 .business-reviews-link{display:inline-flex;gap:8px;align-items:center;margin-top:12px}
 @media(max-width:600px){.business-contact-actions{gap:8px}.business-action{font-size:14px}}
+
+.business-description-clamped{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;white-space:normal}
+#businessAddServiceQuick{margin:0 0 16px}
+#businessBookingButton{cursor:pointer}
+#businessBookingStatus{color:#f0d18a;min-height:1.5em}

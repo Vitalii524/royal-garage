@@ -526,6 +526,10 @@
         $("businessName").textContent = profile.name || "Бізнес";
         $("businessHeroDescription").textContent = profile.description || "";
         $("businessDescription").textContent = profile.description || "Опис ще не додано.";
+        const desc = $("businessDescription"), toggle = $("businessDescriptionToggle");
+        desc.classList.add("business-description-clamped");
+        toggle.textContent = "Читати більше ↓";
+        toggle.hidden = !profile.description || String(profile.description).length < 170;
 
         const cityLine = [profile.city, profile.address].filter(Boolean).join(" · ");
         $("businessCityLine").textContent = cityLine ? `📍 ${cityLine}` : "";
@@ -541,6 +545,11 @@
         }
         renderSchedule(profile);
         renderOwnerControls(profile);
+        const requestsSection = $("businessRequestsSection");
+        if (requestsSection) requestsSection.hidden = !state.isOwner;
+        if (state.isOwner) loadBusinessRequests();
+        const quickAdd = $("businessAddServiceQuick");
+        if (quickAdd) quickAdd.hidden = !state.isOwner;
         renderServices(profile);
         renderPortfolio(profile);
 
@@ -938,7 +947,33 @@
         }
     }
 
+    async function loadBusinessRequests() {
+        const root=$("businessRequestsList"); if(!root)return;
+        try {
+            const data=await api('/api/business/requests');
+            const requests=Array.isArray(data.requests)?data.requests:[];
+            $("businessRequestsCount").textContent=requests.filter(x=>x.status==='pending').length?`(${requests.filter(x=>x.status==='pending').length} нових)`:'';
+            root.replaceChildren();
+            if(!requests.length){root.textContent='Нових заявок немає.';return;}
+            for(const request of requests){
+                const card=document.createElement('article');card.className='business-info-card';
+                const title=document.createElement('strong');title.textContent=`${request.name} · ${request.brand} ${request.model}`;
+                const detail=document.createElement('p');detail.textContent=`${request.phone} · ${request.plate||'Без номера'} · ${request.vin||'VIN не вказано'} · ${request.reason}`;
+                const status=document.createElement('p');status.textContent=request.status==='confirmed'?'✓ Підтверджено та додано в CRM':'Очікує підтвердження';
+                const call=document.createElement('a');call.href=`tel:${String(request.phone||'').replace(/[^+0-9]/g,'')}`;call.textContent='📞 Зателефонувати';call.className='business-inline-link';
+                card.append(title,detail,status,call);
+                if(request.status==='pending'){
+                    const btn=document.createElement('button');btn.type='button';btn.className='business-primary-button';btn.textContent='Підтвердити → CRM';
+                    btn.addEventListener('click',async()=>{btn.disabled=true;try{await api(`/api/business/requests/${encodeURIComponent(request.id)}/confirm`,{method:'POST'});await loadBusinessRequests();}catch(err){alert(err.message||'Помилка підтвердження');btn.disabled=false;}});
+                    card.append(btn);
+                }
+                root.append(card);
+            }
+        }catch(err){root.textContent=err.message||'Не вдалося завантажити заявки';}
+    }
+
     function bindEvents() {
+        $("businessRequestsRefresh")?.addEventListener("click",loadBusinessRequests);
         $("businessManageButton")?.addEventListener("click", () => {
             $("businessOwnerPanel").hidden = false;
             $("businessOwnerPanel").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -954,6 +989,28 @@
         });
 
         $("businessAddServiceButton")?.addEventListener("click", () => openServiceModal());
+        $("businessAddServiceQuick")?.addEventListener("click", () => openServiceModal());
+        $("businessDescriptionToggle")?.addEventListener("click", () => {
+            const desc = $("businessDescription"), button = $("businessDescriptionToggle");
+            const collapsed = desc.classList.toggle("business-description-clamped");
+            button.textContent = collapsed ? "Читати більше ↓" : "Згорнути ↑";
+        });
+        $("businessBookingButton")?.addEventListener("click", () => openModal("businessBookingModal"));
+        $("businessBookingForm")?.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const form = event.currentTarget, button = form.querySelector('[type="submit"]');
+            const status = $("businessBookingStatus");
+            const ownerId = state.profile?.ownerId;
+            if (!ownerId) { status.textContent = "Компанію не знайдено"; return; }
+            const values = Object.fromEntries(new FormData(form).entries());
+            button.disabled = true; status.textContent = "Надсилання…";
+            try {
+                await api(`/api/businesses/${encodeURIComponent(ownerId)}/requests`, { method:"POST", body:JSON.stringify(values) });
+                status.textContent = "Заявку надіслано. СТО зв'яжеться з вами для узгодження часу.";
+                form.reset();
+            } catch (err) { status.textContent = err.message || "Не вдалося надіслати заявку"; }
+            finally { button.disabled = false; }
+        });
 
         $("businessAddPortfolioButton")?.addEventListener("click", () => {
             state.editingPortfolioImage = null;
