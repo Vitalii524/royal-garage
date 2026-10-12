@@ -982,6 +982,9 @@
             $("businessOwnerPanel").hidden = true;
         });
 
+        $("businessCrmButton")?.addEventListener("click", () => {
+            window.location.href = "crm.html";
+        });
         $("businessEditProfileButton")?.addEventListener("click", () => {
             fillProfileForm();
             openModal("businessProfileModal");
