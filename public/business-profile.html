@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/handmade.css">
     <link rel="stylesheet" href="css/business-profile.css?v=11">
+<link rel="stylesheet" href="css/business-profile-compact.css?v=1">
 </head>
 <body>
 <header class="site-header">
@@ -80,6 +81,7 @@
                 <p id="businessHeroDescription" class="business-hero-description"></p>
 
                 <div class="business-contact-actions" id="businessHeroContacts">
+                    <a id="businessChatLink" class="business-action" href="#" hidden>💬 Написати</a>
                     <a id="businessPhoneLink" class="business-action primary" href="#" hidden>📞 Зателефонувати</a>
                     <a id="businessTelegramLink" class="business-action" href="#" target="_blank" rel="noopener" hidden>Telegram</a>
                     <a id="businessInstagramLink" class="business-action" href="#" target="_blank" rel="noopener" hidden>Instagram</a>
@@ -147,6 +149,7 @@
                 </div>
             </div>
             <div id="businessMainGrid" class="business-content-grid"></div>
+            <a id="businessAllServicesLink" class="business-reviews-link" href="#" hidden>Переглянути всі послуги →</a>
             <p id="businessMainEmpty" class="business-empty" hidden></p>
         </section>
 
@@ -172,24 +175,12 @@
 
                 <article id="businessAboutScheduleCard" class="business-info-card">
                     <h3>Графік роботи</h3>
-                    <div id="businessSchedule" class="business-schedule"></div>
+                    <div id="businessTodaySchedule" class="business-today-schedule"></div>
+                    <details id="businessScheduleDetails"><summary>Повний графік на тиждень</summary><div id="businessSchedule" class="business-schedule"></div></details>
                 </article>
             </div>
         </section>
 
-        <section id="businessReviewsSection" class="business-section">
-            <div class="business-section-head business-rating-head">
-                <div>
-                    <span class="business-eyebrow">Репутація</span>
-                    <h2>Репутація</h2>
-                </div>
-                <div class="business-rating-summary">
-                    <strong id="businessRatingAverage">⭐ —</strong>
-                    <span id="businessRatingCount">Відгуків ще немає</span>
-                </div>
-            </div>
-            <a id="businessReviewsLink" class="business-reviews-link" href="#" hidden>Переглянути відгуки <span id="businessReviewsLinkCount"></span><span aria-hidden="true">→</span></a>
-        </section>
 
         <section
     id="businessPortfolioSection"
@@ -221,6 +212,7 @@
         class="business-portfolio-grid"
     ></div>
 
+    <a id="businessAllWorksLink" class="business-reviews-link" href="#" hidden>Переглянути всі роботи →</a>
     <p
         id="businessPortfolioEmpty"
         class="business-empty"
@@ -229,17 +221,18 @@
     </p>
 </section>
 
-        <section id="businessBottomContact" class="business-bottom-contact">
-            <div>
-                <span class="business-eyebrow">Зв’язок</span>
-                <h2>Потрібна консультація?</h2>
-                <p>Зв’яжіться з бізнесом зручним способом.</p>
+        <section id="businessReviewsSection" class="business-section">
+            <div class="business-section-head business-rating-head">
+                <div>
+                    <span class="business-eyebrow">Репутація</span>
+                    <h2>Репутація</h2>
+                </div>
+                <div class="business-rating-summary">
+                    <strong id="businessRatingAverage">⭐ —</strong>
+                    <span id="businessRatingCount">Відгуків ще немає</span>
+                </div>
             </div>
-            <div class="business-contact-actions">
-                <a id="businessBottomPhone" class="business-action primary" href="#" hidden>📞 Зателефонувати</a>
-                <a id="businessBottomTelegram" class="business-action" href="#" target="_blank" rel="noopener" hidden>Telegram</a>
-                <a id="businessBottomInstagram" class="business-action" href="#" target="_blank" rel="noopener" hidden>Instagram</a>
-            </div>
+            <a id="businessReviewsLink" class="business-reviews-link" href="#" hidden>Переглянути відгуки <span id="businessReviewsLinkCount"></span><span aria-hidden="true">→</span></a>
         </section>
     </div>
 </main>
@@ -565,7 +558,7 @@
 </div>
 
 <script src="js/auth.js"></script>
-<script src="js/business-profile.js?v=14"></script>
+<script src="js/business-profile.js?v=15"></script>
 <script src="js/loader.js"></script>
 <script src="js/lang.js"></script>
 </body>

@@ -111,8 +111,8 @@
     function telegramUrl(value) {
         const raw = String(value || "").trim();
         if (!raw) return "";
-        if (/^https?:\/\//i.test(raw)) return raw;
-        return `https://t.me/${raw.replace(/^@/, "")}`;
+        const normalized = raw.replace(/^https?:\/\/(?:www\.)?t\.me\//i, "").replace(/^@/, "").replace(/\/$/, "");
+        return /^[A-Za-z0-9_]{5,32}$/.test(normalized) ? `https://t.me/${normalized}` : "";
     }
 
     function instagramUrl(value) {
@@ -219,6 +219,12 @@
             return;
         }
 
+        const dayKeys = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+        const today = schedule[dayKeys[new Date().getDay()]];
+        const todayNode = $("businessTodaySchedule");
+        if (todayNode) todayNode.textContent = today.enabled ? `Сьогодні: ${today.open}–${today.close}` : "Сьогодні: вихідний";
+        const scheduleDetails = $("businessScheduleDetails");
+        if (scheduleDetails) scheduleDetails.open = state.isOwner;
         for (const [key, label] of DAYS) {
             const day = schedule[key];
             const row = document.createElement("div");
@@ -294,7 +300,9 @@
         const services = Array.isArray(profile.services) ? profile.services : [];
 
         root.innerHTML = "";
-        services.forEach((service) => root.appendChild(serviceCard(service)));
+        services.slice(0, state.isOwner ? undefined : 3).forEach((service) => root.appendChild(serviceCard(service)));
+        const allServices = $("businessAllServicesLink");
+        if (allServices) { allServices.hidden = services.length <= 3; allServices.href = `business-services.html?id=${encodeURIComponent(profile.ownerId)}`; }
         empty.hidden = services.length > 0;
     }
 
@@ -404,8 +412,10 @@
         root.innerHTML = "";
         empty.hidden =
             portfolio.length > 0;
+        const allWorks = $("businessAllWorksLink");
+        if (allWorks) { allWorks.hidden = portfolio.length <= 4; allWorks.href = `business-works.html?id=${encodeURIComponent(profile.ownerId)}`; }
     
-        for (const item of portfolio) {
+        for (const item of (state.isOwner ? portfolio : portfolio.slice(0, 4))) {
             const card =
                 document.createElement(
                     "article"
@@ -523,6 +533,12 @@
         $("businessAddress").textContent = [profile.city, profile.address].filter(Boolean).join(", ") || "Не вказано";
 
         renderContacts(profile);
+        const chatLink = $("businessChatLink");
+        if (chatLink && profile.ownerId && !state.isOwner) {
+            chatLink.hidden = false;
+            chatLink.href = token() ? `chat.html?withUserId=${encodeURIComponent(profile.ownerId)}` : "profile.html";
+            chatLink.title = token() ? "Написати компанії" : "Увійдіть, щоб написати";
+        }
         renderSchedule(profile);
         renderOwnerControls(profile);
         renderServices(profile);
@@ -546,7 +562,7 @@
         show("businessAboutSection", state.isOwner || hasDescription || hasAddress || hasSchedule);
         show("businessPortfolioSection", state.isOwner || hasPortfolio);
         const hasContacts = Boolean(formatPhone(profile.phone) || telegramUrl(profile.telegram) || instagramUrl(profile.instagram));
-        show("businessBottomContact", hasContacts);
+
         show("businessHeroDescription", hasDescription);
 
         if (profile.ownerId) loadReviews(profile.ownerId);

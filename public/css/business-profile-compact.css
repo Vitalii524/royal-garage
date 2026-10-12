@@ -1,0 +1,9 @@
+/* Compact public business profile; owner editing remains available */
+.business-today-schedule{font-weight:650;margin:8px 0 12px;color:#f0d18a}
+#businessScheduleDetails summary{cursor:pointer;color:#f0d18a;padding:8px 0}
+#businessMainGrid .business-content-card{min-width:0}
+#businessPortfolioList{grid-template-columns:repeat(auto-fit,minmax(135px,1fr))}
+#businessPortfolioList img{width:100%;aspect-ratio:4/3;object-fit:cover}
+#businessReviewsSection{margin-bottom:22px}
+.business-reviews-link{display:inline-flex;gap:8px;align-items:center;margin-top:12px}
+@media(max-width:600px){.business-contact-actions{gap:8px}.business-action{font-size:14px}}
