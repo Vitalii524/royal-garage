@@ -1,5 +1,7 @@
 (() => {
-    const panel = document.getElementById("platformAdmin");
+    const registrationStatus = document.getElementById("adminRegistrationStatus");
+    const trafficStatus = document.getElementById("adminTrafficStatus");
+    const businessControls = document.getElementById("adminBusinessControls");
     const form = document.getElementById("adminBusinessSearch");
     const result = document.getElementById("adminBusinessResults");
     const status = document.getElementById("adminBusinessStatus");
@@ -11,7 +13,8 @@
             headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
             body: body ? JSON.stringify(body) : undefined
         });
-        if (response.status === 401 || response.status === 403) return null;
+        if (response.status === 401) throw new Error("Сесія недійсна або завершилася. Увійдіть повторно (401).");
+        if (response.status === 403) throw new Error("Сервер не надав цьому акаунту доступ до аналітики адміністратора (403).");
         const data = await response.json();
         if (!response.ok || !data.ok) throw new Error(data.message || `HTTP ${response.status}`);
         return data;
@@ -41,7 +44,6 @@
         if (!table || !status) return;
         try {
             const data = await adminApi("/api/admin/site-analytics");
-            if (!data) throw new Error("Увійдіть як адміністратор.");
             if (!data.periods) {
                 status.textContent = "GA4 ще не підключено до адмінпанелі.";
                 return;
@@ -97,7 +99,6 @@
                         const updated = await adminApi(`/api/admin/businesses/${encodeURIComponent(business.id)}/complimentary`, {
                             method: "PATCH", body: { enabled: !business.complimentarySubscription }
                         });
-                        if (!updated) throw new Error("Увійдіть як адміністратор.");
                         business.complimentarySubscription = updated.business.complimentarySubscription;
                         refreshLabel();
                         status.textContent = `Доступ оновлено для «${business.name}».`;
@@ -121,17 +122,18 @@
         event.preventDefault();
         loadBusinesses();
     });
-    if (!token) return;
+    if (!token) {
+        registrationStatus.textContent = trafficStatus.textContent = "Увійдіть до Royal Garage, щоб переглянути аналітику.";
+        return;
+    }
+
+    loadSiteAnalytics();
     adminApi("/api/admin/registrations").then(data => {
-        if (!data) return;
-        panel.hidden = false;
         renderStats(data.stats);
-        loadSiteAnalytics();
+        registrationStatus.hidden = true;
+        businessControls.hidden = false;
         return loadBusinesses();
     }).catch(error => {
-        if (getCurrentUser()?.role === "admin") {
-            panel.hidden = false;
-            status.textContent = error.message;
-        }
+        registrationStatus.textContent = error.message;
     });
 })();
