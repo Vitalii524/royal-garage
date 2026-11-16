@@ -88,6 +88,13 @@
 <main class="upholstery-page">
     <section id="platformAdmin" class="upholstery-section" hidden>
         <h1>Адміністрування Royal Garage</h1>
+        <h2 id="adminTrafficTitle">Відвідування сайту</h2>
+        <p id="adminTrafficStatus" role="status">Завантажуємо дані GA4…</p>
+        <table id="adminTrafficReport" aria-labelledby="adminTrafficTitle" hidden>
+            <caption>Попередні повні дні за даними GA4</caption>
+            <thead><tr><th scope="col">Показник</th><th scope="col">7 днів</th><th scope="col">30 днів</th></tr></thead>
+            <tbody></tbody>
+        </table>
         <h2>Статистика реєстрацій</h2>
         <dl id="adminRegistrationStats"></dl>
         <h2>Безстроковий безкоштовний доступ</h2>
@@ -345,7 +352,7 @@
 
 <script src="js/auth.js"></script>
 <script src="js/royal-auto-admin.js?v=17"></script>
-<script src="js/platform-admin.js"></script>
+<script src="js/platform-admin.js?v=2"></script>
 <script src="js/loader.js"></script>
 
 </body>
