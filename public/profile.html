@@ -8,7 +8,7 @@
 <title data-i18n="auto.001">Мій профіль | Royal Garage</title>
 <link href="images/favicon.png" rel="icon" type="image/png"/>
 <link href="css/styles.css" rel="stylesheet"/>
-<link href="css/profile.css?v=4" rel="stylesheet"/>
+<link href="css/profile.css?v=5" rel="stylesheet"/>
 </head>
 <body>
 <header class="site-header">
@@ -109,8 +109,8 @@
             Додати автомобіль
         </button>
 </section>
-<section class="account-settings-section">
-<h2 data-i18n="auto.014">Налаштування акаунта</h2>
+<details class="account-settings-section profile-disclosure">
+<summary><h2 data-i18n="auto.014">Налаштування акаунта</h2></summary>
 <div class="account-settings-row">
 <span>Email</span>
 <div>
@@ -151,22 +151,16 @@
 <button class="gold-btn" data-i18n="auto.020" id="changeAccountPhoneButton" type="button">
                 Змінити номер телефону
             </button>
-</section>
+</details>
 
-<section class="seller-profile-settings">
+<details class="seller-profile-settings profile-disclosure">
+<summary>
+<h2 data-i18n="auto.025">Налаштування профілю продавця</h2>
+</summary>
 <div class="seller-profile-settings-header">
-<div>
-<p class="section-label" data-i18n="auto.024">
-                    Публічний профіль
-                </p>
-<h2 data-i18n="auto.025">
-                    Налаштування профілю продавця
-                </h2>
 <p data-i18n="auto.026">
-                    Ці дані побачать покупці після
-                    публікації хоча б одного оголошення.
-                </p>
-</div>
+    Ці дані побачать покупці після публікації хоча б одного оголошення.
+</p>
 </div>
 <form id="sellerProfileSettingsForm">
 <label data-i18n-label="auto.027">
@@ -218,32 +212,30 @@
                 Зберегти налаштування
             </button>
 </form>
-</section>
-<section class="garage-section-header">
-<p class="section-label" data-i18n="auto.035">Автомобілі</p>
-<h2 data-i18n="auto.036">Мій гараж</h2>
-</section>
+</details>
+<details class="garage-section-header profile-disclosure" id="profileGarage">
+<summary><h2 data-i18n="auto.036">Мій гараж</h2></summary>
 <section class="garage-layout">
 <aside class="garage-sidebar">
-<h2 data-i18n="auto.037">Мої автомобілі</h2>
+<details class="profile-disclosure">
+<summary><h2 data-i18n="auto.037">Мої автомобілі</h2></summary>
 <div class="garage-cars-list" id="garageCarsList">
 <p class="empty-message" data-i18n="auto.038" id="noCarsMessage">
                     Автомобілів ще немає.
                 </p>
 </div>
-<section class="profile-favorites-section">
-<div class="profile-favorites-header">
-<h2 data-i18n="auto.039">Обране</h2>
-<span class="profile-favorites-count" id="profileFavoritesCount">
-                        0
-                    </span>
-</div>
+</details>
+<details class="profile-favorites-section profile-disclosure">
+<summary>
+<h2><span data-i18n="auto.039">Обране</span>
+<span class="profile-favorites-count" id="profileFavoritesCount">0</span></h2>
+</summary>
 <div class="profile-favorites-list" id="profileFavoritesList">
 <p class="profile-favorites-empty" data-i18n="auto.040">
                         Ви ще не додали оголошення в обране.
                     </p>
 </div>
-</section>
+</details>
 </aside>
 
 <section class="service-panel">
@@ -255,7 +247,8 @@
                     зі списку ліворуч.
                 </p>
 </div>
-<div class="hidden" id="selectedCarContent">
+<details class="profile-disclosure hidden" id="selectedCarContent">
+<summary><h2 id="selectedCarName"></h2></summary>
 <div class="car-photo-container">
 <img alt="Фото автомобіля" class="car-main-photo hidden" data-i18n-alt="auto.094" id="selectedCarPhoto"/>
 <div class="car-photo-placeholder" data-i18n="auto.043" id="carPhotoPlaceholder">
@@ -277,7 +270,6 @@
 <div class="selected-car-header">
 <div>
 <p class="section-label" data-i18n="auto.046">Обраний автомобіль</p>
-<h2 id="selectedCarName"></h2>
 <p id="selectedCarInfo"></p>
 </div>
 <button class="gold-btn" data-i18n="auto.047" id="openServiceButton">
@@ -312,13 +304,12 @@
                         Мої чати
                     </button>
 </div>
-</div>
+</details>
 </section>
 </section>
-<div class="account-danger-zone">
-<h3 data-i18n="auto.021">
-            Видалення акаунта
-        </h3>
+</details>
+<details class="account-danger-zone profile-disclosure">
+<summary><h3 data-i18n="auto.021">Видалення акаунта</h3></summary>
 <p data-i18n="auto.022">
             Після видалення відновити акаунт
             та його дані буде неможливо.
@@ -326,7 +317,7 @@
 <button class="btn-danger" data-i18n="auto.023" id="deleteAccountButton" type="button">
             Видалити акаунт
         </button>
-</div>
+</details>
 </main>
 <!-- Вікно додавання автомобіля -->
 <div class="modal" id="carModal">
@@ -544,7 +535,7 @@
         <span class="chats-button-badge" hidden="" id="profileUnreadCount"></span>
 </button>
 </div>
-<script src="js/profile.js?v=3"></script>
+<script src="js/profile.js?v=4"></script>
 <script src="js/loader.js"></script>
 <script src="js/lang.js"></script></body>
 </html>

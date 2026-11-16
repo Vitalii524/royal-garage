@@ -1814,7 +1814,13 @@ function renderCars() {
                 selectedCarId =
                     car.id;
 
-                age();
+                renderPage();
+                const carDetails = elements.selectedCarContent;
+                if (carDetails) {
+                    carDetails.open = true;
+                    carDetails.querySelector("summary")?.focus({ preventScroll: true });
+                    carDetails.scrollIntoView({ block: "start" });
+                }
             }
         );
 
@@ -2409,13 +2415,13 @@ async function deleteService(
             );
         }
 
-        age();
+        renderPage();
 
     } catch (error) {
         car.services =
             previousServices;
 
-        age();
+        renderPage();
 
         console.error(
             "Service delete error:",
@@ -2526,13 +2532,13 @@ function deleteServicePhoto(
                 );
             }
     
-            age();
+            renderPage();
     
         } catch (error) {
             service.photos =
                 previousPhotos;
     
-            age();
+            renderPage();
     
             console.error(
                 "Service photo delete error:",
@@ -2606,13 +2612,13 @@ async function replaceServicePhoto(
             );
         }
 
-        age();
+        renderPage();
 
     } catch (error) {
         service.photos =
             previousPhotos;
 
-        age();
+        renderPage();
 
         console.error(
             "Service photo replace error:",
@@ -2769,13 +2775,13 @@ async function addServicePhotos(
                         );
                     }
             
-                    age();
+                    renderPage();
             
                 } catch (error) {
                     service.photos =
                         oldPhotos;
             
-                    age();
+                    renderPage();
             
                     console.error(
                         "Service photos add error:",
