@@ -8,7 +8,7 @@
 <title data-i18n="auto.001">Мій профіль | Royal Garage</title>
 <link href="images/favicon.png" rel="icon" type="image/png"/>
 <link href="css/styles.css" rel="stylesheet"/>
-<link href="css/profile.css?v=7" rel="stylesheet"/>
+<link href="css/profile.css?v=8" rel="stylesheet"/>
 </head>
 <body>
 <header class="site-header">
@@ -60,6 +60,7 @@
 <main class="garage-page">
 <section class="garage-hero">
 <div>
+<div class="profile-avatar-row">
 <div class="profile-avatar" id="profileAvatar">
     <button class="seller-profile-photo-preview" id="profileAvatarTrigger" type="button"
         aria-label="Дії з фото профілю" aria-expanded="false" aria-controls="profilePhotoActions">
@@ -74,6 +75,28 @@
         </button>
     </div>
     <input accept="image/jpeg,image/png,image/webp" id="sellerProfilePhoto" type="file" hidden/>
+</div>
+<div class="profile-avatar-reviews">
+<div class="profile-seller-reputation" id="profileSellerReputation">
+<span class="profile-reputation-label" >
+                    Репутація
+                </span>
+<div class="profile-reputation-row">
+<span class="profile-reputation-star">
+                        ★
+                    </span>
+<strong class="profile-reputation-rating" id="profileSellerRating">
+                        —
+                    </strong>
+<span class="profile-reputation-count" data-i18n="auto.009" id="profileSellerRatingCount">
+                        Новий продавець
+                    </span>
+</div>
+</div>
+<a class="profile-reviews-link" id="profileSellerReviewsLink" href="profile-reviews.html" aria-label="Переглянути відгуки">
+  <span id="profileSellerReviewsLinkText">Відгуки</span>
+</a>
+</div>
 </div>
 <p class="section-label" data-i18n="auto.007">Особистий кабінет</p>
 <div class="profile-heading-row"><h1 data-i18n="auto.006">Мій профіль</h1>
@@ -95,33 +118,13 @@
     ></span>
 </div>
 </div>
-<div class="profile-seller-reputation" id="profileSellerReputation">
-<span class="profile-reputation-label" >
-                    Репутація
-                </span>
-<div class="profile-reputation-row">
-<span class="profile-reputation-star">
-                        ★
-                    </span>
-<strong class="profile-reputation-rating" id="profileSellerRating">
-                        —
-                    </strong>
-<span class="profile-reputation-count" data-i18n="auto.009" id="profileSellerRatingCount">
-                        Новий продавець
-                    </span>
-</div>
-</div>
-
-
         <p data-i18n="auto.012">
             Додавай автомобілі, веди історію обслуговування
             та підтверджуй догляд фотографіями й чеками.
         </p>
 </div>
+<p id="profileLoadStatus" role="status">Завантажуємо дані профілю…</p>
 <div class="profile-main-actions">
-<a class="profile-reviews-link" id="profileSellerReviewsLink" href="profile-reviews.html" aria-label="Переглянути відгуки">
-  <span id="profileSellerReviewsLinkText">Переглянути відгуки</span><span aria-hidden="true">→</span>
-</a>
 <button class="profile-action-row" data-i18n="auto.013" id="openCarButton" type="button">Додати автомобіль</button>
 <details class="account-settings-section profile-disclosure">
 <summary><h2 data-i18n="auto.014">Налаштування акаунта</h2></summary>
@@ -221,7 +224,8 @@
 <details class="profile-disclosure">
 <summary><h2 data-i18n="auto.037">Мої автомобілі</h2></summary>
 <div class="garage-cars-list" id="garageCarsList">
-<p class="empty-message" data-i18n="auto.038" id="noCarsMessage">
+<p id="garageLoadStatus" role="status">Завантажуємо автомобілі…</p>
+<p class="empty-message" data-i18n="auto.038" id="noCarsMessage" hidden>
                     Автомобілів ще немає.
                 </p>
 </div>
@@ -538,7 +542,7 @@
         <span class="chats-button-badge" hidden="" id="profileUnreadCount"></span>
 </button>
 </div>
-<script src="js/profile.js?v=5"></script>
+<script src="js/profile.js?v=7"></script>
 <script src="js/loader.js"></script>
 <script src="js/lang.js"></script></body>
 </html>
