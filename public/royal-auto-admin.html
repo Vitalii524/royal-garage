@@ -86,7 +86,7 @@
 
 
 <main class="upholstery-page">
-    <section id="platformAdmin" class="upholstery-section" hidden>
+    <section id="platformAdmin" class="upholstery-section">
         <h1>Адміністрування Royal Garage</h1>
         <h2 id="adminTrafficTitle">Відвідування сайту</h2>
         <p id="adminTrafficStatus" role="status">Завантажуємо дані GA4…</p>
@@ -96,7 +96,9 @@
             <tbody></tbody>
         </table>
         <h2>Статистика реєстрацій</h2>
+        <p id="adminRegistrationStatus" role="status">Завантажуємо статистику реєстрацій…</p>
         <dl id="adminRegistrationStats"></dl>
+        <div id="adminBusinessControls" hidden>
         <h2>Безстроковий безкоштовний доступ</h2>
         <form id="adminBusinessSearch" class="royal-auto-admin-form">
             <label>Назва бізнесу, точний email або ID власника<input name="q" type="search" maxlength="255"></label>
@@ -104,6 +106,7 @@
         </form>
         <p id="adminBusinessStatus" role="status"></p>
         <div id="adminBusinessResults"></div>
+        </div>
     </section>
     <div id="royalAutoCatalogAdmin" hidden>
 
@@ -352,7 +355,7 @@
 
 <script src="js/auth.js"></script>
 <script src="js/royal-auto-admin.js?v=17"></script>
-<script src="js/platform-admin.js?v=2"></script>
+<script src="js/platform-admin.js?v=3"></script>
 <script src="js/loader.js"></script>
 
 </body>
