@@ -35,6 +35,39 @@
         }
     }
 
+    async function loadSiteAnalytics() {
+        const status = document.getElementById("adminTrafficStatus");
+        const table = document.getElementById("adminTrafficReport");
+        if (!table || !status) return;
+        try {
+            const data = await adminApi("/api/admin/site-analytics");
+            if (!data) throw new Error("Увійдіть як адміністратор.");
+            if (!data.periods) {
+                status.textContent = "GA4 ще не підключено до адмінпанелі.";
+                return;
+            }
+
+            const format = new Intl.NumberFormat("uk-UA");
+            for (const [key, label] of Object.entries({
+                activeUsers: "Активні користувачі",
+                sessions: "Сеанси",
+                pageViews: "Перегляди сторінок"
+            })) {
+                const row = table.tBodies[0].insertRow();
+                const heading = document.createElement("th");
+                heading.scope = "row";
+                heading.textContent = label;
+                row.append(heading);
+                row.insertCell().textContent = format.format(data.periods.week[key]);
+                row.insertCell().textContent = format.format(data.periods.month[key]);
+            }
+            status.textContent = "";
+            table.hidden = false;
+        } catch (error) {
+            status.textContent = error.message;
+        }
+    }
+
     async function loadBusinesses() {
         const search = new FormData(form).get("q");
         const submit = form.querySelector("button");
@@ -93,6 +126,7 @@
         if (!data) return;
         panel.hidden = false;
         renderStats(data.stats);
+        loadSiteAnalytics();
         return loadBusinesses();
     }).catch(error => {
         if (getCurrentUser()?.role === "admin") {
