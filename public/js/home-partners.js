@@ -1,16 +1,28 @@
-
 (async () => {
     const track = document.getElementById("homePartnersTrack");
     const status = document.getElementById("homePartnersStatus");
+    const royalAuto = {
+        ownerId: "32ce413e-9eb6-417a-b99a-77d9ca7c144a",
+        businessName: "Royal Auto",
+        logoUrl: "images/royal-auto-atelier-logo.webp",
+        href: "handmade.html"
+    };
+    const royalAutoNames = new Set(["royalauto", "royalautoatelier"]);
+
     try {
         const response = await fetch("/api/businesses/featured");
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const { businesses } = await response.json();
+        const byOwner = businesses.find(business => business.ownerId === royalAuto.ownerId);
+        const savedProfile = byOwner || businesses.find(business =>
+            royalAutoNames.has(business.businessName.trim().toLowerCase().replace(/\s+/g, ""))
+        );
+        const partners = [savedProfile || royalAuto, ...businesses.filter(business => business !== savedProfile)];
         const cards = document.createDocumentFragment();
-        for (const business of businesses) {
+        for (const business of partners) {
             const card = document.createElement("a");
             card.className = "home-partner-card";
-            card.href = `business-profile.html?id=${encodeURIComponent(business.ownerId)}`;
+            card.href = business.href || `business-profile.html?id=${encodeURIComponent(business.ownerId)}`;
             if (business.logoUrl) {
                 const logo = document.createElement("img");
                 logo.alt = "";
@@ -25,10 +37,6 @@
             cards.append(card);
         }
         track.append(cards);
-        if (!businesses.length) {
-            status.hidden = false;
-            status.textContent = "Каталог партнерів поповнюється.";
-        }
     } catch (error) {
         console.error("Partners:", error);
         status.hidden = false;

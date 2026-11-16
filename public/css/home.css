@@ -1553,9 +1553,16 @@
 }
 .home-partner-card {
     display: flex;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 10px;
-    flex: 0 0 clamp(146px, 42vw, 218px);
+    flex: 0 0 auto;
+    width: clamp(146px, 42vw, 218px);
+    min-width: 0;
+    aspect-ratio: 1 / 1;
+    text-align: center;
+    overflow: hidden;
     padding: 10px;
     box-sizing: border-box;
     border: 1px solid #624c30;
@@ -1566,4 +1573,5 @@
     overflow-wrap: anywhere;
     scroll-snap-align: start;
 }
-.home-partner-card img { width: 42px; height: 42px; object-fit: contain; border-radius: 6px; }
+.home-partner-card strong { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.home-partner-card img { width: 50%; max-height: 50%; aspect-ratio: 1 / 1; object-fit: contain; border-radius: 6px; }
