@@ -8,7 +8,7 @@
 <title data-i18n="auto.001">Мій профіль | Royal Garage</title>
 <link href="images/favicon.png" rel="icon" type="image/png"/>
 <link href="css/styles.css" rel="stylesheet"/>
-<link href="css/profile.css?v=5" rel="stylesheet"/>
+<link href="css/profile.css?v=6" rel="stylesheet"/>
 </head>
 <body>
 <header class="site-header">
@@ -60,6 +60,21 @@
 <main class="garage-page">
 <section class="garage-hero">
 <div>
+<div class="profile-avatar" id="profileAvatar">
+    <button class="seller-profile-photo-preview" id="profileAvatarTrigger" type="button"
+        aria-label="Дії з фото профілю" aria-expanded="false" aria-controls="profilePhotoActions">
+        <span id="sellerProfilePhotoPreview">В</span>
+    </button>
+    <div class="profile-avatar-actions" id="profilePhotoActions" hidden>
+        <button id="changeSellerProfilePhoto" type="button" aria-label="Замінити фото" title="Замінити фото">
+            <span aria-hidden="true">✎</span>
+        </button>
+        <button id="removeSellerProfilePhoto" type="button" aria-label="Видалити фото" title="Видалити фото" hidden>
+            <span aria-hidden="true">🗑︎</span>
+        </button>
+    </div>
+    <input accept="image/jpeg,image/png,image/webp" id="sellerProfilePhoto" type="file" hidden/>
+</div>
 <p class="section-label" data-i18n="auto.007">Особистий кабінет</p>
 <div class="profile-heading-row"><h1 data-i18n="auto.006">Мій профіль</h1>
 <div
@@ -194,19 +209,6 @@
     
                     Показувати Telegram
                 </label>
-</div>
-<div class="seller-profile-photo-field">
-<div class="seller-profile-photo-preview" data-i18n="auto.031" id="sellerProfilePhotoPreview">
-                    В
-                </div>
-<label data-i18n-label="auto.032">
-                    Фото профілю
-            
-                    <input accept="image/jpeg,image/png,image/webp" id="sellerProfilePhoto" type="file"/>
-</label>
-<button class="remove-profile-photo-button" data-i18n="auto.033" id="removeSellerProfilePhoto" type="button">
-                    Видалити фото
-                </button>
 </div>
 <button class="gold-btn" data-i18n="auto.034" type="submit">
                 Зберегти налаштування
@@ -535,7 +537,7 @@
         <span class="chats-button-badge" hidden="" id="profileUnreadCount"></span>
 </button>
 </div>
-<script src="js/profile.js?v=4"></script>
+<script src="js/profile.js?v=5"></script>
 <script src="js/loader.js"></script>
 <script src="js/lang.js"></script></body>
 </html>

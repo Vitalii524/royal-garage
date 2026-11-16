@@ -846,14 +846,13 @@ function renderSellerProfilePhoto(
         return;
     }
 
+    removeSellerProfilePhotoButton.hidden = !photo;
     if (photo) {
-        preview.innerHTML = `
-            <img
-                src="${photo}"
-                alt="Фото профілю продавця"
-            >
-        `;
-
+        const image = document.createElement("img");
+        image.src = photo;
+        image.alt = "";
+        image.draggable = false;
+        preview.replaceChildren(image);
         return;
     }
 
@@ -873,6 +872,70 @@ const removeSellerProfilePhotoButton =
     document.getElementById(
         "removeSellerProfilePhoto"
     );
+const profileAvatar = document.getElementById("profileAvatar");
+const profileAvatarTrigger = document.getElementById("profileAvatarTrigger");
+const profilePhotoActions = document.getElementById("profilePhotoActions");
+const changeSellerProfilePhotoButton = document.getElementById("changeSellerProfilePhoto");
+
+function setProfilePhotoActionsVisible(visible) {
+    profilePhotoActions.hidden = !visible;
+    profileAvatarTrigger.setAttribute("aria-expanded", String(visible));
+}
+
+if (profileAvatar) {
+    let press;
+
+    function cancelPress() {
+        if (!press) return;
+        clearTimeout(press.timer);
+        press = null;
+    }
+
+    profileAvatarTrigger.addEventListener("pointerdown", event => {
+        if (!event.isPrimary || event.button !== 0) return;
+        cancelPress();
+        profileAvatarTrigger.setPointerCapture(event.pointerId);
+        press = {
+            id: event.pointerId,
+            x: event.clientX,
+            y: event.clientY,
+            timer: setTimeout(() => {
+                setProfilePhotoActionsVisible(true);
+                press = null;
+            }, 3000)
+        };
+    });
+
+    profileAvatarTrigger.addEventListener("pointermove", event => {
+        if (press?.id !== event.pointerId) return;
+        if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > 10) cancelPress();
+    });
+
+    for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
+        profileAvatarTrigger.addEventListener(type, event => {
+            if (press?.id === event.pointerId) cancelPress();
+        });
+    }
+
+    window.addEventListener("blur", cancelPress);
+    profileAvatarTrigger.addEventListener("contextmenu", event => event.preventDefault());
+    profileAvatarTrigger.addEventListener("click", event => {
+        if (event.detail === 0) setProfilePhotoActionsVisible(profilePhotoActions.hidden);
+    });
+
+    document.addEventListener("click", event => {
+        if (!profileAvatar.contains(event.target)) setProfilePhotoActionsVisible(false);
+    });
+
+    profileAvatar.addEventListener("keydown", event => {
+        if (event.key !== "Escape" || profilePhotoActions.hidden) return;
+        setProfilePhotoActionsVisible(false);
+        profileAvatarTrigger.focus();
+    });
+
+    changeSellerProfilePhotoButton.addEventListener("click", () => sellerProfilePhotoInput.click());
+}
+
     if (sellerProfilePhotoInput) {
         sellerProfilePhotoInput.addEventListener(
             "change",
@@ -953,6 +1016,8 @@ const removeSellerProfilePhotoButton =
                         sellerProfilePhotoData,
                         profileName
                     );
+                    setProfilePhotoActionsVisible(false);
+                    profileAvatarTrigger.focus({ preventScroll: true });
     
                 } catch (error) {
                     console.error(
@@ -1037,6 +1102,8 @@ const removeSellerProfilePhotoButton =
                             "",
                             profileName
                         );
+                        setProfilePhotoActionsVisible(false);
+                        profileAvatarTrigger.focus({ preventScroll: true });
     
                     } catch (error) {
                         console.error(
@@ -1214,8 +1281,6 @@ const removeSellerProfilePhotoButton =
                             JSON.stringify({
                                 city,
                                 telegram,
-                                profilePhoto:
-                                    sellerProfilePhotoData,
                                 showPhone,
                                 showTelegram
                             })
