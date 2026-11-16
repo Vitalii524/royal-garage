@@ -131,8 +131,10 @@
     adminApi("/api/admin/registrations").then(data => {
         renderStats(data.stats);
         registrationStatus.hidden = true;
-        businessControls.hidden = false;
-        return loadBusinesses();
+        if (data.canManageBusinesses) {
+            businessControls.hidden = false;
+            return loadBusinesses();
+        }
     }).catch(error => {
         registrationStatus.textContent = error.message;
     });
