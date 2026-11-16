@@ -7,10 +7,7 @@
 }
 
 .garage-hero {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 30px;
+    display: block;
     padding: 32px;
     margin-bottom: 25px;
     background: linear-gradient(
@@ -1391,4 +1388,59 @@
 }
 .garage-layout {
     align-items: start;
+}
+
+/* Actions inside the top profile card */
+.profile-main-actions {
+    margin-top: 16px;
+}
+.garage-hero .profile-main-actions > .profile-disclosure,
+.garage-hero .profile-main-actions > .profile-reviews-link,
+.garage-hero .profile-main-actions > .profile-action-row {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-top: 1px solid rgba(240, 201, 107, 0.2);
+    border-radius: 0;
+    background: none;
+}
+.garage-hero .profile-main-actions > .profile-disclosure[open] {
+    padding-bottom: 14px;
+}
+.profile-main-actions > .profile-disclosure > summary > h2,
+.profile-main-actions > .profile-reviews-link,
+.profile-main-actions > .profile-action-row {
+    color: var(--gold-light);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+.garage-hero .profile-main-actions > .profile-reviews-link,
+.garage-hero .profile-main-actions > .profile-action-row {
+    min-height: 44px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+}
+.profile-main-actions > .profile-action-row {
+    cursor: pointer;
+}
+.profile-main-actions > .profile-action-row::after {
+    content: "→";
+}
+.profile-main-actions > :is(a, button):focus-visible {
+    outline: 2px solid var(--gold-light);
+    outline-offset: 3px;
+}
+.profile-main-actions .garage-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+}
+.profile-main-actions :is(.garage-sidebar, .service-panel) {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
 }

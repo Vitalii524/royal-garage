@@ -1,7600 +1,1446 @@
-"use strict";
+/* ===== МІЙ ГАРАЖ ===== */
 
-/* =========================
-   ROYAL GARAGE — PROFILE.JS
-   ========================= */
-
-document.documentElement.style.visibility = "hidden";
-
-let currentUser = null;
+.garage-page {
+    max-width: 1200px;
+    margin: 30px auto 60px;
+    padding: 0 20px;
+}
 
-function tr(key, fallback = "") {
-    return typeof window.t === "function"
-        ? window.t(key, fallback)
-        : fallback;
+.garage-hero {
+    display: block;
+    padding: 32px;
+    margin-bottom: 25px;
+    background: linear-gradient(
+        120deg,
+        rgba(6, 27, 53, 0.98),
+        rgba(3, 8, 20, 0.96)
+    );
+    border: 1px solid rgba(214, 160, 58, 0.3);
+    border-radius: 16px;
 }
 
-function currentLocale() {
-    return window.getRoyalGarageLanguage?.() === "en"
-        ? "en-US"
-        : "uk-UA";
+.garage-hero h1 {
+    margin: 5px 0 12px;
+    color: var(--gold-light);
+    font-size: 40px;
 }
 
-function trf(key, fallback = "", vars = {}) {
-    return tr(key, fallback).replace(/\{(\w+)\}/g, (_, name) =>
-        String(vars[name] ?? "")
-    );
+.garage-hero p {
+    max-width: 700px;
+    color: var(--muted);
+    line-height: 1.6;
 }
 
-const profileFuelKeys = {
-    "Бензин": "auto.065", petrol: "auto.065",
-    "Дизель": "auto.066", diesel: "auto.066",
-    "Газ": "auto.067", lpg: "auto.067",
-    "Газ / бензин": "auto.068", "Газ/бензин": "auto.068", lpg_petrol: "auto.068",
-    "Гібрид": "auto.069", hybrid: "auto.069",
-    "Електро": "auto.070", electric: "auto.070"
-};
-
-const profileTransmissionKeys = {
-    "Механіка": "auto.073", manual: "auto.073",
-    "Автомат": "auto.074", automatic: "auto.074",
-    "Робот": "auto.075", robot: "auto.075",
-    "Варіатор": "auto.076", cvt: "auto.076"
-};
-
-function translateStoredValue(value, map) {
-    const raw = String(value || "");
-    const key = map[raw];
-    return key ? tr(key, raw) : raw;
-}
-
-async function renderFavoriteListings() {
-    const favoritesList =
-        document.getElementById(
-            "profileFavoritesList"
-        );
+.section-label {
+    margin: 0;
+    color: var(--gold);
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
 
-    const favoritesCount =
-        document.getElementById(
-            "profileFavoritesCount"
-        );
+/* ===== РОЗМІЩЕННЯ ГАРАЖА ===== */
 
-    if (
-        !favoritesList ||
-        !favoritesCount
-    ) {
-        return;
-    }
+.garage-layout {
+    display: grid;
+    grid-template-columns: 310px 1fr;
+    gap: 25px;
+}
 
-    const token =
-        localStorage.getItem(
-            "royalGarageToken"
-        );
+.garage-sidebar,
+.service-panel {
+    padding: 24px;
+    background: linear-gradient(
+        180deg,
+        rgba(7, 31, 61, 0.97),
+        rgba(3, 13, 27, 0.97)
+    );
+    border: 1px solid rgba(214, 160, 58, 0.25);
+    border-radius: 14px;
+}
 
-    if (!token) {
-        favoritesCount.textContent = "0";
+.garage-sidebar h2 {
+    margin-top: 0;
+    color: var(--gold-light);
+}
 
-        favoritesList.innerHTML = `
-            <p class="profile-favorites-empty">
-                ${escapeHtml(tr("profile.dynamic.loginForFavorites", "Увійдіть у профіль, щоб переглянути обране."))}
-            </p>
-        `;
+/* ===== СПИСОК АВТОМОБІЛІВ ===== */
 
-        return;
-    }
+.garage-cars-list {
+    display: grid;
+    gap: 12px;
+}
 
-    try {
-        const [
-            favoritesResponse,
-            listingsResponse
-        ] = await Promise.all([
-            fetch(
-                "/api/market/favorites",
-                {
-                    headers: {
-                        Authorization:
-                            `Bearer ${token}`
-                    }
-                }
-            ),
-
-            fetch(
-                "/api/market/listings"
-            )
-        ]);
-
-        const favoritesData =
-            await favoritesResponse.json();
-
-        const listingsData =
-            await listingsResponse.json();
-
-        if (!favoritesResponse.ok) {
-            throw new Error(
-                favoritesData.message ||
-                "Не вдалося завантажити обране."
-            );
-        }
-
-        if (!listingsResponse.ok) {
-            throw new Error(
-                listingsData.message ||
-                "Не вдалося завантажити оголошення."
-            );
-        }
-
-        const favoriteIds =
-            Array.isArray(
-                favoritesData.favoriteIds
-            )
-                ? favoritesData.favoriteIds.map(
-                    String
-                )
-                : [];
-
-        const listings =
-            Array.isArray(
-                listingsData.listings
-            )
-                ? listingsData.listings
-                : [];
-
-        const favoriteListings =
-            listings.filter(
-                (listing) =>
-                    favoriteIds.includes(
-                        String(listing.id)
-                    )
-            );
-
-        favoritesCount.textContent =
-            String(
-                favoriteListings.length
-            );
-
-        if (
-            favoriteListings.length === 0
-        ) {
-            favoritesList.innerHTML = `
-                <p class="profile-favorites-empty">
-                    ${escapeHtml(tr("auto.040", "Ви ще не додали оголошення в обране."))}
-                </p>
-            `;
-
-            return;
-        }
-
-        favoritesList.innerHTML =
-            favoriteListings
-                .map((listing) => {
-                    const listingPhotos =
-                        Array.isArray(
-                            listing.photos
-                        )
-                            ? listing.photos
-                            : listing.photo
-                                ? [
-                                    listing.photo
-                                ]
-                                : [];
-
-                    const mainPhoto =
-                        listingPhotos[0] ||
-                        "";
-
-                    const priceUsd =
-                        listing.price_usd ??
-                        listing.priceUsd ??
-                        null;
-
-                    return `
-                        <a
-                            class="profile-favorite-card"
-                            href="listing.html?id=${encodeURIComponent(
-                                listing.id
-                            )}"
-                        >
-                            ${
-                                mainPhoto
-                                    ? `
-                                        <img
-                                            class="profile-favorite-photo"
-                                            src="${escapeHtml(
-                                                mainPhoto
-                                            )}"
-                                            alt="${escapeHtml(
-                                                listing.name ||
-                                                tr("profile.dynamic.vehicle", "Автомобіль")
-                                            )}"
-                                        >
-                                    `
-                                    : ""
-                            }
-
-                            <div class="profile-favorite-info">
-                                <strong>
-                                    ${escapeHtml(
-                                        listing.name ||
-                                        tr("profile.dynamic.vehicle", "Автомобіль")
-                                    )}
-                                </strong>
-
-                                ${
-                                    listing.year
-                                        ? `
-                                            <span>
-                                                ${escapeHtml(
-                                                    String(
-                                                        listing.year
-                                                    )
-                                                )} ${escapeHtml(tr("profile.dynamic.yearWord", "рік"))}
-                                            </span>
-                                        `
-                                        : ""
-                                }
-
-                                ${
-                                    priceUsd
-                                        ? `
-                                            <span>
-                                                ${Number(
-                                                    priceUsd
-                                                ).toLocaleString(
-                                                    currentLocale()
-                                                )} $
-                                            </span>
-                                        `
-                                        : ""
-                                }
-                            </div>
-                        </a>
-                    `;
-                })
-                .join("");
-
-    } catch (error) {
-        console.error(
-            "Profile favorites load error:",
-            error
-        );
+.garage-car-button {
+    width: 100%;
+    padding: 16px;
+    text-align: left;
+    color: var(--white);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(214, 160, 58, 0.18);
+    border-radius: 10px;
+    cursor: pointer;
+}
 
-        favoritesCount.textContent = "0";
+.garage-car-button strong,
+.garage-car-button span {
+    display: block;
+}
 
-        favoritesList.innerHTML = `
-            <p class="profile-favorites-empty">
-                ${escapeHtml(tr("profile.dynamic.favoritesLoadError", "Не вдалося завантажити обране."))}
-            </p>
-        `;
-    }
+.garage-car-button span {
+    margin-top: 7px;
+    color: var(--muted);
+    font-size: 14px;
 }
-document.documentElement.style.visibility =
-    "visible";
-
-const elements = {
-    garageCarsList:
-        document.getElementById(
-            "garageCarsList"
-        ),
-
-    noCarsMessage:
-        document.getElementById(
-            "noCarsMessage"
-        ),
-
-    selectedCarEmpty:
-        document.getElementById(
-            "selectedCarEmpty"
-        ),
-
-    selectedCarContent:
-        document.getElementById(
-            "selectedCarContent"
-        ),
-
-    selectedCarName:
-        document.getElementById(
-            "selectedCarName"
-        ),
-
-    selectedCarInfo:
-        document.getElementById(
-            "selectedCarInfo"
-        ),
-
-    selectedCarPhoto:
-        document.getElementById(
-            "selectedCarPhoto"
-        ),
-
-    carPhotoPlaceholder:
-        document.getElementById(
-            "carPhotoPlaceholder"
-        ),
-
-    carPhotoGallery:
-        document.getElementById(
-            "carPhotoGallery"
-        ),
-
-    serviceHistory:
-        document.getElementById(
-            "serviceHistory"
-        ),
-
-    noServiceMessage:
-        document.getElementById(
-            "noServiceMessage"
-        ),
-
-    serviceCount:
-        document.getElementById(
-            "serviceCount"
-        ),
-
-    totalServiceCost:
-        document.getElementById(
-            "totalServiceCost"
-        ),
-
-    currentMileage:
-        document.getElementById(
-            "currentMileage"
-        ),
-
-    carModal:
-        document.getElementById(
-            "carModal"
-        ),
-
-    serviceModal:
-        document.getElementById(
-            "serviceModal"
-        ),
-
-    historyModal:
-        document.getElementById(
-            "historyModal"
-        ),
-
-    chatsModal:
-        document.getElementById(
-            "chatsModal"
-        ),
-
-    carForm:
-        document.getElementById(
-            "carForm"
-        ),
-
-    serviceForm:
-        document.getElementById(
-            "serviceForm"
-        ),
-
-    openCarButton:
-        document.getElementById(
-            "openCarButton"
-        ),
-
-    editCarButton:
-        document.getElementById(
-            "editCarButton"
-        ),
-
-    deleteCarButton:
-        document.getElementById(
-            "deleteCarButton"
-        ),
-
-    openServiceButton:
-        document.getElementById(
-            "openServiceButton"
-        ),
-
-    openHistoryButton:
-        document.getElementById(
-            "openHistoryButton"
-        ),
-
-    openChatsButton:
-        document.getElementById(
-            "openChatsButton"
-        ),
-
-    myChatsList:
-        document.getElementById(
-            "myChatsList"
-        ),
-
-    updateCarPhoto:
-        document.getElementById(
-            "updateCarPhoto"
-        ),
-
-    photoViewer:
-        document.getElementById(
-            "photoViewer"
-        ),
-
-    photoViewerImage:
-        document.getElementById(
-            "photoViewerImage"
-        ),
-
-    closePhotoViewer:
-        document.getElementById(
-            "closePhotoViewer"
-        ),
-
-    previousCarPhoto:
-        document.getElementById(
-            "previousCarPhoto"
-        ),
-
-    nextCarPhoto:
-        document.getElementById(
-            "nextCarPhoto"
-        )
-};
-
-async function loadGarageServiceHistory(
-    carId
-) {
-    const token =
-        localStorage.getItem(
-            "royalGarageToken"
-        );
 
-    if (!token || !carId) {
-        return [];
-    }
+.garage-car-button:hover,
+.garage-car-button.active {
+    background: rgba(214, 160, 58, 0.12);
+    border-color: var(--gold);
+}
 
-    try {
-        const response =
-            await fetch(
-                `/api/garage/cars/${
-                    encodeURIComponent(carId)
-                }/service-history`,
-                {
-                    headers: {
-                        Authorization:
-                            `Bearer ${token}`
-                    }
-                }
-            );
-
-        const data =
-            await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                data.message ||
-                "Не вдалося завантажити історію СТО."
-            );
-        }
-
-        return Array.isArray(
-            data.history
-        )
-            ? data.history
-            : [];
-
-    } catch (error) {
-        console.error(
-            "Garage service history load error:",
-            error
-        );
+/* ===== ПОРОЖНІЙ СТАН ===== */
 
-        return [];
-    }
+.empty-state {
+    padding: 70px 20px;
+    text-align: center;
 }
 
-async function loadGarageCarsFromServer() {
-    const token =
-        localStorage.getItem(
-            "royalGarageToken"
-        );
+.empty-state span {
+    font-size: 52px;
+}
 
-    if (!token) {
-        return null;
-    }
+.empty-state p,
+.empty-message {
+    color: var(--muted);
+}
 
-    try {
-        const response =
-            await fetch(
-                "/api/garage/cars",
-                {
-                    headers: {
-                        Authorization:
-                            `Bearer ${token}`
-                    }
-                }
-            );
-
-        const data =
-            await response.json();
-
-        if (!response.ok) {
-            console.error(
-                "Garage load failed:",
-                data
-            );
-
-            return null;
-        }
-
-        if (
-            !Array.isArray(
-                data.cars
-            )
-        ) {
-            return [];
-        }
-
-        return data.cars;
-    } catch (error) {
-        console.error(
-            "Garage load request error:",
-            error
-        );
+/* ===== ВИБРАНИЙ АВТОМОБІЛЬ ===== */
 
-        return null;
-    }
+.selected-car-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
 }
-
-async function createGarageCarOnServer(carData) {
-    const token =
-        localStorage.getItem(
-            "royalGarageToken"
-        );
 
-    if (!token) {
-        throw new Error(
-            "Сесія недійсна. Увійдіть повторно."
-        );
-    }
+.selected-car-header h2 {
+    margin: 6px 0;
+    color: var(--gold-light);
+    font-size: 30px;
+}
 
-    const response =
-        await fetch(
-            "/api/garage/cars",
-            {
-                method: "POST",
-
-                headers: {
-                    "Content-Type":
-                        "application/json",
-
-                    Authorization:
-                        `Bearer ${token}`
-                },
-
-                body:
-                    JSON.stringify(
-                        carData
-                    )
-            }
-        );
+.selected-car-header p {
+    color: var(--muted);
+}
 
-    const data =
-        await response.json();
+/* ===== КОРОТКА СТАТИСТИКА ===== */
 
-    if (!response.ok) {
-        throw new Error(
-            data.message ||
-            "Не вдалося додати автомобіль."
-        );
-    }
+.service-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 24px 0;
+}
 
-    return (
-        data.car ||
-        data
-    );
+.service-summary div {
+    padding: 16px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(214, 160, 58, 0.16);
+    border-radius: 10px;
 }
 
-let cars = [];
+.service-summary strong,
+.service-summary span {
+    display: block;
+}
 
-const globalOpenChatsButton =
-    document.getElementById("globalOpenChatsButton");
+.service-summary strong {
+    color: var(--gold-light);
+    font-size: 22px;
+}
 
-const profileUnreadCount =
-    document.getElementById( "profileUnreadCount" );
-       
-let selectedCarId =
-    cars[0]?.id ?? null;
+.service-summary span {
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 13px;
+}
 
-let editingCarId = null;
-let editingServiceId = null;
+/* ===== ІСТОРІЯ ОБСЛУГОВУВАННЯ ===== */
 
-let viewerPhotos = [];
-let viewerIndex = 0;
+.service-history {
+    display: grid;
+    gap: 15px;
+}
 
-async function loadProfileFromServer() {
-    const token =
-        localStorage.getItem(
-            "royalGarageToken"
-        );
+.service-card {
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(214, 160, 58, 0.18);
+    border-radius: 12px;
+}
 
-    if (!token) {
-        window.location.replace(
-            "index.html"
-        );
+.service-card-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+}
 
-        return null;
-    }
+.service-card h3 {
+    margin: 5px 0 12px;
+}
 
-    try {
-        const response =
-            await fetch(
-                "/api/profile",
-                {
-                    headers: {
-                        Authorization:
-                            `Bearer ${token}`
-                    }
-                }
-            );
-
-        const data =
-            await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                data.message ||
-                "Не вдалося завантажити профіль."
-            );
-        }
-
-        const user =
-            data.user;
-
-        currentUser = {
-            id:
-                user.id,
-
-            userId:
-                user.id,
-
-            name:
-                user.name || "",
-
-            email:
-                user.email || "",
-
-            phone:
-                user.phone || "",
-
-            emailVerified:
-                    Boolean(
-                        user.email_verified
-                    ),
-
-            phoneVerified:
-                    Boolean(
-                        user.phone_verified
-                    ),
-
-            city:
-                user.city || "",
-
-            telegram:
-                user.telegram || "",
-
-            profilePhoto:
-                user.profile_photo || "",
-
-            showPhone:
-                Boolean(
-                    user.show_phone
-                ),
-
-            showTelegram:
-                Boolean(
-                    user.show_telegram
-                ),
-
-            accountType:
-                user.account_type ||
-                "user",
-
-            role:
-                user.role ||
-                "user",
-
-            isFirstMember:
-                Boolean(
-                    user.is_first_member
-                ),
-
-            firstMemberNumber:
-                user.first_member_number == null
-                    ? null
-                    : Number(
-                        user.first_member_number
-                    )
-        };
-
-        localStorage.setItem(
-            "royalGarageCurrentUser",
-            JSON.stringify(currentUser)
-        );
+.service-date {
+    margin: 0;
+    color: var(--gold);
+    font-size: 14px;
+}
 
-        return currentUser;
+.service-visibility {
+    height: fit-content;
+    padding: 6px 10px;
+    color: var(--gold-light);
+    background: rgba(214, 160, 58, 0.12);
+    border-radius: 20px;
+    font-size: 12px;
+}
 
-    } catch (error) {
-        console.error(
-            "Profile load request error:",
-            error
-        );
+.service-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin: 12px 0;
+    color: var(--muted);
+}
 
-        window.location.replace(
-            "index.html"
-        );
+/* ===== КНОПКИ РЕДАГУВАННЯ І ВИДАЛЕННЯ ===== */
 
-        return null;
-    }
+.edit-car-button {
+    padding: 12px 20px;
+    color: #f2d27a;
+    background: transparent;
+    border: 1px solid #d7b35a;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 700;
+    transition: 0.2s;
 }
-
 
-function renderFirstMemberBadge() {
-    const badge =
-        document.getElementById(
-            "firstMemberBadge"
-        );
+.edit-car-button:hover {
+    color: #10182c;
+    background: #d7b35a;
+}
 
-    const title =
-        document.getElementById(
-            "firstMemberBadgeTitle"
-        );
+.edit-service-button {
+    padding: 10px 16px;
+    color: #f2d27a;
+    background: transparent;
+    border: 1px solid #d7b35a;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+}
 
-    const numberText =
-        document.getElementById(
-            "firstMemberBadgeNumber"
-        );
+.edit-service-button:hover {
+    color: #10182c;
+    background: #d7b35a;
+}
 
-    if (
-        !badge ||
-        !title ||
-        !numberText
-    ) {
-        return;
-    }
+.delete-service-button {
+    margin-top: 10px;
+    padding: 8px 12px;
+    color: #ffb7b7;
+    background: transparent;
+    border: 1px solid rgba(255, 120, 120, 0.35);
+    border-radius: 7px;
+    cursor: pointer;
+    transition:
+        background 0.2s,
+        color 0.2s,
+        border-color 0.2s;
+}
 
-    const isFirstMember =
-        Boolean(
-            currentUser?.isFirstMember
-        );
+.delete-service-button:hover {
+    color: #ffffff;
+    background: #b94a55;
+    border-color: #b94a55;
+}
 
-    badge.hidden =
-        !isFirstMember;
+.delete-car-button {
+    margin-top: 10px;
+    padding: 11px 16px;
+    color: #ffcccc;
+    background: transparent;
+    border: 1px solid rgba(255, 100, 100, 0.55);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
 
-    if (!isFirstMember) {
-        numberText.textContent = "";
-        return;
-    }
+.delete-car-button:hover {
+    color: #ffffff;
+    background: #a62828;
+}
 
-    const isEnglish =
-        window.getRoyalGarageLanguage?.() ===
-        "en";
-
-    title.textContent =
-        isEnglish
-            ? "🏁 FIRST"
-            : "🏁 ПЕРШИЙ";
-
-    const memberNumber =
-        Number(
-            currentUser?.firstMemberNumber
-        );
+.btn-danger {
+    width: 100%;
+    margin-top: 12px;
+    padding: 12px;
+    color: #ffffff;
+    background: #b22222;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+}
 
-    if (
-        Number.isInteger(memberNumber) &&
-        memberNumber >= 1 &&
-        memberNumber <= 100
-    ) {
-        numberText.textContent =
-            isEnglish
-                ? `Member #${memberNumber} of the first 100`
-                : `Учасник №${memberNumber} із перших 100`;
-    } else {
-        numberText.textContent =
-            isEnglish
-                ? "One of the first 100 Royal Garage members"
-                : "Один із перших 100 учасників Royal Garage";
-    }
+.btn-danger:hover {
+    background: #d32f2f;
 }
 
+/* ===== ГОЛОВНЕ ФОТО АВТОМОБІЛЯ ===== */
 
-async function initializeGarageCars() {
-    const serverCars =
-        await loadGarageCarsFromServer();
+.car-photo-container {
+    margin-bottom: 24px;
+}
 
-    if (!Array.isArray(serverCars)) {
-        cars = [];
+.car-main-photo {
+    display: block;
+    width: 100%;
+    max-height: 420px;
+    object-fit: cover;
+    border: 1px solid rgba(214, 160, 58, 0.35);
+    border-radius: 14px;
+    cursor: zoom-in;
+}
 
-        selectedCarId = null;
+.car-photo-placeholder {
+    display: grid;
+    min-height: 220px;
+    place-items: center;
+    color: var(--muted);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px dashed rgba(214, 160, 58, 0.35);
+    border-radius: 14px;
+    font-size: 18px;
+}
 
-        renderPage();
-        return;
-    }
+.change-car-photo-button {
+    display: block;
+    margin-top: 10px;
+    padding: 11px 16px;
+    color: #f3c969;
+    text-align: center;
+    border: 1px solid rgba(243, 201, 105, 0.55);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
 
-    cars = serverCars;
+.change-car-photo-button:hover {
+    background: rgba(243, 201, 105, 0.12);
+}
 
-    selectedCarId =
-        cars[0]?.id ?? null;
+/* ===== ПЕРЕГЛЯД ФОТО НА ВЕСЬ ЕКРАН ===== */
 
-        updateGlobalChatsButton();
+.photo-viewer {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    align-items: center;
+    justify-content: center;
+    padding: 25px;
+    background: rgba(0, 0, 0, 0.94);
+}
 
-    renderPage();
+.photo-viewer.open {
+    display: flex;
 }
 
-/* =========================
-   ДОПОМІЖНІ ФУНКЦІЇ
-   ========================= */
+.photo-viewer img {
+    max-width: 95vw;
+    max-height: 92vh;
+    object-fit: contain;
+    border-radius: 8px;
+}
 
-let sellerProfilePhotoData = "";
+.photo-viewer-close {
+    position: fixed;
+    top: 15px;
+    right: 25px;
+    color: #ffffff;
+    background: transparent;
+    border: none;
+    font-size: 42px;
+    cursor: pointer;
+}
 
-function renderSellerProfilePhoto(
-    photo,
-    name = ""
-) {
-    const preview =
-        document.getElementById(
-            "sellerProfilePhotoPreview"
-        );
+/* ===== ГАЛЕРЕЯ ФОТО АВТОМОБІЛЯ ===== */
 
-    if (!preview) {
-        return;
-    }
+.car-photo-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+}
 
-    removeSellerProfilePhotoButton.hidden = !photo;
-    if (photo) {
-        const image = document.createElement("img");
-        image.src = photo;
-        image.alt = "";
-        image.draggable = false;
-        preview.replaceChildren(image);
-        return;
-    }
+.car-photo-thumbnail-item {
+    position: relative;
+}
 
-    preview.textContent =
-        String(name || "П")
-            .trim()
-            .charAt(0)
-            .toUpperCase() || "П";
+.car-photo-thumbnail-button {
+    width: 92px;
+    height: 70px;
+    padding: 3px;
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 9px;
+    cursor: pointer;
 }
 
-const sellerProfilePhotoInput =
-    document.getElementById(
-        "sellerProfilePhoto"
-    );
+.car-photo-thumbnail-button.active {
+    border-color: #f3c969;
+}
 
-const removeSellerProfilePhotoButton =
-    document.getElementById(
-        "removeSellerProfilePhoto"
-    );
-const profileAvatar = document.getElementById("profileAvatar");
-const profileAvatarTrigger = document.getElementById("profileAvatarTrigger");
-const profilePhotoActions = document.getElementById("profilePhotoActions");
-const changeSellerProfilePhotoButton = document.getElementById("changeSellerProfilePhoto");
-
-function setProfilePhotoActionsVisible(visible) {
-    profilePhotoActions.hidden = !visible;
-    profileAvatarTrigger.setAttribute("aria-expanded", String(visible));
-}
-
-if (profileAvatar) {
-    let press;
-
-    function cancelPress() {
-        if (!press) return;
-        clearTimeout(press.timer);
-        press = null;
-    }
+.car-photo-thumbnail-button img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+}
 
-    profileAvatarTrigger.addEventListener("pointerdown", event => {
-        if (!event.isPrimary || event.button !== 0) return;
-        cancelPress();
-        profileAvatarTrigger.setPointerCapture(event.pointerId);
-        press = {
-            id: event.pointerId,
-            x: event.clientX,
-            y: event.clientY,
-            timer: setTimeout(() => {
-                setProfilePhotoActionsVisible(true);
-                press = null;
-            }, 3000)
-        };
-    });
-
-    profileAvatarTrigger.addEventListener("pointermove", event => {
-        if (press?.id !== event.pointerId) return;
-        if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > 10) cancelPress();
-    });
-
-    for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
-        profileAvatarTrigger.addEventListener(type, event => {
-            if (press?.id === event.pointerId) cancelPress();
-        });
-    }
+.delete-car-photo-button {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    z-index: 2;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: #8b1f2d;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+}
 
-    window.addEventListener("blur", cancelPress);
-    profileAvatarTrigger.addEventListener("contextmenu", event => event.preventDefault());
-    profileAvatarTrigger.addEventListener("click", event => {
-        if (event.detail === 0) setProfilePhotoActionsVisible(profilePhotoActions.hidden);
-    });
-
-    document.addEventListener("click", event => {
-        if (!profileAvatar.contains(event.target)) setProfilePhotoActionsVisible(false);
-    });
-
-    profileAvatar.addEventListener("keydown", event => {
-        if (event.key !== "Escape" || profilePhotoActions.hidden) return;
-        setProfilePhotoActionsVisible(false);
-        profileAvatarTrigger.focus();
-    });
-
-    changeSellerProfilePhotoButton.addEventListener("click", () => sellerProfilePhotoInput.click());
-}
-
-    if (sellerProfilePhotoInput) {
-        sellerProfilePhotoInput.addEventListener(
-            "change",
-            async () => {
-                const file =
-                    sellerProfilePhotoInput
-                        .files?.[0];
-    
-                if (!file) {
-                    return;
-                }
-    
-                try {
-                    const compressedPhoto =
-                        await compressImage(file);
-    
-                    const token =
-                        localStorage.getItem(
-                            "royalGarageToken"
-                        );
-    
-                    if (!token) {
-                        alert(
-                            "Сесія недійсна. Увійдіть повторно."
-                        );
-    
-                        return;
-                    }
-    
-                    const response =
-                        await fetch(
-                            "/api/profile",
-                            {
-                                method: "PATCH",
-    
-                                headers: {
-                                    "Content-Type":
-                                        "application/json",
-    
-                                    Authorization:
-                                        `Bearer ${token}`
-                                },
-    
-                                body:
-                                    JSON.stringify({
-                                        profilePhoto:
-                                            compressedPhoto
-                                    })
-                            }
-                        );
-    
-                    const data =
-                        await response.json();
-    
-                    if (!response.ok) {
-                        throw new Error(
-                            data.message ||
-                            "Не вдалося зберегти фото профілю."
-                        );
-                    }
-    
-                    sellerProfilePhotoData =
-                        data.user.profile_photo ||
-                        compressedPhoto;
-    
-                    currentUser.profilePhoto =
-                        sellerProfilePhotoData;
-    
-                    const profileName =
-                        document
-                            .getElementById(
-                                "sellerProfileName"
-                            )
-                            ?.value
-                            .trim() || "";
-    
-                    renderSellerProfilePhoto(
-                        sellerProfilePhotoData,
-                        profileName
-                    );
-                    setProfilePhotoActionsVisible(false);
-                    profileAvatarTrigger.focus({ preventScroll: true });
-    
-                } catch (error) {
-                    console.error(
-                        "Profile photo update error:",
-                        error
-                    );
-    
-                    alert(
-                        error.message ||
-                        "Не вдалося обробити фото."
-                    );
-                }
-    
-                sellerProfilePhotoInput.value =
-                    "";
-            }
-        );
-    }
-    if (removeSellerProfilePhotoButton) {
-        removeSellerProfilePhotoButton
-            .addEventListener(
-                "click",
-                async () => {
-                    const token =
-                        localStorage.getItem(
-                            "royalGarageToken"
-                        );
-    
-                    if (!token) {
-                        alert(
-                            "Сесія недійсна. Увійдіть повторно."
-                        );
-    
-                        return;
-                    }
-    
-                    try {
-                        const response =
-                            await fetch(
-                                "/api/profile",
-                                {
-                                    method: "PATCH",
-    
-                                    headers: {
-                                        "Content-Type":
-                                            "application/json",
-    
-                                        Authorization:
-                                            `Bearer ${token}`
-                                    },
-    
-                                    body:
-                                        JSON.stringify({
-                                            profilePhoto: ""
-                                        })
-                                }
-                            );
-    
-                        const data =
-                            await response.json();
-    
-                        if (!response.ok) {
-                            throw new Error(
-                                data.message ||
-                                "Не вдалося видалити фото профілю."
-                            );
-                        }
-    
-                        sellerProfilePhotoData = "";
-    
-                        currentUser.profilePhoto = "";
-    
-                        const profileName =
-                            document
-                                .getElementById(
-                                    "sellerProfileName"
-                                )
-                                ?.value
-                                .trim() || "";
-    
-                        renderSellerProfilePhoto(
-                            "",
-                            profileName
-                        );
-                        setProfilePhotoActionsVisible(false);
-                        profileAvatarTrigger.focus({ preventScroll: true });
-    
-                    } catch (error) {
-                        console.error(
-                            "Profile photo delete error:",
-                            error
-                        );
-    
-                        alert(
-                            error.message ||
-                            "Не вдалося видалити фото профілю."
-                        );
-                    }
-                }
-            );
-    }
+.delete-car-photo-button:hover {
+    transform: scale(1.08);
+}
 
-    function fillSellerProfileSettings() {
-        sellerProfilePhotoData =
-            currentUser.profilePhoto ||
-            "";
-    
-        const nameInput =
-            document.getElementById(
-                "sellerProfileName"
-            );
-    
-        const cityInput =
-            document.getElementById(
-                "sellerProfileCity"
-            );
-    
-        const phoneInput =
-            document.getElementById(
-                "sellerProfilePhone"
-            );
-    
-        const telegramInput =
-            document.getElementById(
-                "sellerProfileTelegram"
-            );
-    
-        const showPhoneInput =
-            document.getElementById(
-                "sellerProfileShowPhone"
-            );
-    
-        const showTelegramInput =
-            document.getElementById(
-                "sellerProfileShowTelegram"
-            );
-    
-        if (nameInput) {
-            nameInput.value =
-                currentUser.name ||
-                "";
-        }
-    
-        if (cityInput) {
-            cityInput.value =
-                currentUser.city ||
-                "";
-        }
-    
-        if (phoneInput) {
-            phoneInput.value =
-                currentUser.phone ||
-                "";
-        }
-    
-        if (telegramInput) {
-            telegramInput.value =
-                currentUser.telegram ||
-                "";
-        }
-    
-        if (showPhoneInput) {
-            showPhoneInput.checked =
-                Boolean(
-                    currentUser.showPhone
-                );
-        }
-    
-        if (showTelegramInput) {
-            showTelegramInput.checked =
-                Boolean(
-                    currentUser.showTelegram
-                );
-        }
-    
-        renderSellerProfilePhoto(
-            sellerProfilePhotoData,
-            currentUser.name ||
-            ""
-        );
-    }
+.replace-car-photo-button {
+    position: absolute;
+    top: -8px;
+    right: 24px;
+    z-index: 2;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: #a97816;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+}
 
-    async function saveSellerProfileSettings(event) {
-        event.preventDefault();
-    
-        const name =
-            document
-                .getElementById(
-                    "sellerProfileName"
-                )
-                ?.value
-                .trim() || "";
-    
-        const city =
-            document
-                .getElementById(
-                    "sellerProfileCity"
-                )
-                ?.value
-                .trim() || "";
-    
-        const phone =
-            document
-                .getElementById(
-                    "sellerProfilePhone"
-                )
-                ?.value
-                .trim() || "";
-    
-        const telegram =
-            document
-                .getElementById(
-                    "sellerProfileTelegram"
-                )
-                ?.value
-                .trim() || "";
-    
-        const showPhone =
-            Boolean(
-                document.getElementById(
-                    "sellerProfileShowPhone"
-                )?.checked
-            );
-    
-        const showTelegram =
-            Boolean(
-                document.getElementById(
-                    "sellerProfileShowTelegram"
-                )?.checked
-            );
-    
-        const token =
-            localStorage.getItem(
-                "royalGarageToken"
-            );
-    
-        if (!token) {
-            alert(
-                "Сесія недійсна. Увійдіть повторно."
-            );
-    
-            return;
-        }
-    
-        try {
-            const response =
-                await fetch(
-                    "/api/profile",
-                    {
-                        method: "PATCH",
-    
-                        headers: {
-                            "Content-Type":
-                                "application/json",
-    
-                            Authorization:
-                                `Bearer ${token}`
-                        },
-    
-                        body:
-                            JSON.stringify({
-                                city,
-                                telegram,
-                                showPhone,
-                                showTelegram
-                            })
-                    }
-                );
-    
-            const data =
-                await response.json();
-    
-            if (!response.ok) {
-                throw new Error(
-                    data.message ||
-                    "Не вдалося зберегти налаштування профілю."
-                );
-            }
-    
-            currentUser.city =
-                data.user.city || "";
-    
-            currentUser.telegram =
-                data.user.telegram || "";
-    
-            currentUser.profilePhoto =
-                data.user.profile_photo || "";
-    
-            currentUser.showPhone =
-                Boolean(
-                    data.user.show_phone
-                );
-    
-            currentUser.showTelegram =
-                Boolean(
-                    data.user.show_telegram
-                );
-    
-            alert(
-                "Налаштування профілю продавця збережено."
-            );
-    
-        } catch (error) {
-            console.error(
-                "Seller profile update error:",
-                error
-            );
-    
-            alert(
-                error.message ||
-                "Не вдалося зберегти налаштування профілю."
-            );
-        }
-    }
-const sellerProfileSettingsForm =
-    document.getElementById(
-        "sellerProfileSettingsForm"
-    );
+.replace-car-photo-button:hover {
+    transform: scale(1.08);
+}
 
-if (sellerProfileSettingsForm) {
-    sellerProfileSettingsForm
-        .addEventListener(
-            "submit",
-            saveSellerProfileSettings
-        );
+.main-car-photo-button {
+    position: absolute;
+    bottom: -9px;
+    left: 50%;
+    z-index: 3;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    color: #ffd75e;
+    background: #162852;
+    border: 1px solid #d4af37;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 17px;
+    line-height: 1;
+    transform: translateX(-50%);
 }
 
-async function getProfileSellerRating() {
-    const sellerId =
-        currentUser?.id ||
-        currentUser?.userId ||
-        "";
-
-    if (!sellerId) {
-        return {
-            average: 0,
-            count: 0
-        };
-    }
+.main-car-photo-button:hover {
+    transform: translateX(-50%) scale(1.08);
+}
 
-    try {
-        const response =
-            await fetch(
-                `/api/sellers/${encodeURIComponent(
-                    sellerId
-                )}/rating`
-            );
-
-        const data =
-            await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                data.message ||
-                "Не вдалося завантажити рейтинг продавця."
-            );
-        }
-
-        return {
-            average:
-                Number(
-                    data.rating?.average || 0
-                ),
-
-            count:
-                Number(
-                    data.rating?.count || 0
-                )
-        };
-
-    } catch (error) {
-        console.error(
-            "Profile seller rating load error:",
-            error
-        );
+/* ===== ФОТО В ІСТОРІЇ ОБСЛУГОВУВАННЯ ===== */
 
-        return {
-            average: 0,
-            count: 0
-        };
-    }
+.service-photo-gallery {
+    display: grid;
+    grid-template-columns: repeat(
+        auto-fill,
+        minmax(150px, 1fr)
+    );
+    gap: 12px;
+    margin-top: 16px;
 }
 
+.service-photo-item {
+    padding: 7px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(243, 201, 105, 0.25);
+    border-radius: 10px;
+}
 
-function calculateProfileRating(
-    sellerData
-) {
-    const votes =
-        sellerData?.votes &&
-        typeof sellerData.votes ===
-            "object"
-            ? Object.values(
-                sellerData.votes
-            )
-                .map(Number)
-                .filter(
-                    (rating) =>
-                        Number.isFinite(
-                            rating
-                        ) &&
-                        rating >= 1 &&
-                        rating <= 5
-                )
-            : [];
-
-
-    if (
-        votes.length === 0
-    ) {
-        return {
-            average: 0,
-            count: 0
-        };
-    }
+.service-photo {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 8px;
+    cursor: zoom-in;
+}
 
+.delete-service-photo-button {
+    width: 100%;
+    margin-top: 7px;
+    padding: 7px;
+    color: #ffcccc;
+    background: transparent;
+    border: 1px solid rgba(255, 100, 100, 0.55);
+    border-radius: 7px;
+    cursor: pointer;
+}
 
-    const total =
-        votes.reduce(
-            (sum, rating) =>
-                sum + rating,
-            0
-        );
+.delete-service-photo-button:hover {
+    color: #ffffff;
+    background: #a62828;
+}
 
+.replace-service-photo-button,
+.add-service-photo-button {
+    margin-top: 7px;
+    padding: 8px 12px;
+    color: #f3c969;
+    background: transparent;
+    border: 1px solid rgba(243, 201, 105, 0.55);
+    border-radius: 7px;
+    cursor: pointer;
+}
 
-    return {
-        average:
-            total / votes.length,
+.replace-service-photo-button {
+    width: 100%;
+}
 
-        count:
-            votes.length
-    };
+.add-service-photo-button {
+    margin-top: 14px;
 }
-function getRatingCountLabel(count) {
-    const value = Number(count) || 0;
-    const category = new Intl.PluralRules(currentLocale()).select(value);
-    return `${value} ${tr(
-        `profile.rating.${category}`,
-        tr("profile.rating.other", "оцінок")
-    )}`;
+
+.replace-service-photo-button:hover,
+.add-service-photo-button:hover {
+    background: rgba(243, 201, 105, 0.12);
 }
 
-function createId() {
-    if (crypto.randomUUID) {
-        return crypto.randomUUID();
-    }
+/* ===== ПОЛЯ ВИБОРУ АВТОМОБІЛЯ ===== */
 
-    return (
-        Date.now().toString() +
-        "-" +
-        Math.random()
-            .toString(36)
-            .slice(2, 10)
-    );
+#carBrand,
+#carModel,
+#carFuel,
+#carTransmission,
+#carBody,
+#carDrive  {
+    width: 100%;
+    padding: 12px 14px;
+    color: #ffffff;
+    background: #173b68;
+    border: 1px solid rgba(240, 201, 107, 0.35);
+    border-radius: 10px;
+    font: inherit;
 }
 
-function escapeHtml(value) {
-    return String(value ?? "")
-        .replaceAll(
-            "&",
-            "&amp;"
-        )
-        .replaceAll(
-            "<",
-            "&lt;"
-        )
-        .replaceAll(
-            ">",
-            "&gt;"
-        )
-        .replaceAll(
-            '"',
-            "&quot;"
-        )
-        .replaceAll(
-            "'",
-            "&#039;"
-        );
+#carBrand option,
+#carModel option,
+#carFuel option,
+#carTransmission option,
+#carBody option,
+#carDrive option {
+    color: #ffffff;
+    background: #173b68;
 }
 
-function formatNumber(value) {
-    return new Intl.NumberFormat(
-        currentLocale()
-    ).format(
-        Number(value) || 0
-    );
-}
+/* ===== МОБІЛЬНА ВЕРСІЯ ===== */
 
-function formatDate(value) {
-    if (!value) {
-        return tr("profile.dynamic.dateUnknown", "Дата не вказана");
+@media (max-width: 850px) {
+    .garage-hero {
+        align-items: flex-start;
+        flex-direction: column;
     }
 
-    const date =
-        new Date(
-            `${value}T00:00:00`
-        );
+    .garage-layout {
+        grid-template-columns: 1fr;
+    }
 
-    if (
-        Number.isNaN(
-            date.getTime()
-        )
-    ) {
-        return tr("profile.dynamic.dateUnknown", "Дата не вказана");
+    .service-summary {
+        grid-template-columns: 1fr;
     }
 
-    return new Intl.DateTimeFormat(
-        currentLocale()
-    ).format(date);
-}
+    .selected-car-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
 
-function normalizeVin(value) {
-    return String(value || "")
-        .trim()
-        .toUpperCase();
+    .selected-car-header .gold-btn {
+        width: 100%;
+    }
 }
 
-function openModal(modal) {
-    modal?.classList.add(
-        "modal-open"
-    );
+@media (max-width: 700px) {
+    .car-main-photo {
+        max-height: 280px;
+    }
+
+    .photo-viewer {
+        padding: 10px;
+    }
 }
 
-function closeModal(modal) {
-    modal?.classList.remove(
-        "modal-open"
-    );
+/* ===== КНОПКИ ІСТОРІЇ ТА ЧАТІВ ===== */
+
+.profile-action-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 20px;
 }
 
-function getSelectedCar() {
-    return cars.find(
-        (car) =>
-            String(car.id) ===
-            String(selectedCarId)
-    );
+.profile-action-buttons .gold-btn {
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 14px;
+    font-size: 14px;
+    text-align: center;
 }
 
-function getCarPhotos(car) {
-    if (
-        !Array.isArray(
-            car.photos
-        )
-    ) {
-        car.photos =
-            car.photo
-                ? [car.photo]
-                : [];
+@media (max-width: 600px) {
+    .profile-action-buttons {
+        grid-template-columns: 1fr;
+        gap: 10px;
     }
 
-    return car.photos;
-}
-
-function getServicePhotos(
-    service
-) {
-    if (
-        !Array.isArray(
-            service.photos
-        )
-    ) {
-        service.photos = [];
+    .profile-action-buttons .gold-btn {
+        min-height: 44px;
+        padding: 9px 12px;
+        font-size: 13px;
     }
-
-    return service.photos;
 }
 
-function setFieldValue(
-    id,
-    value
-) {
-    const field =
-        document.getElementById(id);
-
-    if (field) {
-        field.value =
-            value ?? "";
-    }
+.global-chats-actions {
+    display: flex;
+    justify-content: center;
+    padding: 24px 20px 40px;
 }
 
-function compressImage(file) {
-    return new Promise(
-        (resolve, reject) => {
-            if (
-                !file ||
-                !file.type.startsWith(
-                    "image/"
-                )
-            ) {
-                reject(
-                    new Error(
-                        "Оберіть правильний файл зображення."
-                    )
-                );
-
-                return;
-            }
-
-            const reader =
-                new FileReader();
-
-            reader.onerror = () => {
-                reject(
-                    new Error(
-                        "Не вдалося прочитати фото."
-                    )
-                );
-            };
-
-            reader.onload = () => {
-                const image =
-                    new Image();
-
-                image.onerror = () => {
-                    reject(
-                        new Error(
-                            "Неправильний формат фото."
-                        )
-                    );
-                };
-
-                image.onload = () => {
-                    const maxSize =
-                        1200;
-
-                    let width =
-                        image.naturalWidth;
-
-                    let height =
-                        image.naturalHeight;
-
-                    const scale =
-                        Math.min(
-                            1,
-                            maxSize / width,
-                            maxSize / height
-                        );
-
-                    width =
-                        Math.round(
-                            width * scale
-                        );
-
-                    height =
-                        Math.round(
-                            height * scale
-                        );
-
-                    const canvas =
-                        document.createElement(
-                            "canvas"
-                        );
-
-                    canvas.width =
-                        width;
-
-                    canvas.height =
-                        height;
-
-                    const context =
-                        canvas.getContext(
-                            "2d"
-                        );
-
-                    if (!context) {
-                        reject(
-                            new Error(
-                                "Браузер не підтримує обробку фото."
-                            )
-                        );
-
-                        return;
-                    }
-
-                    context.drawImage(
-                        image,
-                        0,
-                        0,
-                        width,
-                        height
-                    );
-
-                    resolve(
-                        canvas.toDataURL(
-                            "image/jpeg",
-                            0.78
-                        )
-                    );
-                };
-
-                image.src =
-                    reader.result;
-            };
-
-            reader.readAsDataURL(
-                file
-            );
-        }
-    );
+.global-chats-button {
+    width: 100%;
+    max-width: 330px;
+    min-height: 56px;
+    font-size: 18px;
+    font-weight: 700;
+    border-radius: 14px;
+    cursor: pointer;
 }
 
+#profileUnreadCount:not(:empty) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    margin-left: 8px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: #f4b72f;
+    color: #111;
+    font-size: 14px;
+}
 
-/* =========================
-   ПЕРЕГЛЯДАЧ ФОТО
-   ========================= */
+/* ===== РЕПУТАЦІЯ ПРОДАВЦЯ В ПРОФІЛІ ===== */
 
-function showPhotoInViewer(
-    index
-) {
-    if (
-        viewerPhotos.length === 0 ||
-        !elements.photoViewerImage
-    ) {
-        return;
-    }
+.profile-seller-reputation {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 6px;
 
-    viewerIndex =
-        (
-            index +
-            viewerPhotos.length
-        ) %
-        viewerPhotos.length;
-
-    elements.photoViewerImage.src =
-        viewerPhotos[
-            viewerIndex
-        ];
-
-    const onlyOne =
-        viewerPhotos.length <= 1;
-
-    if (
-        elements.previousCarPhoto
-    ) {
-        elements.previousCarPhoto.hidden =
-            onlyOne;
-    }
+    margin-top: 16px;
+    padding: 10px 14px;
 
-    if (
-        elements.nextCarPhoto
-    ) {
-        elements.nextCarPhoto.hidden =
-            onlyOne;
-    }
-}
+    width: fit-content;
 
-function openPhotoViewer(
-    photos,
-    startIndex = 0
-) {
-    if (
-        !elements.photoViewer ||
-        !Array.isArray(photos) ||
-        photos.length === 0
-    ) {
-        return;
-    }
+    background:
+        rgba(67, 48, 10, 0.38);
 
-    viewerPhotos = [...photos];
+    border:
+        1px solid
+        rgba(240, 201, 107, 0.45);
 
-    showPhotoInViewer(
-        startIndex
-    );
+    border-radius: 12px;
 
-    elements.photoViewer
-        .classList.add("open");
+    box-shadow:
+        0 0 12px
+        rgba(240, 201, 107, 0.1);
 }
 
-function closeViewer() {
-    elements.photoViewer
-        ?.classList.remove(
-            "open"
-        );
+.profile-reputation-label {
+    color:
+        rgba(255, 255, 255, 0.65);
 
-    if (
-        elements.photoViewerImage
-    ) {
-        elements.photoViewerImage.src =
-            "";
-    }
+    font-size: 13px;
+}
 
-    viewerPhotos = [];
-    viewerIndex = 0;
+.profile-reputation-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
+.profile-reputation-star {
+    color: #f0c96b;
 
-/* =========================
-   ВІДОБРАЖЕННЯ АВТО
-   ========================= */
+    font-size: 20px;
 
-function renderCars() {
-    if (
-        !elements.garageCarsList
-    ) {
-        return;
-    }
+    text-shadow:
+        0 0 8px
+        rgba(240, 201, 107, 0.5);
+}
 
-    elements.garageCarsList
-        .querySelectorAll(
-            ".garage-car-button"
-        )
-        .forEach(
-            (element) => {
-                element.remove();
-            }
-        );
+.profile-reputation-rating {
+    color: #f0c96b;
 
-    if (
-        elements.noCarsMessage
-    ) {
-        elements.noCarsMessage.style.display =
-    cars.length > 0
-        ? "none"
-        : "block";
-    }
+    font-size: 19px;
+}
 
-    cars.forEach((car) => {
-        const button =
-            document.createElement(
-                "button"
-            );
-
-        button.type =
-            "button";
-
-        button.className =
-            "garage-car-button";
-
-        if (
-            String(car.id) ===
-            String(
-                selectedCarId
-            )
-        ) {
-            button.classList.add(
-                "active"
-            );
-        }
-
-        button.innerHTML = `
-            <strong>
-                ${escapeHtml(
-                    car.name
-                )}
-            </strong>
-
-            <span>
-                ${escapeHtml(
-                    car.year
-                )} ${escapeHtml(tr("profile.dynamic.yearWord", "рік"))} ·
-
-                ${formatNumber(
-                    car.mileage
-                )} км
-            </span>
-        `;
-
-        button.addEventListener(
-            "click",
-            () => {
-                selectedCarId =
-                    car.id;
-
-                renderPage();
-                const carDetails = elements.selectedCarContent;
-                if (carDetails) {
-                    carDetails.open = true;
-                    carDetails.querySelector("summary")?.focus({ preventScroll: true });
-                    carDetails.scrollIntoView({ block: "start" });
-                }
-            }
-        );
+.profile-reputation-count {
+    color:
+        rgba(255, 255, 255, 0.78);
 
-        elements.garageCarsList
-            .appendChild(
-                button
-            );
-    });
-}
-
-function renderCarGallery(
-    car
-) {
-    if (
-        !elements.carPhotoGallery ||
-        !elements.selectedCarPhoto ||
-        !elements.carPhotoPlaceholder
-    ) {
-        return;
-    }
+    font-size: 14px;
+}
 
-    const photos =
-        getCarPhotos(car);
-
-    elements.carPhotoGallery
-        .innerHTML = "";
-
-    if (
-        photos.length === 0
-    ) {
-        elements.selectedCarPhoto
-            .removeAttribute(
-                "src"
-            );
-
-        elements.selectedCarPhoto
-            .classList.add(
-                "hidden"
-            );
-
-        elements.carPhotoPlaceholder
-            .classList.remove(
-                "hidden"
-            );
-
-        return;
+@media (max-width: 600px) {
+    .profile-seller-reputation {
+        width: 100%;
+        box-sizing: border-box;
     }
+}
 
-    if (
-        car.activePhotoIndex < 0 ||
-        car.activePhotoIndex >=
-            photos.length
-    ) {
-        car.activePhotoIndex = 0;
-    }
+/* ===== ВІДГУКИ ПРО ПРОДАВЦЯ В ПРОФІЛІ ===== */
 
-    const activePhoto =
-        photos[
-            car.activePhotoIndex
-        ];
+.profile-seller-reviews {
+    margin-top: 18px;
+    padding: 16px;
 
-    car.photo =
-        activePhoto;
+    background:
+        rgba(6, 24, 50, 0.55);
 
-    elements.selectedCarPhoto.src =
-        activePhoto;
+    border:
+        1px solid
+        rgba(240, 201, 107, 0.24);
 
-    elements.selectedCarPhoto
-        .classList.remove(
-            "hidden"
-        );
+    border-radius: 12px;
+}
 
-    elements.carPhotoPlaceholder
-        .classList.add(
-            "hidden"
-        );
+.profile-seller-reviews h3 {
+    margin: 0 0 14px;
 
-    elements.selectedCarPhoto.onclick =
-        () => {
-            openPhotoViewer(
-                photos,
-                car.activePhotoIndex
-            );
-        };
-
-    photos.forEach(
-        (photo, index) => {
-            const photoItem =
-                document.createElement(
-                    "div"
-                );
-
-            photoItem.className =
-                "car-photo-thumbnail-item";
-
-            const thumbnailButton =
-                document.createElement(
-                    "button"
-                );
-
-            thumbnailButton.type =
-                "button";
-
-            thumbnailButton.className =
-                "car-photo-thumbnail-button";
-
-            if (
-                index ===
-                car.activePhotoIndex
-            ) {
-                thumbnailButton
-                    .classList.add(
-                        "active"
-                    );
-            }
-
-            const thumbnail =
-                document.createElement(
-                    "img"
-                );
-
-            thumbnail.src =
-                photo;
-
-            thumbnail.alt =
-                `${tr("auto.094", "Фото автомобіля")} ${index + 1}`;
-
-            thumbnailButton
-                .appendChild(
-                    thumbnail
-                );
-                thumbnailButton
-                .addEventListener(
-                    "click",
-                    async () => {
-                        const previousIndex =
-                            car.activePhotoIndex;
-            
-                        const previousPhoto =
-                            car.photo;
-            
-                        car.activePhotoIndex =
-                            index;
-            
-                        car.photo =
-                            photos[index];
-            
-                        try {
-                            const updatedCar =
-                                await updateGarageCarOnServer(
-                                    car.id,
-                                    {
-                                        activePhotoIndex:
-                                            car.activePhotoIndex
-                                    }
-                                );
-            
-                            if (updatedCar) {
-                                Object.assign(
-                                    car,
-                                    updatedCar
-                                );
-                            }
-            
-                            renderSelectedCar();
-                        } catch (error) {
-                            car.activePhotoIndex =
-                                previousIndex;
-            
-                            car.photo =
-                                previousPhoto;
-            
-                            console.error(
-                                "Garage main photo update error:",
-                                error
-                            );
-            
-                            renderSelectedCar();
-            
-                            alert(
-                                error.message ||
-                                "Не вдалося змінити головне фото."
-                            );
-                        }
-                    }
-                );
-
-            const mainButton =
-                document.createElement(
-                    "button"
-                );
-
-            mainButton.type =
-                "button";
-
-            mainButton.className =
-                "main-car-photo-button";
-
-            mainButton.textContent =
-                index ===
-                car.activePhotoIndex
-                    ? "★"
-                    : "☆";
-
-            mainButton.title =
-                tr("profile.dynamic.makeMainPhoto", "Зробити головним фото");
-
-                mainButton.addEventListener(
-                    "click",
-                    async (event) => {
-                        event.stopPropagation();
-                
-                        const previousIndex =
-                            car.activePhotoIndex;
-                
-                        const previousPhoto =
-                            car.photo;
-                
-                        car.activePhotoIndex =
-                            index;
-                
-                        car.photo =
-                            photos[index];
-                
-                        try {
-                            const updatedCar =
-                                await updateGarageCarOnServer(
-                                    car.id,
-                                    {
-                                        activePhotoIndex:
-                                            car.activePhotoIndex
-                                    }
-                                );
-                
-                            if (updatedCar) {
-                                Object.assign(
-                                    car,
-                                    updatedCar
-                                );
-                            }
-                
-                            renderSelectedCar();
-                        } catch (error) {
-                            car.activePhotoIndex =
-                                previousIndex;
-                
-                            car.photo =
-                                previousPhoto;
-                
-                            console.error(
-                                "Garage main photo update error:",
-                                error
-                            );
-                
-                            renderSelectedCar();
-                
-                            alert(
-                                error.message ||
-                                "Не вдалося змінити головне фото."
-                            );
-                        }
-                    }
-                );
-
-            const replaceInput =
-                document.createElement(
-                    "input"
-                );
-
-            replaceInput.type =
-                "file";
-
-            replaceInput.accept =
-                "image/jpeg,image/png,image/webp";
-
-            replaceInput.hidden =
-                true;
-
-            const replaceButton =
-                document.createElement(
-                    "button"
-                );
-
-            replaceButton.type =
-                "button";
-
-            replaceButton.className =
-                "replace-car-photo-button";
-
-            replaceButton.textContent =
-                "🔄";
-
-            replaceButton.title =
-                tr("profile.dynamic.replacePhoto", "Замінити фото");
-
-            replaceButton.addEventListener(
-                "click",
-                (event) => {
-                    event.stopPropagation();
-
-                    replaceInput.click();
-                }
-            );
-
-            replaceInput.addEventListener(
-                "change",
-                async () => {
-                    const file =
-                        replaceInput
-                            .files?.[0];
-
-                    if (!file) {
-                        return;
-                    }
-
-                    try {
-                        const previousPhotos =
-                            [...photos];
-
-                        const previousPhoto =
-                            car.photo;
-
-                        try {
-                            photos[index] =
-                                await compressImage(
-                                    file
-                                );
-
-                            car.photos =
-                                photos;
-
-                            car.photo =
-                                photos[
-                                    car.activePhotoIndex
-                                ] ||
-                                photos[0] ||
-                                "";
-
-                            const updatedCar =
-                                await updateGarageCarOnServer(
-                                    car.id,
-                                    {
-                                        photos:
-                                            car.photos,
-
-                                        activePhotoIndex:
-                                            car.activePhotoIndex
-                                    }
-                                );
-
-                            if (updatedCar) {
-                                Object.assign(
-                                    car,
-                                    updatedCar
-                                );
-                            }
-
-                            renderSelectedCar();
-                        } catch (error) {
-                            car.photos =
-                                previousPhotos;
-
-                            car.photo =
-                                previousPhoto;
-
-                            renderSelectedCar();
-
-                            throw error;
-                        }
-
-
-                    } catch (error) {
-                        alert(
-                            error.message
-                        );
-                    }
-
-                    replaceInput.value =
-                        "";
-                }
-            );
-
-            const deleteButton =
-                document.createElement(
-                    "button"
-                );
-
-            deleteButton.type =
-                "button";
-
-            deleteButton.className =
-                "delete-car-photo-button";
-
-            deleteButton.textContent =
-                "🗑️";
-
-            deleteButton.title =
-                tr("auto.033", "Видалити фото");
-
-                deleteButton.addEventListener(
-                    "click",
-                    async (event) => {
-                        event.stopPropagation();
-                
-                        const confirmed =
-                            confirm(
-                                "Видалити це фото автомобіля?"
-                            );
-                
-                        if (!confirmed) {
-                            return;
-                        }
-                
-                        const previousPhotos =
-                            [...photos];
-                
-                        const previousIndex =
-                            car.activePhotoIndex;
-                
-                        const previousPhoto =
-                            car.photo;
-                
-                        photos.splice(
-                            index,
-                            1
-                        );
-                
-                        if (
-                            car.activePhotoIndex >=
-                            photos.length
-                        ) {
-                            car.activePhotoIndex =
-                                Math.max(
-                                    0,
-                                    photos.length - 1
-                                );
-                        } else if (
-                            index <
-                            car.activePhotoIndex
-                        ) {
-                            car.activePhotoIndex -=
-                                1;
-                        }
-                
-                        car.photos =
-                            photos;
-                
-                        car.photo =
-                            photos[
-                                car.activePhotoIndex
-                            ] ||
-                            photos[0] ||
-                            "";
-                
-                        try {
-                            const updatedCar =
-                                await updateGarageCarOnServer(
-                                    car.id,
-                                    {
-                                        photos:
-                                            car.photos,
-                
-                                        activePhotoIndex:
-                                            car.activePhotoIndex,
-                
-                                        photo:
-                                            car.photo
-                                    }
-                                );
-                
-                            if (updatedCar) {
-                                Object.assign(
-                                    car,
-                                    updatedCar
-                                );
-                            }
-                
-                            renderSelectedCar();
-                
-                        } catch (error) {
-                            car.photos =
-                                previousPhotos;
-                
-                            car.activePhotoIndex =
-                                previousIndex;
-                
-                            car.photo =
-                                previousPhoto;
-                
-                            renderSelectedCar();
-                
-                            console.error(
-                                "Garage photo delete error:",
-                                error
-                            );
-                
-                            alert(
-                                error.message ||
-                                "Не вдалося видалити фото."
-                            );
-                        }
-                    }
-                );
-
-            photoItem.append(
-                thumbnailButton,
-                replaceInput,
-                mainButton,
-                replaceButton,
-                deleteButton
-            );
-
-            elements.carPhotoGallery
-                .appendChild(
-                    photoItem
-                );
-        }
-    );
+    color: #f0c96b;
+
+    font-size: 20px;
 }
 
+.profile-seller-reviews-empty {
+    margin: 0;
 
-/* =========================
-   ЗАПИСИ ОБСЛУГОВУВАННЯ
-   ========================= */
-
-function findService(
-    car,
-    serviceId
-) {
-    return car.services.find(
-        (service) =>
-            String(
-                service.id
-            ) ===
-            String(
-                serviceId
-            )
-    );
+    color:
+        rgba(255, 255, 255, 0.65);
 }
 
-async function deleteService(
-    serviceId
-) {
-    const car =
-        getSelectedCar();
+.profile-seller-review-card {
+    margin-top: 12px;
+    padding: 14px;
 
-    if (!car) {
-        return;
-    }
+    background:
+        rgba(255, 255, 255, 0.04);
 
-    const confirmed =
-        confirm(
-            "Видалити цей запис обслуговування?"
-        );
+    border:
+        1px solid
+        rgba(240, 201, 107, 0.2);
 
-    if (!confirmed) {
-        return;
-    }
+    border-radius: 10px;
+}
 
-    const previousServices =
-        Array.isArray(
-            car.services
-        )
-            ? [...car.services]
-            : [];
-
-    car.services =
-        previousServices.filter(
-            (service) =>
-                String(
-                    service.id
-                ) !==
-                String(
-                    serviceId
-                )
-        );
+.profile-seller-review-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
 
-    try {
-        const updatedCar =
-            await updateGarageCarOnServer(
-                car.id,
-                {
-                    services:
-                        car.services
-                }
-            );
-
-        if (updatedCar) {
-            Object.assign(
-                car,
-                updatedCar
-            );
-        }
-
-        renderPage();
-
-    } catch (error) {
-        car.services =
-            previousServices;
-
-        renderPage();
-
-        console.error(
-            "Service delete error:",
-            error
-        );
+    margin-bottom: 7px;
+}
 
-        alert(
-            error.message ||
-            "Не вдалося видалити запис обслуговування."
-        );
-    }
+.profile-seller-review-header strong {
+    color: #ffffff;
 }
-function deleteServicePhoto(
-    serviceId,
-    photoIndex
-) {
-    const car =
-        getSelectedCar();
-
-    if (!car) {
-        return;
-    }
 
-    const service =
-        findService(
-            car,
-            serviceId
-        );
+.profile-seller-review-header span {
+    color:
+        rgba(255, 255, 255, 0.5);
 
-    if (!service) {
-        return;
-    }
+    font-size: 13px;
+}
 
-    const photos =
-        getServicePhotos(
-            service
-        );
+.profile-seller-review-stars {
+    display: flex;
+    gap: 2px;
 
-    const confirmed =
-        confirm(
-            "Видалити цю фотографію?"
-        );
+    margin-bottom: 8px;
+}
 
-    if (!confirmed) {
-        return;
-    }
+.profile-seller-review-stars span {
+    color:
+        rgba(255, 255, 255, 0.22);
 
-    async function deleteServicePhoto(
-        serviceId,
-        photoIndex
-    ) {
-        const car =
-            getSelectedCar();
-    
-        if (!car) {
-            return;
-        }
-    
-        const service =
-            findService(
-                car,
-                serviceId
-            );
-    
-        if (!service) {
-            return;
-        }
-    
-        const photos =
-            getServicePhotos(
-                service
-            );
-    
-        const confirmed =
-            confirm(
-                "Видалити цю фотографію?"
-            );
-    
-        if (!confirmed) {
-            return;
-        }
-    
-        const previousPhotos =
-            [...photos];
-    
-        photos.splice(
-            photoIndex,
-            1
-        );
-    
-        service.photos =
-            photos;
-    
-        try {
-            const updatedCar =
-                await updateGarageCarOnServer(
-                    car.id,
-                    {
-                        services:
-                            car.services
-                    }
-                );
-    
-            if (updatedCar) {
-                Object.assign(
-                    car,
-                    updatedCar
-                );
-            }
-    
-            renderPage();
-    
-        } catch (error) {
-            service.photos =
-                previousPhotos;
-    
-            renderPage();
-    
-            console.error(
-                "Service photo delete error:",
-                error
-            );
-    
-            alert(
-                error.message ||
-                "Не вдалося видалити фотографію."
-            );
-        }
-    }
+    font-size: 18px;
 }
 
-async function replaceServicePhoto(
-    serviceId,
-    photoIndex,
-    file
-) {
-    const car =
-        getSelectedCar();
+.profile-seller-review-stars
+.is-filled {
+    color: #f0c96b;
 
-    if (!car || !file) {
-        return;
-    }
+    text-shadow:
+        0 0 7px
+        rgba(240, 201, 107, 0.45);
+}
 
-    const service =
-        findService(
-            car,
-            serviceId
-        );
+.profile-seller-review-card p {
+    margin: 0;
 
-    if (!service) {
-        return;
-    }
+    color:
+        rgba(255, 255, 255, 0.88);
 
-    const previousPhotos =
-        [
-            ...getServicePhotos(
-                service
-            )
-        ];
-
-    try {
-        const photos =
-            [
-                ...previousPhotos
-            ];
-
-        photos[photoIndex] =
-            await compressImage(
-                file
-            );
-
-        service.photos =
-            photos;
-
-        const updatedCar =
-            await updateGarageCarOnServer(
-                car.id,
-                {
-                    services:
-                        car.services
-                }
-            );
-
-        if (updatedCar) {
-            Object.assign(
-                car,
-                updatedCar
-            );
-        }
-
-        renderPage();
-
-    } catch (error) {
-        service.photos =
-            previousPhotos;
-
-        renderPage();
-
-        console.error(
-            "Service photo replace error:",
-            error
-        );
+    line-height: 1.5;
 
-        alert(
-            error.message ||
-            "Не вдалося замінити фотографію."
-        );
-    }
+    white-space: pre-wrap;
 }
-
-async function addServicePhotos(
-    serviceId,
-    fileList
-) {
-    const car =
-        getSelectedCar();
 
-    if (!car) {
-        return;
-    }
-
-    const service =
-        findService(
-            car,
-            serviceId
-        );
+@media (max-width: 600px) {
+    .profile-seller-review-header {
+        align-items: flex-start;
+        flex-direction: column;
 
-    if (!service) {
-        return;
+        gap: 4px;
     }
+}
 
-    const files =
-        Array.from(
-            fileList || []
-        );
+/* ===== ОБРАНЕ ===== */
 
-    if (
-        files.length === 0
-    ) {
-        return;
-    }
+.profile-favorites-section {
+    margin-top: 24px;
+}
 
-    const oldPhotos =
-        getServicePhotos(
-            service
-        );
+.profile-favorites-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
 
-    if (
-        oldPhotos.length +
-            files.length >
-        3
-    ) {
-        alert(
-            "До одного запису можна додати максимум 3 фото."
-        );
+.profile-favorites-count {
+    min-width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--gold);
+    border-radius: 999px;
+}
 
-        return;
-    }
+.profile-favorites-list {
+    display: grid;
+    gap: 14px;
+}
 
-    try {
-        const newPhotos =
-            await Promise.all(
-                files.map(
-                    (file) =>
-                        compressImage(
-                            file
-                        )
-                )
-            );
-
-            async function addServicePhotos(
-                serviceId,
-                fileList
-            ) {
-                const car =
-                    getSelectedCar();
-            
-                if (!car) {
-                    return;
-                }
-            
-                const service =
-                    findService(
-                        car,
-                        serviceId
-                    );
-            
-                if (!service) {
-                    return;
-                }
-            
-                const files =
-                    Array.from(
-                        fileList || []
-                    );
-            
-                if (
-                    files.length === 0
-                ) {
-                    return;
-                }
-            
-                const oldPhotos =
-                    [
-                        ...getServicePhotos(
-                            service
-                        )
-                    ];
-            
-                if (
-                    oldPhotos.length +
-                        files.length >
-                    3
-                ) {
-                    alert(
-                        "До одного запису можна додати максимум 3 фото."
-                    );
-            
-                    return;
-                }
-            
-                try {
-                    const newPhotos =
-                        await Promise.all(
-                            files.map(
-                                (file) =>
-                                    compressImage(
-                                        file
-                                    )
-                            )
-                        );
-            
-                    service.photos = [
-                        ...oldPhotos,
-                        ...newPhotos
-                    ];
-            
-                    const updatedCar =
-                        await updateGarageCarOnServer(
-                            car.id,
-                            {
-                                services:
-                                    car.services
-                            }
-                        );
-            
-                    if (updatedCar) {
-                        Object.assign(
-                            car,
-                            updatedCar
-                        );
-                    }
-            
-                    renderPage();
-            
-                } catch (error) {
-                    service.photos =
-                        oldPhotos;
-            
-                    renderPage();
-            
-                    console.error(
-                        "Service photos add error:",
-                        error
-                    );
-            
-                    alert(
-                        error.message ||
-                        "Не вдалося додати фотографії."
-                    );
-                }
-            }
-    } catch (error) {
-        alert(error.message);
-    }
+.profile-favorite-card {
+    display: block;
+    overflow: hidden;
+    border: 1px solid rgba(230, 190, 100, 0.45);
+    border-radius: 18px;
+    text-decoration: none;
+    color: inherit;
+    background: rgba(8, 30, 58, 0.75);
 }
 
-function openServiceEditor(
-    service
-) {
-    editingServiceId =
-        service.id;
+.profile-favorite-photo {
+    display: block;
+    width: 100%;
+    height: 170px;
+    object-fit: cover;
+}
 
-    setFieldValue(
-        "serviceTitle",
-        service.title
-    );
+.profile-favorite-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 14px;
+}
 
-    setFieldValue(
-        "serviceDate",
-        service.date
-    );
+.profile-favorite-info strong {
+    font-size: 18px;
+}
 
-    setFieldValue(
-        "serviceMileage",
-        service.mileage
-    );
+.profile-favorite-info span {
+    opacity: 0.85;
+}
 
-    setFieldValue(
-        "serviceCost",
-        service.cost
-    );
+/* ===== НАЛАШТУВАННЯ ПРОФІЛЮ ПРОДАВЦЯ ===== */
 
-    setFieldValue(
-        "serviceStation",
-        service.station
+.seller-profile-settings {
+    margin-bottom: 25px;
+    padding: 26px;
+    background: linear-gradient(
+        180deg,
+        rgba(7, 31, 61, 0.97),
+        rgba(3, 13, 27, 0.97)
     );
+    border: 1px solid rgba(214, 160, 58, 0.25);
+    border-radius: 16px;
+}
 
-    setFieldValue(
-        "serviceDescription",
-        service.description
-    );
+.seller-profile-settings-header {
+    margin-bottom: 20px;
+}
 
-    const publicCheckbox =
-        document.getElementById(
-            "servicePublic"
-        );
+.seller-profile-settings h2 {
+    margin: 6px 0 10px;
+    color: var(--gold-light);
+    font-size: 28px;
+}
 
-    if (publicCheckbox) {
-        publicCheckbox.checked =
-            Boolean(
-                service.isPublic
-            );
-    }
+.seller-profile-settings p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.6;
+}
 
-    const servicePhotos =
-        document.getElementById(
-            "servicePhotos"
-        );
+#sellerProfileSettingsForm {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
 
-    if (servicePhotos) {
-        servicePhotos.value =
-            "";
-    }
+#sellerProfileSettingsForm label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: var(--white);
+    font-weight: 600;
+}
 
-    openModal(
-        elements.serviceModal
-    );
+#sellerProfileSettingsForm input[type="text"],
+#sellerProfileSettingsForm input[type="tel"] {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 13px 14px;
+    color: var(--white);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(214, 160, 58, 0.3);
+    border-radius: 10px;
+    font: inherit;
+    outline: none;
 }
 
-function renderCrmServiceHistoryCard(
-    record
-) {
-    const card =
-        document.createElement(
-            "article"
-        );
+#sellerProfileSettingsForm input::placeholder {
+    color: rgba(255, 255, 255, 0.45);
+}
 
-    card.className =
-        "service-card crm-service-history-card";
-
-    card.dataset.serviceDate =
-        record.completedAt || "";
-
-    const works =
-        Array.isArray(record.services)
-            ? record.services
-            : [];
-
-    const worksHtml =
-        works.length > 0
-            ? works
-                .map(
-                    (work) => `
-                        <p>
-                            🔧 ${escapeHtml(
-                                work.name || "Робота"
-                            )}
-                            ${
-                                Number(work.total || 0) > 0
-                                    ? ` — <strong>${formatNumber(
-                                        work.total
-                                    )} грн</strong>`
-                                    : ""
-                            }
-                        </p>
-                    `
-                )
-                .join("")
-            : `
-                <p>
-                    Виконані роботи не вказані.
-                </p>
-            `;
-
-            const parts =
-    Array.isArray(record.parts)
-        ? record.parts
-        : [];
-
-            const partsHtml =
-                parts.length > 0
-                    ? parts
-                        .map(
-                            (part) => `
-                                <p>
-                                    ⚙️ ${escapeHtml(
-                                        part.name || "Запчастина"
-                                    )}
-                                    — ${formatNumber(
-                                        part.quantity || 1
-                                    )} шт.
-                                    — <strong>${formatNumber(
-                                        part.total || 0
-                                    )} грн</strong>
-                                </p>
-                            `
-                        )
-                        .join("")
-                    : "";
-
-    card.innerHTML = `
-        <div class="service-card-top">
-
-            <div>
-                <p class="service-date">
-                ${
-                    record.completedAt
-                        ? new Date(
-                            record.completedAt
-                        ).toLocaleDateString(
-                            "uk-UA"
-                        )
-                        : "Дата не вказана"
-                }
-                </p>
-
-                <h3>
-                    Обслуговування на СТО
-                </h3>
-            </div>
-
-            <span class="service-visibility">
-                Підтверджено СТО
-            </span>
-
-        </div>
-
-        <div class="service-details">
-
-            <span>
-                Пробіг:
-                <strong>
-                    ${formatNumber(
-                        record.mileage || 0
-                    )} км
-                </strong>
-            </span>
-
-            <span>
-                Вартість:
-                <strong>
-                    ${formatNumber(
-                        record.totalAmount || 0
-                    )} грн
-                </strong>
-            </span>
-
-        </div>
-
-        <div>
-            ${worksHtml}
-            ${partsHtml}
-        </div>
-    `;
-
-    return card;
-}
-
-function renderServiceCard(
-    service
-) {
-    const card =
-        document.createElement(
-            "article"
-        );
+#sellerProfileSettingsForm input:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(214, 160, 58, 0.12);
+}
 
-    card.className =
-        "service-card";
-
-    card.dataset.serviceDate =
-        service.date || "";
-
-    card.innerHTML = `
-        <div class="service-card-top">
-
-            <div>
-                <p class="service-date">
-                    ${formatDate(
-                        service.date
-                    )}
-                </p>
-
-                <h3>
-                    ${escapeHtml(
-                        service.title
-                    )}
-                </h3>
-            </div>
-
-            <span class="service-visibility">
-                Додано власником
-            </span>
-
-        </div>
-
-        <div class="service-details">
-
-            <span>
-                ${escapeHtml(tr("profile.dynamic.mileage", "Пробіг"))}:
-
-                <strong>
-                    ${formatNumber(
-                        service.mileage
-                    )} км
-                </strong>
-            </span>
-
-            <span>
-                ${escapeHtml(tr("profile.dynamic.cost", "Вартість"))}:
-
-                <strong>
-                    ${formatNumber(
-                        service.cost
-                    )} ${escapeHtml(tr("market.dynamic.uahShort", "грн"))}
-                </strong>
-            </span>
-
-        </div>
-
-        ${
-            service.station
-                ? `
-                    <p>
-                        <strong>
-                            ${escapeHtml(tr("profile.dynamic.serviceStation", "СТО"))}:
-                        </strong>
-
-                        ${escapeHtml(
-                            service.station
-                        )}
-                    </p>
-                `
-                : ""
-        }
-
-        ${
-            service.description
-                ? `
-                    <p>
-                        ${escapeHtml(
-                            service.description
-                        )}
-                    </p>
-                `
-                : ""
-        }
-
-        <div class="service-card-actions">
-
-            <button
-                class="edit-service-button"
-                type="button"
-            >
-                ${escapeHtml(tr("profile.dynamic.editRecord", "Редагувати запис"))}
-            </button>
-
-            <button
-                class="delete-service-button"
-                type="button"
-            >
-                ${escapeHtml(tr("profile.dynamic.deleteRecord", "Видалити запис"))}
-            </button>
-
-        </div>
-    `;
-
-    card
-        .querySelector(
-            ".edit-service-button"
-        )
-        ?.addEventListener(
-            "click",
-            () => {
-                openServiceEditor(
-                    service
-                );
-            }
-        );
+.seller-profile-visibility {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 24px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(214, 160, 58, 0.16);
+    border-radius: 10px;
+}
 
-    card
-        .querySelector(
-            ".delete-service-button"
-        )
-        ?.addEventListener(
-            "click",
-            () => {
-                deleteService(
-                    service.id
-                );
-            }
-        );
+.seller-profile-visibility label {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 9px !important;
+    cursor: pointer;
+    font-weight: 500 !important;
+}
 
-    const photos =
-        getServicePhotos(
-            service
-        );
+.seller-profile-visibility input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--gold);
+}
 
-    if (
-        photos.length > 0
-    ) {
-        const gallery =
-            document.createElement(
-                "div"
-            );
-
-        gallery.className =
-            "service-photo-gallery";
-
-        photos.forEach(
-            (
-                photo,
-                photoIndex
-            ) => {
-                const photoItem =
-                    document.createElement(
-                        "div"
-                    );
-
-                photoItem.className =
-                    "service-photo-item";
-
-                const image =
-                    document.createElement(
-                        "img"
-                    );
-
-                image.src =
-                    photo;
-
-                image.alt =
-                    tr("profile.dynamic.recordPhoto", "Фото до запису");
-
-                image.className =
-                    "service-photo";
-
-                image.addEventListener(
-                    "click",
-                    () => {
-                        openPhotoViewer(
-                            photos,
-                            photoIndex
-                        );
-                    }
-                );
-
-                const replaceInput =
-                    document.createElement(
-                        "input"
-                    );
-
-                replaceInput.type =
-                    "file";
-
-                replaceInput.accept =
-                    "image/jpeg,image/png,image/webp";
-
-                replaceInput.hidden =
-                    true;
-
-                const replaceButton =
-                    document.createElement(
-                        "button"
-                    );
-
-                replaceButton.type =
-                    "button";
-
-                replaceButton.className =
-                    "replace-service-photo-button";
-
-                replaceButton.textContent =
-                    tr("profile.dynamic.replacePhoto", "Замінити фото");
-
-                replaceButton
-                    .addEventListener(
-                        "click",
-                        () => {
-                            replaceInput
-                                .click();
-                        }
-                    );
-
-                replaceInput
-                    .addEventListener(
-                        "change",
-                        async () => {
-                            const file =
-                                replaceInput
-                                    .files?.[0];
-
-                            if (file) {
-                                await replaceServicePhoto(
-                                    service.id,
-                                    photoIndex,
-                                    file
-                                );
-                            }
-
-                            replaceInput.value =
-                                "";
-                        }
-                    );
-
-                const deleteButton =
-                    document.createElement(
-                        "button"
-                    );
-
-                deleteButton.type =
-                    "button";
-
-                deleteButton.className =
-                    "delete-service-photo-button";
-
-                deleteButton.textContent =
-                    tr("auto.033", "Видалити фото");
-
-                deleteButton
-                    .addEventListener(
-                        "click",
-                        () => {
-                            deleteServicePhoto(
-                                service.id,
-                                photoIndex
-                            );
-                        }
-                    );
-
-                photoItem.append(
-                    image,
-                    replaceButton,
-                    deleteButton,
-                    replaceInput
-                );
-
-                gallery.appendChild(
-                    photoItem
-                );
-            }
-        );
+#sellerProfileSettingsForm .gold-btn {
+    grid-column: 1 / -1;
+    width: fit-content;
+    min-width: 220px;
+}
 
-        card.appendChild(
-            gallery
-        );
+@media (max-width: 700px) {
+    .seller-profile-settings {
+        padding: 20px 16px;
     }
-
-    if (
-        photos.length < 3
-    ) {
-        const addInput =
-            document.createElement(
-                "input"
-            );
-
-        addInput.type =
-            "file";
-
-        addInput.accept =
-            "image/jpeg,image/png,image/webp";
-
-        addInput.multiple =
-            true;
-
-        addInput.hidden =
-            true;
-
-        const addButton =
-            document.createElement(
-                "button"
-            );
-
-        addButton.type =
-            "button";
-
-        addButton.className =
-            "add-service-photo-button";
-
-        addButton.textContent =
-            photos.length === 0
-                ? tr("profile.dynamic.addPhoto", "Додати фото")
-                : tr("profile.dynamic.addMorePhotos", "Додати ще фото");
-
-        addButton.addEventListener(
-            "click",
-            () => {
-                addInput.click();
-            }
-        );
-
-        addInput.addEventListener(
-            "change",
-            async () => {
-                await addServicePhotos(
-                    service.id,
-                    addInput.files
-                );
-
-                addInput.value =
-                    "";
-            }
-        );
 
-        card.append(
-            addButton,
-            addInput
-        );
+    .seller-profile-settings h2 {
+        font-size: 23px;
     }
 
-    return card;
-}
-
-function renderSelectedCar() {
-    const car =
-        getSelectedCar();
-
-    if (!car) {
-        elements.selectedCarEmpty
-            ?.classList.remove(
-                "hidden"
-            );
-
-        elements.selectedCarContent
-            ?.classList.add(
-                "hidden"
-            );
-
-        if (
-            elements.serviceHistory
-        ) {
-            elements.serviceHistory
-                .querySelectorAll(
-                    ".service-card"
-                )
-                .forEach(
-                    (element) => {
-                        element.remove();
-                    }
-                );
-        }
-
-        return;
+    #sellerProfileSettingsForm {
+        grid-template-columns: 1fr;
     }
 
-    elements.selectedCarEmpty
-        ?.classList.add(
-            "hidden"
-        );
-
-    elements.selectedCarContent
-        ?.classList.remove(
-            "hidden"
-        );
-
-    if (
-        elements.selectedCarName
-    ) {
-        elements.selectedCarName
-            .textContent =
-                car.name ||
-                tr("profile.dynamic.vehicle", "Автомобіль");
+    .seller-profile-visibility {
+        grid-column: auto;
+        flex-direction: column;
+        align-items: flex-start;
     }
 
-    if (
-        elements.selectedCarInfo
-    ) {
-        const details = [
-            car.year
-                ? trf("profile.dynamic.year", `${car.year} рік`, { year: car.year })
-                : null,
-
-            `${formatNumber(
-                car.mileage
-            )} км`,
-
-            car.engine ||
-                null,
-
-            car.fuel
-                ? translateStoredValue(car.fuel, profileFuelKeys)
-                : null,
+    #sellerProfileSettingsForm .gold-btn {
+        grid-column: auto;
+        width: 100%;
+        min-width: 0;
+    }
+}
 
-            car.transmission
-                ? translateStoredValue(car.transmission, profileTransmissionKeys)
-                : null
-        ].filter(Boolean);
-
-        elements.selectedCarInfo
-            .textContent =
-                `${details.join(" • ")}
-
-VIN: ${car.vin || "-"}
-
-${tr("profile.dynamic.plate", "Номер")}: ${car.plate || "-"}`;
-    }
-
-    renderCarGallery(car);
-
-    const services =
-        Array.isArray(
-            car.services
-        )
-            ? [...car.services]
-            : [];
-
-    services.sort(
-        (
-            first,
-            second
-        ) =>
-            String(
-                second.date || ""
-            ).localeCompare(
-                String(
-                    first.date || ""
-                )
-            )
-    );
-
-    if (
-        elements.serviceCount
-    ) {
-        elements.serviceCount
-            .textContent =
-                String(
-                    services.length
-                );
-    }
-
-    const totalCost =
-        services.reduce(
-            (
-                total,
-                service
-            ) =>
-                total +
-                Number(
-                    service.cost || 0
-                ),
-            0
-        );
-
-    if (
-        elements.totalServiceCost
-    ) {
-        elements.totalServiceCost
-            .textContent =
-                `${formatNumber(
-                    totalCost
-                )} ${tr("market.dynamic.uahShort", "грн")}`;
-    }
-
-    if (
-        elements.currentMileage
-    ) {
-        elements.currentMileage
-            .textContent =
-                `${formatNumber(
-                    car.mileage
-                )} км`;
-    }
-
-    if (
-        !elements.serviceHistory
-    ) {
-        return;
-    }
-
-    elements.serviceHistory
-        .querySelectorAll(
-            ".service-card"
-        )
-        .forEach(
-            (element) => {
-                element.remove();
-            }
-        );
-
-    if (
-        elements.noServiceMessage
-    ) {
-        elements.noServiceMessage.hidden =
-            services.length > 0;
-    }
-
-    services.forEach(
-        (service) => {
-            elements.serviceHistory
-                .appendChild(
-                    renderServiceCard(
-                        service
-                    )
-                );
-        }
-    );
+/* Personal profile photo */
+.profile-avatar {
+    position: relative;
+    width: fit-content;
+    margin-bottom: 14px;
 }
-
-async function renderProfileSellerReputation() {
-    const ratingElement =
-        document.getElementById(
-            "profileSellerRating"
-        );
-
-    const countElement =
-        document.getElementById(
-            "profileSellerRatingCount"
-        );
-
-    if (
-        !ratingElement ||
-        !countElement
-    ) {
-        return;
-    }
-
-    const ratingData =
-    await getProfileSellerRating();
-
-    if (
-        ratingData.count === 0
-    ) {
-        ratingElement.textContent =
-            "—";
-
-        countElement.textContent =
-            tr("auto.009", "Новий продавець");
-
-        return;
-    }
-
-    ratingElement.textContent =
-        ratingData.average.toFixed(1);
-
-    countElement.textContent =
-        `· ${getRatingCountLabel(
-            ratingData.count
-        )}`;
-}
-
-async function renderProfileSellerReviews() {
-    const link = document.getElementById("profileSellerReviewsLink");
-    const label = document.getElementById("profileSellerReviewsLinkText");
-    const sellerId = currentUser?.id || currentUser?.userId || "";
-    if (!link || !label || !sellerId) return;
-    link.href = `profile-reviews.html?id=${encodeURIComponent(sellerId)}`;
-    const isEnglish = window.getRoyalGarageLanguage?.() === "en";
-    label.textContent = isEnglish ? "View reviews" : "Переглянути відгуки";
-    try {
-        const response = await fetch(`/api/sellers/${encodeURIComponent(sellerId)}/reviews`);
-        if (!response.ok) throw new Error("Reviews request failed");
-        const data = await response.json();
-        const count = Array.isArray(data.reviews) ? data.reviews.length : 0;
-        label.textContent = `${isEnglish ? "View reviews" : "Переглянути відгуки"} (${count})`;
-    } catch (error) {
-        console.error("Profile reviews count load error:", error);
-    }
+.seller-profile-photo-preview {
+    display: grid;
+    place-items: center;
+    width: 86px;
+    height: 86px;
+    padding: 0;
+    overflow: hidden;
+    color: var(--white);
+    background: #234b7e;
+    border: 2px solid rgba(214, 160, 58, 0.55);
+    border-radius: 50%;
+    font-size: 34px;
+    font-weight: 700;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 }
-
-function normalizePhone(value) {
-    const digits =
-        String(value || "")
-            .replace(/\D/g, "");
-
-    if (
-        digits.length === 10 &&
-        digits.startsWith("0")
-    ) {
-        return `380${digits.slice(1)}`;
-    }
-
-    return digits;
+#sellerProfilePhotoPreview {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
 }
-
-function renderAccountSettings() {
-
-    if (!currentUser) {
-        return;
-    }
-
-    const accountEmail =
-        document.getElementById(
-            "accountEmail"
-        );
-
-    const accountPhone =
-        document.getElementById(
-            "accountPhone"
-        );
-
-    const accountEmailStatus =
-        document.getElementById(
-            "accountEmailStatus"
-        );
-
-    const accountPhoneStatus =
-        document.getElementById(
-            "accountPhoneStatus"
-        );
-
-    const verifyAccountPhoneButton =
-        document.getElementById(
-            "verifyAccountPhoneButton"
-        );
-
-    const phoneVerificationBlock =
-        document.getElementById(
-            "phoneVerificationBlock"
-        );
-
-    const changeAccountPhoneButton =
-        document.getElementById(
-            "changeAccountPhoneButton"
-        );
-
-
-    if (accountEmail) {
-        accountEmail.textContent =
-            currentUser.email || "—";
-    }
-
-
-    if (accountEmailStatus) {
-        accountEmailStatus.textContent =
-            currentUser.emailVerified
-                ? `✅ ${tr("profile.dynamic.verified", "Підтверджено")}`
-                : `⚠ ${tr("profile.dynamic.notVerified", "Не підтверджено")}`;
-    }
-
-
-    if (accountPhone) {
-        accountPhone.textContent =
-            currentUser.phone || "—";
-    }
-
-
-    if (accountPhoneStatus) {
-        accountPhoneStatus.textContent =
-            currentUser.phoneVerified
-                ? `✅ ${tr("profile.dynamic.verified", "Підтверджено")}`
-                : `⚠ ${tr("profile.dynamic.notVerified", "Не підтверджено")}`;
-    }
-
-
-    if (verifyAccountPhoneButton) {
-        verifyAccountPhoneButton.hidden =
-            !currentUser.phone ||
-            currentUser.phoneVerified;
-    }
-
-
-    if (
-        phoneVerificationBlock &&
-        currentUser.phoneVerified
-    ) {
-        phoneVerificationBlock.hidden =
-            true;
-    }
-
-
-    if (changeAccountPhoneButton) {
-        changeAccountPhoneButton.textContent =
-            currentUser.phone
-                ? tr("auto.020", "Змінити номер телефону")
-                : tr("profile.dynamic.addPhone", "Додати номер телефону");
-    }
+.seller-profile-photo-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
-
-async function sendPhoneVerificationCode() {
-    const token =
-        localStorage.getItem(
-            "royalGarageToken"
-        );
-
-    if (!token) {
-        alert(
-            "Сесія недійсна. Увійдіть повторно."
-        );
-        return;
-    }
-
-    const verifyButton =
-        document.getElementById(
-            "verifyAccountPhoneButton"
-        );
-
-    const resendButton =
-        document.getElementById(
-            "resendPhoneVerificationButton"
-        );
-
-    try {
-        if (verifyButton) {
-            verifyButton.disabled = true;
-        }
-
-        if (resendButton) {
-            resendButton.disabled = true;
-        }
-
-        const response =
-            await fetch(
-                "/api/phone/send-code",
-                {
-                    method: "POST",
-
-                    headers: {
-                        Authorization:
-                            `Bearer ${token}`
-                    }
-                }
-            );
-
-        const data =
-            await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                data.message ||
-                "Не вдалося надіслати код."
-            );
-        }
-
-        alert(
-            data.message ||
-            "Код надіслано."
-        );
-
-        const verificationBlock =
-            document.getElementById(
-                "phoneVerificationBlock"
-            );
-
-        if (verificationBlock) {
-            verificationBlock.hidden =
-                false;
-        }
-
-        document
-            .getElementById(
-                "phoneVerificationCode"
-            )
-            ?.focus();
-
-    } catch (error) {
-        console.error(
-            "Phone verification send error:",
-            error
-        );
-
-        alert(
-            error.message ||
-            "Не вдалося надіслати код."
-        );
-
-    } finally {
-        if (verifyButton) {
-            verifyButton.disabled = false;
-        }
-
-        if (resendButton) {
-            resendButton.disabled = false;
-        }
-    }
+.profile-avatar-actions {
+    position: absolute;
+    top: 50%;
+    left: calc(100% + 8px);
+    z-index: 1;
+    display: flex;
+    gap: 6px;
+    padding: 4px;
+    transform: translateY(-50%);
+    background: #0b1930;
+    border: 1px solid rgba(214, 160, 58, 0.55);
+    border-radius: 12px;
 }
-
-
-const verifyAccountPhoneButton =
-    document.getElementById(
-        "verifyAccountPhoneButton"
-    );
-
-if (verifyAccountPhoneButton) {
-    verifyAccountPhoneButton
-        .addEventListener(
-            "click",
-            sendPhoneVerificationCode
-        );
+.profile-avatar-actions[hidden],
+.profile-avatar-actions button[hidden] {
+    display: none;
 }
-
-
-const resendPhoneVerificationButton =
-    document.getElementById(
-        "resendPhoneVerificationButton"
-    );
-
-if (resendPhoneVerificationButton) {
-    resendPhoneVerificationButton
-        .addEventListener(
-            "click",
-            sendPhoneVerificationCode
-        );
+.profile-avatar-actions button {
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--gold-light);
+    font-size: 23px;
+    cursor: pointer;
 }
-
-const confirmPhoneVerificationButton =
-    document.getElementById(
-        "confirmPhoneVerificationButton"
-    );
-
-if (confirmPhoneVerificationButton) {
-    confirmPhoneVerificationButton
-        .addEventListener(
-            "click",
-            async () => {
-                const codeInput =
-                    document.getElementById(
-                        "phoneVerificationCode"
-                    );
-
-                const code =
-                    String(
-                        codeInput?.value || ""
-                    )
-                        .replace(/\D/g, "");
-
-                if (!/^\d{6}$/.test(code)) {
-                    alert(
-                        "Введіть 6-значний код."
-                    );
-                    return;
-                }
-
-                const token =
-                    localStorage.getItem(
-                        "royalGarageToken"
-                    );
-
-                if (!token) {
-                    alert(
-                        "Сесія недійсна. Увійдіть повторно."
-                    );
-                    return;
-                }
-
-                confirmPhoneVerificationButton.disabled =
-                    true;
-
-                try {
-                    const response =
-                        await fetch(
-                            "/api/phone/verify-code",
-                            {
-                                method: "POST",
-
-                                headers: {
-                                    "Content-Type":
-                                        "application/json",
-
-                                    Authorization:
-                                        `Bearer ${token}`
-                                },
-
-                                body:
-                                    JSON.stringify({
-                                        code
-                                    })
-                            }
-                        );
-
-                    const data =
-                        await response.json();
-
-                    if (!response.ok) {
-                        throw new Error(
-                            data.message ||
-                            "Не вдалося підтвердити номер."
-                        );
-                    }
-
-                    currentUser.phoneVerified =
-                        true;
-
-                    if (codeInput) {
-                        codeInput.value = "";
-                    }
-
-                    renderAccountSettings();
-
-                    alert(
-                        data.message ||
-                        "Номер телефону підтверджено."
-                    );
-
-                } catch (error) {
-                    console.error(
-                        "Phone verification confirm error:",
-                        error
-                    );
-
-                    alert(
-                        error.message ||
-                        "Не вдалося підтвердити номер."
-                    );
-
-                } finally {
-                    confirmPhoneVerificationButton.disabled =
-                        false;
-                }
-            }
-        );
+.profile-avatar-actions #removeSellerProfilePhoto {
+    color: #ffaaaa;
 }
-
-const changeAccountPhoneButton =
-    document.getElementById(
-        "changeAccountPhoneButton"
-    );
-
-if (changeAccountPhoneButton) {
-    changeAccountPhoneButton.addEventListener(
-        "click",
-        async () => {
-            const enteredPhone =
-                prompt(
-                    "Введи новий номер телефону:"
-                );
-    
-            if (!enteredPhone) {
-                return;
-            }
-    
-            const newPhone =
-                normalizePhone(
-                    enteredPhone
-                );
-    
-            if (
-                !/^380\d{9}$/.test(
-                    newPhone
-                )
-            ) {
-                alert(
-                    "Введи правильний український номер телефону."
-                );
-    
-                return;
-            }
-    
-            const token =
-                localStorage.getItem(
-                    "royalGarageToken"
-                );
-    
-            if (!token) {
-                alert(
-                    "Сесія недійсна. Увійдіть повторно."
-                );
-    
-                return;
-            }
-    
-            try {
-                const response =
-                    await fetch(
-                        "/api/profile",
-                        {
-                            method: "PATCH",
-    
-                            headers: {
-                                "Content-Type":
-                                    "application/json",
-    
-                                Authorization:
-                                    `Bearer ${token}`
-                            },
-    
-                            body:
-                                JSON.stringify({
-                                    phone:
-                                        newPhone
-                                })
-                        }
-                    );
-    
-                const data =
-                    await response.json();
-    
-                if (!response.ok) {
-                    throw new Error(
-                        data.message ||
-                        "Не вдалося змінити номер телефону."
-                    );
-                }
-    
-                const updatedUser =
-                    data.user;
-    
-                currentUser.phone =
-                    updatedUser.phone;
-    
-                const sellerPhoneInput =
-                    document.getElementById(
-                        "sellerProfilePhone"
-                    );
-    
-                if (sellerPhoneInput) {
-                    sellerPhoneInput.value =
-                        updatedUser.phone ||
-                        "";
-                }
-    
-                renderAccountSettings();
-    
-                alert(
-                    "Номер телефону змінено."
-                );
-    
-            } catch (error) {
-                console.error(
-                    "Profile phone update error:",
-                    error
-                );
-    
-                alert(
-                    error.message ||
-                    "Не вдалося змінити номер телефону."
-                );
-            }
-        }
-    );
+.profile-avatar-actions button:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
-
-async function updateSelectedCarServiceStats() {
-    const car =
-        getSelectedCar();
-
-    if (!car) {
-        return;
-    }
-
-    const crmHistory =
-        await loadGarageServiceHistory(
-            car.id
-        );
-
-    const ownerServices =
-        Array.isArray(car.services)
-            ? car.services
-            : [];
-
-    const ownerTotal =
-        ownerServices.reduce(
-            (total, service) =>
-                total +
-                Number(
-                    service.cost || 0
-                ),
-            0
-        );
-
-    const crmTotal =
-        crmHistory.reduce(
-            (total, record) =>
-                total +
-                Number(
-                    record.totalAmount || 0
-                ),
-            0
-        );
-
-    if (elements.serviceCount) {
-        elements.serviceCount.textContent =
-            String(
-                ownerServices.length +
-                crmHistory.length
-            );
-    }
-
-    if (elements.totalServiceCost) {
-        elements.totalServiceCost.textContent =
-            `${formatNumber(
-                ownerTotal + crmTotal
-            )} грн`;
-    }
+.profile-avatar button:focus-visible {
+    outline: 2px solid var(--gold-light);
+    outline-offset: 2px;
 }
-
-function renderPage() {
-    updateGlobalChatsButton();
-    renderAccountSettings();
-    renderCars();
-    renderSelectedCar();
-    updateSelectedCarServiceStats();
-    renderMyChats();
-    renderFavoriteListings();
-}
-
-/* =========================
-   МАРКА ТА МОДЕЛЬ АВТО
-   ========================= */
-
-   const carBrand =
-   document.getElementById(
-       "carBrand"
-   );
-
-const carModel =
-   document.getElementById(
-       "carModel"
-   );
-
-const carName =
-   document.getElementById(
-       "carName"
-   );
-
-
-/*
-   ВАЖЛИВО:
-   сюди встав той самий
-   CAR_BRANDS_MODELS,
-   який ми вже додали
-   в market.js
-*/
-
-const CAR_BRANDS_MODELS = {
-   "Audi": [
-       "A1",
-       "A3",
-       "A4",
-       "A5",
-       "A6",
-       "A7",
-       "A8",
-       "Q2",
-       "Q3",
-       "Q4 e-tron",
-       "Q5",
-       "Q7",
-       "Q8",
-       "TT",
-       "R8",
-       "e-tron",
-       "Інша модель"
-   ],
-
-   "BMW": [
-       "1 Series",
-       "2 Series",
-       "3 Series",
-       "4 Series",
-       "5 Series",
-       "6 Series",
-       "7 Series",
-       "8 Series",
-       "X1",
-       "X2",
-       "X3",
-       "X4",
-       "X5",
-       "X6",
-       "X7",
-       "XM",
-       "Z4",
-       "i3",
-       "i4",
-       "i5",
-       "i7",
-       "iX",
-       "Інша модель"
-   ],
-
-   "Mercedes-Benz": [
-       "A-Class",
-       "B-Class",
-       "C-Class",
-       "E-Class",
-       "S-Class",
-       "CLA",
-       "CLS",
-       "GLA",
-       "GLB",
-       "GLC",
-       "GLE",
-       "GLS",
-       "G-Class",
-       "V-Class",
-       "AMG GT",
-       "EQA",
-       "EQB",
-       "EQE",
-       "EQS",
-       "Інша модель"
-   ],
-
-   "Volkswagen": [
-       "Polo",
-       "Golf",
-       "Jetta",
-       "Passat",
-       "Arteon",
-       "Touran",
-       "Tiguan",
-       "Touareg",
-       "T-Roc",
-       "T-Cross",
-       "Caddy",
-       "Transporter",
-       "Multivan",
-       "ID.3",
-       "ID.4",
-       "ID.5",
-       "ID.7",
-       "Інша модель"
-   ],
-
-   "Toyota": [
-       "Yaris",
-       "Corolla",
-       "Camry",
-       "Avalon",
-       "Prius",
-       "C-HR",
-       "RAV4",
-       "Highlander",
-       "Land Cruiser",
-       "Hilux",
-       "Proace",
-       "bZ4X",
-       "Інша модель"
-   ],
-
-   "Skoda": [
-       "Fabia",
-       "Scala",
-       "Octavia",
-       "Superb",
-       "Kamiq",
-       "Karoq",
-       "Kodiaq",
-       "Enyaq",
-       "Roomster",
-       "Yeti",
-       "Інша модель"
-   ],
-
-   "Renault": [
-       "Clio",
-       "Megane",
-       "Laguna",
-       "Talisman",
-       "Captur",
-       "Kadjar",
-       "Austral",
-       "Koleos",
-       "Scenic",
-       "Espace",
-       "Kangoo",
-       "Trafic",
-       "Master",
-       "Zoe",
-       "Інша модель"
-   ],
-
-   "Peugeot": [
-       "107",
-       "108",
-       "206",
-       "207",
-       "208",
-       "301",
-       "307",
-       "308",
-       "407",
-       "408",
-       "508",
-       "2008",
-       "3008",
-       "5008",
-       "Partner",
-       "Rifter",
-       "Expert",
-       "Traveller",
-       "Інша модель"
-   ],
-
-   "Citroen": [
-       "C1",
-       "C3",
-       "C4",
-       "C5",
-       "C-Elysee",
-       "C3 Aircross",
-       "C5 Aircross",
-       "Berlingo",
-       "Jumpy",
-       "Jumper",
-       "Інша модель"
-   ],
-
-   "Ford": [
-       "Fiesta",
-       "Focus",
-       "Mondeo",
-       "Fusion",
-       "Mustang",
-       "Puma",
-       "Kuga",
-       "Edge",
-       "Explorer",
-       "Ranger",
-       "Transit",
-       "Інша модель"
-   ],
-
-   "Opel": [
-       "Corsa",
-       "Astra",
-       "Insignia",
-       "Mokka",
-       "Crossland",
-       "Grandland",
-       "Zafira",
-       "Combo",
-       "Vivaro",
-       "Інша модель"
-   ],
-
-   "Nissan": [
-       "Micra",
-       "Note",
-       "Almera",
-       "Sentra",
-       "Altima",
-       "Maxima",
-       "Juke",
-       "Qashqai",
-       "X-Trail",
-       "Pathfinder",
-       "Patrol",
-       "Leaf",
-       "Інша модель"
-   ],
-
-   "Mazda": [
-       "2",
-       "3",
-       "6",
-       "CX-3",
-       "CX-30",
-       "CX-5",
-       "CX-60",
-       "CX-7",
-       "CX-9",
-       "MX-5",
-       "Інша модель"
-   ],
-
-   "Honda": [
-       "Jazz",
-       "Civic",
-       "Accord",
-       "Insight",
-       "HR-V",
-       "CR-V",
-       "Pilot",
-       "Інша модель"
-   ],
-
-   "Hyundai": [
-       "i10",
-       "i20",
-       "i30",
-       "Elantra",
-       "Sonata",
-       "Accent",
-       "Tucson",
-       "Santa Fe",
-       "Kona",
-       "Palisade",
-       "Ioniq",
-       "Ioniq 5",
-       "Ioniq 6",
-       "Інша модель"
-   ],
-
-   "Kia": [
-       "Picanto",
-       "Rio",
-       "Ceed",
-       "Cerato",
-       "Optima",
-       "K5",
-       "Stonic",
-       "Niro",
-       "Sportage",
-       "Sorento",
-       "EV6",
-       "EV9",
-       "Інша модель"
-   ],
-
-   "Volvo": [
-       "S40",
-       "S60",
-       "S80",
-       "S90",
-       "V40",
-       "V60",
-       "V90",
-       "XC40",
-       "XC60",
-       "XC70",
-       "XC90",
-       "Інша модель"
-   ],
-
-   "Lexus": [
-       "IS",
-       "ES",
-       "GS",
-       "LS",
-       "UX",
-       "NX",
-       "RX",
-       "GX",
-       "LX",
-       "Інша модель"
-   ],
-
-   "Porsche": [
-       "718",
-       "911",
-       "Panamera",
-       "Macan",
-       "Cayenne",
-       "Taycan",
-       "Інша модель"
-   ],
-
-   "Tesla": [
-       "Model 3",
-       "Model S",
-       "Model X",
-       "Model Y",
-       "Cybertruck",
-       "Інша модель"
-   ],
-
-   "Chevrolet": [
-       "Aveo",
-       "Cruze",
-       "Malibu",
-       "Camaro",
-       "Captiva",
-       "Equinox",
-       "Tahoe",
-       "Інша модель"
-   ],
-
-   "Mitsubishi": [
-       "Colt",
-       "Lancer",
-       "ASX",
-       "Eclipse Cross",
-       "Outlander",
-       "Pajero",
-       "L200",
-       "Інша модель"
-   ],
-
-   "Subaru": [
-       "Impreza",
-       "Legacy",
-       "Outback",
-       "Forester",
-       "XV",
-       "Crosstrek",
-       "WRX",
-       "BRZ",
-       "Інша модель"
-   ],
-
-   "Suzuki": [
-       "Swift",
-       "Baleno",
-       "SX4",
-       "Vitara",
-       "S-Cross",
-       "Jimny",
-       "Інша модель"
-   ],
-
-   "Land Rover": [
-       "Defender",
-       "Discovery",
-       "Discovery Sport",
-       "Range Rover",
-       "Range Rover Sport",
-       "Range Rover Velar",
-       "Range Rover Evoque",
-       "Інша модель"
-   ],
-
-   "Jeep": [
-       "Renegade",
-       "Compass",
-       "Cherokee",
-       "Grand Cherokee",
-       "Wrangler",
-       "Інша модель"
-   ],
-
-   "Fiat": [
-       "500",
-       "Panda",
-       "Tipo",
-       "Punto",
-       "Doblo",
-       "Ducato",
-       "Інша модель"
-   ],
-
-   "Alfa Romeo": [
-       "Giulietta",
-       "Giulia",
-       "Stelvio",
-       "Tonale",
-       "Інша модель"
-   ],
-
-   "Dacia": [
-       "Logan",
-       "Sandero",
-       "Duster",
-       "Jogger",
-       "Lodgy",
-       "Dokker",
-       "Інша модель"
-   ],
-
-   "SEAT": [
-       "Ibiza",
-       "Leon",
-       "Toledo",
-       "Arona",
-       "Ateca",
-       "Tarraco",
-       "Інша модель"
-   ],
-
-   "Cupra": [
-       "Leon",
-       "Formentor",
-       "Ateca",
-       "Born",
-       "Tavascan",
-       "Інша модель"
-   ],
-
-   "Інша марка": [
-       "Інша модель"
-   ]
-};
-
-
-function fillCarBrandSelect() {
-   if (!carBrand) {
-       return;
-   }
-
-   carBrand.innerHTML = `
-       <option value="">
-           Обери марку
-       </option>
-   `;
-
-   Object.keys(
-       CAR_BRANDS_MODELS
-   ).forEach(
-       (brand) => {
-           const option =
-               document.createElement(
-                   "option"
-               );
-
-           option.value =
-               brand;
-
-           option.textContent =
-               brand;
-
-           carBrand.appendChild(
-               option
-           );
-       }
-   );
-}
-
-
-function fillCarModelSelect(
-   brand,
-   selectedModel = ""
-) {
-   if (!carModel) {
-       return;
-   }
-
-
-   carModel.innerHTML = "";
-
-
-   if (
-       !brand ||
-       !CAR_BRANDS_MODELS[brand]
-   ) {
-       carModel.innerHTML = `
-           <option value="">
-               ${tr("auto.059", "Спочатку обери марку")}
-           </option>
-       `;
-
-       carModel.disabled =
-           true;
-
-       return;
-   }
-
-
-   carModel.disabled =
-       false;
-
-
-   const defaultOption =
-       document.createElement(
-           "option"
-       );
-
-   defaultOption.value = "";
-
-   defaultOption.textContent =
-       tr("profile.dynamic.chooseModel", "Обери модель");
-
-   carModel.appendChild(
-       defaultOption
-   );
-
-
-   CAR_BRANDS_MODELS[
-       brand
-   ].forEach(
-       (model) => {
-           const option =
-               document.createElement(
-                   "option"
-               );
-
-           option.value =
-               model;
-
-           option.textContent =
-               model;
-
-           carModel.appendChild(
-               option
-           );
-       }
-   );
-
-
-   if (selectedModel) {
-       carModel.value =
-           selectedModel;
-   }
-}
-
-
-function updateCarNameFromBrandModel() {
-   if (
-       !carName ||
-       !carBrand ||
-       !carModel
-   ) {
-       return;
-   }
-
-   const brand =
-       carBrand.value.trim();
-
-   const model =
-       carModel.value.trim();
-
-   carName.value =
-       [brand, model]
-           .filter(Boolean)
-           .join(" ");
-}
-
-
-function setCarBrandAndModelFromName(
-   vehicleName
-) {
-   if (
-       !carBrand ||
-       !carModel
-   ) {
-       return;
-   }
-
-
-   const name =
-       String(
-           vehicleName || ""
-       ).trim();
-
-
-   if (!name) {
-       carBrand.value = "";
-
-       fillCarModelSelect("");
-
-       if (carName) {
-           carName.value = "";
-       }
-
-       updateCarPowerField();
-
-       return;
-   }
-
-
-   const brands =
-       Object.keys(
-           CAR_BRANDS_MODELS
-       )
-           .filter(
-               (brand) =>
-                   brand !==
-                   "Інша марка"
-           )
-           .sort(
-               (
-                   firstBrand,
-                   secondBrand
-               ) =>
-                   secondBrand.length -
-                   firstBrand.length
-           );
-
-
-   const foundBrand =
-       brands.find(
-           (brand) =>
-               name
-                   .toLowerCase()
-                   .startsWith(
-                       brand.toLowerCase() +
-                       " "
-                   ) ||
-               name.toLowerCase() ===
-                   brand.toLowerCase()
-       );
-
-
-   if (!foundBrand) {
-       carBrand.value =
-           "Інша марка";
-
-       fillCarModelSelect(
-           "Інша марка"
-       );
-
-       carModel.value =
-           "Інша модель";
-
-       return;
-   }
-
-
-   const model =
-       name
-           .slice(
-               foundBrand.length
-           )
-           .trim();
-
-
-   carBrand.value =
-       foundBrand;
-
-
-   fillCarModelSelect(
-       foundBrand
-   );
-
-
-   if (model) {
-       const modelExists =
-           Array.from(
-               carModel.options
-           ).some(
-               (option) =>
-                   option.value ===
-                   model
-           );
-
-
-       if (!modelExists) {
-           const option =
-               document.createElement(
-                   "option"
-               );
-
-           option.value =
-               model;
-
-           option.textContent =
-               model;
-
-           carModel.appendChild(
-               option
-           );
-       }
-
-
-       carModel.value =
-           model;
-   }
-
-
-   if (carName) {
-       carName.value =
-           name;
-   }
-}
-
-
-carBrand?.addEventListener(
-   "change",
-   () => {
-       fillCarModelSelect(
-           carBrand.value
-       );
-
-       updateCarNameFromBrandModel();
-   }
-);
-
-
-carModel?.addEventListener(
-   "change",
-   updateCarNameFromBrandModel
-);
-
-/* =========================
-   ФОРМА АВТО
-   ========================= */
-
-   const carPowerValueField =
-    document.getElementById(
-        "carPowerValueField"
-    );
-
-const carPowerValueLabel =
-    document.getElementById(
-        "carPowerValueLabel"
-    );
-
-const carFuel =
-    document.getElementById(
-        "carFuel"
-    );
-
-const carEngine =
-    document.getElementById(
-        "carEngine"
-    );
-
-
-function updateCarPowerField() {
-    if (
-        !carFuel ||
-        !carPowerValueField ||
-        !carPowerValueLabel ||
-        !carEngine
-    ) {
-        return;
-    }
 
-    const fuel =
-        carFuel.value;
-
-        if (!fuel) {
-            carPowerValueField.hidden =
-                true;
-        
-            carPowerValueField.style.display =
-                "none";
-        
-            carEngine.required =
-                false;
-        
-            carEngine.value =
-                "";
-        
-            return;
-        }
-        
-        carPowerValueField.hidden =
-            false;
-        
-        carPowerValueField.style.display =
-            "";
-
-    carEngine.required =
-        true;
-
-    if (fuel === "Електро") {
-        carPowerValueLabel.textContent =
-            tr("profile.dynamic.batteryCapacity", "Ємність батареї, кВт·год");
-
-        carEngine.placeholder =
-            tr("profile.dynamic.example64", "Наприклад, 64");
-
-        carEngine.min =
-            "1";
-
-        carEngine.max =
-            "300";
-
-        carEngine.step =
-            "1";
-    } else {
-        carPowerValueLabel.textContent =
-            tr("auto.062", "Об’єм двигуна, л");
-
-        carEngine.placeholder =
-            tr("auto.116", "Наприклад, 1.6");
-
-        carEngine.min =
-            "0.1";
-
-        carEngine.max =
-            "20";
-
-        carEngine.step =
-            "0.1";
-    }
+.account-settings-section {
+    margin: 28px 0;
+    padding: 24px;
+    border: 1px solid rgba(255, 215, 120, 0.25);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.04);
 }
 
-
-if (carFuel) {
-    carFuel.addEventListener(
-        "change",
-        updateCarPowerField
-    );
+.account-settings-section h2 {
+    margin: 0 0 18px;
 }
-
-updateCarPowerField();
-
-   function resetCarForm() {
-    editingCarId = null;
-
-    elements.carForm
-        ?.reset();
-
 
-    if (carBrand) {
-        carBrand.value = "";
-    }
-
-
-    fillCarModelSelect("");
-
-
-    if (carName) {
-        carName.value = "";
-    }
+.account-settings-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
-
-function openCarEditor(car) {
-    editingCarId =
-        car.id;
-
-    setFieldValue(
-        "carName",
-        car.name
-    );
-
-    setCarBrandAndModelFromName(
-        car.name
-    );
-
-    setFieldValue(
-        "carYear",
-        car.year
-    );
 
-    setFieldValue(
-        "carMileage",
-        car.mileage
-    );
-
-    setFieldValue(
-        "carEngine",
-        car.engine
-    );
-
-    setFieldValue(
-        "carFuel",
-        car.fuel
-    );
-
-    updateCarPowerField();
-
-    setFieldValue(
-        "carTransmission",
-        car.transmission
-    );
-
-    setFieldValue(
-        "carBody",
-        car.body
-    );
-
-    setFieldValue(
-        "carDrive",
-        car.drive
-    );
-
-    setFieldValue(
-        "carVin",
-        car.vin
-    );
-
-    setFieldValue(
-        "carPlate",
-        car.plate
-    );
-
-    setFieldValue(
-        "carPhoto",
-        ""
-    );
+.account-settings-row span {
+    opacity: 0.75;
+}
 
-    openModal(
-        elements.carModal
-    );
+.account-settings-row strong {
+    text-align: right;
+    word-break: break-word;
 }
 
-async function updateGarageCarOnServer(
-    carId,
-    carData = {}
-) {
-    const token =
-        localStorage.getItem(
-            "royalGarageToken"
-        );
+#changeAccountPhoneButton {
+    margin-top: 18px;
+    width: auto;
+    min-width: 220px;
+}
 
-    if (!token) {
-        throw new Error(
-            "Сесія недійсна. Увійдіть повторно."
-        );
+@media (max-width: 600px) {
+    .account-settings-section {
+        padding: 18px;
     }
-
-    const existingCar =
-        cars.find(
-            (car) =>
-                String(car.id) ===
-                String(carId)
-        );
 
-    if (!existingCar) {
-        throw new Error(
-            "Автомобіль не знайдено."
-        );
+    .account-settings-row {
+        flex-direction: column;
+        gap: 4px;
     }
 
-    const payload = {
-        name:
-            existingCar.name || "",
-
-        year:
-            existingCar.year || null,
-
-        mileage:
-            existingCar.mileage ?? null,
-
-        engine:
-            existingCar.engine || "",
-
-        fuel:
-            existingCar.fuel || "",
-
-        transmission:
-            existingCar.transmission || "",
-
-        body:
-            existingCar.body || "",
-
-        drive:
-            existingCar.drive || "",
-
-        vin:
-            existingCar.vin || "",
-
-        plate:
-            existingCar.plate || "",
-
-        photo:
-            existingCar.photo || "",
-
-        photos:
-            Array.isArray(
-                existingCar.photos
-            )
-                ? existingCar.photos
-                : [],
-
-        activePhotoIndex:
-            Number.isInteger(
-                existingCar.activePhotoIndex
-            )
-                ? existingCar.activePhotoIndex
-                : 0,
-
-        services:
-            Array.isArray(
-                existingCar.services
-            )
-                ? existingCar.services
-                : [],
-
-        ...carData
-    };
-
-    const response =
-        await fetch(
-            `/api/garage/cars/${encodeURIComponent(
-                carId
-            )}`,
-            {
-                method: "PATCH",
-
-                headers: {
-                    "Content-Type":
-                        "application/json",
-
-                    Authorization:
-                        `Bearer ${token}`
-                },
-
-                body:
-                    JSON.stringify(
-                        payload
-                    )
-            }
-        );
-
-    const data =
-        await response.json();
-
-    if (!response.ok) {
-        throw new Error(
-            data.message ||
-            "Не вдалося оновити автомобіль."
-        );
+    .account-settings-row strong {
+        text-align: left;
     }
-
-    return data.car;
-}
-
-async function deleteGarageCarFromServer(carId) {
-    const response =
-        await fetch(
-            `/api/garage/cars/${carId}`,
-            {
-                method: "DELETE",
-                credentials:
-                    "include"
-            }
-        );
 
-    const data =
-        await response.json();
-
-    if (!response.ok) {
-        throw new Error(
-            data.message ||
-            "Не вдалося видалити автомобіль."
-        );
+    #changeAccountPhoneButton {
+        width: 100%;
+        min-width: 0;
     }
-
-    return data;
 }
 
-async function deleteGarageCarFromServer(carId) {
-    const token =
-        localStorage.getItem(
-            "royalGarageToken"
-        );
-
-    if (!token) {
-        throw new Error(
-            "Сесія недійсна. Увійдіть повторно."
-        );
-    }
+/* ===== ВИДАЛЕННЯ АКАУНТА ===== */
 
-    const response =
-        await fetch(
-            `/api/garage/cars/${carId}`,
-            {
-                method: "DELETE",
-                headers: {
-                    Authorization:
-                        `Bearer ${token}`
-                }
-            }
-        );
+.account-danger-zone {
+    margin-top: 24px;
+    padding: 22px;
 
-    const data =
-        await response.json();
+    background:
+        rgba(120, 20, 20, 0.12);
 
-    if (!response.ok) {
-        throw new Error(
-            data.message ||
-            "Не вдалося видалити автомобіль."
-        );
-    }
+    border:
+        1px solid
+        rgba(255, 90, 90, 0.35);
 
-    return data;
+    border-radius: 14px;
 }
-
-
-
-async function handleCarSubmit(
-    event
-) {
-    event.preventDefault();
-
-    const name =
-        document
-            .getElementById(
-                "carName"
-            )
-            ?.value
-            .trim() || "";
-
-    const year =
-        Number(
-            document
-                .getElementById(
-                    "carYear"
-                )
-                ?.value
-        );
-
-    const mileage =
-        Number(
-            document
-                .getElementById(
-                    "carMileage"
-                )
-                ?.value
-        );
-
-    const engine =
-        document
-            .getElementById(
-                "carEngine"
-            )
-            ?.value
-            .trim() || "";
-
-    const fuel =
-        document
-            .getElementById(
-                "carFuel"
-            )
-            ?.value || "";
-
-    const transmission =
-        document
-            .getElementById(
-                "carTransmission"
-            )
-            ?.value || "";
-
-    const body =
-        document
-            .getElementById(
-                "carBody"
-            )
-            ?.value || "";
-
-    const drive =
-        document
-            .getElementById(
-                "carDrive"
-            )
-            ?.value || "";
-
-    const vin =
-        normalizeVin(
-            document
-                .getElementById(
-                    "carVin"
-                )
-                ?.value
-        );
-
-    const plate =
-        String(
-            document
-                .getElementById(
-                    "carPlate"
-                )
-                ?.value || ""
-        )
-            .trim()
-            .toUpperCase();
-
-            const photoInput =
-            document.getElementById(
-                "carPhoto"
-            );
-        
-        const cameraPhotoInput =
-            document.getElementById(
-                "carCameraPhoto"
-            );
-        
-        const photoFile =
-            photoInput?.files?.[0] ||
-            cameraPhotoInput?.files?.[0];
-    if (
-        !name ||
-        !year ||
-        year < 1886 ||
-        mileage < 0
-    ) {
-        alert(
-            "Перевір назву, рік і пробіг автомобіля."
-        );
-
-        return;
-    }
-
-    const duplicateVin =
-        vin &&
-        cars.some(
-            (car) =>
-                String(
-                    car.id
-                ) !==
-                    String(
-                        editingCarId
-                    ) &&
-                normalizeVin(
-                    car.vin
-                ) === vin
-        );
-
-    if (duplicateVin) {
-        alert(
-            "Автомобіль з таким VIN вже є."
-        );
-
-        return;
-    }
 
-    let compressedPhoto =
-        "";
-
-    if (photoFile) {
-        try {
-            compressedPhoto =
-                await compressImage(
-                    photoFile
-                );
-        } catch (error) {
-            alert(
-                error.message
-            );
-
-            return;
-        }
-    }
-
-    if (editingCarId) {
-        const car =
-            cars.find(
-                (item) =>
-                    String(
-                        item.id
-                    ) ===
-                    String(
-                        editingCarId
-                    )
-            );
-
-        if (!car) {
-            alert(
-                "Автомобіль не знайдений."
-            );
-
-            return;
-        }
-
-        Object.assign(
-            car,
-            {
-                name,
-                year,
-                mileage,
-                engine,
-                fuel,
-                transmission,
-                body,
-                drive,
-                vin,
-                plate
-            }
-        );
+.account-danger-zone h3 {
+    margin: 0 0 8px;
 
-        if (
-            compressedPhoto
-        ) {
-            const photos =
-                getCarPhotos(
-                    car
-                );
-
-            if (
-                photos.length === 0
-            ) {
-                photos.push(
-                    compressedPhoto
-                );
-
-                car.activePhotoIndex =
-                    0;
-            } else {
-                photos[
-                    car.activePhotoIndex
-                ] =
-                    compressedPhoto;
-            }
-
-            car.photos =
-                photos;
-
-            car.photo =
-                photos[
-                    car.activePhotoIndex
-                ];
-        }
-
-        try {
-            const updatedCar =
-                await updateGarageCarOnServer(
-                    car.id,
-                    {
-                        name:
-                            car.name,
-        
-                        year:
-                            car.year,
-        
-                        mileage:
-                            car.mileage,
-        
-                        engine:
-                            car.engine,
-        
-                        fuel:
-                            car.fuel,
-        
-                        transmission:
-                            car.transmission,
-        
-                        body:
-                            car.body,
-        
-                        drive:
-                            car.drive,
-        
-                        vin:
-                            car.vin,
-        
-                        plate:
-                            car.plate,
-        
-                        photo:
-                            car.photo || "",
-        
-                        photos:
-                            Array.isArray(
-                                car.photos
-                            )
-                                ? car.photos
-                                : [],
-        
-                        activePhotoIndex:
-                            Number.isInteger(
-                                car.activePhotoIndex
-                            )
-                                ? car.activePhotoIndex
-                                : 0,
-        
-                        services:
-                            Array.isArray(
-                                car.services
-                            )
-                                ? car.services
-                                : []
-                    }
-                );
-        
-            Object.assign(
-                car,
-                updatedCar
-            );
-        } catch (error) {
-            console.error(
-                "Garage car update request error:",
-                error
-            );
-        
-            alert(
-                error.message ||
-                "Не вдалося оновити автомобіль."
-            );
-        
-            return;
-        }
-        
-        selectedCarId =
-            car.id;
-
-        selectedCarId =
-            car.id;
-        } else {
-            try {
-                const newCar =
-                    await createGarageCarOnServer({
-                        name,
-                        year,
-                        mileage,
-                        engine,
-                        fuel,
-                        transmission,
-                        body,
-                        drive,
-                        vin,
-                        plate,
-        
-                        photo:
-                            compressedPhoto,
-        
-                        photos:
-                            compressedPhoto
-                                ? [
-                                    compressedPhoto
-                                ]
-                                : [],
-        
-                        activePhotoIndex:
-                            0,
-        
-                        services:
-                            []
-                    });
-        
-                cars.unshift(
-                    newCar
-                );
-        
-                selectedCarId =
-                    newCar.id;
-            } catch (error) {
-                console.error(
-                    "Garage car create request error:",
-                    error
-                );
-        
-                alert(
-                    error.message ||
-                    "Не вдалося додати автомобіль."
-                );
-        
-                return;
-            }
-        }
-
-    resetCarForm();
-
-    closeModal(
-        elements.carModal
-    );
+    color: #ff9a9a;
 
-    renderPage();
+    font-size: 21px;
 }
 
+.account-danger-zone p {
+    margin: 0 0 18px;
 
-/* =========================
-   ФОРМА ОБСЛУГОВУВАННЯ
-   ========================= */
+    color:
+        rgba(255, 255, 255, 0.72);
 
-function resetServiceForm() {
-    editingServiceId =
-        null;
-
-    elements.serviceForm
-        ?.reset();
+    line-height: 1.5;
 }
-
-async function handleServiceSubmit(
-    event
-) {
-    event.preventDefault();
-
-    const car =
-        getSelectedCar();
-
-    if (!car) {
-        alert(
-            "Автомобіль не знайдено."
-        );
-
-        return;
-    }
-
-    const title =
-        document
-            .getElementById(
-                "serviceTitle"
-            )
-            ?.value
-            .trim() || "";
-
-    const date =
-        document
-            .getElementById(
-                "serviceDate"
-            )
-            ?.value || "";
-
-    const mileage =
-        Number(
-            document
-                .getElementById(
-                    "serviceMileage"
-                )
-                ?.value
-        );
 
-    const cost =
-        Number(
-            document
-                .getElementById(
-                    "serviceCost"
-                )
-                ?.value
-        );
+.account-danger-zone .btn-danger {
+    width: auto;
+    min-width: 240px;
 
-    const station =
-        document
-            .getElementById(
-                "serviceStation"
-            )
-            ?.value
-            .trim() || "";
-
-    const description =
-        document
-            .getElementById(
-                "serviceDescription"
-            )
-            ?.value
-            .trim() || "";
-
-    const isPublic =
-        Boolean(
-            document
-                .getElementById(
-                    "servicePublic"
-                )
-                ?.checked
-        );
+    margin: 0;
+    padding: 12px 22px;
 
-        const photoInput =
-        document.getElementById(
-            "servicePhotos"
-        );
-    
-    const cameraPhotoInput =
-        document.getElementById(
-            "serviceCameraPhoto"
-        );
-    
-    const photoFiles = [
-        ...Array.from(
-            photoInput?.files || []
-        ),
-        ...Array.from(
-            cameraPhotoInput?.files || []
-        )
-    ];
-
-    if (
-        !title ||
-        !date
-    ) {
-        alert(
-            "Вкажи назву роботи та дату."
-        );
+    background: #b92b2b;
 
-        return;
-    }
+    border:
+        1px solid
+        rgba(255, 110, 110, 0.5);
 
-    if (
-        mileage < 0 ||
-        cost < 0
-    ) {
-        alert(
-            "Пробіг і вартість не можуть бути від’ємними."
-        );
+    border-radius: 10px;
 
-        return;
-    }
+    font-weight: 700;
+}
 
-    let oldService =
-        null;
-
-    let oldPhotos =
-        [];
-
-    if (
-        editingServiceId
-    ) {
-        oldService =
-            findService(
-                car,
-                editingServiceId
-            );
-
-        oldPhotos =
-            oldService
-                ? getServicePhotos(
-                    oldService
-                )
-                : [];
-    }
+.account-danger-zone .btn-danger:hover {
+    background: #d03535;
+}
 
-    if (
-        oldPhotos.length +
-            photoFiles.length >
-        3
-    ) {
-        alert(
-            "До одного запису можна додати максимум 3 фото."
-        );
+@media (max-width: 600px) {
 
-        return;
+    .account-danger-zone {
+        padding: 18px;
     }
-
-    let newPhotos =
-        [];
-
-    try {
-        newPhotos =
-            await Promise.all(
-                photoFiles.map(
-                    (file) =>
-                        compressImage(
-                            file
-                        )
-                )
-            );
-    } catch (error) {
-        alert(
-            error.message
-        );
 
-        return;
+    .account-danger-zone .btn-danger {
+        width: 100%;
+        min-width: 0;
     }
+}
 
-    const previousServices =
-    structuredClone(
-        car.services
-    );
+/* ===== ВІДСТУП ПІСЛЯ ВИДАЛЕННЯ АКАУНТА ===== */
 
-const previousMileage =
-    car.mileage;
-
-    if (
-        editingServiceId &&
-        oldService
-    ) {
-        Object.assign(
-            oldService,
-            {
-                title,
-                date,
-                mileage,
-                cost,
-                station,
-                description,
-                isPublic,
-
-                photos: [
-                    ...oldPhotos,
-                    ...newPhotos
-                ]
-            }
-        );
-    } else {
-        car.services.push({
-            id: createId(),
-
-            title,
-            date,
-            mileage,
-            cost,
-            station,
-            description,
-            isPublic,
-
-            photos:
-                newPhotos,
-
-            createdAt:
-                new Date()
-                    .toISOString()
-        });
-    }
+.account-danger-zone {
+    margin-bottom: 28px;
+}
 
-    if (
-        mileage >
-        Number(
-            car.mileage
-        )
-    ) {
-        car.mileage =
-            mileage;
-    }
+/* ===== СТАТУС "ПЕРШИЙ" ===== */
 
-    try {
-        const updatedCar =
-            await updateGarageCarOnServer(
-                car.id,
-                {
-                    services:
-                        car.services,
-    
-                    mileage:
-                        car.mileage
-                }
-            );
-    
-        if (updatedCar) {
-            Object.assign(
-                car,
-                updatedCar
-            );
-        }
-    
-    } catch (error) {
-        car.services =
-            previousServices;
-    
-        car.mileage =
-            previousMileage;
-    
-        console.error(
-            "Service save error:",
-            error
+.first-member-badge {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 4px;
+    width: fit-content;
+    margin: 0 0 14px;
+    padding: 10px 14px;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(214, 160, 58, 0.2),
+            rgba(243, 201, 105, 0.08)
         );
-    
-        alert(
-            error.message ||
-            "Не вдалося зберегти запис обслуговування."
-        );
-    
-        return;
-    }
-
-    resetServiceForm();
-
-    closeModal(
-        elements.serviceModal
-    );
-
-    renderPage();
+    border: 1px solid rgba(243, 201, 105, 0.65);
+    border-radius: 12px;
+    box-shadow:
+        0 0 22px rgba(214, 160, 58, 0.1);
 }
-
-
-/* =========================
-   МОЇ ЧАТИ
-   ========================= */
-
-function getLastMessageText(
-    message
-) {
-    const text =
-        String(
-            message.text || ""
-        ).trim();
-
-    if (text) {
-        return text;
-    }
 
-    if (
-        message.attachment
-            ?.type ===
-        "image"
-    ) {
-        return tr("profile.dynamic.photoAttachment", "📷 Фото");
-    }
+.first-member-badge[hidden] {
+    display: none;
+}
 
-    if (
-        message.attachment
-            ?.type ===
-        "video"
-    ) {
-        return tr("profile.dynamic.videoAttachment", "🎥 Відео");
-    }
+.first-member-badge-title {
+    color: var(--gold-light, #f3c969);
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+}
 
-    return tr("profile.dynamic.newMessage", "Нове повідомлення");
+.first-member-badge-number {
+    color: var(--white, #ffffff);
+    font-size: 13px;
+    font-weight: 600;
 }
-async function renderMyChats() {
-    if (!elements.myChatsList) {
-        return;
-    }
 
-    if (!currentUser?.id) {
-        return;
+@media (max-width: 600px) {
+    .first-member-badge {
+        padding: 9px 12px;
     }
 
-    const token =
-        localStorage.getItem(
-            "royalGarageToken"
-        );
-
-    if (!token) {
-        elements.myChatsList.innerHTML = `
-            <p>
-                ${escapeHtml(tr("profile.dynamic.loginFirst", "Спочатку увійдіть у профіль."))}
-            </p>
-        `;
-
-        return;
+    .first-member-badge-title {
+        font-size: 13px;
     }
-
-    try {
-        const response =
-            await fetch(
-                "/api/chat/conversations",
-                {
-                    headers: {
-                        Authorization:
-                            `Bearer ${token}`
-                    }
-                }
-            );
-
-        const data =
-            await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                data.message ||
-                "Не вдалося завантажити чати."
-            );
-        }
-
-        const messages =
-            Array.isArray(data.messages)
-                ? data.messages
-                : [];
-
-        const currentUserId =
-            String(currentUser.id);
-
-        const totalUnread =
-            messages.filter(
-                (message) =>
-                    String(
-                        message.receiverId
-                    ) === currentUserId &&
-                    !message.readAt
-            ).length;
-
-            if (profileUnreadCount) {
-                if (totalUnread > 0) {
-                    profileUnreadCount.textContent =
-                        totalUnread > 99
-                            ? "99+"
-                            : String(totalUnread);
-            
-                    profileUnreadCount.hidden = false;
-                } else {
-                    profileUnreadCount.textContent = "";
-                    profileUnreadCount.hidden = true;
-                }
-            }
-
-        if (elements.openChatsButton) {
-            elements.openChatsButton.innerHTML =
-                totalUnread > 0
-                    ? `
-                        ${escapeHtml(tr("auto.055", "Мої чати"))}
-                        <span class="chats-button-badge">
-                            ${
-                                totalUnread > 99
-                                    ? "99+"
-                                    : totalUnread
-                            }
-                        </span>
-                    `
-                    : tr("auto.055", "Мої чати");
-        }
-
-        const conversations =
-            new Map();
-
-        messages.forEach(
-            (message) => {
-                const otherUserId =
-                    String(
-                        message.senderId
-                    ) === currentUserId
-                        ? String(
-                            message.receiverId
-                        )
-                        : String(
-                            message.senderId
-                        );
-
-                const key =
-                    `${message.listingId}_${otherUserId}`;
-
-                if (
-                    !conversations.has(key)
-                ) {
-                    conversations.set(
-                        key,
-                        {
-                            message,
-                            otherUserId
-                        }
-                    );
-                }
-            }
-        );
-
-        if (
-            conversations.size === 0
-        ) {
-            elements.myChatsList.innerHTML = `
-                <p>
-                    ${escapeHtml(tr("profile.dynamic.noChats", "Чатів поки немає."))}
-                </p>
-            `;
-
-            return;
-        }
-
-        elements.myChatsList.innerHTML =
-            "";
-
-        [
-            ...conversations.values()
-        ].forEach(
-            ({
-                message,
-                otherUserId
-            }) => {
-                const listingName =
-                    message.listingName ||
-                    tr("profile.dynamic.listing", "Оголошення");
-
-                const listingYear =
-                    message.listingYear ||
-                    "";
-
-                const title =
-                    listingYear
-                        ? `${listingName} (${listingYear})`
-                        : listingName;
-
-                const photos =
-                    Array.isArray(
-                        message.listingPhotos
-                    )
-                        ? message.listingPhotos
-                        : [];
-
-                const photo =
-                    photos[0] ||
-                    "";
-
-                const unreadCount =
-                    messages.filter(
-                        (chatMessage) =>
-                            String(
-                                chatMessage.listingId
-                            ) ===
-                                String(
-                                    message.listingId
-                                ) &&
-                            String(
-                                chatMessage.senderId
-                            ) ===
-                                String(
-                                    otherUserId
-                                ) &&
-                            String(
-                                chatMessage.receiverId
-                            ) ===
-                                currentUserId &&
-                            !chatMessage.readAt
-                    ).length;
-
-                const messageDate =
-                    new Date(
-                        message.createdAt
-                    );
-
-                const formattedDate =
-                    Number.isNaN(
-                        messageDate.getTime()
-                    )
-                        ? ""
-                        : messageDate
-                            .toLocaleString(
-                                currentLocale(),
-                                {
-                                    day:
-                                        "2-digit",
-                                    month:
-                                        "2-digit",
-                                    hour:
-                                        "2-digit",
-                                    minute:
-                                        "2-digit"
-                                }
-                            );
-
-                const chatLink =
-                    document.createElement(
-                        "a"
-                    );
-
-                chatLink.className =
-                    "my-chat-card";
-
-                chatLink.href =
-                    `chat.html?listingId=${
-                        encodeURIComponent(
-                            message.listingId
-                        )
-                    }&withUserId=${
-                        encodeURIComponent(
-                            otherUserId
-                        )
-                    }`;
-
-                chatLink.innerHTML = `
-                    <div class="chat-card-header">
-
-                        <div class="chat-avatar">
-                            ${
-                                photo
-                                    ? `
-                                        <img
-                                            src="${photo}"
-                                            alt="${escapeHtml(
-                                                title
-                                            )}"
-                                        >
-                                    `
-                                    : "🚗"
-                            }
-                        </div>
-
-                        <div class="chat-main">
-
-                            <div class="chat-title">
-                                ${escapeHtml(
-                                    title
-                                )}
-                            </div>
-
-                            <div class="chat-last-message">
-                                ${escapeHtml(
-                                    getLastMessageText(
-                                        message
-                                    )
-                                )}
-                            </div>
-
-                        </div>
-
-                        <div class="chat-card-side">
-
-                            <div class="chat-time">
-                                ${formattedDate}
-                            </div>
-
-                            ${
-                                unreadCount > 0
-                                    ? `
-                                        <span class="chat-unread-badge">
-                                            ${
-                                                unreadCount > 99
-                                                    ? "99+"
-                                                    : unreadCount
-                                            }
-                                        </span>
-                                    `
-                                    : ""
-                            }
-
-                        </div>
-
-                    </div>
-                `;
-
-                elements.myChatsList
-                    .appendChild(
-                        chatLink
-                    );
-            }
-        );
-
-    } catch (error) {
-        console.error(
-            "Profile chats load error:",
-            error
-        );
 
-        elements.myChatsList.innerHTML = `
-            <p>
-                ${escapeHtml(tr("profile.dynamic.chatsLoadError", "Не вдалося завантажити чати."))}
-            </p>
-        `;
+    .first-member-badge-number {
+        font-size: 12px;
     }
 }
-/* =========================
-   ВІДКРИТТЯ ІСТОРІЇ
-   З ОГОЛОШЕННЯ
-   ========================= */
-
-   async function openServiceHistoryFromUrl() {
-    const params =
-        new URLSearchParams(
-            window.location.search
-        );
-
-    const section =
-        params.get("section");
-
-    const listingId =
-        params.get("listingId");
-
-    if (
-        section !== "service" ||
-        !listingId
-    ) {
-        return;
-    }
-
-    try {
-        const listingResponse =
-            await fetch(
-                `/api/market/listings/${
-                    encodeURIComponent(
-                        listingId
-                    )
-                }`
-            );
-
-        const listingData =
-            await listingResponse.json();
-
-        if (!listingResponse.ok) {
-            throw new Error(
-                listingData.message ||
-                "Оголошення не знайдено."
-            );
-        }
-
-        const listing =
-            listingData.listing;
-
-        const listingVin =
-            normalizeVin(
-                listing.vin
-            );
-
-        if (!listingVin) {
-            alert(
-                "В оголошенні не збережений VIN автомобіля."
-            );
-
-            return;
-        }
-
-        const listingOwnerId =
-            listing.owner_id ??
-            listing.ownerId ??
-            "";
-
-        if (!listingOwnerId) {
-            alert(
-                "Не вдалося визначити власника автомобіля."
-            );
-
-            return;
-        }
-
-        const isOwner =
-            String(currentUser.id) ===
-            String(listingOwnerId);
-
-
-        /* ===== ВЛАСНИК АВТО ===== */
-
-        if (isOwner) {
-            const matchingCar =
-                cars.find(
-                    (car) =>
-                        normalizeVin(
-                            car.vin
-                        ) ===
-                        listingVin
-                );
-
-            if (!matchingCar) {
-                alert(
-                    `Автомобіль з VIN ${listingVin} не знайдений у вашому гаражі.`
-                );
-
-                return;
-            }
-
-            selectedCarId =
-                matchingCar.id;
-
-            renderPage();
-
-            openModal(
-                elements.historyModal
-            );
-
-            window.history.replaceState(
-                {},
-                document.title,
-                "profile.html"
-            );
-
-            return;
-        }
-
-
-        /* ===== ПОКУПЕЦЬ ===== */
-
-        const historyResponse =
-            await fetch(
-                `/api/garage/public-history/${
-                    encodeURIComponent(
-                        listingId
-                    )
-                }`
-            );
-
-        const historyData =
-            await historyResponse.json();
-
-        if (!historyResponse.ok) {
-            throw new Error(
-                historyData.message ||
-                "Історія обслуговування цього автомобіля недоступна."
-            );
-        }
-
-        const matchingCar =
-            historyData.car;
-
-        const publicServices =
-            Array.isArray(
-                matchingCar.services
-            )
-                ? [...matchingCar.services]
-                    .sort(
-                        (
-                            first,
-                            second
-                        ) =>
-                            String(
-                                second.date ||
-                                ""
-                            ).localeCompare(
-                                String(
-                                    first.date ||
-                                    ""
-                                )
-                            )
-                    )
-                : [];
-
-
-        if (
-            elements.serviceHistory
-        ) {
-            elements.serviceHistory
-                .querySelectorAll(
-                    ".service-card"
-                )
-                .forEach(
-                    (element) => {
-                        element.remove();
-                    }
-                );
-        }
-
-
-        if (
-            elements.noServiceMessage
-        ) {
-            elements.noServiceMessage.hidden =
-                publicServices.length > 0;
-
-            if (
-                publicServices.length === 0
-            ) {
-                elements.noServiceMessage.textContent =
-                    tr("profile.dynamic.noPublicHistory", "Продавець ще не опублікував історію обслуговування цього автомобіля.");
-            }
-        }
-
-
-        if (
-            elements.serviceCount
-        ) {
-            elements.serviceCount.textContent =
-                String(
-                    publicServices.length
-                );
-        }
-
-
-        const publicTotalCost =
-            publicServices.reduce(
-                (
-                    total,
-                    service
-                ) =>
-                    total +
-                    Number(
-                        service.cost || 0
-                    ),
-                0
-            );
-
-
-        if (
-            elements.totalServiceCost
-        ) {
-            elements.totalServiceCost.textContent =
-                `${formatNumber(
-                    publicTotalCost
-                )} ${tr("market.dynamic.uahShort", "грн")}`;
-        }
-
-
-        if (
-            elements.currentMileage
-        ) {
-            elements.currentMileage.textContent =
-                `${formatNumber(
-                    matchingCar.mileage
-                )} км`;
-        }
-
-
-        publicServices.forEach(
-            (service) => {
-                const card =
-                    document.createElement(
-                        "article"
-                    );
-
-                card.className =
-                    "service-card";
-
-                card.innerHTML = `
-                    <div class="service-card-top">
-
-                        <div>
-                            <p class="service-date">
-                                ${formatDate(
-                                    service.date
-                                )}
-                            </p>
-
-                            <h3>
-                                ${escapeHtml(
-                                    service.title
-                                )}
-                            </h3>
-                        </div>
-
-                        <span class="service-visibility">
-                            ${escapeHtml(tr("profile.dynamic.public", "Публічний"))}
-                        </span>
-
-                    </div>
-
-                    <div class="service-details">
-
-                        <span>
-                            ${escapeHtml(tr("profile.dynamic.mileage", "Пробіг"))}:
-
-                            <strong>
-                                ${formatNumber(
-                                    service.mileage
-                                )} км
-                            </strong>
-                        </span>
-
-                        <span>
-                            ${escapeHtml(tr("profile.dynamic.cost", "Вартість"))}:
-
-                            <strong>
-                                ${formatNumber(
-                                    service.cost
-                                )} ${escapeHtml(tr("market.dynamic.uahShort", "грн"))}
-                            </strong>
-                        </span>
-
-                    </div>
-
-                    ${
-                        service.station
-                            ? `
-                                <p>
-                                    <strong>
-                                        ${escapeHtml(tr("profile.dynamic.serviceStation", "СТО"))}:
-                                    </strong>
-
-                                    ${escapeHtml(
-                                        service.station
-                                    )}
-                                </p>
-                            `
-                            : ""
-                    }
-
-                    ${
-                        service.description
-                            ? `
-                                <p>
-                                    ${escapeHtml(
-                                        service.description
-                                    )}
-                                </p>
-                            `
-                            : ""
-                    }
-                `;
-
-
-                const photos =
-                    Array.isArray(
-                        service.photos
-                    )
-                        ? service.photos
-                        : [];
-
-                if (
-                    photos.length > 0
-                ) {
-                    const gallery =
-                        document.createElement(
-                            "div"
-                        );
-
-                    gallery.className =
-                        "service-photo-gallery";
-
-                    photos.forEach(
-                        (
-                            photo,
-                            photoIndex
-                        ) => {
-                            const photoItem =
-                                document.createElement(
-                                    "div"
-                                );
-
-                            photoItem.className =
-                                "service-photo-item";
-
-                            const image =
-                                document.createElement(
-                                    "img"
-                                );
-
-                            image.src =
-                                photo;
-
-                            image.alt =
-                                tr("profile.dynamic.recordPhoto", "Фото до запису");
-
-                            image.className =
-                                "service-photo";
-
-                            image.addEventListener(
-                                "click",
-                                () => {
-                                    openPhotoViewer(
-                                        photos,
-                                        photoIndex
-                                    );
-                                }
-                            );
-
-                            photoItem.appendChild(
-                                image
-                            );
-
-                            gallery.appendChild(
-                                photoItem
-                            );
-                        }
-                    );
-
-                    card.appendChild(
-                        gallery
-                    );
-                }
-
-                elements.serviceHistory
-                    ?.appendChild(
-                        card
-                    );
-            }
-        );
-
-
-        openModal(
-            elements.historyModal
-        );
-
-        window.history.replaceState(
-            {},
-            document.title,
-            "profile.html"
-        );
 
-    } catch (error) {
-        console.error(
-            "Service history load error:",
-            error
-        );
-
-        alert(
-            error.message ||
-            "Не вдалося завантажити історію обслуговування."
-        );
-    }
+/* Compact photo-viewer close and readable gallery actions */
+.photo-viewer-close {
+  display:grid; place-items:center;
+  width:40px; height:40px; padding:0;
+  color:#fff; background:rgba(8,34,74,.95);
+  border:1px solid rgba(240,201,107,.65); border-radius:50%;
+  font-size:25px; line-height:1;
 }
-
-/* =========================
-   ОБРОБНИКИ ПОДІЙ
-   ========================= */
-
-elements.openCarButton
-    ?.addEventListener(
-        "click",
-        () => {
-            resetCarForm();
-
-            openModal(
-                elements.carModal
-            );
-        }
-    );
-
-elements.editCarButton
-    ?.addEventListener(
-        "click",
-        () => {
-            const car =
-                getSelectedCar();
-
-            if (!car) {
-                alert(
-                    "Автомобіль не вибраний."
-                );
-
-                return;
-            }
-
-            openCarEditor(car);
-        }
-    );
-
-    elements.deleteCarButton
-    ?.addEventListener(
-        "click",
-        async () => {
-            const car =
-                getSelectedCar();
-
-            if (!car) {
-                alert(
-                    "Спочатку вибери автомобіль."
-                );
-
-                return;
-            }
-
-            const confirmed =
-                confirm(
-                    `Видалити автомобіль "${car.name}" разом з усією історією?`
-                );
-
-            if (!confirmed) {
-                return;
-            }
-
-            try {
-                await deleteGarageCarFromServer(
-                    car.id
-                );
-
-                cars =
-                    cars.filter(
-                        (item) =>
-                            String(
-                                item.id
-                            ) !==
-                            String(
-                                car.id
-                            )
-                    );
-
-                selectedCarId =
-                    cars[0]?.id ??
-                    null;
-
-                renderPage();
-
-                alert(
-                    "Автомобіль видалено з гаража."
-                );
-            } catch (error) {
-                console.error(
-                    "Garage car delete request error:",
-                    error
-                );
-
-                alert(
-                    error.message ||
-                    "Не вдалося видалити автомобіль."
-                );
-            }
-        }
-    );
-elements.openServiceButton
-    ?.addEventListener(
-        "click",
-        () => {
-            const car =
-                getSelectedCar();
-
-            if (!car) {
-                alert(
-                    "Спочатку додай автомобіль."
-                );
-
-                return;
-            }
-
-            resetServiceForm();
-
-            setFieldValue(
-                "serviceMileage",
-                car.mileage
-            );
-
-            setFieldValue(
-                "serviceDate",
-                new Date()
-                    .toISOString()
-                    .slice(
-                        0,
-                        10
-                    )
-            );
-
-            closeModal(
-                elements.historyModal
-            );
-
-            openModal(
-                elements.serviceModal
-            );
-        }
-    );
-
-elements.openHistoryButton
-    ?.addEventListener(
-        "click",
-        async () => {
-            if (
-                !getSelectedCar()
-            ) {
-                alert(
-                    "Спочатку вибери автомобіль."
-                );
-
-                return;
-            }
-
-            renderSelectedCar();
-
-            const car =
-                getSelectedCar();
-
-            const crmHistory =
-                await loadGarageServiceHistory(
-                    car.id
-                );
-
-            console.log(
-                "CRM VIN history:",
-                crmHistory
-            );
-
-            const ownerServices =
-                        Array.isArray(car.services)
-                            ? car.services
-                            : [];
-
-                    const ownerTotal =
-                        ownerServices.reduce(
-                            (total, service) =>
-                                total +
-                                Number(service.cost || 0),
-                            0
-                        );
-
-                    const crmTotal =
-                        crmHistory.reduce(
-                            (total, record) =>
-                                total +
-                                Number(
-                                    record.totalAmount || 0
-                                ),
-                            0
-                        );
-
-                    if (elements.serviceCount) {
-                        elements.serviceCount.textContent =
-                            String(
-                                ownerServices.length +
-                                crmHistory.length
-                            );
-                    }
-
-                    if (elements.totalServiceCost) {
-                        elements.totalServiceCost.textContent =
-                            `${formatNumber(
-                                ownerTotal + crmTotal
-                            )} грн`;
-                    }
-
-                        crmHistory.forEach(
-                            (record) => {
-                                elements.serviceHistory
-                                    ?.appendChild(
-                                        renderCrmServiceHistoryCard(
-                                            record
-                                        )
-                                    );
-                            }
-                        );
-
-                        const allServiceCards =
-                Array.from(
-                    elements.serviceHistory
-                        ?.querySelectorAll(
-                            ".service-card"
-                        ) || []
-                );
-
-            allServiceCards
-                .sort(
-                    (first, second) =>
-                        new Date(
-                            second.dataset.serviceDate || 0
-                        ).getTime() -
-                        new Date(
-                            first.dataset.serviceDate || 0
-                        ).getTime()
-                )
-                .forEach(
-                    (card) => {
-                        elements.serviceHistory
-                            ?.appendChild(card);
-                    }
-                );
-
-            openModal(
-                elements.historyModal
-            );
-        }
-    );
-
-elements.openChatsButton
-    ?.addEventListener(
-        "click",
-        () => {
-            renderMyChats();
-
-            openModal(
-                elements.chatsModal
-            );
-        }
-    );
-
-elements.carForm
-    ?.addEventListener(
-        "submit",
-        handleCarSubmit
-    );
-
-elements.serviceForm
-    ?.addEventListener(
-        "submit",
-        handleServiceSubmit
-    );
-
-    async function handleCarPhotoFiles(
-        input
-    ) {
-        const files =
-            Array.from(
-                input?.files || []
-            );
-
-            if (
-                files.length === 0
-            ) {
-                return;
-            }
-
-            const car =
-                getSelectedCar();
-
-            if (!car) {
-                alert(
-                    "Автомобіль не знайдено."
-                );
-
-                if (input) {
-                    input.value = "";
-                }
-                return;
-            }
-
-            const currentPhotos =
-                getCarPhotos(
-                    car
-                );
-
-            if (
-                currentPhotos.length +
-                    files.length >
-                6
-            ) {
-                alert(
-                    "Можна додати максимум 6 фото автомобіля."
-                );
-
-                if (input) {
-                    input.value = "";
-                }
-                return;
-            }
-
-            try {
-                            const previousPhotos =
-                [...currentPhotos];
-
-            const previousIndex =
-                car.activePhotoIndex;
-
-            const previousPhoto =
-                car.photo;
-
-            const newPhotos =
-                await Promise.all(
-                    files.map(
-                        (file) =>
-                            compressImage(
-                                file
-                            )
-                    )
-                );
-
-            car.photos = [
-                ...currentPhotos,
-                ...newPhotos
-            ];
-
-            if (
-                currentPhotos.length ===
-                0
-            ) {
-                car.activePhotoIndex =
-                    0;
-            } else {
-                car.activePhotoIndex =
-                    currentPhotos.length;
-            }
-
-            car.photo =
-                car.photos[
-                    car.activePhotoIndex
-                ];
-
-            try {
-                const updatedCar =
-                    await updateGarageCarOnServer(
-                        car.id,
-                        {
-                            photos:
-                                car.photos,
-
-                            activePhotoIndex:
-                                car.activePhotoIndex,
-
-                            photo:
-                                car.photo
-                        }
-                    );
-
-                if (updatedCar) {
-                    Object.assign(
-                        car,
-                        updatedCar
-                    );
-                }
-
-                renderPage();
-
-            } catch (error) {
-                car.photos =
-                    previousPhotos;
-
-                car.activePhotoIndex =
-                    previousIndex;
-
-                car.photo =
-                    previousPhoto;
-
-                renderPage();
-
-                console.error(
-                    "Garage photos add error:",
-                    error
-                );
-
-                alert(
-                    error.message ||
-                    "Не вдалося додати фото автомобіля."
-                );
-            }
-
-
-            } catch (error) {
-                alert(
-                    error.message
-                );
-            }
-
-            if (input) {
-                input.value = "";
-            }
-        }
-
-        elements.updateCarPhoto
-    ?.addEventListener(
-        "change",
-        () =>
-            handleCarPhotoFiles(
-                elements.updateCarPhoto
-            )
-    );
-
-const updateCarCameraPhoto =
-    document.getElementById(
-        "updateCarCameraPhoto"
-    );
-
-updateCarCameraPhoto
-    ?.addEventListener(
-        "change",
-        () =>
-            handleCarPhotoFiles(
-                updateCarCameraPhoto
-            )
-    );
-
-            
-elements.previousCarPhoto
-    ?.addEventListener(
-        "click",
-        (event) => {
-            event.stopPropagation();
-
-            showPhotoInViewer(
-                viewerIndex - 1
-            );
-        }
-    );
-
-elements.nextCarPhoto
-    ?.addEventListener(
-        "click",
-        (event) => {
-            event.stopPropagation();
-
-            showPhotoInViewer(
-                viewerIndex + 1
-            );
-        }
-    );
-
-elements.closePhotoViewer
-    ?.addEventListener(
-        "click",
-        closeViewer
-    );
-
-elements.photoViewer
-    ?.addEventListener(
-        "click",
-        (event) => {
-            if (
-                event.target ===
-                elements.photoViewer
-            ) {
-                closeViewer();
-            }
-        }
-    );
-
-document
-    .querySelectorAll(
-        "[data-close-modal]"
-    )
-    .forEach(
-        (button) => {
-            button.addEventListener(
-                "click",
-                () => {
-                    closeModal(
-                        button.closest(
-                            ".modal"
-                        )
-                    );
-                }
-            );
-        }
-    );
-
-document
-    .querySelectorAll(
-        ".modal"
-    )
-    .forEach(
-        (modal) => {
-            modal.addEventListener(
-                "click",
-                (event) => {
-                    if (
-                        event.target ===
-                        modal
-                    ) {
-                        closeModal(
-                            modal
-                        );
-                    }
-                }
-            );
-        }
-    );
-
-document.addEventListener(
-    "keydown",
-    (event) => {
-        if (
-            event.key ===
-            "Escape"
-        ) {
-            closeViewer();
-
-            document
-                .querySelectorAll(
-                    ".modal.modal-open"
-                )
-                .forEach(
-                    (modal) => {
-                        closeModal(
-                            modal
-                        );
-                    }
-                );
-        }
-    }
-);
-
-document.addEventListener(
-    "visibilitychange",
-    () => {
-        if (
-            !document.hidden
-        ) {
-            renderMyChats();
-        }
-    }
-);
-
-
-/* =========================
-   ЗАПУСК
-   ========================= */
-
-   fillCarBrandSelect();
-   async function initializeProfilePage() {
-    await loadProfileFromServer();
-
-    renderFirstMemberBadge();
-
-    await initializeGarageCars();
-
-    fillSellerProfileSettings();
-
-    await renderProfileSellerReputation();
-
-    await renderProfileSellerReviews();
-
-    await openServiceHistoryFromUrl();
+.delete-car-photo-button, .replace-car-photo-button {
+  display:grid; place-items:center; color:#fff; line-height:1;
 }
-   
-   initializeProfilePage();
-
-const profileParams =
-    new URLSearchParams(
-        window.location.search
-    );
-
-if (
-    profileParams.get("section") ===
-    "chats"
-) {
-    renderMyChats();
-
-    openModal(
-        elements.chatsModal
-    );
-
-    window.history.replaceState(
-        {},
-        document.title,
-        "profile.html"
-    );
+@media(max-width:600px) {
+  .photo-viewer-close { top:12px; right:12px; }
+  .garage-page { padding-left:12px; padding-right:12px; }
+  .garage-hero, .garage-sidebar, .service-panel { min-width:0; }
 }
 
-function updateGlobalChatsButton() {
-    if (!globalOpenChatsButton) {
-        return;
-    }
 
-    globalOpenChatsButton.hidden =
-        cars.length > 0;
-
-    globalOpenChatsButton.addEventListener(
-        "click",
-        () => {
-            renderMyChats();
-            openModal(elements.chatsModal);
-        }
-    );
+/* ===== COMPACT PROFILE HERO (MOBILE) ===== */
+@media (max-width: 600px) {
+  .garage-page { margin-top: 16px; }
+  .garage-hero { gap: 12px; padding: 20px 18px; margin-bottom: 16px; }
+  .garage-hero > div { width: 100%; min-width: 0; }
+  .garage-hero .section-label { font-size: 11px; letter-spacing: 1.2px; }
+  .garage-hero h1 { font-size: clamp(29px, 8vw, 36px); line-height: 1.12; margin: 6px 0 12px; }
+  .garage-hero .first-member-badge { margin-bottom: 8px; padding: 7px 11px; gap: 2px; }
+  .garage-hero .first-member-badge-title { font-size: 12px; }
+  .garage-hero .first-member-badge-number { font-size: 11px; }
+  .garage-hero .profile-seller-reputation { width: 100%; margin-top: 10px; padding: 10px 12px; gap: 3px; }
+  .garage-hero .profile-reputation-row { gap: 7px; flex-wrap: wrap; }
+  .garage-hero .profile-reputation-star, .garage-hero .profile-reputation-rating { font-size: 19px; }
+  .garage-hero .profile-seller-reviews { margin-top: 10px; padding: 12px; }
+  .garage-hero .profile-seller-reviews h3 { font-size: 17px; margin-bottom: 6px; }
+  .garage-hero .profile-seller-reviews-empty { font-size: 14px; }
+  .garage-hero > div > p:not(.section-label) { margin: 12px 0 0; font-size: 14px; line-height: 1.5; }
+  .garage-hero > .gold-btn { width: 100%; min-height: 46px; padding: 11px 14px; margin: 0; font-size: 14px; }
 }
-
-document.addEventListener("royalGarageLanguageChange", async () => {
-    renderFirstMemberBadge();
-    renderAccountSettings();
-    renderCars();
-    renderSelectedCar();
-
-    const selectedBrand = carBrand?.value || "";
-    const selectedModel = carModel?.value || "";
-    fillCarBrandSelect();
-    if (carBrand) carBrand.value = selectedBrand;
-    fillCarModelSelect(selectedBrand, selectedModel);
-    updateCarPowerField();
-
-    await renderProfileSellerReputation();
-    await renderProfileSellerReviews();
-    await renderFavoriteListings();
-    await renderMyChats();
-});
-
-/* ===== КНОПКА "ВГОРУ" ===== */
-
-let backToTopButton =
-    document.getElementById(
-        "backToTopButton"
-    );
-
-if (!backToTopButton) {
-    backToTopButton =
-        document.createElement(
-            "button"
-        );
-
-    backToTopButton.type =
-        "button";
-
-    backToTopButton.id =
-        "backToTopButton";
 
-    backToTopButton.className =
-        "back-to-top-button";
+/* ===== PROFILE REPUTATION AND REVIEW LINK ===== */
+.garage-hero .profile-heading-row { display:flex; align-items:center; flex-wrap:wrap; gap:12px 16px; margin:4px 0 12px; }
+.garage-hero .profile-heading-row h1 { margin:0; }
+.garage-hero .profile-heading-row .first-member-badge { margin:0; flex-shrink:0; }
+.garage-hero .profile-seller-reputation { margin-top:0; width:100%; box-sizing:border-box; }
+.garage-hero .profile-reviews-link { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:8px; padding:12px 14px; color:#f3c969; text-decoration:none; font-weight:700; background:rgba(6,24,50,.65); border:1px solid rgba(240,201,107,.35); border-radius:10px; transition:background .2s; }
+.garage-hero .profile-reviews-link:hover, .garage-hero .profile-reviews-link:focus-visible { background:rgba(240,201,107,.13); }
+@media(max-width:600px) { .garage-hero .profile-heading-row { align-items:center; gap:10px; } .garage-hero .profile-heading-row h1 { font-size:clamp(25px,7vw,34px); } .garage-hero .profile-heading-row .first-member-badge { padding:6px 9px; } .garage-hero .profile-heading-row .first-member-badge-number { font-size:10px; } }
+/* Review detail page */
+.profile-reviews-page { max-width:850px; margin:30px auto 60px; padding:0 18px; }
+.profile-reviews-page .reviews-panel { background:linear-gradient(140deg,#0c2b51,#061529); border:1px solid rgba(240,201,107,.35); border-radius:18px; padding:24px; }
+.profile-reviews-page h1 { color:#f3c969; margin:0 0 20px; }
+.profile-reviews-page .reviews-back { display:inline-block; margin-bottom:20px; color:#f3c969; text-decoration:none; }
+.profile-reviews-page .profile-seller-review-card { margin-top:14px; }
+.profile-reviews-page .profile-seller-review-card p { overflow-wrap:anywhere; }
+@media(max-width:600px) { .profile-reviews-page { padding:0 12px; margin-top:18px; } .profile-reviews-page .reviews-panel { padding:16px; } }
 
-    backToTopButton.setAttribute(
-        "aria-label",
-        tr("profile.dynamic.backToTop", "Повернутися вгору")
-    );
-
-    backToTopButton.textContent =
-        "↑";
-
-    document.body.appendChild(
-        backToTopButton
-    );
+/* Collapsible sections on the personal profile. */
+.garage-page .profile-disclosure > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 44px;
+    cursor: pointer;
+    list-style: none;
 }
-
-function updateBackToTopButton() {
-    backToTopButton.classList.toggle(
-        "is-visible",
-        window.scrollY > 350
-    );
+.garage-page .profile-disclosure > summary::-webkit-details-marker {
+    display: none;
 }
-
-backToTopButton.addEventListener(
-    "click",
-    () => {
-        window.scrollTo({
-            top: 0,
-            behavior: "smooth"
-        });
-    }
-);
-
-window.addEventListener(
-    "scroll",
-    updateBackToTopButton,
-    {
-        passive: true
-    }
-);
-
-updateBackToTopButton();
-
-const deleteAccountButton =
-    document.getElementById(
-        "deleteAccountButton"
-    );
-
-
-if (deleteAccountButton) {
-
-    deleteAccountButton.addEventListener(
-        "click",
-        async () => {
-
-            const confirmed =
-                confirm(
-                    "Ви впевнені, що хочете видалити акаунт?\n\n" +
-                    "Буде видалено ваш профіль і пов’язані з ним дані.\n\n" +
-                    "Цю дію неможливо скасувати."
-                );
-
-            if (!confirmed) {
-                return;
-            }
-
-
-            const confirmationText =
-                prompt(
-                    'Для підтвердження введіть слово:\nВИДАЛИТИ'
-                );
-
-            if (
-                confirmationText !==
-                "ВИДАЛИТИ"
-            ) {
-                alert(
-                    "Видалення акаунта скасовано."
-                );
-
-                return;
-            }
-
-
-            const token =
-                localStorage.getItem(
-                    "royalGarageToken"
-                );
-
-            if (!token) {
-                alert(
-                    "Сесія недійсна. Увійдіть повторно."
-                );
-
-                return;
-            }
-
-
-            try {
-
-                deleteAccountButton.disabled =
-                    true;
-
-                deleteAccountButton.textContent =
-                    "Видалення...";
-
-
-                const response =
-                    await fetch(
-                        "/api/account",
-                        {
-                            method:
-                                "DELETE",
-
-                            headers: {
-                                Authorization:
-                                    `Bearer ${token}`
-                            }
-                        }
-                    );
-
-
-                const data =
-                    await response.json();
-
-
-                if (!response.ok) {
-                    throw new Error(
-                        data.message ||
-                        "Не вдалося видалити акаунт."
-                    );
-                }
-
-
-                localStorage.removeItem(
-                    "royalGarageToken"
-                );
-
-                localStorage.removeItem(
-                    "royalGarageCurrentUser"
-                );
-
-
-                alert(
-                    "Акаунт успішно видалено."
-                );
-
-
-                window.location.href =
-                    "index.html";
-
-            } catch (error) {
-
-                console.error(
-                    "Account delete request error:",
-                    error
-                );
-
-                alert(
-                    error.message ||
-                    "Не вдалося видалити акаунт."
-                );
-
-                deleteAccountButton.disabled =
-                    false;
+.garage-page .profile-disclosure > summary::after {
+    content: "";
+    width: 9px;
+    height: 9px;
+    flex: 0 0 auto;
+    margin-right: 4px;
+    border-right: 2px solid var(--gold-light);
+    border-bottom: 2px solid var(--gold-light);
+    transform: rotate(45deg);
+}
+.garage-page .profile-disclosure[open] > summary::after {
+    transform: rotate(225deg);
+}
+.garage-page .profile-disclosure > summary:focus-visible {
+    outline: 2px solid var(--gold-light);
+    outline-offset: 4px;
+}
+.garage-page .profile-disclosure > summary > :is(h2, h3) {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+.garage-page .profile-disclosure[open] > summary {
+    margin-bottom: 16px;
+}
+.profile-favorites-section > summary > h2 {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+.profile-favorites-section > summary .profile-favorites-count {
+    font-size: 0.85rem;
+}
+#selectedCarContent {
+    scroll-margin-top: 20px;
+}
+.garage-layout {
+    align-items: start;
+}
 
-                deleteAccountButton.textContent =
-                    "Видалити акаунт";
-            }
-        }
-    );
+/* Actions inside the top profile card */
+.profile-main-actions {
+    margin-top: 16px;
+}
+.garage-hero .profile-main-actions > .profile-disclosure,
+.garage-hero .profile-main-actions > .profile-reviews-link,
+.garage-hero .profile-main-actions > .profile-action-row {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-top: 1px solid rgba(240, 201, 107, 0.2);
+    border-radius: 0;
+    background: none;
+}
+.garage-hero .profile-main-actions > .profile-disclosure[open] {
+    padding-bottom: 14px;
+}
+.profile-main-actions > .profile-disclosure > summary > h2,
+.profile-main-actions > .profile-reviews-link,
+.profile-main-actions > .profile-action-row {
+    color: var(--gold-light);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+.garage-hero .profile-main-actions > .profile-reviews-link,
+.garage-hero .profile-main-actions > .profile-action-row {
+    min-height: 44px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+}
+.profile-main-actions > .profile-action-row {
+    cursor: pointer;
+}
+.profile-main-actions > .profile-action-row::after {
+    content: "→";
+}
+.profile-main-actions > :is(a, button):focus-visible {
+    outline: 2px solid var(--gold-light);
+    outline-offset: 3px;
+}
+.profile-main-actions .garage-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+}
+.profile-main-actions :is(.garage-sidebar, .service-panel) {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
 }
