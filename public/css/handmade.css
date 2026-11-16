@@ -1315,3 +1315,20 @@ transition:
     height: auto;
     object-fit: contain;
 }
+.royal-auto-category-actions {
+    display: grid;
+    gap: 12px;
+}
+
+.royal-auto-category-actions button {
+    width: 100%;
+    border: 0;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.royal-auto-category-actions .royal-auto-category-delete {
+    background: #b92121;
+    color: #fff;
+}
