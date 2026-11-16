@@ -6,6 +6,7 @@ const { Pool } = require("pg");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
+const getSiteAnalytics = require("./site-analytics");
 
 const UUID_PATTERN = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 const SERVICE_HUB_OWNER_ID = "d2363e3d-4723-4755-9030-594cd3ccd6f0";
@@ -10424,6 +10425,17 @@ async function requireAdmin(req, res, next) {
 
     next();
 }
+
+app.get("/api/admin/site-analytics", requireAuth, requireAdmin, async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    try {
+        const periods = await getSiteAnalytics(new URL(PUBLIC_ORIGIN).hostname);
+        res.json({ ok: true, periods });
+    } catch (error) {
+        console.error("Site analytics report failed:", error.message);
+        res.status(502).json({ ok: false, message: "Не вдалося отримати статистику з GA4." });
+    }
+});
 
 app.get("/api/admin/registrations", requireAuth, requireAdmin, async (req, res) => {
     const result = await pool.query(`
