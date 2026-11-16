@@ -2,6 +2,9 @@
     "use strict";
 
     const MAX_ITEM_PHOTOS = 6;
+    const ROYAL_AUTO_OWNER_ID = "32ce413e-9eb6-417a-b99a-77d9ca7c144a";
+    const BOOKING_TYPES = new Set(["car_service", "detailing", "tire_service", "road_assistance"]);
+    let requestsPage = 0;
     const DAYS = [
         ["mon", "Пн"],
         ["tue", "Вт"],
@@ -16,6 +19,7 @@
         profile: null,
         isOwner: false,
         editingItemPhotos: [],
+        editingProduct: false,
         editingLogo: null,
         editingPortfolioImage: null
     };
@@ -52,7 +56,7 @@
     function isCurrentBusinessOwner(ownerId) {
         const user = getStoredUser();
         const userId = user?.id ?? user?.userId ?? user?.user_id;
-        return Boolean(token() && userId && (!ownerId || String(userId) === String(ownerId)));
+        return Boolean(token() && userId && (user?.accountType || user?.account_type) === "business" && (!ownerId || String(userId) === String(ownerId)));
     }
 
     async function api(url, options = {}) {
@@ -238,6 +242,7 @@
         const panel = $("businessOwnerPanel");
         const manage = $("businessManageButton");
 
+        $("businessHeroOwnerActions").hidden = !state.isOwner;
         manage.hidden = !state.isOwner;
         $("businessAddPortfolioButton").hidden = !state.isOwner;
         $("businessOwnerDraftBadge").hidden = !(state.isOwner && profile.profileStatus !== "active");
@@ -258,6 +263,15 @@
         $("businessPhoneStatus").textContent = profile.phoneVerified ? "Підтверджено ✓" : "Не підтверджено";
         $("businessVerifyEmailButton").hidden = Boolean(profile.emailVerified);
         $("businessVerifyPhoneButton").hidden = Boolean(profile.phoneVerified);
+        $("businessPlanButton").hidden = profile.complimentarySubscription === true;
+        $("businessPlanStatus").textContent = profile.complimentarySubscription
+            ? "Безстроковий безкоштовний доступ"
+            : profile.subscriptionStatus === "active" ? "Активна підписка" : "Підписка завершилась";
+        $("businessPlanExpires").textContent = !profile.complimentarySubscription && profile.subscriptionExpiresAt
+            ? `Діє до ${new Date(profile.subscriptionExpiresAt).toLocaleDateString("uk-UA")}`
+            : "";
+        $("businessAddCarButton").hidden = profile.businessTypeCode !== "car_dealer";
+        $("businessCrmButton").hidden = !profile.hasCrm;
     }
 
     function createPhotos(photos, alt) {
@@ -272,21 +286,21 @@
             .join("")}</div>`;
     }
 
-    function serviceCard(service) {
+    function itemCard(service, product = false) {
         const card = document.createElement("article");
         card.className = "business-content-card";
-        const priceText = money(service.priceFrom);
+        const priceText = money(product ? service.price : service.priceFrom);
 
         card.innerHTML = `
             ${createPhotos(service.photos, service.title)}
             <div class="business-content-body">
-                <h3>${escapeHtml(service.title || "Послуга")}</h3>
+                <h3>${escapeHtml(service.title || (product ? "Товар" : "Послуга"))}</h3>
                 ${service.description ? `<p>${escapeHtml(service.description)}</p>` : ""}
                 ${priceText ? `<span class="business-price">${priceText}</span>` : ""}
                 ${state.isOwner ? `
                     <div class="business-card-owner-actions">
-                        <button type="button" data-edit-service="${escapeHtml(service.id)}">✏️ Редагувати</button>
-                        <button type="button" data-delete-service="${escapeHtml(service.id)}">🗑 Видалити</button>
+                        <button type="button" data-edit-item="${escapeHtml(service.id)}" data-product="${product}">✏️ Редагувати</button>
+                        <button type="button" data-delete-item="${escapeHtml(service.id)}" data-product="${product}">🗑 Видалити</button>
                     </div>
                 ` : ""}
             </div>`;
@@ -300,7 +314,7 @@
         const services = Array.isArray(profile.services) ? profile.services : [];
 
         root.innerHTML = "";
-        services.slice(0, state.isOwner ? undefined : 3).forEach((service) => root.appendChild(serviceCard(service)));
+        services.slice(0, state.isOwner ? undefined : 3).forEach((service) => root.appendChild(itemCard(service)));
         const allServices = $("businessAllServicesLink");
         if (allServices) { allServices.hidden = services.length <= 3; allServices.href = `business-services.html?id=${encodeURIComponent(profile.ownerId)}`; }
         empty.hidden = services.length > 0;
@@ -544,13 +558,16 @@
         }
         renderSchedule(profile);
         renderOwnerControls(profile);
-        const requestsSection = $("businessRequestsSection");
-        if (requestsSection) requestsSection.hidden = !state.isOwner;
-        if (state.isOwner) loadBusinessRequests();
+        const bell = $("businessRequestsBell");
+        bell.hidden = !(state.isOwner && profile.hasCrm && profile.subscriptionStatus === "active"
+            && BOOKING_TYPES.has(profile.businessTypeCode));
+        if (!bell.hidden) refreshRequestCount();
         const quickAdd = $("businessAddServiceQuick");
         if (quickAdd) quickAdd.hidden = !state.isOwner;
         renderServices(profile);
         renderPortfolio(profile);
+        renderProducts(profile);
+        if (profile.businessTypeCode === "car_dealer") loadBusinessCars(profile.ownerId);
 
         // Публічно показуємо лише заповнені розділи.
         // Власник бачить порожні розділи, щоб мати можливість їх заповнити.
@@ -569,13 +586,41 @@
         show("businessAboutScheduleCard", state.isOwner || hasSchedule);
         show("businessAboutSection", state.isOwner || hasDescription || hasAddress || hasSchedule);
         show("businessPortfolioSection", state.isOwner || hasPortfolio);
-        const hasContacts = Boolean(formatPhone(profile.phone) || telegramUrl(profile.telegram) || instagramUrl(profile.instagram));
-
-        show("businessBookingButton", !state.isOwner);
+        show("businessBookingButton", !state.isOwner && profile.acceptsServiceRequests === true);
 
         if (profile.ownerId) loadReviews(profile.ownerId);
 
         document.title = `${profile.name || "Бізнес"} | Royal Garage`;
+    }
+
+    function renderProducts(profile) {
+        const products = profile.products || [];
+        const canEdit = state.isOwner && (products.length > 0 || ["products", "both"].includes(profile.businessContentType));
+        const legacyCatalog = profile.ownerId === ROYAL_AUTO_OWNER_ID;
+        $("businessProductsSection").hidden = !(products.length || canEdit || legacyCatalog);
+        $("businessAddProductQuick").hidden = !canEdit;
+        $("businessRoyalAutoCatalog").hidden = !legacyCatalog;
+        $("businessProductsGrid").replaceChildren(...products.map(product => itemCard(product, true)));
+    }
+
+    async function loadBusinessCars(ownerId) {
+        const section = $("businessCarsSection");
+        const status = $("businessCarsStatus");
+        section.hidden = false;
+        try {
+            const { listings } = await api(`/api/market/listings?ownerId=${encodeURIComponent(ownerId)}`);
+            const cards = listings.map(listing => {
+                const card = document.createElement("a");
+                card.className = "business-info-card";
+                card.href = `listing.html?id=${encodeURIComponent(listing.id)}`;
+                card.textContent = listing.name || [listing.brand, listing.model, listing.year].filter(Boolean).join(" ");
+                return card;
+            });
+            $("businessCarsGrid").replaceChildren(...cards);
+            status.textContent = cards.length ? "" : "Активних оголошень поки немає.";
+        } catch (error) {
+            status.textContent = error.message;
+        }
     }
 
     async function loadProfile() {
@@ -735,20 +780,18 @@
         }
     }
 
-    function findService(id) {
-        const list = Array.isArray(state.profile?.services) ? state.profile.services : [];
-        return list.find((service) => String(service.id) === String(id));
-    }
-
-    function openServiceModal(service = null) {
-        $("businessItemId").value = service?.id || "";
-        $("businessItemTitle").value = service?.title || "";
-        $("businessItemDescription").value = service?.description || "";
-        $("businessItemPrice").value = service?.priceFrom || "";
-        $("businessItemModalTitle").textContent = service ? "Редагувати послугу" : "Додати послугу";
+    function openItemModal(item = null, product = false) {
+        state.editingProduct = product;
+        $("businessItemId").value = item?.id || "";
+        $("businessItemTitle").value = item?.title || "";
+        $("businessItemDescription").value = item?.description || "";
+        $("businessItemPrice").value = (product ? item?.price : item?.priceFrom) ?? "";
+        $("businessItemModalTitle").textContent = product
+            ? (item ? "Редагувати товар" : "Додати товар")
+            : (item ? "Редагувати послугу" : "Додати послугу");
         $("businessItemFormError").textContent = "";
         $("businessItemPhotosInput").value = "";
-        state.editingItemPhotos = Array.isArray(service?.photos) ? [...service.photos] : [];
+        state.editingItemPhotos = Array.isArray(item?.photos) ? [...item.photos] : [];
         renderItemPhotosPreview();
         openModal("businessItemModal");
     }
@@ -765,25 +808,25 @@
         });
     }
 
-    async function saveService(event) {
+    async function saveItem(event) {
         event.preventDefault();
         const id = $("businessItemId").value;
         const error = $("businessItemFormError");
         error.textContent = "";
 
         try {
-            const price = Number($("businessItemPrice").value || 0);
+            const rawPrice = $("businessItemPrice").value;
+            const price = rawPrice === "" ? null : Number(rawPrice);
+            const resource = state.editingProduct ? "products" : "services";
             const body = {
                 title: $("businessItemTitle").value.trim(),
                 description: $("businessItemDescription").value.trim(),
-                priceFrom: price > 0 ? price : null,
+                [state.editingProduct ? "price" : "priceFrom"]: price,
                 photos: state.editingItemPhotos
             };
 
             await api(
-                id
-                    ? `/api/business/services/${encodeURIComponent(id)}`
-                    : "/api/business/services",
+                `/api/business/${resource}${id ? "/" + encodeURIComponent(id) : ""}`,
                 {
                     method: id ? "PATCH" : "POST",
                     body: JSON.stringify(body)
@@ -863,11 +906,12 @@
         }
     }
 
-    async function deleteService(id) {
-        if (!confirm("Видалити послугу?")) return;
+    async function deleteItem(id, product) {
+        if (!confirm(product ? "Видалити товар?" : "Видалити послугу?")) return;
+        const resource = product ? "products" : "services";
 
         try {
-            await api(`/api/business/services/${encodeURIComponent(id)}`, {
+            await api(`/api/business/${resource}/${encodeURIComponent(id)}`, {
                 method: "DELETE"
             });
             await refreshOwnerProfile();
@@ -935,10 +979,11 @@
         event.preventDefault();
 
         try {
-            await api("/api/phone/verify-code", {
+            const data = await api("/api/phone/verify-code", {
                 method: "POST",
                 body: JSON.stringify({ code: $("businessPhoneCode").value.trim() })
             });
+            if (data.registrationCompleted && typeof gtag === "function") gtag("event", "sign_up", { method: "email" });
             closeModal("businessPhoneModal");
             await refreshOwnerProfile();
         } catch (error) {
@@ -946,33 +991,143 @@
         }
     }
 
-    async function loadBusinessRequests() {
-        const root=$("businessRequestsList"); if(!root)return;
+    function updateRequestCount(count) {
+        $("businessRequestsCount").textContent = count || "";
+        $("businessRequestsBell").setAttribute("aria-label", count ? `Заявки на обслуговування · ${count} нових` : "Заявки на обслуговування");
+    }
+
+    async function refreshRequestCount() {
+        if ($("businessRequestsBell").hidden || document.hidden) return;
         try {
-            const data=await api('/api/business/requests');
-            const requests=Array.isArray(data.requests)?data.requests:[];
-            $("businessRequestsCount").textContent=requests.filter(x=>x.status==='pending').length?`(${requests.filter(x=>x.status==='pending').length} нових)`:'';
-            root.replaceChildren();
-            if(!requests.length){root.textContent='Нових заявок немає.';return;}
-            for(const request of requests){
-                const card=document.createElement('article');card.className='business-info-card';
-                const title=document.createElement('strong');title.textContent=`${request.name} · ${request.brand} ${request.model}`;
-                const detail=document.createElement('p');detail.style.whiteSpace='pre-line';detail.textContent=[`Телефон: ${request.phone}`,`Держномер: ${request.plate||'Не вказано'}`,`VIN: ${request.vin||'Не вказано'}`,`Рік: ${request.year??'Не вказано'}`,`Пробіг: ${request.mileage == null ? 'Не вказано' : request.mileage+' км'}`,`Двигун: ${request.engine||'Не вказано'}`,`Паливо: ${request.fuel||'Не вказано'}`,`Коробка: ${request.transmission||'Не вказано'}`,`Причина звернення: ${request.reason}`].join('\n');
-                const status=document.createElement('p');status.textContent=request.status==='confirmed'?'✓ Підтверджено та додано в CRM':'Очікує підтвердження';
-                const call=document.createElement('a');call.href=`tel:${String(request.phone||'').replace(/[^+0-9]/g,'')}`;call.textContent='📞 Зателефонувати';call.className='business-inline-link';
-                card.append(title,detail,status,call);
-                if(request.status==='pending'){
-                    const btn=document.createElement('button');btn.type='button';btn.className='business-primary-button';btn.textContent='Підтвердити → CRM';
-                    btn.addEventListener('click',async()=>{btn.disabled=true;try{await api(`/api/business/requests/${encodeURIComponent(request.id)}/confirm`,{method:'POST'});await loadBusinessRequests();}catch(err){alert(err.message||'Помилка підтвердження');btn.disabled=false;}});
-                    card.append(btn);
-                }
-                root.append(card);
+            const data = await api("/api/business/requests?count=1");
+            updateRequestCount(data.pending);
+        } catch (error) {
+            console.error("Business requests badge:", error);
+        }
+    }
+
+    function assignmentForm(request, employees) {
+        const form = document.createElement("form");
+        form.className = "business-form";
+        form.innerHTML = `<label>Дата й час<input name="scheduledAt" type="datetime-local" required></label>
+            <label>Майстер<select name="employeeId" required><option value="">Оберіть майстра</option></select></label>
+            <label>Тривалість, хв<input name="duration" type="number" min="1" max="1440" value="60" required></label>
+            <button class="business-primary-button" type="submit">Підтвердити й додати в CRM</button>
+            <p role="status"></p>`;
+        const select = form.elements.employeeId;
+        for (const employee of employees) select.add(new Option(employee.name, employee.id));
+        form.addEventListener("submit", async event => {
+            event.preventDefault();
+            const button = form.querySelector("button");
+            const status = form.querySelector("[role=status]");
+            button.disabled = true;
+            status.textContent = "Зберігаємо…";
+            try {
+                await api(`/api/business/requests/${encodeURIComponent(request.id)}/confirm`, {
+                    method: "POST", body: JSON.stringify({
+                        scheduledAt: new Date(form.elements.scheduledAt.value).toISOString(),
+                        employeeId: select.value,
+                        durationMinutes: Number(form.elements.duration.value)
+                    })
+                });
+                await loadBusinessRequests();
+            } catch (error) {
+                status.textContent = error.message;
+                button.disabled = false;
             }
-        }catch(err){root.textContent=err.message||'Не вдалося завантажити заявки';}
+        });
+        return form;
+    }
+
+    async function loadBusinessRequests(page = 0) {
+        const root = $("businessRequestsList");
+        const status = $("businessRequestsStatus");
+        const setup = $("businessRequestsCrmSetup");
+        const more = $("businessRequestsMore");
+        const refresh = $("businessRequestsRefresh");
+        more.disabled = refresh.disabled = true;
+        status.textContent = "Завантажуємо…";
+        setup.hidden = true;
+        try {
+            const data = await api(`/api/business/requests?page=${page}`);
+            let employees = [];
+            if (data.requests.some(request => request.status === "pending")) {
+                try {
+                    const team = await api("/api/crm/employees");
+                    employees = team.employees.filter(employee => employee.status === "active");
+                } catch (error) {
+                    if (error.status !== 404) throw error;
+                }
+                setup.hidden = employees.length > 0;
+            }
+            const cards = document.createDocumentFragment();
+            for (const request of data.requests) {
+                const card = document.createElement("article");
+                card.className = "business-info-card";
+                const title = document.createElement("strong");
+                title.textContent = `${request.name} · ${request.brand} ${request.model}`;
+                const details = document.createElement("p");
+                details.style.whiteSpace = "pre-line";
+                details.textContent = [
+                    `Подано: ${new Date(request.created_at).toLocaleString("uk-UA")}`,
+                    `Телефон: ${request.phone}`, `Держномер: ${request.plate || "—"}`,
+                    `VIN: ${request.vin || "—"}`, `Рік: ${request.year ?? "—"}`,
+                    `Пробіг, км: ${request.mileage ?? "—"}`, `Двигун: ${request.engine || "—"}`,
+                    `Паливо: ${request.fuel || "—"}`, `Коробка: ${request.transmission || "—"}`,
+                    `Причина звернення: ${request.reason}`,
+                    request.status === "confirmed" ? "Підтверджено" : "Очікує підтвердження",
+                    request.scheduled_at ? `Запис: ${new Date(request.scheduled_at).toLocaleString("uk-UA")}` : "",
+                    request.employee_name ? `Майстер: ${request.employee_name}` : ""
+                ].filter(Boolean).join("\n");
+                const call = document.createElement("a");
+                call.href = `tel:${String(request.phone).replace(/[^+0-9]/g, "")}`;
+                call.textContent = "Зателефонувати";
+                call.className = "business-inline-link";
+                card.append(title, details, call);
+                if (request.crm_work_order_id) {
+                    const order = document.createElement("a");
+                    order.href = `crm-work-order.html?id=${encodeURIComponent(request.crm_work_order_id)}`;
+                    order.textContent = "Відкрити наряд";
+                    order.className = "business-inline-link";
+                    card.append(order);
+                }
+                if (request.status === "pending" && employees.length) card.append(assignmentForm(request, employees));
+                cards.append(card);
+            }
+            if (!page) root.replaceChildren();
+            root.append(cards);
+            requestsPage = page;
+            more.hidden = !data.hasMore;
+            updateRequestCount(data.pending);
+            status.textContent = data.requests.length ? "" : "Заявок поки немає.";
+        } catch (error) {
+            status.textContent = error.message;
+        } finally {
+            more.disabled = refresh.disabled = false;
+        }
     }
 
     function bindEvents() {
-        $("businessRequestsRefresh")?.addEventListener("click",loadBusinessRequests);
+        $("businessRequestsBell").addEventListener("click", () => {
+            openModal("businessRequestsModal");
+            loadBusinessRequests();
+        });
+        $("businessRequestsRefresh").addEventListener("click", () => loadBusinessRequests());
+        $("businessRequestsMore").addEventListener("click", () => loadBusinessRequests(requestsPage + 1));
+        document.addEventListener("visibilitychange", refreshRequestCount);
+        setInterval(refreshRequestCount, 30000);
+        $("businessAddProductQuick").addEventListener("click", () => openItemModal(null, true));
+        $("businessPlanButton").addEventListener("click", async () => {
+            if (!state.profile?.planId || state.profile.complimentarySubscription) return;
+            try {
+                const data = await api("/api/payments/liqpay/create", {
+                    method: "POST", body: JSON.stringify({ planId: state.profile.planId })
+                });
+                submitRegistrationLiqPay(data);
+            } catch (error) {
+                alert(error.message);
+            }
+        });
         $("businessManageButton")?.addEventListener("click", () => {
             $("businessOwnerPanel").hidden = false;
             $("businessOwnerPanel").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -990,8 +1145,8 @@
             openModal("businessProfileModal");
         });
 
-        $("businessAddServiceButton")?.addEventListener("click", () => openServiceModal());
-        $("businessAddServiceQuick")?.addEventListener("click", () => openServiceModal());
+        $("businessAddServiceButton")?.addEventListener("click", () => openItemModal());
+        $("businessAddServiceQuick")?.addEventListener("click", () => openItemModal());
         $("businessDescriptionToggle")?.addEventListener("click", () => {
             const desc = $("businessDescription"), button = $("businessDescriptionToggle");
             const collapsed = desc.classList.toggle("business-description-clamped");
@@ -1072,7 +1227,7 @@
         });
 
         $("businessProfileForm")?.addEventListener("submit", saveProfile);
-        $("businessItemForm")?.addEventListener("submit", saveService);
+        $("businessItemForm")?.addEventListener("submit", saveItem);
         $("businessPortfolioForm")?.addEventListener(
             "submit",
             savePortfolio
@@ -1156,11 +1311,15 @@
                 renderItemPhotosPreview();
             }
 
-            const edit = event.target.closest("[data-edit-service]");
-            if (edit) openServiceModal(findService(edit.dataset.editService));
-
-            const del = event.target.closest("[data-delete-service]");
-            if (del) deleteService(del.dataset.deleteService);
+            const edit = event.target.closest("[data-edit-item]");
+            if (edit) {
+                const product = edit.dataset.product === "true";
+                const items = product ? state.profile.products : state.profile.services;
+                const item = items?.find(entry => entry.id === edit.dataset.editItem);
+                if (item) openItemModal(item, product);
+            }
+            const del = event.target.closest("[data-delete-item]");
+            if (del) deleteItem(del.dataset.deleteItem, del.dataset.product === "true");
             const portfolioDelete =
     event.target.closest(
         "[data-portfolio-delete]"

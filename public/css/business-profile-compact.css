@@ -12,3 +12,14 @@
 #businessAddServiceQuick{margin:0 0 16px}
 #businessBookingButton{cursor:pointer}
 #businessBookingStatus{color:#f0d18a;min-height:1.5em}
+
+.business-hero-owner-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+#businessRequestsList { display: grid; gap: 10px; margin: 10px 0; }
+#businessRequestsList .business-inline-link { margin-right: 12px; }
+#businessRequestsList .business-form { margin-top: 10px; }
+@media (max-width: 820px) {
+    .business-hero-owner-actions { grid-column: 1 / -1; }
+}
+@media (max-width: 600px) {
+    .business-hero-owner-actions { justify-content: center; }
+}

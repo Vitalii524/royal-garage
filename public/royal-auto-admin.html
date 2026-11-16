@@ -86,6 +86,19 @@
 
 
 <main class="upholstery-page">
+    <section id="platformAdmin" class="upholstery-section" hidden>
+        <h1>Адміністрування Royal Garage</h1>
+        <h2>Статистика реєстрацій</h2>
+        <dl id="adminRegistrationStats"></dl>
+        <h2>Безстроковий безкоштовний доступ</h2>
+        <form id="adminBusinessSearch" class="royal-auto-admin-form">
+            <label>Назва бізнесу, точний email або ID власника<input name="q" type="search" maxlength="255"></label>
+            <button class="upholstery-primary-button" type="submit">Знайти</button>
+        </form>
+        <p id="adminBusinessStatus" role="status"></p>
+        <div id="adminBusinessResults"></div>
+    </section>
+    <div id="royalAutoCatalogAdmin" hidden>
 
     <a
         href="handmade.html"
@@ -326,11 +339,13 @@
 
     </section>
 
+    </div>
 </main>
 
 
 <script src="js/auth.js"></script>
-<script src="js/royal-auto-admin.js"></script>
+<script src="js/royal-auto-admin.js?v=17"></script>
+<script src="js/platform-admin.js"></script>
 <script src="js/loader.js"></script>
 
 </body>

@@ -7,6 +7,12 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 
+const UUID_PATTERN = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
+const SERVICE_HUB_OWNER_ID = "d2363e3d-4723-4755-9030-594cd3ccd6f0";
+const PUBLIC_ORIGIN = new URL(process.env.PUBLIC_ORIGIN || "https://royalgarage.com.ua").origin;
+const SERVICE_BOOKING_TYPES = ["car_service", "detailing", "tire_service", "road_assistance"];
+
+
 // Watermark for market listing photos. Other image uploads are unaffected.
 const sharp = require("sharp");
 const MARKET_WATERMARK_PATH = path.join(__dirname, "public", "images", "royal-garage-watermark.png");
@@ -559,21 +565,6 @@ await pool.query(`
 `);
 
 await pool.query(`
-    UPDATE business_profiles bp
-    SET business_content_type = CASE bt.code
-        WHEN 'car_service' THEN 'services'
-        WHEN 'detailing' THEN 'services'
-        WHEN 'tire_service' THEN 'services'
-        WHEN 'road_assistance' THEN 'services'
-        WHEN 'auto_shop' THEN 'products'
-        WHEN 'car_dealer' THEN 'cars'
-        ELSE COALESCE(NULLIF(bp.business_content_type, ''), 'services')
-    END
-    FROM business_types bt
-    WHERE bt.id = bp.business_type_id
-`);
-
-await pool.query(`
     CREATE TABLE IF NOT EXISTS business_subscription_payments (
         id UUID PRIMARY KEY,
 
@@ -648,180 +639,18 @@ await pool.query(`
     DO NOTHING
 `);
 
-await pool.query(`
-    INSERT INTO subscription_plans (
-        id,
-        business_type_code,
-        code,
-        name,
-        price_uah,
-        car_limit,
-        has_crm,
-        has_map
-    )
-    VALUES
-
-        (
-            'a1111111-1111-1111-1111-111111111111',
-            'car_service',
-            'business',
-            'Business',
-            500,
-            NULL,
-            FALSE,
-            FALSE
-        ),
-
-        (
-            'a2222222-2222-2222-2222-222222222222',
-            'car_service',
-            'pro',
-            'Pro',
-            2500,
-            NULL,
-            TRUE,
-            TRUE
-        ),
-
-        (
-            'b1111111-1111-1111-1111-111111111111',
-            'detailing',
-            'business',
-            'Business',
-            500,
-            NULL,
-            FALSE,
-            FALSE
-        ),
-
-        (
-            'b2222222-2222-2222-2222-222222222222',
-            'detailing',
-            'pro',
-            'Pro',
-            2500,
-            NULL,
-            TRUE,
-            TRUE
-        ),
-
-        (
-            'c1111111-1111-1111-1111-111111111111',
-            'car_dealer',
-            'business',
-            'Business',
-            500,
-            10,
-            FALSE,
-            FALSE
-        ),
-
-        (
-            'c2222222-2222-2222-2222-222222222222',
-            'car_dealer',
-            'business_plus',
-            'Business Plus',
-            1500,
-            40,
-            FALSE,
-            FALSE
-        ),
-
-        (
-            'c3333333-3333-3333-3333-333333333333',
-            'car_dealer',
-            'pro',
-            'Pro',
-            2500,
-            100,
-            FALSE,
-            FALSE
-        ),
-
-        (
-            'd1111111-1111-1111-1111-111111111111',
-            'auto_shop',
-            'business',
-            'Business',
-            500,
-            NULL,
-            FALSE,
-            FALSE
-        ),
-
-        (
-            'e1111111-1111-1111-1111-111111111111',
-            'tire_service',
-            'business',
-            'Business',
-            500,
-            NULL,
-            FALSE,
-            FALSE
-        ),
-
-        (
-            'f1111111-1111-1111-1111-111111111111',
-            'road_assistance',
-            'business',
-            'Business',
-            500,
-            NULL,
-            FALSE,
-            FALSE
-        )
-
-    ON CONFLICT (
-        business_type_code,
-        code
-    )
-    DO NOTHING
-`);
-
-await pool.query(`
-    UPDATE subscription_plans
-    SET has_map = TRUE
-    WHERE business_type_code <> 'road_assistance'
-`);
-
-// Єдиний бізнес-тариф Royal Garage: повний функціонал + CRM.
-// Нові бізнеси отримують 3 місяці безкоштовно; оплата потрібна лише після trial.
+// Seed defaults only for missing plans. Prices and settings already in PostgreSQL remain authoritative.
 await pool.query(`
     INSERT INTO subscription_plans (
         id, business_type_code, code, name, price_uah, car_limit, has_crm, has_map, is_active
     )
-    SELECT
-        gen_random_uuid(), bt.code, 'business', 'Business', 1500, NULL, TRUE, TRUE, TRUE
+    SELECT gen_random_uuid(), bt.code, 'business', 'Business', 1500, NULL, TRUE, TRUE, TRUE
     FROM business_types bt
-    WHERE NOT EXISTS (
-        SELECT 1
-        FROM subscription_plans sp
-        WHERE sp.business_type_code = bt.code
-          AND sp.code = 'business'
-    )
+    ON CONFLICT (business_type_code, code) DO NOTHING
 `);
 
 await pool.query(`
-    UPDATE subscription_plans
-    SET
-        name = 'Business',
-        price_uah = 1500,
-        car_limit = NULL,
-        has_crm = TRUE,
-        has_map = TRUE,
-        is_active = (code = 'business')
-`);
-
-await pool.query(`
-    UPDATE business_profiles
-    SET
-        business_type_id = '11111111-1111-1111-1111-111111111111',
-        business_content_type = 'services',
-        subscription_plan_id = 'a1111111-1111-1111-1111-111111111111',
-        complimentary_subscription = TRUE,
-        subscription_started_at = COALESCE(subscription_started_at, NOW()),
-        updated_at = NOW()
-    WHERE owner_id = 'd2363e3d-4723-4755-9030-594cd3ccd6f0'
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS registration_event_pending BOOLEAN
 `);
 
 await pool.query(`
@@ -966,35 +795,6 @@ await pool.query(`CREATE INDEX IF NOT EXISTS idx_forum_push_user ON forum_push_s
 
 
 await pool.query(`
-    CREATE TABLE IF NOT EXISTS chat_messages (
-        id UUID PRIMARY KEY,
-
-        listing_id UUID
-            REFERENCES market_listings(id)
-            ON DELETE CASCADE,
-
-        sender_id UUID NOT NULL
-            REFERENCES users(id)
-            ON DELETE CASCADE,
-
-        receiver_id UUID NOT NULL
-            REFERENCES users(id)
-            ON DELETE CASCADE,
-
-        text TEXT,
-
-        attachment JSONB,
-
-        read_at TIMESTAMPTZ,
-        edited_at TIMESTAMPTZ,
-        deleted_at TIMESTAMPTZ,
-
-        created_at TIMESTAMPTZ
-            NOT NULL DEFAULT NOW()
-    );
-`);
-
-await pool.query(`
     CREATE TABLE IF NOT EXISTS market_listings (
         id UUID PRIMARY KEY,
 
@@ -1042,6 +842,35 @@ await pool.query(`
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+`);
+
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS chat_messages (
+        id UUID PRIMARY KEY,
+
+        listing_id UUID
+            REFERENCES market_listings(id)
+            ON DELETE CASCADE,
+
+        sender_id UUID NOT NULL
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+
+        receiver_id UUID NOT NULL
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+
+        text TEXT,
+
+        attachment JSONB,
+
+        read_at TIMESTAMPTZ,
+        edited_at TIMESTAMPTZ,
+        deleted_at TIMESTAMPTZ,
+
+        created_at TIMESTAMPTZ
+            NOT NULL DEFAULT NOW()
+    );
 `);
 
 // Preserve already-used allowances and existing listing history, including after deletion.
@@ -1340,13 +1169,14 @@ CREATE TABLE IF NOT EXISTS service_history_purchases (
 )
 `);
 
+        await ensureBusinessRequestsTable();
         console.log("Users table ready");
     } catch (error) {
-        console.error("Database initialization error:", error);
+        throw error;
     }
 }
 
-initDatabase();
+const databaseReady = initDatabase();
 
 app.use(
     express.json({
@@ -1447,7 +1277,6 @@ app.get(
                     "/market.html",
                     "/forum.html",
                     "/businesses.html",
-                    "/service-hub.html",
                     "/handmade.html"
                 ];
 
@@ -2394,7 +2223,7 @@ app.get(
                     LEFT JOIN users u
                         ON u.id = bp.owner_id
 
-                    WHERE bp.owner_id = $1
+                    WHERE bp.owner_id = $1 AND NOT bp.is_deleted AND NOT u.account_disabled
 
                     LIMIT 1
                     `,
@@ -3487,6 +3316,10 @@ app.get(
     "/market/:vehicleType/:brand/:model",
     renderMarketCategoryPage
 );
+
+app.get("/service-hub.html", (req, res) => {
+    res.redirect(302, `/business-profile.html?id=${SERVICE_HUB_OWNER_ID}`);
+});
 
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -4849,54 +4682,170 @@ async function ensureBusinessRequestsTable() {
     await pool.query(`ALTER TABLE business_service_requests ADD COLUMN IF NOT EXISTS year INTEGER`);
     await pool.query(`ALTER TABLE business_service_requests ADD COLUMN IF NOT EXISTS mileage INTEGER`);
     await pool.query(`ALTER TABLE business_service_requests ADD COLUMN IF NOT EXISTS engine TEXT`);
+    await pool.query(`ALTER TABLE business_service_requests
+        ADD COLUMN IF NOT EXISTS crm_work_order_id UUID,
+        ADD COLUMN IF NOT EXISTS crm_appointment_id UUID`);
     await pool.query(`CREATE INDEX IF NOT EXISTS business_service_requests_owner ON business_service_requests(owner_id,created_at DESC)`);
 }
 app.post('/api/businesses/:ownerId/requests', async(req,res)=>{
     try {
         const ownerId=String(req.params.ownerId||'');
-        if(!/^[0-9a-f-]{36}$/i.test(ownerId)) return res.status(400).json({ok:false,message:'Некоректний бізнес'});
-        const p=req.body||{}; const value=(k,n=255)=>String(p[k]||'').trim().slice(0,n);
+        if(!UUID_PATTERN.test(ownerId)) return res.status(400).json({ok:false,message:'Некоректний бізнес'});
+        const p=req.body||{}; const value=(k,n=255)=>String(p[k] ?? '').trim().slice(0,n);
         const name=value('name',120),phone=value('phone',30),brand=value('brand',80),model=value('model',80),reason=value('reason',2000);
-        if(!name||!/^\+?[0-9 ()-]{9,30}$/.test(phone)||!brand||!model||!reason) return res.status(400).json({ok:false,message:'Заповніть ім’я, телефон, авто та причину звернення'});
-        const vin=value('vin',17).toUpperCase();
+        if(!name||!/^\+?[0-9 ()-]{9,30}$/.test(phone)||!/^\d{8,15}$/.test(phone.replace(/\D/g, ''))||!brand||!model||!reason) return res.status(400).json({ok:false,message:'Заповніть ім’я, телефон, авто та причину звернення'});
+        const vin=String(p.vin ?? '').trim().toUpperCase();
         if(vin && !/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) return res.status(400).json({ok:false,message:'VIN має містити 17 символів'});
-        const yearText=value('year',4), mileageText=value('mileage',7), engine=value('engine',100);
-        const year=yearText ? Number(yearText) : null, mileage=mileageText ? Number(mileageText) : null;
-        if ((yearText && (!Number.isInteger(year)||year<1886||year>2100)) || (mileageText && (!Number.isInteger(mileage)||mileage<0||mileage>9999999))) return res.status(400).json({ok:false,message:'Некоректний рік випуску або пробіг'});
-        const found=await pool.query('SELECT id FROM business_profiles WHERE owner_id=$1',[ownerId]);
-        if(!found.rowCount) return res.status(404).json({ok:false,message:'Бізнес не знайдено'});
-        await ensureBusinessRequestsTable();
+        const yearText = String(p.year ?? "").trim();
+        const mileageText = String(p.mileage ?? "").trim();
+        const year = Number(yearText);
+        const mileage = Number(mileageText);
+        const engine = value("engine", 100);
+        if (!/^\d{4}$/.test(yearText) || year < 1886 || year > 2100 ||
+            !/^\d{1,7}$/.test(mileageText)) {
+            return res.status(400).json({ ok: false, message: "Вкажіть коректні рік випуску та пробіг." });
+        }
+        const found = await pool.query(
+            `SELECT 1 FROM business_profiles bp
+             JOIN users u ON u.id = bp.owner_id
+             JOIN subscription_plans sp ON sp.id = bp.subscription_plan_id
+             JOIN business_types bt ON bt.id = bp.business_type_id
+             WHERE bp.owner_id = $1 AND NOT bp.is_deleted AND NOT u.account_disabled
+               AND u.email_verified AND u.phone_verified AND sp.is_active AND sp.has_crm
+               AND (bp.complimentary_subscription OR bp.subscription_expires_at > NOW())
+               AND bt.code = ANY($2::text[])`, [ownerId, SERVICE_BOOKING_TYPES]
+        );
+        if (!found.rowCount) return res.status(404).json({ ok: false, message: "Бізнес не приймає заявки." });
         await pool.query(`INSERT INTO business_service_requests(id,owner_id,name,phone,brand,model,transmission,fuel,plate,vin,reason,year,mileage,engine) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,[crypto.randomUUID(),ownerId,name,phone,brand,model,value('transmission',40),value('fuel',40),value('plate',20),vin,reason,year,mileage,engine]);
         res.status(201).json({ok:true});
     } catch(e){console.error('Business request create:',e);res.status(500).json({ok:false,message:'Не вдалося зберегти заявку'});}
 });
-app.get('/api/business/requests',requireAuth,async(req,res)=>{
-    try { await ensureBusinessRequestsTable();
-        const result=await pool.query('SELECT * FROM business_service_requests WHERE owner_id=$1 ORDER BY created_at DESC LIMIT 200',[req.user.userId]);
-        res.json({ok:true,requests:result.rows});
-    } catch(e){console.error(e);res.status(500).json({ok:false,message:'Помилка завантаження заявок'});}
+app.get("/api/business/requests", requireAuth, requireCrmAccess, async (req, res) => {
+    const count = await pool.query(
+        "SELECT COUNT(*)::int AS pending FROM business_service_requests WHERE owner_id = $1 AND status = 'pending'",
+        [req.user.userId]
+    );
+    if (req.query.count === "1") return res.json({ ok: true, pending: count.rows[0].pending });
+    const page = Math.max(0, Math.min(100000, Number.parseInt(req.query.page, 10) || 0));
+    const result = await pool.query(
+        `SELECT r.*, a.scheduled_at, e.name AS employee_name
+         FROM business_service_requests r
+         LEFT JOIN crm_appointments a ON a.id = r.crm_appointment_id
+         LEFT JOIN crm_employees e ON e.id = a.employee_id AND e.service_id = a.service_id
+         WHERE r.owner_id = $1
+         ORDER BY (r.status = 'pending') DESC, r.created_at DESC, r.id
+         LIMIT 51 OFFSET $2`,
+        [req.user.userId, page * 50]
+    );
+    res.json({ ok: true, pending: count.rows[0].pending, requests: result.rows.slice(0, 50), hasMore: result.rows.length > 50 });
 });
-app.post('/api/business/requests/:id/confirm',requireAuth,requireCrmAccess,async(req,res)=>{
-    const client=await pool.connect();
+
+app.post("/api/business/requests/:id/confirm", requireAuth, requireCrmAccess, async (req, res) => {
+    if (!UUID_PATTERN.test(req.params.id)) return res.sendStatus(404);
+    const client = await pool.connect();
     try {
-        await ensureBusinessRequestsTable(); await client.query('BEGIN');
-        const r=await client.query(`SELECT * FROM business_service_requests WHERE id=$1 AND owner_id=$2 FOR UPDATE`,[req.params.id,req.user.userId]);
-        if(!r.rowCount){await client.query('ROLLBACK');return res.status(404).json({ok:false,message:'Заявку не знайдено'});}
-        const x=r.rows[0];
-        if(x.status==='confirmed'){await client.query('COMMIT');return res.json({ok:true,alreadyConfirmed:true});}
-        const svc=await client.query('SELECT id FROM crm_services WHERE business_profile_id=$1 LIMIT 1',[req.crm.businessProfileId]);
-        if(!svc.rowCount) throw Error('CRM сервіс не знайдено');
-        const serviceId=svc.rows[0].id;
-        let existing=await client.query(`SELECT id FROM crm_clients WHERE service_id=$1 AND regexp_replace(coalesce(phone,''),'[^0-9]','','g')=regexp_replace($2,'[^0-9]','','g') ORDER BY created_at LIMIT 1`,[serviceId,x.phone]);
-        let clientId=existing.rows[0]?.id;
-        if(!clientId){const added=await client.query('INSERT INTO crm_clients(service_id,name,phone,notes) VALUES($1,$2,$3,$4) RETURNING id',[serviceId,x.name,x.phone,x.reason]);clientId=added.rows[0].id;}
-        let car=await client.query(`SELECT id FROM crm_cars WHERE service_id=$1 AND client_id=$2 AND (($3<>'' AND upper(vin)=$3) OR ($4<>'' AND upper(plate)=upper($4))) LIMIT 1`,[serviceId,clientId,x.vin||'',x.plate||'']);
-        let carId=car.rows[0]?.id;
-        if(!carId){const added=await client.query(`INSERT INTO crm_cars(service_id,client_id,brand,model,vin,plate,fuel,transmission,notes,year,mileage,engine) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,[serviceId,clientId,x.brand,x.model,x.vin||null,x.plate||null,x.fuel||null,x.transmission||null,x.reason,x.year??null,x.mileage??null,x.engine||null]);carId=added.rows[0].id;}
-        await client.query(`UPDATE business_service_requests SET status='confirmed',crm_client_id=$2,crm_car_id=$3,confirmed_at=NOW() WHERE id=$1`,[x.id,clientId,carId]);
-        await client.query('COMMIT');res.json({ok:true,clientId,carId});
-    }catch(e){await client.query('ROLLBACK').catch(()=>{});console.error('Confirm business request:',e);res.status(500).json({ok:false,message:'Не вдалося підтвердити заявку'});}finally{client.release();}
+        await client.query("BEGIN");
+        const result = await client.query(
+            "SELECT * FROM business_service_requests WHERE id = $1 AND owner_id = $2 FOR UPDATE",
+            [req.params.id, req.user.userId]
+        );
+        const request = result.rows[0];
+        if (!request) {
+            await client.query("ROLLBACK");
+            return res.status(404).json({ ok: false, message: "Заявку не знайдено." });
+        }
+        if (request.status === "confirmed") {
+            await client.query("COMMIT");
+            return res.json({ ok: true, alreadyConfirmed: true, workOrderId: request.crm_work_order_id });
+        }
+
+        const { employeeId, scheduledAt, durationMinutes } = req.body || {};
+        const date = new Date(scheduledAt);
+        if (typeof scheduledAt !== "string" || !/Z$/.test(scheduledAt) ||
+            !Number.isFinite(date.getTime()) || !UUID_PATTERN.test(employeeId || "") ||
+            !Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 1440) {
+            await client.query("ROLLBACK");
+            return res.status(400).json({ ok: false, message: "Виберіть дату, час, тривалість і майстра." });
+        }
+
+        const service = await client.query(
+            "SELECT id FROM crm_services WHERE business_profile_id = $1 FOR UPDATE",
+            [req.crm.businessProfileId]
+        );
+        const serviceId = service.rows[0]?.id;
+        const employee = serviceId && await client.query(
+            "SELECT id FROM crm_employees WHERE id = $1 AND service_id = $2 AND status = 'active' FOR UPDATE",
+            [employeeId, serviceId]
+        );
+        if (!employee?.rowCount) {
+            await client.query("ROLLBACK");
+            return res.status(400).json({ ok: false, message: "Виберіть активного майстра зі своєї CRM." });
+        }
+
+        const existingClient = await client.query(
+            `SELECT id FROM crm_clients WHERE service_id = $1
+             AND regexp_replace(phone, '[^0-9]', '', 'g') = $2 ORDER BY created_at, id LIMIT 1`,
+            [serviceId, request.phone.replace(/\D/g, "")]
+        );
+        const clientId = existingClient.rows[0]?.id || (await client.query(
+            "INSERT INTO crm_clients(service_id, name, phone) VALUES ($1, $2, $3) RETURNING id",
+            [serviceId, request.name, request.phone]
+        )).rows[0].id;
+        const existingCar = await client.query(
+            `SELECT id FROM crm_cars WHERE service_id = $1 AND client_id = $2
+               AND (($3 <> '' AND UPPER(vin) = $3)
+                    OR ($4 <> '' AND UPPER(BTRIM(plate)) = UPPER($4)
+                        AND ($3 = '' OR COALESCE(vin, '') = '')))
+             ORDER BY CASE WHEN UPPER(vin) = $3 THEN 0 ELSE 1 END, id LIMIT 1`,
+            [serviceId, clientId, request.vin || "", request.plate || ""]
+        );
+        const spec = [request.brand, request.model, request.vin || null, request.plate || null,
+            request.fuel || null, request.transmission || null, request.year, request.mileage, request.engine || null];
+        let carId = existingCar.rows[0]?.id;
+        if (carId) {
+            await client.query(
+                `UPDATE crm_cars SET brand = $1, model = $2, vin = COALESCE($3, vin),
+                    plate = COALESCE($4, plate), fuel = COALESCE($5, fuel),
+                    transmission = COALESCE($6, transmission), year = COALESCE($7, year),
+                    mileage = COALESCE($8, mileage), engine = COALESCE($9, engine), updated_at = NOW()
+                 WHERE id = $10`, [...spec, carId]
+            );
+        } else {
+            carId = (await client.query(
+                `INSERT INTO crm_cars(brand, model, vin, plate, fuel, transmission, year, mileage, engine, service_id, client_id)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`, [...spec, serviceId, clientId]
+            )).rows[0].id;
+        }
+        const orderNumber = await nextCrmOrderNumber(client, serviceId);
+        const workOrder = await client.query(
+            `INSERT INTO crm_work_orders(service_id, client_id, car_id, employee_id, order_number, status, mileage, customer_complaint)
+             VALUES ($1,$2,$3,$4,$5,'new',$6,$7) RETURNING id`,
+            [serviceId, clientId, carId, employeeId, orderNumber, request.mileage, request.reason]
+        );
+        const workOrderId = workOrder.rows[0].id;
+        const appointment = await client.query(
+            `INSERT INTO crm_appointments(service_id, client_id, car_id, employee_id, work_order_id,
+                 title, scheduled_at, duration_minutes, status, notes)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'scheduled',$9) RETURNING id`,
+            [serviceId, clientId, carId, employeeId, workOrderId,
+                `Заявка: ${request.brand} ${request.model}`, date, durationMinutes, request.reason]
+        );
+        await client.query(
+            `UPDATE business_service_requests SET status = 'confirmed', confirmed_at = NOW(),
+                 crm_client_id = $2, crm_car_id = $3, crm_work_order_id = $4, crm_appointment_id = $5
+             WHERE id = $1`, [request.id, clientId, carId, workOrderId, appointment.rows[0].id]
+        );
+        await client.query("COMMIT");
+        res.json({ ok: true, workOrderId });
+    } catch (error) {
+        await client.query("ROLLBACK").catch(() => {});
+        console.error("Confirm business request:", error);
+        res.status(500).json({ ok: false, message: "Не вдалося підтвердити заявку." });
+    } finally {
+        client.release();
+    }
 });
+
 app.get(
     "/api/chat/conversations",
     requireAuth,
@@ -5356,12 +5305,13 @@ app.get(
 );
 
 app.get(
-    "/api/businesses",
+    ["/api/businesses", "/api/businesses/featured"],
     async (req, res) => {
         try {
             const type = String(req.query.type || "").trim();
 
-            if (!type) {
+            const featured = req.path.endsWith("/featured");
+            if (!type && !featured) {
                 return res.status(400).json({
                     ok: false,
                     message: "Не вказано тип бізнесу."
@@ -5374,10 +5324,12 @@ app.get(
                     bp.id,
                     bp.owner_id AS "ownerId",
                     bp.name AS "businessName",
-                    bp.logo AS "logoUrl",
+                    CASE WHEN $1::text IS NULL AND bp.logo LIKE 'data:%'
+                         THEN '/api/businesses/' || bp.owner_id || '/logo'
+                         ELSE bp.logo END AS "logoUrl",
                     bp.city,
                     bp.address,
-                    bp.description,
+                    CASE WHEN $1::text IS NOT NULL THEN bp.description END AS description,
 
                     bt.code AS "businessTypeCode",
                     bt.name AS "businessTypeName"
@@ -5394,7 +5346,7 @@ app.get(
                     ON u.id = bp.owner_id
 
                 WHERE
-                    bt.code = $1
+                    ($1::text IS NULL OR bt.code = $1)
                     AND bp.is_deleted = FALSE
                     AND u.account_disabled = FALSE
                     AND sp.is_active = TRUE
@@ -5406,9 +5358,19 @@ app.get(
                     AND u.phone_verified = TRUE
 
                 ORDER BY
-                    bp.name ASC
+                    CASE WHEN $1::text IS NULL THEN
+                        CASE
+                            WHEN bp.owner_id = $2 OR LOWER(BTRIM(bp.name)) IN ('royal auto', 'royalauto', 'royalauto atelier') THEN 1
+                            WHEN bp.owner_id = $3 THEN 2
+                            WHEN LOWER(BTRIM(bp.name)) = 'олександр' THEN 3
+                            ELSE 4
+                        END
+                    END,
+                    CASE WHEN $1::text IS NULL THEN bp.created_at END,
+                    CASE WHEN $1::text IS NOT NULL THEN bp.name END,
+                    bp.id
                 `,
-                [type]
+                [featured ? null : type, ROYAL_AUTO_OWNER_ID, SERVICE_HUB_OWNER_ID]
             );
 
             res.json({
@@ -5431,10 +5393,28 @@ app.get(
     }
 );
 
+app.get("/api/businesses/:ownerId/logo", async (req, res) => {
+    if (!UUID_PATTERN.test(req.params.ownerId)) return res.sendStatus(404);
+    const result = await pool.query(
+        `SELECT bp.logo FROM business_profiles bp
+         JOIN users u ON u.id = bp.owner_id
+         JOIN subscription_plans sp ON sp.id = bp.subscription_plan_id
+         WHERE bp.owner_id = $1 AND NOT bp.is_deleted AND NOT u.account_disabled
+           AND u.email_verified AND u.phone_verified AND sp.is_active
+           AND (bp.complimentary_subscription OR bp.subscription_expires_at > NOW())`,
+        [req.params.ownerId]
+    );
+    const logo = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=]+)$/i.exec(result.rows[0]?.logo || "");
+    if (!logo) return res.sendStatus(404);
+    res.set("Cache-Control", "public, max-age=300").type(logo[1]).send(Buffer.from(logo[2], "base64"));
+});
+
 app.get(
     "/api/market/listings",
     async (req, res) => {
         try {
+            const ownerId = String(req.query.ownerId || "");
+            if (ownerId && !UUID_PATTERN.test(ownerId)) return res.sendStatus(400);
             const rawVehicleType =
                 String(
                     req.query.vehicleType || ""
@@ -5470,7 +5450,7 @@ app.get(
                     name,
                     year,
                     vin,
-                    photos,
+                    CASE WHEN $4::uuid IS NULL THEN photos END AS photos,
                     active_photo_index AS "activePhotoIndex",
                     engine,
                     mileage,
@@ -5489,7 +5469,7 @@ app.get(
                     created_at AS "createdAt",
                     updated_at AS "updatedAt"
                 FROM market_listings
-                WHERE status = 'active'
+                WHERE status = 'active' AND ($4::uuid IS NULL OR owner_id = $4)
                   AND (
                       expires_at IS NULL
                       OR expires_at > NOW()
@@ -5508,11 +5488,7 @@ app.get(
                   )
                 ORDER BY created_at DESC
                 `,
-                [
-                    vehicleType,
-                    brand,
-                    model
-                ]
+                [vehicleType, brand, model, ownerId || null]
             );
 
             res.json({
@@ -5915,9 +5891,9 @@ const businessPlanResult =
 
         WHERE bp.owner_id = $1
           AND bt.code = 'car_dealer'
-          AND bp.subscription_expires_at > NOW()
+          AND NOT bp.is_deleted
+          AND (bp.complimentary_subscription OR bp.subscription_expires_at > NOW())
           AND sp.is_active = TRUE
-          AND sp.car_limit IS NOT NULL
 
         LIMIT 1
         `,
@@ -5968,10 +5944,7 @@ if (
         );
 
 
-    if (
-        activeListingsCount <
-        carLimit
-    ) {
+    if (businessPlanResult.rows[0].carLimit == null || activeListingsCount < carLimit) {
         listingStatus =
             "active";
 
@@ -6886,7 +6859,7 @@ app.get(
                     req.body.planId || ""
                 ).trim();
 
-            if (!planId) {
+            if (!UUID_PATTERN.test(planId)) {
                 return res.status(400).json({
                     ok: false,
                     message:
@@ -6949,13 +6922,14 @@ app.get(
         `
         SELECT
             id,
-            owner_id
+            owner_id,
+            complimentary_subscription
         FROM business_profiles
-        WHERE owner_id = $1
+        WHERE owner_id = $1 AND subscription_plan_id = $2 AND NOT is_deleted
         LIMIT 1
         `,
         [
-            req.user.userId
+            req.user.userId, planId
         ]
     );
 
@@ -6971,6 +6945,10 @@ if (
 
 const businessProfile =
     businessProfileResult.rows[0];
+
+if (businessProfile.complimentary_subscription) {
+    return res.status(409).json({ ok: false, message: "Для бізнесу діє безстроковий безкоштовний доступ." });
+}
 
 
 await pool.query(
@@ -7027,10 +7005,10 @@ await pool.query(
                     "uk",
                 
                 server_url:
-                    "https://royal-garage.onrender.com/api/payments/liqpay/callback",
+                    `${PUBLIC_ORIGIN}/api/payments/liqpay/callback`,
                 
                 result_url:
-                    "https://royal-garage.onrender.com/business-profile.html?payment=return"
+                    `${PUBLIC_ORIGIN}/business-profile.html?payment=return`
             };
 
             const data =
@@ -7157,6 +7135,9 @@ app.post(
                   AND sp.id = $2
                   AND sp.is_active = TRUE
                   AND u.account_type = 'business'
+                  AND NOT u.account_disabled
+                  AND NOT bp.is_deleted
+                  AND NOT bp.complimentary_subscription
                   AND (
                       bp.subscription_expires_at IS NULL
                       OR bp.subscription_expires_at <= NOW()
@@ -8224,6 +8205,7 @@ async function loadPrivateBusinessProfile(ownerId) {
             sp.has_crm AS "hasCrm",
             sp.has_map AS "hasMap",
 
+            bp.complimentary_subscription AS "complimentarySubscription",
             bp.subscription_started_at AS "subscriptionStartedAt",
             bp.subscription_expires_at AS "subscriptionExpiresAt",
             GREATEST(0, CEIL(EXTRACT(EPOCH FROM (bp.subscription_expires_at - NOW())) / 86400.0))::integer AS "subscriptionDaysLeft",
@@ -8347,6 +8329,7 @@ async function loadPublicBusinessProfile(ownerId) {
             bt.name AS "businessTypeName",
 
             sp.has_map AS "mapEnabled",
+            (sp.has_crm AND bt.code = ANY($2::text[])) AS "acceptsServiceRequests",
 
             COALESCE(
                 (
@@ -8424,7 +8407,7 @@ async function loadPublicBusinessProfile(ownerId) {
           )
         LIMIT 1
         `,
-        [ownerId]
+        [ownerId, SERVICE_BOOKING_TYPES]
     );
 
     return result.rows[0] || null;
@@ -8434,6 +8417,7 @@ app.get(
     "/api/business/profiles/:ownerId",
     async (req, res) => {
         try {
+            if (!UUID_PATTERN.test(req.params.ownerId)) return res.status(404).json({ ok: false, message: "Бізнес не знайдено." });
             const profile = await loadPublicBusinessProfile(req.params.ownerId);
 
             if (!profile) {
@@ -9166,7 +9150,7 @@ app.delete(
     }
 );
 
-app.post("/api/register", async (req, res) => {
+app.post(["/api/register", "/api/business/register"], async (req, res) => {
     const client = await pool.connect();
 
     try {
@@ -9180,15 +9164,18 @@ app.post("/api/register", async (req, res) => {
             businessContentType
         } = req.body;
 
-        const normalizedAccountType = accountType === "business" ? "business" : "user";
+        const normalizedAccountType = req.path === "/api/business/register" ? "business" : "user";
+        if (accountType === "business" && normalizedAccountType !== "business") {
+            return res.status(400).json({ ok: false, message: "Реєструйте бізнес у розділі «Партнери»." });
+        }
         const normalizedEmail = String(email || "").trim().toLowerCase();
         const normalizedPhone = String(phone || "").replace(/\D/g, "");
         const cleanName = String(name || "").trim();
 
-        if (cleanName.length < 2) {
-            return res.status(400).json({ ok: false, message: "Ім’я повинно містити щонайменше 2 символи." });
+        if (cleanName.length < 2 || cleanName.length > 100) {
+            return res.status(400).json({ ok: false, message: "Ім’я повинно містити від 2 до 100 символів." });
         }
-        if (!normalizedEmail || !normalizedEmail.includes("@")) {
+        if (!normalizedEmail || normalizedEmail.length > 255 || !normalizedEmail.includes("@")) {
             return res.status(400).json({ ok: false, message: "Введіть правильний email." });
         }
         if (!/^\d{8,15}$/.test(normalizedPhone)) {
@@ -9272,9 +9259,9 @@ app.post("/api/register", async (req, res) => {
             `
             INSERT INTO users (
                 id, name, email, phone, password_hash,
-                account_type, role, email_verified, phone_verified
+                account_type, role, email_verified, phone_verified, registration_event_pending
             )
-            VALUES ($1, $2, $3, $4, $5, $6, 'user', FALSE, FALSE)
+            VALUES ($1, $2, $3, $4, $5, $6, 'user', FALSE, FALSE, TRUE)
             RETURNING id, name, email, phone, account_type, role, email_verified, phone_verified
             `,
             [userId, cleanName, normalizedEmail, normalizedPhone, passwordHash, normalizedAccountType]
@@ -9308,29 +9295,7 @@ app.post("/api/register", async (req, res) => {
             );
         }
 
-        await client.query("COMMIT");
         const newUser = userResult.rows[0];
-
-        if (normalizedAccountType === "business") {
-            return res.status(201).json({
-                ok: true,
-                requiresBusinessPayment: false,
-                trialMonths: 3,
-                message: "Бізнес створено. Перші 3 місяці — безкоштовно, повний функціонал і CRM активні.",
-                user: {
-                    id: newUser.id,
-                    name: newUser.name,
-                    email: newUser.email,
-                    phone: newUser.phone || "",
-                    accountType: newUser.account_type || "business",
-                    role: newUser.role || "user",
-                    emailVerified: false,
-                    phoneVerified: false
-                }
-            });
-        }
-
-        // Для звичайного користувача залишаємо підтвердження email одразу після реєстрації.
         const verificationToken = crypto.randomBytes(32).toString("hex");
         const verificationTokenHash = crypto
             .createHash("sha256")
@@ -9338,7 +9303,7 @@ app.post("/api/register", async (req, res) => {
             .digest("hex");
         const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-        await pool.query(
+        await client.query(
             `
             INSERT INTO email_verification_tokens (
                 id, user_id, token_hash, expires_at
@@ -9348,9 +9313,12 @@ app.post("/api/register", async (req, res) => {
             [crypto.randomUUID(), newUser.id, verificationTokenHash, verificationExpiresAt]
         );
 
-        const verificationUrl =
-            `https://royalgarage.com.ua/api/verify-email?token=${encodeURIComponent(verificationToken)}`;
+        await client.query("COMMIT");
 
+        const verificationUrl =
+            `${PUBLIC_ORIGIN}/api/verify-email?token=${encodeURIComponent(verificationToken)}`;
+
+        let emailSent = true;
         try {
             await mailTransporter.sendMail({
                 from: `"Royal Garage" <${process.env.GMAIL_USER}>`,
@@ -9360,13 +9328,16 @@ app.post("/api/register", async (req, res) => {
                 html: `<h2>Royal Garage</h2><p>Підтвердьте вашу email-адресу.</p><p><a href="${verificationUrl}">Підтвердити email</a></p><p>Посилання діє 24 години.</p>`
             });
         } catch (mailError) {
+            emailSent = false;
             console.error("Verification email error:", mailError);
         }
 
         return res.status(201).json({
             ok: true,
             requiresEmailVerification: true,
-            message: "Реєстрація успішна. Перевірте пошту та підтвердьте email.",
+            message: emailSent
+                ? "Акаунт створено. Перевірте пошту та підтвердьте email."
+                : "Акаунт створено. Не вдалося надіслати лист. Запросіть повторне надсилання на екрані входу.",
             user: {
                 id: newUser.id,
                 name: newUser.name,
@@ -9390,231 +9361,124 @@ app.post("/api/register", async (req, res) => {
     }
 });
 
-app.get(
-    "/api/verify-email",
-    async (req, res) => {
-        const token =
-            String(
-                req.query.token || ""
-            ).trim();
+function emailConfirmationPage(res, status, content) {
+    return res.status(status).set({
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "Content-Security-Policy": "default-src 'self'; frame-ancestors 'none'; form-action 'self'"
+    }).type("html").send(`<!doctype html><html lang="uk"><meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Підтвердження email | Royal Garage</title><main>
+        <h1>Royal Garage</h1>${content}<p><a href="/">На головну</a></p></main></html>`);
+}
 
-        if (!token) {
-            return res
-                .status(400)
-                .type("html")
-                .send(`
-                    <h2>Royal Garage</h2>
-                    <p>Посилання для підтвердження недійсне.</p>
-                `);
-        }
+const emailConfirmedMessage = "<h2>Email підтверджено</h2><p>Ви можете увійти у свій кабінет звичайним способом.</p>";
+const invalidEmailLink = "<p>Посилання недійсне або термін його дії завершився.</p>";
 
-        const tokenHash =
-            crypto
-                .createHash("sha256")
-                .update(token)
-                .digest("hex");
+app.get("/api/verify-email", async (req, res) => {
+    const token = String(req.query.token || "");
+    if (!/^[a-f0-9]{64}$/.test(token)) return emailConfirmationPage(res, 400, invalidEmailLink);
+    const hash = crypto.createHash("sha256").update(token).digest("hex");
+    const result = await pool.query(
+        `SELECT used_at, expires_at > NOW() AS valid
+         FROM email_verification_tokens WHERE token_hash = $1`, [hash]
+    );
+    const link = result.rows[0];
+    if (link?.used_at) return emailConfirmationPage(res, 200, emailConfirmedMessage);
+    if (!link?.valid) return emailConfirmationPage(res, 400, invalidEmailLink);
+    return emailConfirmationPage(res, 200, `<form method="post" action="/api/verify-email">
+        <input type="hidden" name="token" value="${token}">
+        <button type="submit">Підтвердити email та увійти</button></form>`);
+});
 
-        const client =
-            await pool.connect();
-
-        try {
-            await client.query(
-                "BEGIN"
-            );
-
-            const tokenResult =
-                await client.query(
-                    `
-                    SELECT
-                        id,
-                        user_id
-                    FROM email_verification_tokens
-                    WHERE
-                        token_hash = $1
-                        AND used_at IS NULL
-                        AND expires_at > NOW()
-                    LIMIT 1
-                    FOR UPDATE
-                    `,
-                    [
-                        tokenHash
-                    ]
-                );
-
-            if (
-                tokenResult.rows.length === 0
-            ) {
-                await client.query(
-                    "ROLLBACK"
-                );
-
-                return res
-                    .status(400)
-                    .type("html")
-                    .send(`
-                        <h2>Royal Garage</h2>
-                        <p>
-                            Посилання недійсне або термін його дії завершився.
-                        </p>
-                    `);
-            }
-
-            const verification =
-                tokenResult.rows[0];
-
-            await client.query(
-                `
-                UPDATE users
-                SET
-                    email_verified = TRUE,
-                    updated_at = NOW()
-                WHERE id = $1
-                `,
-                [
-                    verification.user_id
-                ]
-            );
-
-            // Серіалізуємо видачу місць, щоб два одночасні підтвердження
-            // не отримали один і той самий номер серед перших 100.
-            await client.query(
-                "SELECT pg_advisory_xact_lock(73100100)"
-            );
-
-            const verifiedUserResult =
-                await client.query(
-                    `
-                    SELECT
-                        account_type,
-                        is_first_member
-                    FROM users
-                    WHERE id = $1
-                    LIMIT 1
-                    `,
-                    [verification.user_id]
-                );
-
-            const verifiedUser =
-                verifiedUserResult.rows[0] || null;
-
-            if (
-                verifiedUser?.account_type === "user" &&
-                !verifiedUser?.is_first_member
-            ) {
-                const firstMemberCountResult =
-                    await client.query(`
-                        SELECT
-                            COUNT(*)::integer AS count
-                        FROM users
-                        WHERE
-                            account_type = 'user'
-                            AND is_first_member = TRUE
-                    `);
-
-                const firstMemberCount =
-                    Number(
-                        firstMemberCountResult.rows[0]?.count || 0
-                    );
-
-                if (firstMemberCount < 100) {
-                    await client.query(
-                        `
-                        UPDATE users
-                        SET
-                            is_first_member = TRUE,
-                            first_member_number = $2,
-                            updated_at = NOW()
-                        WHERE id = $1
-                        `,
-                        [
-                            verification.user_id,
-                            firstMemberCount + 1
-                        ]
-                    );
-                }
-            }
-
-            await client.query(
-                `
-                UPDATE email_verification_tokens
-                SET used_at = NOW()
-                WHERE id = $1
-                `,
-                [
-                    verification.id
-                ]
-            );
-
-            await client.query(
-                "COMMIT"
-            );
-
-            return res
-                .type("html")
-                .send(`
-                    <!doctype html>
-                    <html lang="uk">
-                    <head>
-                        <meta charset="UTF-8">
-                        <meta
-                            name="viewport"
-                            content="width=device-width, initial-scale=1"
-                        >
-                        <title>Email підтверджено | Royal Garage</title>
-                    </head>
-
-                    <body
-                        style="
-                            font-family: Arial, sans-serif;
-                            text-align: center;
-                            padding: 50px 20px;
-                        "
-                    >
-                        <h1>Royal Garage</h1>
-
-                        <h2>✅ Email підтверджено</h2>
-
-                        <p>
-                            Вашу email-адресу успішно підтверджено.
-                        </p>
-
-                        <p>
-                            <a href="https://royalgarage.com.ua/">
-                                Перейти на Royal Garage
-                            </a>
-                        </p>
-                    </body>
-                    </html>
-                `);
-
-        } catch (error) {
-
-            try {
-                await client.query(
-                    "ROLLBACK"
-                );
-            } catch {}
-
-            console.error(
-                "Email verification error:",
-                error
-            );
-
-            return res
-                .status(500)
-                .type("html")
-                .send(`
-                    <h2>Royal Garage</h2>
-                    <p>
-                        Не вдалося підтвердити email.
-                    </p>
-                `);
-
-        } finally {
-            client.release();
-        }
+app.post("/api/verify-email", async (req, res) => {
+    const origin = req.get("Origin");
+    const fetchSite = req.get("Sec-Fetch-Site");
+    // A same-origin form can send a null Origin under the no-referrer policy.
+    if ((fetchSite && fetchSite !== "same-origin") ||
+        (origin === "null" ? fetchSite !== "same-origin" : origin && origin !== PUBLIC_ORIGIN)) {
+        return emailConfirmationPage(res, 403, "<p>Відкрийте посилання із листа на Royal Garage.</p>");
     }
-);
+    const token = String(req.body?.token || "");
+    if (!/^[a-f0-9]{64}$/.test(token)) return emailConfirmationPage(res, 400, invalidEmailLink);
+    const hash = crypto.createHash("sha256").update(token).digest("hex");
+    const client = await pool.connect();
+    try {
+        await client.query("BEGIN");
+        const result = await client.query(
+            `SELECT id, user_id, used_at, expires_at > NOW() AS valid
+             FROM email_verification_tokens WHERE token_hash = $1 FOR UPDATE`, [hash]
+        );
+        const link = result.rows[0];
+        if (link?.used_at) {
+            await client.query("ROLLBACK");
+            return emailConfirmationPage(res, 200, emailConfirmedMessage);
+        }
+        if (!link?.valid) {
+            await client.query("ROLLBACK");
+            return emailConfirmationPage(res, 400, invalidEmailLink);
+        }
+        await client.query("SELECT pg_advisory_xact_lock(73100100)");
+        const userResult = await client.query(
+            `SELECT id, name, email, phone, role, account_type, email_verified,
+                    phone_verified, account_disabled, is_first_member, registration_event_pending
+             FROM users WHERE id = $1 FOR UPDATE`, [link.user_id]
+        );
+        const user = userResult.rows[0];
+        if (!user || user.account_disabled) {
+            await client.query("ROLLBACK");
+            return emailConfirmationPage(res, 400, invalidEmailLink);
+        }
+        await client.query("UPDATE email_verification_tokens SET used_at = NOW() WHERE id = $1", [link.id]);
+        if (user.email_verified) {
+            await client.query("COMMIT");
+            return emailConfirmationPage(res, 200, emailConfirmedMessage);
+        }
+        await client.query("UPDATE users SET email_verified = TRUE, updated_at = NOW() WHERE id = $1", [user.id]);
+        if (user.account_type === "user" && !user.is_first_member) {
+            const count = await client.query(
+                "SELECT COUNT(*)::int AS count FROM users WHERE account_type = 'user' AND is_first_member"
+            );
+            if (count.rows[0].count < 100) {
+                await client.query(
+                    "UPDATE users SET is_first_member = TRUE, first_member_number = $2 WHERE id = $1",
+                    [user.id, count.rows[0].count + 1]
+                );
+            }
+        }
+        const business = user.account_type === "business";
+        const active = !business || (await client.query(
+            `SELECT 1 FROM business_profiles bp JOIN subscription_plans sp ON sp.id = bp.subscription_plan_id
+             WHERE bp.owner_id = $1 AND NOT bp.is_deleted AND sp.is_active
+               AND (bp.complimentary_subscription OR bp.subscription_expires_at > NOW())`, [user.id]
+        )).rowCount > 0;
+        const completed = user.registration_event_pending === true && (!business || (active && user.phone_verified));
+        if (completed) {
+            await client.query("UPDATE users SET registration_event_pending = FALSE WHERE id = $1", [user.id]);
+        }
+        const session = active ? jwt.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "30d" }) : "";
+        await client.query("COMMIT");
+
+        const payload = Buffer.from(JSON.stringify({
+            token: session,
+            user: {
+                id: user.id, name: user.name, email: user.email, phone: user.phone || "",
+                role: user.role, accountType: user.account_type, emailVerified: true, phoneVerified: user.phone_verified
+            },
+            completed
+        })).toString("base64");
+        const destination = business ? "/business-profile.html" : "/profile.html";
+        return emailConfirmationPage(res, 200, `<h2>Email підтверджено</h2>
+            <p><a href="${active ? destination : "/"}">Продовжити</a></p>
+            <script src="/js/email-confirmation.js" data-session="${payload}" defer></script>`);
+    } catch (error) {
+        await client.query("ROLLBACK").catch(() => {});
+        console.error("Email verification error:", error);
+        return emailConfirmationPage(res, 500, "<p>Не вдалося підтвердити email. Спробуйте ще раз.</p>");
+    } finally {
+        client.release();
+    }
+});
 
 app.post(
     "/api/resend-verification-email",
@@ -9770,7 +9634,7 @@ app.post(
             );
 
             const verificationUrl =
-                `https://royalgarage.com.ua/api/verify-email?token=` +
+                `${PUBLIC_ORIGIN}/api/verify-email?token=` +
                 encodeURIComponent(
                     verificationToken
                 );
@@ -10485,6 +10349,10 @@ async function requireAuth(req, res, next) {
                 process.env.JWT_SECRET
             );
 
+        if (decoded.scope || !UUID_PATTERN.test(String(decoded.userId || ""))) {
+            return res.status(401).json({ ok: false, message: "Сесія недійсна." });
+        }
+
         const userResult =
             await pool.query(
                 `
@@ -10556,6 +10424,51 @@ async function requireAdmin(req, res, next) {
 
     next();
 }
+
+app.get("/api/admin/registrations", requireAuth, requireAdmin, async (req, res) => {
+    const result = await pool.query(`
+        SELECT COUNT(*)::int AS "created",
+               COUNT(*) FILTER (WHERE NOT u.email_verified)::int AS "unverifiedEmail",
+               COUNT(*) FILTER (WHERE NOT u.phone_verified)::int AS "unverifiedPhone",
+               COUNT(*) FILTER (WHERE u.account_type = 'user' AND u.email_verified AND NOT u.account_disabled)::int AS "users",
+               COUNT(*) FILTER (WHERE u.account_type = 'business' AND u.email_verified AND u.phone_verified
+                   AND NOT u.account_disabled AND bp.id IS NOT NULL AND NOT bp.is_deleted)::int AS "businesses"
+        FROM users u LEFT JOIN business_profiles bp ON bp.owner_id = u.id
+        WHERE u.role <> 'admin'`);
+    res.set("Cache-Control", "no-store").json({ ok: true, stats: result.rows[0] });
+});
+
+app.get("/api/admin/businesses", requireAuth, requireAdmin, async (req, res) => {
+    const search = String(req.query.q || "").trim().slice(0, 255);
+    const result = await pool.query(
+        `SELECT bp.id, bp.owner_id AS "ownerId", bp.name, u.email, bt.name AS "businessType",
+                bp.complimentary_subscription AS "complimentarySubscription"
+         FROM business_profiles bp
+         JOIN users u ON u.id = bp.owner_id
+         LEFT JOIN business_types bt ON bt.id = bp.business_type_id
+         WHERE NOT bp.is_deleted AND NOT u.account_disabled
+           AND ($1 = '' OR STRPOS(LOWER(bp.name), LOWER($1)) > 0
+                        OR LOWER(u.email) = LOWER($1) OR bp.owner_id::text = LOWER($1))
+         ORDER BY bp.created_at DESC, bp.id LIMIT 50`, [search]
+    );
+    res.set("Cache-Control", "no-store").json({ ok: true, businesses: result.rows });
+});
+
+app.patch("/api/admin/businesses/:id/complimentary", requireAuth, requireAdmin, async (req, res) => {
+    const { enabled } = req.body || {};
+    if (!UUID_PATTERN.test(req.params.id) || typeof enabled !== "boolean") {
+        return res.status(400).json({ ok: false, message: "Некоректний бізнес або стан доступу." });
+    }
+    const result = await pool.query(
+        `UPDATE business_profiles bp SET complimentary_subscription = $2, updated_at = NOW()
+         FROM users u WHERE bp.id = $1 AND u.id = bp.owner_id AND NOT bp.is_deleted AND NOT u.account_disabled
+         RETURNING bp.id, bp.complimentary_subscription AS "complimentarySubscription"`,
+        [req.params.id, enabled]
+    );
+    if (!result.rowCount) return res.status(404).json({ ok: false, message: "Бізнес не знайдено." });
+    console.info("Complimentary business access updated:", { adminId: req.user.userId, businessId: req.params.id, enabled });
+    res.json({ ok: true, business: result.rows[0] });
+});
 
 async function requireCrmAccess(req, res, next) {
     try {
@@ -12143,6 +12056,15 @@ app.get(
     }
 );
 
+async function nextCrmOrderNumber(client, serviceId) {
+    const result = await client.query(
+        `SELECT COALESCE(MAX(SUBSTRING(order_number FROM 4)::bigint), 0) + 1 AS next
+         FROM crm_work_orders WHERE service_id = $1 AND order_number ~ '^WO-[0-9]{1,15}$'`,
+        [serviceId]
+    );
+    return `WO-${String(result.rows[0].next).padStart(6, "0")}`;
+}
+
 app.post(
     "/api/crm/work-orders",
     requireAuth,
@@ -12277,28 +12199,13 @@ app.post(
                 }
             }
 
-            const numberResult =
-                await pool.query(
-                    `
-                    SELECT COUNT(*)::int AS count
-                    FROM crm_work_orders
-                    WHERE service_id = $1
-                    `,
-                    [
-                        serviceId
-                    ]
-                );
-
-            const nextNumber =
-                Number(
-                    numberResult.rows[0]?.count || 0
-                ) + 1;
-
-            const orderNumber =
-                `WO-${String(nextNumber).padStart(6, "0")}`;
-
-            const result =
-                await pool.query(
+            const client = await pool.connect();
+            let result;
+            try {
+                await client.query("BEGIN");
+                await client.query("SELECT id FROM crm_services WHERE id = $1 FOR UPDATE", [serviceId]);
+                const orderNumber = await nextCrmOrderNumber(client, serviceId);
+                result = await client.query(
                     `
                     INSERT INTO crm_work_orders (
                         service_id,
@@ -12340,6 +12247,14 @@ app.post(
                         cleanDiagnostics || null
                     ]
                 );
+
+                await client.query("COMMIT");
+            } catch (error) {
+                await client.query("ROLLBACK").catch(() => {});
+                throw error;
+            } finally {
+                client.release();
+            }
 
             return res.status(201).json({
                 ok: true,
@@ -15864,6 +15779,16 @@ app.post(
                 ]
             );
 
+            const registration = await client.query(
+                `UPDATE users u SET registration_event_pending = FALSE
+                 FROM business_profiles bp JOIN subscription_plans sp ON sp.id = bp.subscription_plan_id
+                 WHERE u.id = $1 AND bp.owner_id = u.id AND u.account_type = 'business'
+                   AND u.registration_event_pending AND u.email_verified AND u.phone_verified
+                   AND NOT u.account_disabled AND NOT bp.is_deleted AND sp.is_active
+                   AND (bp.complimentary_subscription OR bp.subscription_expires_at > NOW())
+                 RETURNING u.role`, [req.user.userId]
+            );
+
             await client.query(
                 "COMMIT"
             );
@@ -15871,6 +15796,7 @@ app.post(
             return res.json({
                 ok: true,
                 phoneVerified: true,
+                registrationCompleted: Boolean(registration.rowCount && registration.rows[0].role !== "admin"),
                 message:
                     "Номер телефону успішно підтверджено."
             });
@@ -18205,6 +18131,10 @@ app.delete(
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+databaseReady.then(() => {
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}).catch(async error => {
+    console.error("Database initialization error:", error);
+    process.exitCode = 1;
+    await pool.end();
 });

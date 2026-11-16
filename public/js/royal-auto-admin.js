@@ -55,31 +55,7 @@ function getCurrentUser() {
 }
 
 
-function checkRoyalAutoAccess() {
 
-    const currentUser =
-        getCurrentUser();
-
-
-    if (
-        !currentUser ||
-        String(currentUser.id) !==
-        String(ROYAL_AUTO_OWNER_ID)
-    ) {
-
-        alert(
-            "Ця сторінка доступна тільки власнику RoyalAuto."
-        );
-
-        window.location.href =
-            "handmade.html";
-
-        return false;
-    }
-
-
-    return true;
-}
 
 
 
@@ -1569,12 +1545,8 @@ const response =
 
 async function initializeRoyalAutoAdmin() {
 
-    if (
-        !checkRoyalAutoAccess()
-    ) {
-        return;
-    }
-
+    if (String(getCurrentUser()?.id) !== ROYAL_AUTO_OWNER_ID) return;
+    document.getElementById("royalAutoCatalogAdmin").hidden = false;
 
     await loadSections();
 

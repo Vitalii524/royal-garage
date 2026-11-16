@@ -1,6 +1,7 @@
 "use strict";
 
 const USERS_KEY = "royalGarageUsers";
+const isPartnerDirectory = /^\/businesses(?:\.html)?$/.test(location.pathname);
 const SESSION_KEY = "royalGarageCurrentUser";
 
 function getUsers() {
@@ -166,6 +167,7 @@ function createAuthModal() {
         placeholder="+380... / +1..."
         required
     >
+    <small>Для особистого акаунта підтвердження номера необов’язкове.</small>
 </label>
 
 <label>
@@ -179,11 +181,13 @@ function createAuthModal() {
             Звичайний користувач
         </option>
 
-        <option value="business">
+        ${isPartnerDirectory ? `<option value="business">
             Бізнес
-        </option>
+        </option>` : ""}
     </select>
 </label>
+${isPartnerDirectory ? "" : '<p><a href="/businesses.html?register=business">Зареєструвати бізнес у «Партнерах»</a></p>'}
+
 
 <div
     id="businessRegistrationFields"
@@ -739,7 +743,7 @@ resendVerificationButton
 
     try {
         const response = await fetch(
-            "/api/register",
+            accountType === "business" ? "/api/business/register" : "/api/register",
             {
                 method: "POST",
                 headers: {
@@ -772,12 +776,6 @@ resendVerificationButton
                 data.message ||
                 "Не вдалося зареєструватися.";
             return;
-        }
-
-        if (typeof gtag === "function") {
-            gtag("event", "sign_up", {
-                method: "email"
-            });
         }
 
         document
@@ -892,7 +890,11 @@ async function loginUser(event) {
             data.token
         );
 
-        if (typeof gtag === "function") {
+        if (data.user?.role === "admin") {
+            localStorage.setItem("rgExcludeAnalytics", "1");
+            window["ga-disable-G-NS6FGLSFVX"] = true;
+        }
+        if (typeof gtag === "function" && data.user?.role !== "admin") {
             gtag("event", "login", {
                 method: "email"
             });
@@ -984,6 +986,7 @@ function renderAuthArea() {
             <a href="${profileUrl}">
                 👤 ${escapeHtml(currentUser.name)}
             </a>
+            ${currentUser.role === "admin" ? '<a href="/royal-auto-admin.html">Адмінпанель</a>' : ""}
 
         <button
             type="button"
@@ -1015,6 +1018,18 @@ document.addEventListener("DOMContentLoaded", () => {
     renderAuthArea();
 
     const params = new URLSearchParams(window.location.search);
+    if (isPartnerDirectory) {
+        const registerButton = document.getElementById("partnerRegistration");
+        const openBusinessRegistration = () => {
+            openAuthModal("register");
+            const type = document.getElementById("registerAccountType");
+            type.value = "business";
+            type.dispatchEvent(new Event("change"));
+        };
+        if (getCurrentUser() && registerButton) registerButton.hidden = true;
+        else if (params.get("register") === "business") openBusinessRegistration();
+        registerButton?.addEventListener("click", openBusinessRegistration);
+    }
     if (params.get("businessPayment") === "return") {
         setTimeout(() => {
             openAuthModal("login");
