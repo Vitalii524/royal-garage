@@ -625,6 +625,28 @@ async function deleteRoyalAutoSection(
     }
 }
 
+const sectionSubmitButton = sectionForm?.querySelector('button[type="submit"]');
+const sectionCancelButton = document.getElementById("royalAutoCancelSectionEdit");
+
+function editRoyalAutoSection(section) {
+    editingSectionId = section.id;
+    sectionName.value = section.name;
+    sectionIcon.value = section.icon || "";
+    sectionDescription.value = section.description || "";
+    sectionSubmitButton.textContent = "Зберегти зміни";
+    sectionCancelButton.hidden = false;
+    sectionName.focus();
+}
+
+function resetSectionForm() {
+    editingSectionId = null;
+    sectionForm.reset();
+    sectionSubmitButton.textContent = "+ Додати категорію";
+    sectionCancelButton.hidden = true;
+}
+
+sectionCancelButton?.addEventListener("click", resetSectionForm);
+
 function renderAdminSections() {
 
     if (!adminSections) {
@@ -691,63 +713,24 @@ function renderAdminSections() {
             description.textContent =
                 section.description ||
                 "";
-                const editButton =
-                document.createElement(
-                    "button"
-                );
 
-                const deleteButton =
-    document.createElement(
-        "button"
-    );
+            const actions = document.createElement("div");
+            actions.className = "royal-auto-category-actions";
 
+            const editButton = document.createElement("button");
+            editButton.type = "button";
+            editButton.className = "upholstery-primary-button";
+            editButton.textContent = "✏️ Редагувати";
+            editButton.addEventListener("click", () => editRoyalAutoSection(section));
 
-deleteButton.type =
-    "button";
+            const deleteButton = document.createElement("button");
+            deleteButton.type = "button";
+            deleteButton.className = "upholstery-primary-button royal-auto-category-delete";
+            deleteButton.textContent = "🗑 Видалити";
+            deleteButton.addEventListener("click", () => deleteRoyalAutoSection(section));
 
-deleteButton.className =
-    "btn-danger";
-
-deleteButton.textContent =
-    "🗑 Видалити";
-
-
-deleteButton.addEventListener(
-    "click",
-    () => {
-
-        deleteRoyalAutoSection(
-            section
-        );
-    }
-);
-            
-            
-            editButton.type =
-                "button";
-            
-            editButton.textContent =
-                "✏️ Редагувати";
-            
-            
-            editButton.addEventListener(
-                "click",
-                () => {
-            
-                    editRoyalAutoSection(
-                        section
-                    );
-                }
-            );
-
-          card.append(
-    icon,
-    title,
-    description,
-    editButton,
-    deleteButton
-);
-
+            actions.append(editButton, deleteButton);
+            card.append(icon, title, description, actions);
 
             adminSections.appendChild(
                 card
@@ -860,39 +843,12 @@ const response =
                 }
 
 
-                const wasEditing =
-    Boolean(
-        editingSectionId
-    );
+                const wasEditing = Boolean(editingSectionId);
+                resetSectionForm();
+                await loadSections();
 
 
-sectionForm.reset();
-
-
-editingSectionId =
-    null;
-
-
-const submitButton =
-    sectionForm.querySelector(
-        'button[type="submit"]'
-    );
-
-
-if (submitButton) {
-    submitButton.textContent =
-        "+ Додати категорію";
-}
-
-
-await loadSections();
-
-
-alert(
-    wasEditing
-        ? "Категорію оновлено."
-        : "Категорію додано."
-);
+alert(wasEditing ? "Категорію оновлено." : "Категорію додано.");
 
 
             } catch (error) {
