@@ -10426,7 +10426,14 @@ async function requireAdmin(req, res, next) {
     next();
 }
 
-app.get("/api/admin/site-analytics", requireAuth, requireAdmin, async (req, res) => {
+function requireAnalyticsAccess(req, res, next) {
+    if (req.user.role === "admin" || String(req.user.userId) === ROYAL_AUTO_OWNER_ID) {
+        return next();
+    }
+    return res.status(403).json({ ok: false, message: "Доступ до аналітики заборонено." });
+}
+
+app.get("/api/admin/site-analytics", requireAuth, requireAnalyticsAccess, async (req, res) => {
     res.set("Cache-Control", "no-store");
     try {
         const periods = await getSiteAnalytics(new URL(PUBLIC_ORIGIN).hostname);
@@ -10437,7 +10444,7 @@ app.get("/api/admin/site-analytics", requireAuth, requireAdmin, async (req, res)
     }
 });
 
-app.get("/api/admin/registrations", requireAuth, requireAdmin, async (req, res) => {
+app.get("/api/admin/registrations", requireAuth, requireAnalyticsAccess, async (req, res) => {
     const result = await pool.query(`
         SELECT COUNT(*)::int AS "created",
                COUNT(*) FILTER (WHERE NOT u.email_verified)::int AS "unverifiedEmail",
@@ -10447,7 +10454,7 @@ app.get("/api/admin/registrations", requireAuth, requireAdmin, async (req, res) 
                    AND NOT u.account_disabled AND bp.id IS NOT NULL AND NOT bp.is_deleted)::int AS "businesses"
         FROM users u LEFT JOIN business_profiles bp ON bp.owner_id = u.id
         WHERE u.role <> 'admin'`);
-    res.set("Cache-Control", "no-store").json({ ok: true, stats: result.rows[0] });
+    res.set("Cache-Control", "no-store").json({ ok: true, stats: result.rows[0], canManageBusinesses: req.user.role === "admin" });
 });
 
 app.get("/api/admin/businesses", requireAuth, requireAdmin, async (req, res) => {
