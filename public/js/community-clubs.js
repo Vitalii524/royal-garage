@@ -3,7 +3,14 @@
  const root=document.getElementById("communityClubs"),form=document.getElementById("createClubForm"),list=document.getElementById("communityClubsList"),status=root.querySelector(":scope > p");
  const dialog = document.getElementById("createClubDialog");
  const formStatus = document.getElementById("clubFormStatus");
- function openClubDialog() {
+ let editingClubId = null;
+ function openClubDialog(club = null) {
+  editingClubId = club?.id || null;
+  form.reset();
+  form.elements.name.value = club?.name || "";
+  form.elements.description.value = club?.description || "";
+  document.getElementById("createClubTitle").textContent = club ? "Редагувати клуб" : "Створити клуб";
+  form.querySelector("button").textContent = club ? "Зберегти зміни" : "Створити";
   form.hidden = false;
   formStatus.textContent = "";
   dialog.showModal();
@@ -21,7 +28,31 @@
   title.textContent=club.name;description.textContent=club.description;open.type=join.type="button";open.textContent=`Дописи · ${club.members} учасників`;join.textContent=club.joined?"Відписатися":"Підписатися";
   open.addEventListener("click",()=>{filter.value="club:"+club.id;filter.dispatchEvent(new Event("change"));document.getElementById("forumTopics").scrollIntoView({behavior:"smooth"});});
   join.addEventListener("click",async()=>{join.disabled=true;try{await api(`/api/clubs/${club.id}/membership`,{method:"PUT",body:JSON.stringify({joined:!club.joined})});await refresh();}catch(error){status.textContent=error.message;join.disabled=false;}});
-  card.append(title,description,open,join);list.appendChild(card);
+  card.append(title,description,open);
+  if (club.owned) {
+   const edit = document.createElement("button");
+   edit.type = "button";
+   edit.textContent = "Редагувати";
+   edit.addEventListener("click", () => openClubDialog(club));
+   const remove = document.createElement("button");
+   remove.type = "button";
+   remove.textContent = "Видалити клуб";
+   remove.addEventListener("click", async () => {
+    if (!confirm("Видалити клуб «" + club.name + "» зі списку? Опубліковані дописи залишаться в спільній стрічці.")) return;
+    remove.disabled = true;
+    try {
+     await api("/api/clubs/" + encodeURIComponent(club.id), {method: "DELETE"});
+     filter.value = "all";
+     filter.dispatchEvent(new Event("change"));
+     await refresh();
+    } catch (error) {
+     status.textContent = error.message;
+     remove.disabled = false;
+    }
+   });
+   card.append(edit, remove);
+  } else card.append(join);
+  list.appendChild(card);
  }
  status.textContent=data.clubs.length?"":"Створіть перший клуб спільноти.";
  }
@@ -41,8 +72,8 @@
    if (select === filter) filter.dispatchEvent(new Event("change"));
   });
  }
- document.getElementById("createClub").addEventListener("click",openClubDialog);
- form.addEventListener("submit",async event=>{event.preventDefault();const button=form.querySelector("button");button.disabled=true;try{await api("/api/clubs",{method:"POST",body:JSON.stringify({name:form.elements.name.value,description:form.elements.description.value})});form.reset();dialog.close();await refresh();}catch(error){formStatus.textContent=error.message;}finally{button.disabled=false;}});
+ document.getElementById("createClub").addEventListener("click",()=>openClubDialog());
+ form.addEventListener("submit",async event=>{event.preventDefault();const button=form.querySelector("button");button.disabled=true;try{await api(editingClubId ? "/api/clubs/" + encodeURIComponent(editingClubId) : "/api/clubs",{method:editingClubId ? "PATCH" : "POST",body:JSON.stringify({name:form.elements.name.value,description:form.elements.description.value})});form.reset();dialog.close();await refresh();}catch(error){formStatus.textContent=error.message;}finally{button.disabled=false;}});
  const requestedClub = new URLSearchParams(location.search).get("club");
  refresh().then(() => {
   if (requestedClub && [...filter.options].some(option => option.value === "club:" + requestedClub)) {

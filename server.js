@@ -17280,7 +17280,7 @@ app.post(
                 const clubId = cleanCategory.slice(5);
                 if (!UUID_PATTERN.test(clubId)) return res.status(400).json({message:"Некоректний клуб."});
                 await clubsReady;
-                const member = await pool.query("SELECT 1 FROM community_club_members WHERE club_id=$1 AND user_id=$2",[clubId,req.user.userId]);
+                const member = await pool.query("SELECT 1 FROM community_club_members m JOIN community_clubs c ON c.id=m.club_id WHERE m.club_id=$1 AND m.user_id=$2 AND c.deleted_at IS NULL",[clubId,req.user.userId]);
                 if (!member.rowCount) return res.status(403).json({message:"Приєднайтеся до клубу, щоб опублікувати допис."});
             }
             let cleanAttachment = null;
@@ -17444,6 +17444,7 @@ const clubsReady = databaseReady.then(async()=>{
  await pool.query(`CREATE TABLE IF NOT EXISTS community_clubs (
  id UUID PRIMARY KEY, owner_id UUID NOT NULL REFERENCES users(id), name VARCHAR(80) NOT NULL,
  description VARCHAR(1000) NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+ await pool.query("ALTER TABLE community_clubs ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ");
  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS community_clubs_name ON community_clubs(lower(name))`);
  await pool.query(`CREATE TABLE IF NOT EXISTS community_club_members (
  club_id UUID NOT NULL REFERENCES community_clubs(id) ON DELETE CASCADE,
@@ -17454,10 +17455,10 @@ clubsReady.catch(error=>console.error("Club tables:",error));
 app.get("/api/clubs", requireAuth, async(req,res)=>{
  try {
  await clubsReady;
- const result=await pool.query(`SELECT c.id,c.owner_id,c.name,c.description,
+ const result=await pool.query(`SELECT c.id,c.owner_id,c.name,c.description,(c.owner_id=$1) AS owned,
  (SELECT COUNT(*)::int FROM community_club_members m WHERE m.club_id=c.id) AS members,
  EXISTS(SELECT 1 FROM community_club_members m WHERE m.club_id=c.id AND m.user_id=$1) AS joined
- FROM community_clubs c ORDER BY c.created_at DESC LIMIT 200`,[req.user.userId]);
+ FROM community_clubs c WHERE c.deleted_at IS NULL ORDER BY c.created_at DESC LIMIT 200`,[req.user.userId]);
  res.json({clubs:result.rows});
  }catch(error){console.error("Club list:",error);res.status(500).json({message:"Не вдалося завантажити клуби."});}
 });
@@ -17473,11 +17474,47 @@ app.post("/api/clubs",requireAuth,async(req,res)=>{
  }catch(error){if(client)await client.query("ROLLBACK");res.status(error.code==='23505'?409:500).json({message:error.code==='23505'?"Клуб із такою назвою вже є.":"Не вдалося створити клуб."});}
  finally{client?.release();}
 });
+
+app.patch("/api/clubs/:id", requireAuth, async (req, res) => {
+ const name = String(req.body.name || "").trim();
+ const description = String(req.body.description || "").trim();
+ if (!UUID_PATTERN.test(req.params.id) || name.length < 3 || name.length > 80 || description.length > 1000) {
+  return res.status(400).json({message: "Назва — 3–80 символів, опис — до 1000."});
+ }
+ try {
+  await clubsReady;
+  const result = await pool.query(
+   "UPDATE community_clubs SET name=$3,description=$4 WHERE id=$1 AND owner_id=$2 AND deleted_at IS NULL RETURNING id",
+   [req.params.id,req.user.userId,name,description]
+  );
+  if (!result.rowCount) return res.status(404).json({message: "Клуб недоступний для редагування."});
+  res.json({ok:true});
+ } catch (error) {
+  res.status(error.code === "23505" ? 409 : 500).json({
+   message: error.code === "23505" ? "Така назва вже зайнята." : "Не вдалося зберегти зміни."
+  });
+ }
+});
+app.delete("/api/clubs/:id", requireAuth, async (req, res) => {
+ if (!UUID_PATTERN.test(req.params.id)) return res.status(400).json({message:"Некоректний клуб."});
+ try {
+  await clubsReady;
+  const result = await pool.query(
+   "UPDATE community_clubs SET deleted_at=COALESCE(deleted_at,NOW()) WHERE id=$1 AND owner_id=$2 RETURNING id",
+   [req.params.id,req.user.userId]
+  );
+  if (!result.rowCount) return res.status(404).json({message:"Клуб недоступний для видалення."});
+  res.json({ok:true});
+ } catch (error) {
+  res.status(500).json({message:"Не вдалося видалити клуб."});
+ }
+});
+
 app.put("/api/clubs/:id/membership",requireAuth,async(req,res)=>{
  if(!UUID_PATTERN.test(req.params.id)||typeof req.body.joined!=="boolean")return res.sendStatus(400);
  try {
  await clubsReady;
- const club=await pool.query("SELECT owner_id FROM community_clubs WHERE id=$1",[req.params.id]);
+ const club=await pool.query("SELECT owner_id FROM community_clubs WHERE id=$1 AND deleted_at IS NULL",[req.params.id]);
  if(!club.rowCount)return res.sendStatus(404);
  if(!req.body.joined&&String(club.rows[0].owner_id)===String(req.user.userId))return res.status(400).json({message:"Власник залишається учасником свого клубу."});
  if(req.body.joined) {
@@ -17500,7 +17537,7 @@ app.get("/api/profile/community", requireAuth, async (req, res) => {
    pool.query(`SELECT c.id,c.name,c.owner_id,
     (SELECT COUNT(*)::int FROM community_club_members cm WHERE cm.club_id=c.id) AS members
     FROM community_clubs c
-    WHERE c.owner_id=$1 OR EXISTS(SELECT 1 FROM community_club_members cm WHERE cm.club_id=c.id AND cm.user_id=$1)
+    WHERE c.deleted_at IS NULL AND (c.owner_id=$1 OR EXISTS(SELECT 1 FROM community_club_members cm WHERE cm.club_id=c.id AND cm.user_id=$1))
     ORDER BY c.name`, [userId]),
    pool.query(`SELECT u.id,u.name FROM forum_follows f JOIN users u ON u.id=f.follower_id
     WHERE f.author_id=$1 ORDER BY u.name`, [userId]),
@@ -17508,7 +17545,7 @@ app.get("/api/profile/community", requireAuth, async (req, res) => {
     WHERE f.follower_id=$1 ORDER BY u.name`, [userId]),
    pool.query(`SELECT c.id AS club_id,c.name AS club_name,u.id,u.name FROM community_clubs c
     JOIN community_club_members cm ON cm.club_id=c.id JOIN users u ON u.id=cm.user_id
-    WHERE c.owner_id=$1 AND cm.user_id<>$1 ORDER BY c.name,u.name`, [userId]),
+    WHERE c.owner_id=$1 AND c.deleted_at IS NULL AND cm.user_id<>$1 ORDER BY c.name,u.name`, [userId]),
    pool.query(`SELECT n.id,n.message,n.is_read,n.created_at,u.name AS actor_name
     FROM forum_notifications n LEFT JOIN users u ON u.id=n.actor_id
     WHERE n.user_id=$1 AND n.kind IN ('follow','club_follow')
