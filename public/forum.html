@@ -139,6 +139,82 @@
     color: #fff !important;
     border: 1px solid rgba(255,255,255,.6) !important;
 }
+
+#communityClubs {
+    box-sizing: border-box;
+    max-width: 1100px;
+    margin: 24px auto;
+    padding: clamp(20px, 4vw, 32px);
+    border: 1px solid rgba(232, 197, 106, .3);
+    border-radius: 20px;
+    background: #071a30;
+}
+#communityClubs h2 { margin: 0 0 20px; color: #e8c56a; }
+#communityClubs button {
+    box-sizing: border-box;
+    min-height: 46px;
+    padding: 12px 20px;
+    border: 1px solid rgba(232, 197, 106, .5);
+    border-radius: 12px;
+    background: #e8c56a;
+    color: #07152b;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+}
+#communityClubs button:disabled { opacity: .6; cursor: wait; }
+#communityClubs #createClubForm:not([hidden]) {
+    display: grid;
+    gap: 18px;
+    margin-top: 20px;
+}
+#communityClubs #createClubForm[hidden] { display: none; }
+#communityClubs label {
+    display: grid;
+    min-width: 0;
+    gap: 8px;
+    color: #c4ccd7;
+    font-size: 16px;
+}
+#communityClubs input, #communityClubs textarea {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    padding: 14px 16px;
+    border: 1px solid #29435c;
+    border-radius: 12px;
+    background: #050e1c;
+    color: #f4f3ee;
+    font: inherit;
+    font-size: 16px;
+    line-height: 1.5;
+}
+#communityClubs textarea { min-height: 120px; resize: vertical; }
+#communityClubs input:focus-visible, #communityClubs textarea:focus-visible,
+#communityClubs button:focus-visible {
+    outline: 2px solid #e8c56a;
+    outline-offset: 3px;
+}
+#communityClubs > p { margin: 18px 0 0; color: #b8c1ce; font-size: 15px; }
+#communityClubsList { display: grid; gap: 16px; margin-top: 20px; }
+#communityClubsList article {
+    padding: 18px;
+    border: 1px solid #29435c;
+    border-radius: 14px;
+    background: #0c2037;
+    overflow-wrap: anywhere;
+}
+#communityClubsList h3 { margin: 0 0 10px; color: #e8c56a; }
+#communityClubsList p { color: #c4ccd7; line-height: 1.6; }
+#communityClubsList button { margin: 6px 10px 0 0; }
+@media (max-width: 600px) {
+    #communityClubs { margin: 20px 12px; }
+    #communityClubs #createClub,
+    #communityClubs form button,
+    #communityClubsList button { width: 100%; margin-right: 0; }
+}
 </style>
 </head>
 <body>
