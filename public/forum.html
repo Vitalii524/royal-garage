@@ -275,8 +275,9 @@
         accept="image/*,video/mp4,video/webm,video/quicktime"
     >
 
-    <span id="topicAttachmentStatus">
-        Фото або відео до 20 МБ
+    <label class="forum-topic-attachment-button">📹 Зняти відео<input id="topicCameraInput" type="file" accept="video/*" capture="environment" hidden></label>
+<span id="topicAttachmentStatus">
+        Фото або відео до 3 хв, 20 МБ
     </span>
 </div>
 
@@ -311,6 +312,10 @@
 </form>
 </div>
 </div>
+<section id="communityClubs" class="panel"><h2>Клуби</h2>
+<button type="button" id="createClub">Створити клуб</button>
+<form id="createClubForm" hidden><label>Назва клубу<input name="name" required minlength="3" maxlength="80" placeholder="Наприклад, Fiat Family"></label><label>Опис<textarea name="description" maxlength="1000"></textarea></label><button type="submit">Створити</button></form>
+<p role="status"></p><div id="communityClubsList"></div></section>
 <footer class="footer">
 <div>
 <h3>Royal Garage</h3>
@@ -327,8 +332,10 @@
 <a data-i18n="auto.005" href="businesses.html">Партнери</a>
 </div></footer>
 <script src="js/auth.js"></script>
-<script src="js/video-upload.js"></script>
-<script src="js/forum.js"></script>
+<script src="js/video-upload.js?v=20261117-social"></script>
+<script src="js/forum.js?v=20261117-social"></script>
 <script src="js/loader.js"></script>
-<script src="js/lang.js"></script></body>
+<script src="js/lang.js"></script><script>document.getElementById("topicCameraInput").addEventListener("change",handleTopicAttachmentSelection);</script>
+<script src="js/community-clubs.js?v=20261117-social"></script>
+</body>
 </html>

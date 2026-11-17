@@ -867,7 +867,7 @@
                     );
                 }
             } else {
-                mediaUrl = await uploadGarageVideo($("businessPortfolioVideoUrl").files[0]);
+                mediaUrl = await uploadGarageVideo($("businessPortfolioCamera")?.files[0] || $("businessPortfolioVideoUrl").files[0]);
             }
     
             await api(

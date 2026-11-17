@@ -17276,6 +17276,13 @@ app.post(
                 });
             }
 
+            if (cleanCategory.startsWith("club:")) {
+                const clubId = cleanCategory.slice(5);
+                if (!UUID_PATTERN.test(clubId)) return res.status(400).json({message:"Некоректний клуб."});
+                await clubsReady;
+                const member = await pool.query("SELECT 1 FROM community_club_members WHERE club_id=$1 AND user_id=$2",[clubId,req.user.userId]);
+                if (!member.rowCount) return res.status(403).json({message:"Приєднайтеся до клубу, щоб опублікувати допис."});
+            }
             let cleanAttachment = null;
 
             try {
@@ -17432,6 +17439,57 @@ app.post('/api/forum/topics/:topicId/like', requireAuth, async (req,res) => {
         const count=await pool.query('SELECT COUNT(*)::int AS count FROM forum_topic_likes WHERE topic_id=$1',[req.params.topicId]);
         res.json({ok:true,liked,count:count.rows[0].count});
     } catch(e){console.error('Topic like:',e);res.status(500).json({ok:false,message:'Не вдалося змінити лайк.'});}
+});
+const clubsReady = databaseReady.then(async()=>{
+ await pool.query(`CREATE TABLE IF NOT EXISTS community_clubs (
+ id UUID PRIMARY KEY, owner_id UUID NOT NULL REFERENCES users(id), name VARCHAR(80) NOT NULL,
+ description VARCHAR(1000) NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+ await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS community_clubs_name ON community_clubs(lower(name))`);
+ await pool.query(`CREATE TABLE IF NOT EXISTS community_club_members (
+ club_id UUID NOT NULL REFERENCES community_clubs(id) ON DELETE CASCADE,
+ user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ PRIMARY KEY(club_id,user_id))`);
+});
+clubsReady.catch(error=>console.error("Club tables:",error));
+app.get("/api/clubs", requireAuth, async(req,res)=>{
+ try {
+ await clubsReady;
+ const result=await pool.query(`SELECT c.id,c.owner_id,c.name,c.description,
+ (SELECT COUNT(*)::int FROM community_club_members m WHERE m.club_id=c.id) AS members,
+ EXISTS(SELECT 1 FROM community_club_members m WHERE m.club_id=c.id AND m.user_id=$1) AS joined
+ FROM community_clubs c ORDER BY c.created_at DESC LIMIT 200`,[req.user.userId]);
+ res.json({clubs:result.rows});
+ }catch(error){console.error("Club list:",error);res.status(500).json({message:"Не вдалося завантажити клуби."});}
+});
+app.post("/api/clubs",requireAuth,async(req,res)=>{
+ const name=String(req.body.name||"").trim(),description=String(req.body.description||"").trim();
+ if(name.length<3||name.length>80||description.length>1000)return res.status(400).json({message:"Назва — 3–80 символів, опис — до 1000."});
+ let client;
+ try {
+ await clubsReady;client=await pool.connect();await client.query("BEGIN");
+ const id=crypto.randomUUID();await client.query("INSERT INTO community_clubs(id,owner_id,name,description) VALUES($1,$2,$3,$4)",[id,req.user.userId,name,description]);
+ await client.query("INSERT INTO community_club_members(club_id,user_id) VALUES($1,$2)",[id,req.user.userId]);
+ await client.query("COMMIT");res.status(201).json({id});
+ }catch(error){if(client)await client.query("ROLLBACK");res.status(error.code==='23505'?409:500).json({message:error.code==='23505'?"Клуб із такою назвою вже є.":"Не вдалося створити клуб."});}
+ finally{client?.release();}
+});
+app.put("/api/clubs/:id/membership",requireAuth,async(req,res)=>{
+ if(!UUID_PATTERN.test(req.params.id)||typeof req.body.joined!=="boolean")return res.sendStatus(400);
+ try {
+ await clubsReady;
+ const club=await pool.query("SELECT owner_id FROM community_clubs WHERE id=$1",[req.params.id]);
+ if(!club.rowCount)return res.sendStatus(404);
+ if(!req.body.joined&&String(club.rows[0].owner_id)===String(req.user.userId))return res.status(400).json({message:"Власник залишається учасником свого клубу."});
+ if(req.body.joined)await pool.query("INSERT INTO community_club_members(club_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING",[req.params.id,req.user.userId]);
+ else await pool.query("DELETE FROM community_club_members WHERE club_id=$1 AND user_id=$2",[req.params.id,req.user.userId]);
+ res.json({ok:true});
+ }catch(error){res.status(500).json({message:"Не вдалося змінити підписку."});}
+});
+app.get("/api/forum/subscriptions", requireAuth, async(req,res)=>{
+ try {
+ const result=await pool.query(`SELECT u.id,u.name FROM forum_follows f JOIN users u ON u.id=f.author_id WHERE f.follower_id=$1 ORDER BY u.name`,[req.user.userId]);
+ res.json({authors:result.rows});
+ } catch(error){console.error("Subscriptions:",error);res.status(500).json({message:"Не вдалося завантажити підписки."});}
 });
 app.get('/api/forum/social',requireAuth,async(req,res)=>{
     try {
