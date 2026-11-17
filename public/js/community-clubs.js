@@ -76,6 +76,7 @@
  form.addEventListener("submit",async event=>{event.preventDefault();const button=form.querySelector("button");button.disabled=true;try{await api(editingClubId ? "/api/clubs/" + encodeURIComponent(editingClubId) : "/api/clubs",{method:editingClubId ? "PATCH" : "POST",body:JSON.stringify({name:form.elements.name.value,description:form.elements.description.value})});form.reset();dialog.close();await refresh();}catch(error){formStatus.textContent=error.message;}finally{button.disabled=false;}});
  const requestedClub = new URLSearchParams(location.search).get("club");
  refresh().then(() => {
+  if (location.hash === "#communityClubs") root.scrollIntoView({block:"start"});
   if (requestedClub && [...filter.options].some(option => option.value === "club:" + requestedClub)) {
    filter.value = "club:" + requestedClub;
    filter.dispatchEvent(new Event("change"));
