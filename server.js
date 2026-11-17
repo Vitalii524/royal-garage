@@ -17454,6 +17454,7 @@ const clubsReady = databaseReady.then(async()=>{
  id UUID PRIMARY KEY, owner_id UUID NOT NULL REFERENCES users(id), name VARCHAR(80) NOT NULL,
  description VARCHAR(1000) NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
  await pool.query("ALTER TABLE community_clubs ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ");
+ await pool.query("ALTER TABLE community_clubs ADD COLUMN IF NOT EXISTS cover_image TEXT");
  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS community_clubs_name ON community_clubs(lower(name))`);
  await pool.query(`CREATE TABLE IF NOT EXISTS community_club_members (
  club_id UUID NOT NULL REFERENCES community_clubs(id) ON DELETE CASCADE,
@@ -17461,10 +17462,33 @@ const clubsReady = databaseReady.then(async()=>{
  PRIMARY KEY(club_id,user_id))`);
 });
 clubsReady.catch(error=>console.error("Club tables:",error));
+
+function validClubCover(value) {
+ return value === null || (typeof value === "string" && value.length <= 700000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(value));
+}
+app.get("/api/clubs/discover", async(req,res)=>{
+ try {
+  await clubsReady;
+  const result=await pool.query("SELECT id,name,CASE WHEN cover_image IS NOT NULL THEN '/api/clubs/'||id||'/cover' ELSE NULL END AS cover_url FROM community_clubs WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 200");
+  res.json({clubs:result.rows});
+ }catch(error){res.status(500).json({message:"Не вдалося завантажити клуби."});}
+});
+app.get("/api/clubs/:id/cover",async(req,res)=>{
+ if(!UUID_PATTERN.test(req.params.id))return res.sendStatus(404);
+ try {
+  await clubsReady;
+  const result=await pool.query("SELECT cover_image FROM community_clubs WHERE id=$1 AND deleted_at IS NULL",[req.params.id]);
+  const cover=result.rows[0]?.cover_image;
+  if(!cover)return res.sendStatus(404);
+  res.set({"Content-Type":"image/jpeg","X-Content-Type-Options":"nosniff","Cache-Control":"no-cache"});
+  res.send(Buffer.from(cover.split(",")[1],"base64"));
+ }catch(error){res.sendStatus(500);}
+});
+
 app.get("/api/clubs", requireAuth, async(req,res)=>{
  try {
  await clubsReady;
- const result=await pool.query(`SELECT c.id,c.owner_id,c.name,c.description,(c.owner_id=$1) AS owned,
+ const result=await pool.query(`SELECT c.id,c.owner_id,c.name,c.description,CASE WHEN c.cover_image IS NOT NULL THEN '/api/clubs/'||c.id||'/cover' ELSE NULL END AS cover_url,(c.owner_id=$1) AS owned,
  (SELECT COUNT(*)::int FROM community_club_members m WHERE m.club_id=c.id) AS members,
  EXISTS(SELECT 1 FROM community_club_members m WHERE m.club_id=c.id AND m.user_id=$1) AS joined
  FROM community_clubs c WHERE c.deleted_at IS NULL ORDER BY c.created_at DESC LIMIT 200`,[req.user.userId]);
@@ -17473,11 +17497,13 @@ app.get("/api/clubs", requireAuth, async(req,res)=>{
 });
 app.post("/api/clubs",requireAuth,async(req,res)=>{
  const name=String(req.body.name||"").trim(),description=String(req.body.description||"").trim();
+ const cover=req.body.cover_image ?? null;
+ if(!validClubCover(cover))return res.status(400).json({message:"Оберіть фото до 500 КБ після обробки."});
  if(name.length<3||name.length>80||description.length>1000)return res.status(400).json({message:"Назва — 3–80 символів, опис — до 1000."});
  let client;
  try {
  await clubsReady;client=await pool.connect();await client.query("BEGIN");
- const id=crypto.randomUUID();await client.query("INSERT INTO community_clubs(id,owner_id,name,description) VALUES($1,$2,$3,$4)",[id,req.user.userId,name,description]);
+ const id=crypto.randomUUID();await client.query("INSERT INTO community_clubs(id,owner_id,name,description,cover_image) VALUES($1,$2,$3,$4,$5)",[id,req.user.userId,name,description,cover]);
  await client.query("INSERT INTO community_club_members(club_id,user_id) VALUES($1,$2)",[id,req.user.userId]);
  await client.query("COMMIT");res.status(201).json({id});
  }catch(error){if(client)await client.query("ROLLBACK");res.status(error.code==='23505'?409:500).json({message:error.code==='23505'?"Клуб із такою назвою вже є.":"Не вдалося створити клуб."});}
@@ -17485,6 +17511,8 @@ app.post("/api/clubs",requireAuth,async(req,res)=>{
 });
 
 app.patch("/api/clubs/:id", requireAuth, async (req, res) => {
+ const hasCover=Object.prototype.hasOwnProperty.call(req.body,"cover_image");
+ if(hasCover&&!validClubCover(req.body.cover_image))return res.status(400).json({message:"Некоректне головне фото."});
  const name = String(req.body.name || "").trim();
  const description = String(req.body.description || "").trim();
  if (!UUID_PATTERN.test(req.params.id) || name.length < 3 || name.length > 80 || description.length > 1000) {
@@ -17493,8 +17521,8 @@ app.patch("/api/clubs/:id", requireAuth, async (req, res) => {
  try {
   await clubsReady;
   const result = await pool.query(
-   "UPDATE community_clubs SET name=$3,description=$4 WHERE id=$1 AND owner_id=$2 AND deleted_at IS NULL RETURNING id",
-   [req.params.id,req.user.userId,name,description]
+   "UPDATE community_clubs SET name=$3,description=$4,cover_image=CASE WHEN $5::boolean THEN $6::text ELSE cover_image END WHERE id=$1 AND owner_id=$2 AND deleted_at IS NULL RETURNING id",
+   [req.params.id,req.user.userId,name,description,hasCover,hasCover ? req.body.cover_image : null]
   );
   if (!result.rowCount) return res.status(404).json({message: "Клуб недоступний для редагування."});
   res.json({ok:true});

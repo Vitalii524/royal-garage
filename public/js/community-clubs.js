@@ -28,6 +28,7 @@
   title.textContent=club.name;description.textContent=club.description;open.type=join.type="button";open.textContent=`Дописи · ${club.members} учасників`;join.textContent=club.joined?"Відписатися":"Підписатися";
   open.addEventListener("click",()=>{filter.value="club:"+club.id;filter.dispatchEvent(new Event("change"));document.getElementById("forumTopics").scrollIntoView({behavior:"smooth"});});
   join.addEventListener("click",async()=>{join.disabled=true;try{await api(`/api/clubs/${club.id}/membership`,{method:"PUT",body:JSON.stringify({joined:!club.joined})});await refresh();}catch(error){status.textContent=error.message;join.disabled=false;}});
+  if(club.cover_url){const cover=document.createElement("img");cover.className="club-cover";cover.src=club.cover_url;cover.alt="";cover.loading="lazy";card.append(cover);}
   card.append(title,description,open);
   if (club.owned) {
    const edit = document.createElement("button");
@@ -73,7 +74,26 @@
   });
  }
  document.getElementById("createClub").addEventListener("click",()=>openClubDialog());
- form.addEventListener("submit",async event=>{event.preventDefault();const button=form.querySelector("button");button.disabled=true;try{await api(editingClubId ? "/api/clubs/" + encodeURIComponent(editingClubId) : "/api/clubs",{method:editingClubId ? "PATCH" : "POST",body:JSON.stringify({name:form.elements.name.value,description:form.elements.description.value})});form.reset();dialog.close();await refresh();}catch(error){formStatus.textContent=error.message;}finally{button.disabled=false;}});
+ async function clubCover(file){
+ if(!["image/jpeg","image/png","image/webp"].includes(file.type))throw new Error("Оберіть фото JPEG, PNG або WebP.");
+ if(file.size>15*1024*1024)throw new Error("Оберіть фото до 15 МБ.");
+ const url=URL.createObjectURL(file);
+ try{
+  const image=new Image();
+  await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=()=>reject(new Error("Не вдалося прочитати фото."));image.src=url;});
+  const scale=Math.min(1,960/image.width,960/image.height),canvas=document.createElement("canvas");
+  canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));
+  canvas.getContext("2d").drawImage(image,0,0,canvas.width,canvas.height);
+  const data=canvas.toDataURL("image/jpeg",.78);
+  if(data.length>700000)throw new Error("Фото завелике. Оберіть інше зображення.");
+  return data;
+ }finally{URL.revokeObjectURL(url);}
+ }
+ form.addEventListener("submit",async event=>{event.preventDefault();const button=form.querySelector("button");button.disabled=true;try{
+ const body={name:form.elements.name.value,description:form.elements.description.value};
+ if(form.elements.removeCover.checked)body.cover_image=null;
+ else if(form.elements.cover.files[0])body.cover_image=await clubCover(form.elements.cover.files[0]);
+ await api(editingClubId ? "/api/clubs/" + encodeURIComponent(editingClubId) : "/api/clubs",{method:editingClubId ? "PATCH" : "POST",body:JSON.stringify(body)});form.reset();dialog.close();await refresh();}catch(error){formStatus.textContent=error.message;}finally{button.disabled=false;}});
  const requestedClub = new URLSearchParams(location.search).get("club");
  refresh().then(() => {
   if (location.hash === "#communityClubs") root.scrollIntoView({block:"start"});

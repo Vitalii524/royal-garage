@@ -232,6 +232,8 @@
     display: block; width: 40px; min-height: 40px; margin-left: auto;
     padding: 0; background: transparent; color: #e8c56a; font-size: 26px;
 }
+#communityClubs .club-cover{width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:14px}
+#communityClubs input[type="checkbox"]{display:inline-block;width:auto}
 </style>
 </head>
 <body>
@@ -431,7 +433,7 @@
 </div>
 <section id="communityClubs" class="panel"><h2>Клуби</h2>
 <button type="button" id="createClub">Створити клуб</button>
-<dialog id="createClubDialog" aria-labelledby="createClubTitle"><button type="button" id="closeClubDialog" aria-label="Закрити">×</button><h2 id="createClubTitle">Створити клуб</h2><p id="clubFormStatus" role="status"></p><form id="createClubForm" hidden><label>Назва клубу<input name="name" required minlength="3" maxlength="80" placeholder="Наприклад, Fiat Family"></label><label>Опис<textarea name="description" maxlength="1000"></textarea></label><button type="submit">Створити</button></form></dialog>
+<dialog id="createClubDialog" aria-labelledby="createClubTitle"><button type="button" id="closeClubDialog" aria-label="Закрити">×</button><h2 id="createClubTitle">Створити клуб</h2><p id="clubFormStatus" role="status"></p><form id="createClubForm" hidden><label>Назва клубу<input name="name" required minlength="3" maxlength="80" placeholder="Наприклад, Fiat Family"></label><label>Опис<textarea name="description" maxlength="1000"></textarea></label><label>Головне фото клубу<input type="file" name="cover" accept="image/jpeg,image/png,image/webp"></label><label><input type="checkbox" name="removeCover">Прибрати головне фото</label><button type="submit">Створити</button></form></dialog>
 <p role="status"></p><div id="communityClubsList"></div></section>
 <footer class="footer">
 <div>
@@ -453,6 +455,6 @@
 <script src="js/forum.js?v=20261117-social"></script>
 <script src="js/loader.js"></script>
 <script src="js/lang.js"></script><script>document.getElementById("topicCameraInput").addEventListener("change",handleTopicAttachmentSelection);</script>
-<script src="js/community-clubs.js?v=20261117-edit"></script>
+<script src="js/community-clubs.js?v=20261117-cover"></script>
 </body>
 </html>
