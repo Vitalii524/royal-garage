@@ -1,6 +1,15 @@
 "use strict";
 (()=>{
- const root=document.getElementById("communityClubs"),form=document.getElementById("createClubForm"),list=document.getElementById("communityClubsList"),status=root.querySelector("p");
+ const root=document.getElementById("communityClubs"),form=document.getElementById("createClubForm"),list=document.getElementById("communityClubsList"),status=root.querySelector(":scope > p");
+ const dialog = document.getElementById("createClubDialog");
+ const formStatus = document.getElementById("clubFormStatus");
+ function openClubDialog() {
+  form.hidden = false;
+  formStatus.textContent = "";
+  dialog.showModal();
+  form.elements.name.focus({preventScroll: true});
+ }
+ document.getElementById("closeClubDialog").addEventListener("click", () => dialog.close());
  const category=document.getElementById("topicCategory"),filter=document.getElementById("forumCategoryFilter");
  async function api(path,options={}){const response=await fetch(path,{...options,headers:{"Content-Type":"application/json",Authorization:`Bearer ${localStorage.getItem("royalGarageToken")||""}`}});const data=await response.json();if(!response.ok)throw new Error(data.message||"Увійдіть, щоб керувати клубами.");return data;}
  async function refresh(){
@@ -28,13 +37,17 @@
     const close = document.querySelector("#topicModal [data-close-modal]");
     if (close) close.click();
    }
-   form.hidden = false;
-   root.scrollIntoView({behavior: "smooth", block: "start"});
-   form.elements.name.focus({preventScroll: true});
+   openClubDialog();
    if (select === filter) filter.dispatchEvent(new Event("change"));
   });
  }
- document.getElementById("createClub").addEventListener("click",()=>{form.hidden=!form.hidden;});
- form.addEventListener("submit",async event=>{event.preventDefault();const button=form.querySelector("button");button.disabled=true;try{await api("/api/clubs",{method:"POST",body:JSON.stringify({name:form.elements.name.value,description:form.elements.description.value})});form.reset();form.hidden=true;await refresh();}catch(error){status.textContent=error.message;}finally{button.disabled=false;}});
- refresh().catch(error=>{status.textContent=error.message;});
+ document.getElementById("createClub").addEventListener("click",openClubDialog);
+ form.addEventListener("submit",async event=>{event.preventDefault();const button=form.querySelector("button");button.disabled=true;try{await api("/api/clubs",{method:"POST",body:JSON.stringify({name:form.elements.name.value,description:form.elements.description.value})});form.reset();dialog.close();await refresh();}catch(error){formStatus.textContent=error.message;}finally{button.disabled=false;}});
+ const requestedClub = new URLSearchParams(location.search).get("club");
+ refresh().then(() => {
+  if (requestedClub && [...filter.options].some(option => option.value === "club:" + requestedClub)) {
+   filter.value = "club:" + requestedClub;
+   filter.dispatchEvent(new Event("change"));
+  }
+ }).catch(error=>{status.textContent=error.message;});
 })();

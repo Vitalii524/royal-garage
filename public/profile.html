@@ -9,6 +9,7 @@
 <link href="images/favicon.png" rel="icon" type="image/png"/>
 <link href="css/styles.css" rel="stylesheet"/>
 <link href="css/profile.css?v=8" rel="stylesheet"/>
+<link rel="stylesheet" href="css/profile-community.css?v=1">
 </head>
 <body>
 <header class="site-header">
@@ -326,7 +327,7 @@
         </button>
 </details>
 <section id="profileVideos" class="profile-card"><h2>Мої відео</h2><label>Додати відео (до 3 хв, 20 МБ)<input type="file" accept="video/mp4,video/webm,video/quicktime"></label><label>Зняти відео<input type="file" accept="video/*" capture="environment"></label><p></p><div></div></section>
-<section class="profile-card"><details id="mySubscriptions"><summary>Мої підписки</summary><p role="status"></p><div></div></details></section>
+<section data-community-panel class="profile-community"><h2>Моя спільнота</h2><p role="status">Завантаження…</p></section>
 </main>
 <!-- Вікно додавання автомобіля -->
 <div class="modal" id="carModal">
@@ -548,5 +549,6 @@
 <script src="js/loader.js"></script>
 <script src="js/lang.js"></script><script src="js/video-upload.js?v=20261117-social"></script><script src="js/profile-videos.js?v=20261117-social"></script>
 <script src="js/profile-subscriptions.js?v=20261117-social"></script>
+<script src="js/profile-community.js?v=1"></script>
 </body>
 </html>

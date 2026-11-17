@@ -17480,11 +17480,51 @@ app.put("/api/clubs/:id/membership",requireAuth,async(req,res)=>{
  const club=await pool.query("SELECT owner_id FROM community_clubs WHERE id=$1",[req.params.id]);
  if(!club.rowCount)return res.sendStatus(404);
  if(!req.body.joined&&String(club.rows[0].owner_id)===String(req.user.userId))return res.status(400).json({message:"Власник залишається учасником свого клубу."});
- if(req.body.joined)await pool.query("INSERT INTO community_club_members(club_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING",[req.params.id,req.user.userId]);
+ if(req.body.joined) {
+  const inserted = await pool.query("INSERT INTO community_club_members(club_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING club_id",[req.params.id,req.user.userId]);
+  if (inserted.rowCount) {
+   await forumNotify(club.rows[0].owner_id, req.user.userId, "club_follow", null, "Новий підписник вашого клубу")
+    .catch(error => console.error("Club follower notification:", error));
+  }
+ }
  else await pool.query("DELETE FROM community_club_members WHERE club_id=$1 AND user_id=$2",[req.params.id,req.user.userId]);
  res.json({ok:true});
  }catch(error){res.status(500).json({message:"Не вдалося змінити підписку."});}
 });
+
+app.get("/api/profile/community", requireAuth, async (req, res) => {
+ try {
+  await clubsReady;
+  const userId = req.user.userId;
+  const [clubs, followers, following, members, notifications] = await Promise.all([
+   pool.query(`SELECT c.id,c.name,c.owner_id,
+    (SELECT COUNT(*)::int FROM community_club_members cm WHERE cm.club_id=c.id) AS members
+    FROM community_clubs c
+    WHERE c.owner_id=$1 OR EXISTS(SELECT 1 FROM community_club_members cm WHERE cm.club_id=c.id AND cm.user_id=$1)
+    ORDER BY c.name`, [userId]),
+   pool.query(`SELECT u.id,u.name FROM forum_follows f JOIN users u ON u.id=f.follower_id
+    WHERE f.author_id=$1 ORDER BY u.name`, [userId]),
+   pool.query(`SELECT u.id,u.name FROM forum_follows f JOIN users u ON u.id=f.author_id
+    WHERE f.follower_id=$1 ORDER BY u.name`, [userId]),
+   pool.query(`SELECT c.id AS club_id,c.name AS club_name,u.id,u.name FROM community_clubs c
+    JOIN community_club_members cm ON cm.club_id=c.id JOIN users u ON u.id=cm.user_id
+    WHERE c.owner_id=$1 AND cm.user_id<>$1 ORDER BY c.name,u.name`, [userId]),
+   pool.query(`SELECT n.id,n.message,n.is_read,n.created_at,u.name AS actor_name
+    FROM forum_notifications n LEFT JOIN users u ON u.id=n.actor_id
+    WHERE n.user_id=$1 AND n.kind IN ('follow','club_follow')
+    ORDER BY n.created_at DESC LIMIT 30`, [userId])
+  ]);
+  res.set("Cache-Control", "no-store").json({
+   clubs: clubs.rows.map(club => ({...club, owned: String(club.owner_id) === String(userId)})),
+   followers: followers.rows, following: following.rows, members: members.rows,
+   notifications: notifications.rows
+  });
+ } catch (error) {
+  console.error("Profile community:", error);
+  res.status(500).json({message: "Не вдалося завантажити клуби та підписників."});
+ }
+});
+
 app.get("/api/forum/subscriptions", requireAuth, async(req,res)=>{
  try {
  const result=await pool.query(`SELECT u.id,u.name FROM forum_follows f JOIN users u ON u.id=f.author_id WHERE f.follower_id=$1 ORDER BY u.name`,[req.user.userId]);
