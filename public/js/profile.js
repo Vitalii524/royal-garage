@@ -6157,7 +6157,7 @@ async function renderMyChats() {
                 otherUserId
             }) => {
                 const listingName =
-                    message.listingName ||
+                    message.listingName || message.partnerName ||
                     tr("profile.dynamic.listing", "Оголошення");
 
                 const listingYear =
@@ -6236,15 +6236,7 @@ async function renderMyChats() {
                     "my-chat-card";
 
                 chatLink.href =
-                    `chat.html?listingId=${
-                        encodeURIComponent(
-                            message.listingId
-                        )
-                    }&withUserId=${
-                        encodeURIComponent(
-                            otherUserId
-                        )
-                    }`;
+                    `chat.html?withUserId=${encodeURIComponent(otherUserId)}${message.listingId ? `&listingId=${encodeURIComponent(message.listingId)}` : ""}`;
 
                 chatLink.innerHTML = `
                     <div class="chat-card-header">

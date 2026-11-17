@@ -3322,6 +3322,44 @@ app.get("/service-hub.html", (req, res) => {
     res.redirect(302, `/business-profile.html?id=${SERVICE_HUB_OWNER_ID}`);
 });
 
+
+const videoStoreReady = pool.query(`CREATE TABLE IF NOT EXISTS uploaded_videos (
+ id UUID PRIMARY KEY, owner_id UUID NOT NULL REFERENCES users(id), mime_type TEXT NOT NULL,
+ data BYTEA NOT NULL, name TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+videoStoreReady.catch(error => console.error("Video storage initialization:", error));
+app.post("/api/media/videos", requireAuth, async (req, res) => {
+ try {
+  await videoStoreReady;
+  const match = /^data:(video\/(?:mp4|webm|quicktime));base64,([A-Za-z0-9+/]+={0,2})$/.exec(String(req.body.data || ""));
+  if (!match) return res.status(400).json({message:"Оберіть відео MP4, WebM або MOV."});
+  const data = Buffer.from(match[2], "base64");
+  if (!data.length || data.length > 20 * 1024 * 1024) return res.status(413).json({message:"Максимальний розмір відео — 20 МБ."});
+  const id = crypto.randomUUID();
+  await pool.query("INSERT INTO uploaded_videos (id,owner_id,mime_type,data,name) VALUES ($1,$2,$3,$4,$5)", [id,req.user.userId,match[1],data,String(req.body.name || "Відео").slice(0,180)]);
+  res.status(201).json({url:`/api/media/videos/${id}`});
+ } catch(error) { console.error("Video upload:",error); res.status(500).json({message:"Не вдалося зберегти відео."}); }
+});
+app.get("/api/media/videos", requireAuth, async(req,res)=>{
+ try { await videoStoreReady;const result=await pool.query("SELECT id,name,created_at FROM uploaded_videos WHERE owner_id=$1 ORDER BY created_at DESC LIMIT 50",[req.user.userId]);res.json({videos:result.rows}); }
+ catch(error){res.status(500).json({message:"Не вдалося завантажити відео."});}
+});
+app.get("/api/media/videos/:id",async(req,res)=>{
+ if(!UUID_PATTERN.test(req.params.id)) return res.sendStatus(404);
+ try {
+  await videoStoreReady;
+  const result=await pool.query("SELECT mime_type,data FROM uploaded_videos WHERE id=$1",[req.params.id]);
+  if(!result.rowCount)return res.sendStatus(404);
+  const {mime_type,data}=result.rows[0];res.set({"Content-Type":mime_type,"Accept-Ranges":"bytes","X-Content-Type-Options":"nosniff"});
+  const range=req.headers.range;
+  if(!range)return res.send(data);
+  const m=/^bytes=(\d*)-(\d*)$/.exec(range);
+  let start=m&&m[1]?Number(m[1]):0,end=m&&m[2]?Number(m[2]):data.length-1;
+  if(m&&!m[1]&&m[2]){start=Math.max(0,data.length-Number(m[2]));end=data.length-1;}
+  if(!m||start>end||start>=data.length){res.set("Content-Range",`bytes */${data.length}`);return res.sendStatus(416);}
+  end=Math.min(end,data.length-1);res.status(206).set({"Content-Range":`bytes ${start}-${end}/${data.length}`,"Content-Length":end-start+1}).send(data.subarray(start,end+1));
+ } catch(error){console.error("Video playback:",error);res.sendStatus(500);}
+});
+
 app.use(express.static(path.join(__dirname, "public")));
 
 /* =========================
@@ -4872,12 +4910,14 @@ app.get(
 
                         ml.name AS "listingName",
                         ml.year AS "listingYear",
-                        ml.photos AS "listingPhotos"
+                        ml.photos AS "listingPhotos",
+                        partner.name AS "partnerName"
 
                     FROM chat_messages cm
 
                     LEFT JOIN market_listings ml
                         ON ml.id = cm.listing_id
+                    LEFT JOIN users partner ON partner.id = CASE WHEN cm.sender_id = $1 THEN cm.receiver_id ELSE cm.sender_id END
 
                     WHERE
                         cm.sender_id = $1
@@ -4922,7 +4962,7 @@ app.get(
                 partnerId
             } = req.query;
 
-            if (!listingId || !partnerId) {
+            if ((listingId && !UUID_PATTERN.test(listingId)) || !UUID_PATTERN.test(partnerId || "")) {
                 return res.status(400).json({
                     ok: false,
                     message:
@@ -4945,7 +4985,7 @@ app.get(
                         deleted_at,
                         created_at
                     FROM chat_messages
-                    WHERE listing_id = $1
+                    WHERE listing_id IS NOT DISTINCT FROM $1::uuid
                       AND (
                             (
                                 sender_id = $2
@@ -4960,7 +5000,7 @@ app.get(
                     ORDER BY created_at ASC
                     `,
                     [
-                        listingId,
+                        listingId || null,
                         req.user.userId,
                         partnerId
                     ]
@@ -4999,14 +5039,29 @@ app.post(
             } = req.body;
 
             if (
-                !listingId ||
-                !receiverId
+                (listingId && !UUID_PATTERN.test(listingId)) ||
+                !UUID_PATTERN.test(receiverId || "") ||
+                String(receiverId) === String(req.user.userId)
             ) {
                 return res.status(400).json({
                     ok: false,
                     message:
                         "Недостатньо даних для повідомлення."
                 });
+            }
+
+            if (!listingId) {
+                const previous = await pool.query(
+                    `SELECT 1 FROM chat_messages WHERE listing_id IS NULL
+                     AND ((sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1)) LIMIT 1`,
+                    [req.user.userId, receiverId]
+                );
+                const recipient = await pool.query(
+                    "SELECT id FROM users WHERE id = $1 AND account_disabled = FALSE", [receiverId]
+                );
+                if (!recipient.rowCount || (!previous.rowCount && !await loadPublicBusinessProfile(receiverId))) {
+                    return res.status(403).json({ ok: false, message: "Новий діалог можна почати з активного бізнес-профілю." });
+                }
             }
 
             const messageId =
@@ -5035,7 +5090,7 @@ app.post(
                     `,
                     [
                         messageId,
-                        listingId,
+                        listingId || null,
                         req.user.userId,
                         receiverId,
                         text || null,
@@ -5073,7 +5128,7 @@ app.patch(
                 partnerId
             } = req.body;
 
-            if (!listingId || !partnerId) {
+            if ((listingId && !UUID_PATTERN.test(listingId)) || !UUID_PATTERN.test(partnerId || "")) {
                 return res.status(400).json({
                     ok: false,
                     message:
@@ -5085,13 +5140,13 @@ app.patch(
                 `
                 UPDATE chat_messages
                 SET read_at = NOW()
-                WHERE listing_id = $1
+                WHERE listing_id IS NOT DISTINCT FROM $1::uuid
                   AND sender_id = $2
                   AND receiver_id = $3
                   AND read_at IS NULL
                 `,
                 [
-                    listingId,
+                    listingId || null,
                     partnerId,
                     req.user.userId
                 ]
@@ -9026,7 +9081,8 @@ app.post(
 
             if (
                 mediaType === "video" &&
-                !/^https?:\/\//i.test(mediaUrl)
+                !/^https?:\/\//i.test(mediaUrl) &&
+                !/^\/api\/media\/videos\/[0-9a-f-]{36}$/i.test(mediaUrl)
             ) {
                 return res.status(400).json({
                     ok: false,
@@ -9038,7 +9094,8 @@ app.post(
             if (
                 mediaType === "image" &&
                 !/^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(mediaUrl) &&
-                !/^https?:\/\//i.test(mediaUrl)
+                !/^https?:\/\//i.test(mediaUrl) &&
+                !/^\/api\/media\/videos\/[0-9a-f-]{36}$/i.test(mediaUrl)
             ) {
                 return res.status(400).json({
                     ok: false,
@@ -17172,6 +17229,8 @@ function normalizeForumTopicAttachment(value) {
     const name = String(value.name || "photo.jpg").trim().slice(0, 180);
     const data = String(value.data || "").trim();
     const originalSize = Number(value.originalSize || 0);
+
+    if (type === "video" && /^\/api\/media\/videos\/[0-9a-f-]{36}$/i.test(data)) return {type, mimeType, name, data, originalSize};
 
     if (type !== "image") {
         throw new Error("До теми можна додати лише фото.");

@@ -302,6 +302,8 @@ function renderTopicAttachmentPreview() {
         return;
     }
 
+    topicAttachmentPreviewImage.hidden = selectedTopicAttachment.type === "video";
+    if (selectedTopicAttachment.type === "video") topicAttachmentStatus.textContent = "Відео додано";
     topicAttachmentPreviewImage.src =
         selectedTopicAttachment.data;
 
@@ -348,6 +350,16 @@ async function handleTopicAttachmentSelection(event) {
         return;
     }
 
+    if (file.type.startsWith("video/")) {
+        event.target.disabled = true;
+        try {
+            const data = await uploadGarageVideo(file);
+            selectedTopicAttachment = {type:"video",mimeType:file.type,name:file.name,data,originalSize:file.size};
+            renderTopicAttachmentPreview();
+        } catch(error) { alert(error.message); }
+        finally { event.target.disabled = false; }
+        return;
+    }
     if (!file.type.startsWith("image/")) {
         alert("До теми можна додати лише фото.");
         event.target.value = "";
@@ -700,7 +712,7 @@ function renderForumTopics() {
             ${
                 topic.attachment?.data
                     ? `
-                        <img
+                        ${topic.attachment.type === "video" ? `<video controls playsinline preload="metadata" style="width:100%" src="${escapeForumHtml(topic.attachment.data)}"></video>` : `<img
                             class="forum-topic-image"
                             src="${escapeForumHtml(
                                 topic.attachment.data
@@ -709,7 +721,7 @@ function renderForumTopics() {
                                 topic.title
                             )}"
                             loading="lazy"
-                        >
+                        >`}
                     `
                     : ""
             }
@@ -893,7 +905,7 @@ function openTopicView(topicId) {
         ${
             topic.attachment?.data
                 ? `
-                    <img
+                    ${topic.attachment.type === "video" ? `<video controls playsinline preload="metadata" style="width:100%" src="${escapeForumHtml(topic.attachment.data)}"></video>` : `<img
                         class="forum-topic-image"
                         src="${escapeForumHtml(
                             topic.attachment.data
@@ -901,7 +913,7 @@ function openTopicView(topicId) {
                         alt="Фото до теми ${escapeForumHtml(
                             topic.title
                         )}"
-                    >
+                    >`}
                 `
                 : ""
         }
