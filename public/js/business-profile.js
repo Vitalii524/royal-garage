@@ -471,8 +471,11 @@
                         "a"
                     );
     
-                link.href =
-                    item.mediaUrl;
+                if (item.mediaUrl.startsWith("/api/media/videos/")) {
+                    const video = document.createElement("video");
+                    video.src = item.mediaUrl; video.controls = true; video.playsInline = true;
+                    video.preload = "metadata"; video.style.width = "100%"; card.appendChild(video);
+                } else link.href = item.mediaUrl;
     
                 link.target =
                     "_blank";
@@ -486,7 +489,7 @@
                 link.textContent =
                     "▶ Переглянути відео";
     
-                card.appendChild(
+                if (!item.mediaUrl.startsWith("/api/media/videos/")) card.appendChild(
                     link
                 );
             }
@@ -864,16 +867,7 @@
                     );
                 }
             } else {
-                mediaUrl =
-                    $("businessPortfolioVideoUrl")
-                        .value
-                        .trim();
-    
-                if (!mediaUrl) {
-                    throw new Error(
-                        "Вкажіть посилання на відео."
-                    );
-                }
+                mediaUrl = await uploadGarageVideo($("businessPortfolioVideoUrl").files[0]);
             }
     
             await api(

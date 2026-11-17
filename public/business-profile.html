@@ -26,7 +26,7 @@
 
         <nav class="nav" aria-label="Головна навігація">
             <a href="index.html">Головна</a>
-            <a href="forum.html">Форум</a>
+            <a href="forum.html">Клуб</a>
             <a href="market.html">Авторинок</a>
             <a href="businesses.html">Партнери</a>
             <a href="profile.html" id="profileNavLink">Мій профіль</a>
@@ -36,7 +36,7 @@
             <summary class="burger-button" aria-label="Відкрити меню" title="Меню">☰</summary>
             <nav class="burger-dropdown" aria-label="Мобільне меню">
                 <a href="index.html">Головна</a>
-                <a href="forum.html">Форум</a>
+                <a href="forum.html">Клуб</a>
                 <a href="market.html">Авторинок</a>
                 <a href="businesses.html">Партнери</a>
                 <a href="handmade.html">RoyalAuto</a>
@@ -82,6 +82,7 @@
             </div>
 
             <div id="businessHeroOwnerActions" class="business-hero-owner-actions" hidden>
+                <a href="profile.html?section=chats" class="business-manage-button">💬 Повідомлення</a>
                 <button id="businessRequestsBell" class="business-manage-button" type="button" hidden aria-label="Заявки на обслуговування">🔔 <span id="businessRequestsCount"></span></button>
                 <button id="businessManageButton" class="business-manage-button" type="button" hidden>⚙️ Керувати профілем</button>
             </div>
@@ -256,7 +257,7 @@
     <div>
         <h3>Навігація</h3>
         <a href="index.html">Головна</a>
-        <a href="forum.html">Форум</a>
+        <a href="forum.html">Клуб</a>
         <a href="market.html">Авторинок</a>
         <a href="businesses.html">Партнери</a>
         <a href="profile.html">Мій профіль</a>
@@ -448,10 +449,10 @@
                 id="businessPortfolioVideoField"
                 hidden
             >
-                Посилання на відео
+                Відеофайл (до 20 МБ)
                 <input
                     id="businessPortfolioVideoUrl"
-                    type="url"
+                    type="file" accept="video/mp4,video/webm,video/quicktime"
                     placeholder="https://..."
                 >
             </label>
@@ -583,6 +584,7 @@
 </div>
 
 <script src="js/auth.js"></script>
+<script src="js/video-upload.js"></script>
 <script src="js/business-profile.js?v=17"></script>
 <script src="js/loader.js"></script>
 <script src="js/lang.js"></script>

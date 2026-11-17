@@ -644,9 +644,11 @@ function createMessageAttachment(
 
 async function initializeChat() {
 
+const directChat = !listingId && Boolean(withUserId);
 let listing = null;
 
 try {
+    if (listingId) {
     const response =
         await fetch(
             `/api/market/listings/${encodeURIComponent(
@@ -712,6 +714,7 @@ try {
             item.updatedAt
     };
 
+    }
 } catch (error) {
     console.error(
         "Chat listing load error:",
@@ -726,7 +729,7 @@ if (chatBackLink) {
                 listingId
             )
         }`
-        : "market.html";
+        : "profile.html?section=chats";
 }
 
 
@@ -747,7 +750,7 @@ if (!currentUser) {
     if (chatForm) {
         chatForm.hidden = true;
     }
-} else if (!listing) {
+} else if (!listing && !directChat) {
     if (chatMessages) {
         chatMessages.innerHTML = `
             <p>
@@ -762,8 +765,8 @@ if (!currentUser) {
 } else {
     const sellerId =
         String(
-            listing.ownerId ||
-            listing.userId ||
+            listing?.ownerId ||
+            listing?.userId ||
             ""
         );
 
@@ -774,18 +777,20 @@ if (!currentUser) {
         currentUserId === sellerId;
 
     const chatPartnerId =
-        isCurrentUserSeller
+        (directChat || isCurrentUserSeller)
             ? String(withUserId || "")
             : sellerId;
 
     if (chatTitle) {
         chatTitle.textContent =
             `Чат щодо ${
-                listing.name || "автомобіля"
+                listing?.name || "автомобіля"
             } (${
-                listing.year || "рік не вказано"
+                listing?.year || "рік не вказано"
             })`;
     }
+
+    if (directChat && chatTitle) chatTitle.textContent = "Повідомлення бізнесу";
 
     if (!chatPartnerId) {
         if (chatMessages) {
@@ -841,7 +846,7 @@ if (!currentUser) {
     
                         body: JSON.stringify({
                             listingId:
-                                listing.id,
+                                listing?.id || null,
     
                             partnerId:
                                 chatPartnerId
@@ -888,7 +893,7 @@ if (!currentUser) {
             const response =
                 await fetch(
                     `/api/chat/messages?listingId=${encodeURIComponent(
-                        listing.id
+                        listing?.id || ""
                     )}&partnerId=${encodeURIComponent(
                         chatPartnerId
                     )}`,
@@ -1622,7 +1627,7 @@ if (!currentUser) {
     
             const newMessage = {
                 id: generateMessageId(),
-                listingId: listing.id,
+                listingId: listing?.id || null,
                 receiverId: chatPartnerId,
                 text,
                 attachment: null
