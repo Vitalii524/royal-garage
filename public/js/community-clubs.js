@@ -16,6 +16,24 @@
  }
  status.textContent=data.clubs.length?"":"Створіть перший клуб спільноти.";
  }
+ for (const select of [category, filter]) {
+  const option = document.createElement("option");
+  option.value = "create-club";
+  option.textContent = "Створити клуб";
+  select.appendChild(option);
+  select.addEventListener("change", () => {
+   if (select.value !== "create-club") return;
+   select.value = select === filter ? "all" : "";
+   if (select === category) {
+    const close = document.querySelector("#topicModal [data-close-modal]");
+    if (close) close.click();
+   }
+   form.hidden = false;
+   root.scrollIntoView({behavior: "smooth", block: "start"});
+   form.elements.name.focus({preventScroll: true});
+   if (select === filter) filter.dispatchEvent(new Event("change"));
+  });
+ }
  document.getElementById("createClub").addEventListener("click",()=>{form.hidden=!form.hidden;});
  form.addEventListener("submit",async event=>{event.preventDefault();const button=form.querySelector("button");button.disabled=true;try{await api("/api/clubs",{method:"POST",body:JSON.stringify({name:form.elements.name.value,description:form.elements.description.value})});form.reset();form.hidden=true;await refresh();}catch(error){status.textContent=error.message;}finally{button.disabled=false;}});
  refresh().catch(error=>{status.textContent=error.message;});
