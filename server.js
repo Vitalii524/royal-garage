@@ -3343,6 +3343,15 @@ app.get("/api/media/videos", requireAuth, async(req,res)=>{
  try { await videoStoreReady;const result=await pool.query("SELECT id,name,created_at FROM uploaded_videos WHERE owner_id=$1 ORDER BY created_at DESC LIMIT 50",[req.user.userId]);res.json({videos:result.rows}); }
  catch(error){res.status(500).json({message:"Не вдалося завантажити відео."});}
 });
+app.delete("/api/media/videos/:id", requireAuth, async(req,res)=>{
+ if(!UUID_PATTERN.test(req.params.id))return res.status(400).json({message:"Некоректне відео."});
+ try {
+  await videoStoreReady;
+  const result=await pool.query("DELETE FROM uploaded_videos WHERE id=$1 AND owner_id=$2 RETURNING id",[req.params.id,req.user.userId]);
+  if(!result.rowCount)return res.status(404).json({message:"Відео не знайдено або воно вам не належить."});
+  res.json({ok:true});
+ }catch(error){console.error("Video deletion:",error);res.status(500).json({message:"Не вдалося видалити відео."});}
+});
 app.get("/api/media/videos/:id",async(req,res)=>{
  if(!UUID_PATTERN.test(req.params.id)) return res.sendStatus(404);
  try {
