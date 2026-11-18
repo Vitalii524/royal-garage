@@ -1338,6 +1338,10 @@ if (portfolioDelete) {
     async function init() {
         bindEvents();
         await loadProfile();
+        if (new URLSearchParams(location.search).get('notifications') === 'requests' && !$("businessRequestsBell").hidden) {
+            openModal("businessRequestsModal");
+            await loadBusinessRequests();
+        }
     }
 
     if (document.readyState === "loading") {

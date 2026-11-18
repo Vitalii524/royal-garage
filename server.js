@@ -185,13 +185,14 @@ try {
     } else { forumWebPush = null; }
 } catch (error) { console.warn('Web Push disabled:', error.message); }
 const forumPushEnabled = () => Boolean(forumWebPush && process.env.VAPID_PUBLIC_KEY);
-async function forumSendPush(userId, message, topicId) {
+async function forumSendPush(userId, message, topicId, notification = {}) {
     if (!forumPushEnabled()) return;
     try {
         const rows = await pool.query('SELECT endpoint,subscription FROM forum_push_subscriptions WHERE user_id=$1', [userId]);
-        const payload = JSON.stringify({title:'Royal Garage · Форум',body:message,url:topicId ? '/forum.html?topicId='+encodeURIComponent(topicId) : '/forum.html'});
+        const payload = JSON.stringify({title:'Royal Garage',body:message,url:notification.url || (topicId ? '/forum.html?topicId='+encodeURIComponent(topicId) : '/notifications.html'),id:notification.id});
         await Promise.allSettled(rows.rows.map(async row => {
-            try { await forumWebPush.sendNotification(row.subscription, payload, {TTL:86400}); }
+            if (!require('./notifications').validSubscription(row.subscription)) return;
+            try { await forumWebPush.sendNotification(row.subscription, payload, {TTL:86400,timeout:10000}); }
             catch (err) {
                 if ([404,410].includes(err.statusCode)) await pool.query('DELETE FROM forum_push_subscriptions WHERE endpoint=$1 AND user_id=$2',[row.endpoint,userId]);
                 else console.warn('Forum push send failed:', err.statusCode || err.message);
@@ -1190,6 +1191,10 @@ app.use(
         extended: false
     })
 );
+
+const notificationCenter = require('./notifications').installNotifications({
+    app, pool, requireAuth, databaseReady, sendPush: forumSendPush
+});
 
 app.get(
     "/sitemap.xml",
@@ -4764,7 +4769,9 @@ app.post('/api/businesses/:ownerId/requests', async(req,res)=>{
                AND bt.code = ANY($2::text[])`, [ownerId, SERVICE_BOOKING_TYPES]
         );
         if (!found.rowCount) return res.status(404).json({ ok: false, message: "Бізнес не приймає заявки." });
-        await pool.query(`INSERT INTO business_service_requests(id,owner_id,name,phone,brand,model,transmission,fuel,plate,vin,reason,year,mileage,engine) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,[crypto.randomUUID(),ownerId,name,phone,brand,model,value('transmission',40),value('fuel',40),value('plate',20),vin,reason,year,mileage,engine]);
+        const requestId = crypto.randomUUID();
+        await pool.query(`INSERT INTO business_service_requests(id,owner_id,name,phone,brand,model,transmission,fuel,plate,vin,reason,year,mileage,engine) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,[requestId,ownerId,name,phone,brand,model,value('transmission',40),value('fuel',40),value('plate',20),vin,reason,year,mileage,engine]);
+        await notificationCenter.emit({userId:ownerId,kind:'service_request',source:'service',message:'Нова заявка на обслуговування',url:'/business-profile.html?notifications=requests',eventKey:'request:'+requestId});
         res.status(201).json({ok:true});
     } catch(e){console.error('Business request create:',e);res.status(500).json({ok:false,message:'Не вдалося зберегти заявку'});}
 });
@@ -5107,6 +5114,9 @@ app.post(
                     ]
                 );
 
+            await notificationCenter.emit({userId:receiverId,actorId:req.user.userId,kind:'chat_message',
+                source:listingId?'market':'service',message:listingId?'Нове повідомлення щодо оголошення':'Нове повідомлення в бізнес-чаті',
+                url:'/chat.html?withUserId='+encodeURIComponent(req.user.userId)+(listingId?'&listingId='+encodeURIComponent(listingId):''),eventKey:'chat:'+messageId});
             res.status(201).json({
                 ok: true,
                 message:
@@ -6590,7 +6600,7 @@ app.post(
             const listingResult =
                 await pool.query(
                     `
-                    SELECT id
+                    SELECT id, owner_id
                     FROM market_listings
                     WHERE id = $1
                     LIMIT 1
@@ -6611,7 +6621,7 @@ app.post(
                 });
             }
 
-            await pool.query(
+            const savedFavorite = await pool.query(
                 `
                 INSERT INTO market_favorites (
                     user_id,
@@ -6622,13 +6632,15 @@ app.post(
                     user_id,
                     listing_id
                 )
-                DO NOTHING
+                DO NOTHING RETURNING listing_id
                 `,
                 [
                     req.user.userId,
                     listingId
                 ]
             );
+
+            if (savedFavorite.rowCount) await notificationCenter.emit({userId:listingResult.rows[0].owner_id,actorId:req.user.userId,kind:"listing_favorite",source:"market",message:"Ваше оголошення додали в обране",url:"/listing.html?id="+encodeURIComponent(listingId),eventKey:"favorite:"+listingId+":"+req.user.userId});
 
             res.json({
                 ok: true,
@@ -17329,6 +17341,7 @@ app.post(
                 ]
             );
 
+            await notificationCenter.topicPublished(result.rows[0]);
             res.status(201).json({
                 ok: true,
                 topic: result.rows[0]
@@ -17383,6 +17396,7 @@ app.post(
                 ]
             );
 
+            await notificationCenter.replyPublished(result.rows[0]);
             res.status(201).json({
                 ok: true,
                 reply: result.rows[0]
@@ -17410,7 +17424,7 @@ app.post('/api/forum/push/subscribe', requireAuth, async(req,res)=>{
     try {
         if(!forumPushEnabled()) return res.status(503).json({ok:false,message:'Push ще не налаштовано на сервері.'});
         const sub=req.body?.subscription;
-        if (!sub || typeof sub.endpoint!=='string' || !/^https:\/\//.test(sub.endpoint) || sub.endpoint.length>2048 || typeof sub.keys?.p256dh!=='string' || typeof sub.keys?.auth!=='string')
+        if (!require('./notifications').validSubscription(sub))
             return res.status(400).json({ok:false,message:'Некоректна підписка.'});
         await pool.query(`INSERT INTO forum_push_subscriptions(endpoint,user_id,subscription) VALUES($1,$2,$3)
             ON CONFLICT(endpoint) DO UPDATE SET user_id=EXCLUDED.user_id,subscription=EXCLUDED.subscription`,[sub.endpoint,req.user.userId,JSON.stringify(sub)]);
@@ -17428,10 +17442,9 @@ app.post('/api/forum/push/unsubscribe', requireAuth, async(req,res)=>{
 
 // Forum social interactions: authenticated, persistent and account-scoped.
 async function forumNotify(userId, actorId, kind, topicId, message) {
-    if (!userId || String(userId) === String(actorId)) return;
-    await pool.query(`INSERT INTO forum_notifications (id,user_id,actor_id,kind,topic_id,message)
-        VALUES ($1,$2,$3,$4,$5,$6)`, [crypto.randomUUID(),userId,actorId,kind,topicId,message]);
-    await forumSendPush(userId, message, topicId);
+    return notificationCenter.emit({userId,actorId,kind,topicId,message,
+        source:kind==='club_follow'?'clubs':kind==='follow'?'profile':'forum',
+        url:topicId?'/forum.html?topicId='+encodeURIComponent(topicId):'/profile.html'});
 }
 app.post('/api/forum/topics/:topicId/like', requireAuth, async (req,res) => {
     try {
@@ -17557,7 +17570,7 @@ app.put("/api/clubs/:id/membership",requireAuth,async(req,res)=>{
  if(req.body.joined) {
   const inserted = await pool.query("INSERT INTO community_club_members(club_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING club_id",[req.params.id,req.user.userId]);
   if (inserted.rowCount) {
-   await forumNotify(club.rows[0].owner_id, req.user.userId, "club_follow", null, "Новий підписник вашого клубу")
+   await notificationCenter.emit({userId:club.rows[0].owner_id,actorId:req.user.userId,kind:'club_follow',source:'clubs',message:'Новий підписник вашого клубу',url:'/forum.html?club='+encodeURIComponent(req.params.id)})
     .catch(error => console.error("Club follower notification:", error));
   }
  }
@@ -17640,7 +17653,7 @@ app.post(
 
             const replyResult = await pool.query(
                 `
-                SELECT id, user_id
+                SELECT id, user_id, topic_id
                 FROM forum_replies
                 WHERE id = $1
                 LIMIT 1
@@ -17713,6 +17726,8 @@ app.post(
 
                 liked = true;
             }
+
+            if (liked) await forumNotify(replyResult.rows[0].user_id, req.user.userId, "reply_like", replyResult.rows[0].topic_id, "Вашу відповідь вподобали");
 
             const countResult = await pool.query(
                 `

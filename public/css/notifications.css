@@ -1,0 +1,15 @@
+.rg-notification-bell{display:inline-flex!important;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:8px 12px;border:1px solid #c6a55e;border-radius:14px;color:#f4d58d;text-decoration:none;font-size:1rem;flex-shrink:0}
+.rg-notification-main{max-width:900px;margin:32px auto;padding:0 16px 64px;color:#e6edf5}
+.rg-notification-main h1{font-size:clamp(1.6rem,5vw,2.4rem);color:#f4d58d}
+.rg-notification-tools{display:flex;flex-wrap:wrap;gap:12px;margin:20px 0;align-items:center}
+.rg-notification-main button,.rg-notification-main select{font:inherit;font-size:1rem;min-height:44px;padding:10px 16px;border-radius:12px;border:1px solid #bba05f;background:#102943;color:#f4d58d;cursor:pointer}
+.rg-notification-main button:disabled{opacity:.6;cursor:wait}
+.rg-notification-main a{color:#f4d58d;overflow-wrap:anywhere}
+.rg-notification-main :focus-visible,.rg-notification-bell:focus-visible{outline:3px solid #f4d58d;outline-offset:3px}
+.rg-notice,.rg-push-settings{border:1px solid #38516b;border-radius:16px;background:#091e35;padding:20px;margin:14px 0}
+.rg-unread{border-left:5px solid #f4d58d}
+.rg-notice small{display:block;font-size:.9rem;color:#b5c5d8;margin-bottom:12px}
+.rg-notice a{display:block;font-size:1rem;line-height:1.6;text-decoration:none}
+.rg-notice button{margin-top:14px}
+.rg-push-settings p{line-height:1.6}
+@media(max-width:600px){.rg-notification-main{padding:0 12px 40px}.rg-notification-tools>*{max-width:100%}.rg-notice,.rg-push-settings{padding:16px}.rg-notification-tools select{width:100%}}
