@@ -135,3 +135,11 @@
 @media (max-width: 900px) {
   .rg-sticky-header > .top-line { padding: 8px 12px; }
 }
+
+/* Homepage section titles: readable red accent on the dark background. */
+#homePartnersTitle, #homeClubsTitle,
+#homePartnersTitle a, #homeClubsTitle a {
+  color: #f2767e;
+  text-decoration-color: currentColor;
+}
+#homePartnersTitle a:hover, #homeClubsTitle a:hover { color: #ffadb3; }
