@@ -222,3 +222,19 @@ body .rg-promo-pair .rg-mobile-slide > .rg-business-card.first-members-card { ba
 :root { --muted:#34383e; }
 .home-layout > .hero .hero-description a { color:#15171a; text-decoration-color:#555b64; }
 .home-layout > .hero .hero-description a:hover { color:#000000; }
+
+/* Slim homepage search with an integrated icon. */
+.home-layout > .hero .search-box {
+ position:relative; height:44px; min-height:0; padding:3px; margin-top:12px;
+}
+.home-layout > .hero .search-box input {
+ height:36px; min-height:0; padding:8px 48px 8px 10px; line-height:20px;
+}
+.home-layout > .hero .search-box .rg-search-icon {
+ position:absolute; top:50%; right:4px; transform:translateY(-50%);
+ width:34px; height:34px; min-width:34px; min-height:0; padding:0;
+ display:grid; place-items:center; font-size:16px; line-height:1;
+}
+.market-page .market-hero { background:#969da7; color:#24262a; }
+.market-page .market-toolbar input::placeholder { color:#3d4249; opacity:1; }
+.home-layout > .hero .search-box input::placeholder { color:#3d4249; opacity:1; }
