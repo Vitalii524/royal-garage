@@ -225,3 +225,6 @@ body :is(.hero,.panel,.market-hero,.listing-card,.first-members-card,
  .profile-community,.profile-videos,.home-partner-card,.home-club-card) {
  border:1px solid rgba(230,192,104,.45) !important;
 }
+
+/* Black logo backing fills the space around contained business emblems. */
+.business-page .business-logo-image-wrap { background:#000000; }
