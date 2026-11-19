@@ -9,8 +9,8 @@
     background:
         linear-gradient(
             90deg,
-            rgba(250,250,251, 0.95),
-            rgba(250,250,251, 0.75)
+            rgba(48,52,59, 0.95),
+            rgba(48,52,59, 0.75)
         ),
         radial-gradient(
             circle at right,
@@ -20,11 +20,13 @@
     border: 1px solid rgba(214, 160, 58, 0.25);
     border-radius: 18px;
     box-shadow: 0 0 35px rgba(0, 0, 0, 0.35);
+
+ color:#f4f5f7;
 }
 
 .hero h1 {
     margin: 0 0 10px;
-    color: var(--gold-ink);
+    color: var(--gold-light);
     font-size: 52px;
     letter-spacing: 2px;
 }
@@ -43,7 +45,7 @@
 
 .hero-actions a {
     padding: 14px 22px;
-    color: #212224;
+    color: #30343b;
     background: linear-gradient(
         180deg,
         var(--gold-light),
@@ -61,17 +63,19 @@
     gap: 12px;
     margin-top: 20px;
     padding: 10px;
-    background: #969da7;
+    background: #30343b;
     border: 1px solid rgba(214, 160, 58, 0.25);
     border-radius: 12px;
+
+ color:#f4f5f7;
 }
 
 .search-box input {
     flex: 1;
     padding: 16px;
     color: var(--white);
-    background: #969da7;
-    border: 1px solid #2e2f31;
+    background: #30343b;
+    border: 1px solid #30343b;
     border-radius: 8px;
     font-size: 16px;
 }
@@ -106,12 +110,14 @@
     padding: 25px;
     background: linear-gradient(
         180deg,
-        rgba(250,250,251, 0.95),
-        rgba(250,250,251, 0.95)
+        rgba(48,52,59, 0.95),
+        rgba(48,52,59, 0.95)
     );
     border: 1px solid rgba(214, 160, 58, 0.25);
     border-radius: 14px;
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.35);
+
+ color:#f4f5f7;
 }
 
 .panel-title {
@@ -139,6 +145,8 @@
     border: 1px solid rgba(214, 160, 58, 0.18);
     border-radius: 12px;
     transition: 0.25s;
+
+ color:#f4f5f7;
 }
 
 .topic-card:hover,
@@ -176,7 +184,7 @@
 .brand-grid button {
     padding: 16px;
     color: var(--white);
-    background: #969da7;
+    background: #30343b;
     border: 1px solid rgba(214, 160, 58, 0.25);
     border-radius: 10px;
     cursor: pointer;
@@ -184,7 +192,7 @@
 }
 
 .brand-grid button:hover {
-    color: #212224;
+    color: #30343b;
     background: var(--gold);
 }
 
@@ -199,11 +207,13 @@
     padding: 25px 20px;
     background: linear-gradient(
         180deg,
-        #969da7,
-        #969da7
+        #30343b,
+        #30343b
     );
     border: 1px solid rgba(214, 160, 58, 0.25);
     border-radius: 14px;
+
+ color:#f4f5f7;
 }
 
 .feature {
@@ -216,7 +226,7 @@
 }
 
 .feature h3 {
-    color: var(--gold-ink);
+    color: var(--gold-light);
 }
 
 .feature p {
@@ -291,8 +301,10 @@
 .home-market-no-photo {
     display: grid;
     place-items: center;
-    background: #969da7;
+    background: #30343b;
     font-size: 34px;
+
+ color:#f4f5f7;
 }
 
 .home-market-card-content {
@@ -301,7 +313,7 @@
 
 .home-market-card-content h3 {
     margin: 0 0 7px;
-    color: var(--gold-ink);
+    color: var(--gold-light);
     font-size: 17px;
 }
 
@@ -312,7 +324,7 @@
 }
 
 .home-market-card-content .home-market-price {
-    color: var(--gold-ink);
+    color: var(--gold-light);
     font-size: 16px;
     font-weight: bold;
 }
@@ -411,7 +423,7 @@
         .hero-text {
             width: 100%;
         }
-    
+
         .search-box {
             max-width: 100%;
         }
@@ -495,20 +507,20 @@
     background:
         linear-gradient(
             145deg,
-            rgba(250,250,251, 0.96),
-            rgba(250,250,251, 0.96)
+            rgba(48,52,59, 0.96),
+            rgba(48,52,59, 0.96)
         );
 
     box-shadow:
         0 18px 45px rgba(0, 0, 0, 0.35),
         inset 0 1px 0 rgba(255, 255, 255, 0.08);
 
-    color: #33363b;
+    color: #ffffff;
 }
 
 .atelier-label {
     margin-bottom: 12px;
-    color: #87601b;
+    color: #e4b85e;
     font-size: 13px;
     font-weight: 700;
     letter-spacing: 2px;
@@ -516,14 +528,14 @@
 
 .atelier-card h2 {
     margin-bottom: 14px;
-    color: #33363b;
+    color: #f4d58d;
     font-size: 28px;
     line-height: 1.2;
 }
 
 .atelier-card p {
     margin-bottom: 22px;
-    color: #33363b;
+    color: #d9e3f0;
     line-height: 1.6;
 }
 
@@ -532,7 +544,7 @@
     border: none;
     border-radius: 10px;
     background: linear-gradient(135deg, #f2cc78, #d99a2b);
-    color: #262729;
+    color: #30343b;
     font-weight: 700;
     cursor: pointer;
     transition: 0.25s ease;
@@ -605,21 +617,21 @@
     background:
         linear-gradient(
             145deg,
-            rgba(250,250,251, 0.96),
-            rgba(250,250,251, 0.96)
+            rgba(48,52,59, 0.96),
+            rgba(48,52,59, 0.96)
         );
 
     box-shadow:
         0 18px 45px rgba(0, 0, 0, 0.35),
         inset 0 1px 0 rgba(255, 255, 255, 0.08);
 
-    color: #33363b;
+    color: #ffffff;
 }
 
 .atelier-label {
     margin: 0 0 12px;
 
-    color: #87601b;
+    color: #e4b85e;
 
     font-size: 13px;
     font-weight: 700;
@@ -629,7 +641,7 @@
 .atelier-card h2 {
     margin: 0 0 14px;
 
-    color: #33363b;
+    color: #f4d58d;
 
     font-size: 28px;
     line-height: 1.2;
@@ -638,7 +650,7 @@
 .atelier-card p {
     margin-bottom: 22px;
 
-    color: #33363b;
+    color: #d9e3f0;
 
     line-height: 1.6;
 }
@@ -656,7 +668,7 @@
             #d99a2b
         );
 
-    color: #262729;
+    color: #30343b;
 
     font-weight: 700;
 
@@ -731,7 +743,7 @@
 
 .atelier-modal-label {
     margin: 0 0 10px;
-    color: var(--gold-ink);
+    color: var(--gold-light);
     font-size: 13px;
     font-weight: 700;
     letter-spacing: 2px;
@@ -739,7 +751,7 @@
 
 .atelier-modal h2 {
     margin: 0 0 12px;
-    color: var(--gold-ink);
+    color: var(--gold-light);
     font-size: 30px;
     line-height: 1.2;
 }
@@ -758,9 +770,11 @@
 
 .atelier-service {
     padding: 18px;
-    background: rgba(250,250,251, 0.78);
+    background: rgba(48,52,59, 0.78);
     border: 1px solid rgba(214, 160, 58, 0.25);
     border-radius: 14px;
+
+ color:#f4f5f7;
 }
 
 .atelier-service-icon {
@@ -771,7 +785,7 @@
 
 .atelier-service h3 {
     margin: 0 0 8px;
-    color: var(--gold-ink);
+    color: var(--gold-light);
     font-size: 18px;
 }
 
@@ -790,7 +804,7 @@
 .atelier-contact-button {
     display: inline-block;
     padding: 12px 20px;
-    color: #262729;
+    color: #30343b;
     background: linear-gradient(
         135deg,
         #f2cc78,
@@ -826,7 +840,7 @@
         flex-direction: column;
         align-items: stretch;
     }
-    
+
     .atelier-modal-logo {
         width: 95px;
         height: 95px;
@@ -879,7 +893,7 @@
 
 .atelier-contact-title {
     margin: 0;
-    color: var(--gold-ink);
+    color: var(--gold-light);
     font-size: 20px;
     text-align: center;
 }
@@ -900,8 +914,8 @@
     min-height: 66px;
     padding: 12px 14px;
 
-    color: #33363b;
-    background: rgba(250,250,251, 0.82);
+    color: #ffffff;
+    background: rgba(48,52,59, 0.82);
 
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 14px;
@@ -937,7 +951,7 @@
 
     border-radius: 12px;
 
-    color: #33363b;
+    color: #ffffff;
     font-size: 23px;
 }
 
@@ -948,7 +962,7 @@
 }
 
 .atelier-social-card strong {
-    color: #33363b;
+    color: #ffffff;
     font-size: 15px;
     line-height: 1.2;
 }
@@ -967,7 +981,7 @@
 /* ===== КОЛЬОРИ СОЦМЕРЕЖ ===== */
 
 .atelier-social-card.tiktok i {
-    background: #969da7;
+    background: #111111;
 
     box-shadow:
         -2px 0 #25f4ee,
@@ -1072,7 +1086,7 @@
     margin: 0;
     padding: 14px;
 
-    color: #33363b;
+    color: #ffffff;
     font-weight: 700;
 }
 
@@ -1094,7 +1108,7 @@
 
     padding: 0;
 
-    color: #202123;
+    color: #30343b;
     background: #e8c56a;
 
     border:
@@ -1167,15 +1181,15 @@
 .password-field {
     position: relative;
   }
-  
+
   .password-field input {
     width: 100%;
     padding-right: 46px;
     box-sizing: border-box;
   }
-  
+
   .toggle-password {
-    color: #87601b;
+    color: #d6a03a;
     position: absolute;
     top: 50%;
     right: 12px;
@@ -1209,7 +1223,7 @@
 
     border-radius: 12px;
 
-    background: #969da7;
+    background: #000;
 
     padding: 4px;
 
@@ -1414,15 +1428,17 @@
         ),
         linear-gradient(
             145deg,
-            rgba(250,250,251, 0.98),
-            rgba(250,250,251, 0.98)
+            rgba(48,52,59, 0.98),
+            rgba(48,52,59, 0.98)
         );
     box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+
+ color:#f4f5f7;
 }
 
 .first-members-label {
     margin: 0 0 10px;
-    color: var(--gold-ink);
+    color: var(--gold-light);
     font-size: 13px;
     font-weight: 800;
     letter-spacing: 1.7px;
@@ -1445,7 +1461,7 @@
 
 .first-members-intro strong,
 .first-members-note strong {
-    color: var(--gold-ink);
+    color: var(--gold-light);
 }
 
 .first-members-note {
@@ -1457,14 +1473,16 @@
     padding: 22px;
     border: 1px solid rgba(214, 160, 58, 0.28);
     border-radius: 15px;
-    background: rgba(250,250,251, 0.72);
+    background: rgba(48,52,59, 0.72);
+
+ color:#f4f5f7;
 }
 
 .first-members-number {
     display: flex;
     align-items: baseline;
     gap: 7px;
-    color: var(--gold-ink);
+    color: var(--gold-light);
     font-weight: 800;
 }
 
@@ -1484,7 +1502,9 @@
     overflow: hidden;
     border: 1px solid rgba(214, 160, 58, 0.28);
     border-radius: 999px;
-    background: #969da7;
+    background: #30343b;
+
+ color:#f4f5f7;
 }
 
 .first-members-progress span {
@@ -1567,8 +1587,8 @@
     box-sizing: border-box;
     border: 1px solid #624c30;
     border-radius: 12px;
-    background: #969da7;
-    color: #33363b;
+    background: #000;
+    color: #fff;
     text-decoration: none;
     overflow-wrap: anywhere;
     scroll-snap-align: start;

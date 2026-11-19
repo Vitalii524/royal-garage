@@ -7,7 +7,7 @@
 
 .auth-header-button {
     padding: 11px 15px;
-    color: var(--gold-ink);
+    color: var(--gold-light);
     background: transparent;
     border: 1px solid rgba(214, 160, 58, 0.5);
     border-radius: 8px;
@@ -17,7 +17,7 @@
 
 .auth-register-button,
 .auth-header-button:hover {
-    color: #212224;
+    color: #30343b;
     background: var(--gold);
 }
 
@@ -30,7 +30,7 @@
 }
 
 .logged-user a {
-    color: var(--gold-ink);
+    color: var(--gold-light);
     text-decoration: none;
     font-weight: bold;
     white-space: nowrap;
@@ -38,7 +38,7 @@
 
 .logout-button {
     padding: 10px 13px;
-    color: #33363b;
+    color: #ffcccc;
     background: transparent;
     border: 1px solid rgba(255, 120, 120, 0.4);
     border-radius: 8px;
@@ -46,7 +46,7 @@
 }
 
 .logout-button:hover {
-    color: #33363b;
+    color: #ffffff;
     background: #a62828;
 }
 
@@ -76,12 +76,14 @@
     padding: 28px;
     background: linear-gradient(
         180deg,
-        #969da7,
-        #969da7
+        #30343b,
+        #30343b
     );
     border: 1px solid rgba(214, 160, 58, 0.45);
     border-radius: 16px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+
+ color:#f4f5f7;
 }
 
 /* ===== ХРЕСТИК ===== */
@@ -93,7 +95,7 @@
     width: auto;
     margin: 0;
     padding: 0;
-    color: var(--gold-ink);
+    color: var(--gold-light);
     background: transparent;
     border: none;
     font-size: 30px;
@@ -112,14 +114,14 @@
 .auth-tab {
     padding: 12px;
     color: var(--white);
-    background: rgba(255, 255, 255, 0.04);
+    background: #30343b;
     border: 1px solid rgba(214, 160, 58, 0.2);
     border-radius: 8px;
     cursor: pointer;
 }
 
 .auth-tab.active {
-    color: #212224;
+    color: #30343b;
     background: var(--gold);
 }
 
@@ -132,7 +134,7 @@
 
 .auth-form h2 {
     margin: 0 0 5px;
-    color: var(--gold-ink);
+    color: var(--gold-light);
 }
 
 .auth-form label {
@@ -145,8 +147,8 @@
     width: 100%;
     padding: 14px;
     color: var(--white);
-    background: #969da7;
-    border: 1px solid #2e2f31;
+    background: #30343b;
+    border: 1px solid #30343b;
     border-radius: 8px;
     font-size: 16px;
 }
@@ -154,7 +156,7 @@
 .auth-error {
     min-height: 20px;
     margin: 0;
-    color: #33363b;
+    color: #ffaaaa;
     font-size: 14px;
 }
 

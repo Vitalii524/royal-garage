@@ -17,7 +17,7 @@
     gap: 8px;
     align-items: center;
   }
-  
+
   .language-switcher button {
     border: 1px solid rgba(255, 255, 255, 0.25);
     background: transparent;
@@ -27,10 +27,10 @@
     cursor: pointer;
     font-weight: 700;
   }
-  
+
   .language-switcher button.active {
     background: #f3d27a;
-    color: #202123;
+    color: #30343b;
   }
   .language-switcher button[data-language-toggle] {
     box-sizing: border-box;
@@ -40,7 +40,7 @@
     border: 1px solid rgba(198, 165, 94, 0.7);
     border-radius: 10px;
     background: transparent;
-    color: #33363b;
+    color: #f4d58d;
     font-size: 14px;
     line-height: 1;
   }
@@ -70,8 +70,8 @@
   cursor: pointer;
 }
 .modal-close, .auth-close {
-  color: #87601b;
-  background: #969da7;
+  color: #f0bd55;
+  background: #30343b;
   border: 1px solid rgba(214,160,58,.55);
 }
 .modal-close:focus-visible, .market-modal-close:focus-visible,
@@ -88,7 +88,7 @@
   box-sizing: border-box;
   font-size: 16px;
 }
-.modal select option, .business-modal select option { color: #33363b; background: #969da7; }
+.modal select option, .business-modal select option { color: #fff; background: #30343b; }
 @media (max-width: 600px) {
   .modal, .auth-modal, .business-modal { padding: 10px; }
   .modal .modal-content, .auth-window, .business-modal-card {
@@ -108,7 +108,7 @@
   top: 0;
   z-index: 1200;
   width: 100%;
-  background: #969da7;
+  background: linear-gradient(180deg, #711c27, #4b1018);
   border-bottom: 1px solid rgba(225, 184, 79, .4);
   box-shadow: 0 5px 18px rgba(0, 0, 0, .25);
 }
@@ -119,9 +119,9 @@
   margin: 0 auto;
   padding: 10px 20px;
 }
-.rg-sticky-header .nav { background: #969da7; }
+.rg-sticky-header .nav { background: rgba(50, 0, 8, .22); }
 .rg-sticky-header .burger-dropdown {
-  background: #969da7;
+  background: #53141d;
   max-height: calc(100dvh - 110px);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -139,102 +139,55 @@
 /* Homepage section titles: readable red accent on the dark background. */
 #homePartnersTitle, #homeClubsTitle,
 #homePartnersTitle a, #homeClubsTitle a {
-  color: #87601b;
+  color: #f2767e;
   text-decoration-color: currentColor;
 }
-#homePartnersTitle a:hover, #homeClubsTitle a:hover { color: #33363b; }
+#homePartnersTitle a:hover, #homeClubsTitle a:hover { color: #ffadb3; }
 
-/* The pinned header replaces the floating return-to-top control. */
-.back-to-top-button, .business-back-to-top { display: none !important; }
-
-/* Light-grey public site with a black pinned navigation bar. */
-:root { --dark:#f2f3f5; --navy:#ffffff; --navy2:#e9ebee; --white:#24262a; --muted:#5b6068; --card:rgba(0,0,0,.035); --gold-ink:#87601b; }
-body { background:#c4c7cc; color:#24262a; }
-.rg-sticky-header { background:#080808; color:#f7f0e6; }
+/* Unified grey page / graphite panels / white content text. About keeps its own stylesheet. */
+:root { --dark:#191b1f; --navy:#30343b; --navy2:#3b414a; --white:#f4f5f7; --muted:#c9cdd4; --card:#30343b; }
+body { background:#969da7; color:#f4f5f7; }
+.rg-sticky-header { background:#080808; }
 .rg-sticky-header .nav { background:#111111; }
-.rg-sticky-header .nav a,
-.rg-sticky-header .burger-dropdown a { color:#f7f0e6; }
 .rg-sticky-header .burger-dropdown { background:#151515; }
-.rg-sticky-header .burger-button,
-.rg-sticky-header .language-switcher button,
-.rg-sticky-header .auth-area a,
-.rg-sticky-header #logoutButton { color:#edc365; }
-.rg-sticky-header .nav a:hover,
-.rg-sticky-header .burger-dropdown a:hover { color:#141414; background:#edc365; }
-#homePartnersTitle, #homeClubsTitle,
-#homePartnersTitle a, #homeClubsTitle a { color:#111111; text-decoration-color:currentColor; }
+.rg-sticky-header .nav a, .rg-sticky-header .burger-dropdown a { color:#f4f5f7; }
+.back-to-top-button, .business-back-to-top { display:none !important; }
+#homePartnersTitle, #homeClubsTitle, #homePartnersTitle a, #homeClubsTitle a { color:#111111; text-decoration-color:currentColor; }
 #homePartnersTitle a:hover, #homeClubsTitle a:hover { color:#444444; }
-
-/* Compact homepage introduction. */
-.home-layout > .hero {
-  min-height: 0;
-  margin-top: 12px;
-  padding: 24px;
-  background: #969da7;
-  border: 1px solid #d4d7dc;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0,0,0,.06);
+.home-layout > .hero, .market-page .market-hero,
+body .listing-card, body .seller-card, body .panel,
+body .rg-business-card, body .rg-business-benefits,
+body .rg-promo-pair .rg-mobile-slide > .rg-business-card.first-members-card {
+ background:#30343b !important; color:#f4f5f7; border-color:#555b65;
 }
+.listing-card h1, .listing-card h2, .listing-card h3, .listing-card p,
+.seller-card h2, .seller-card p { color:#f4f5f7; }
+.home-layout > .hero { min-height:0; margin-top:12px; padding:24px; border-radius:16px; box-shadow:0 4px 16px rgba(0,0,0,.12); }
 .home-layout > .hero .hero-text { width:100%; min-width:0; }
-.home-layout > .hero h1 { color:#17191c; font-size:36px; letter-spacing:-.7px; line-height:1.15; margin:0 0 8px; }
-.home-layout > .hero p { color:#5b6068; font-size:16px; line-height:1.5; margin:0; max-width:none; }
-.home-layout > .hero .hero-actions { gap:10px; margin-top:18px; }
-.home-layout > .hero .hero-actions a { padding:12px 16px; font-size:15px; line-height:1.35; text-align:center; border:1px solid #d1a33c; border-radius:10px; color:#1b1b1b; }
-.home-layout > .hero .hero-actions a + a { background:#969da7; border-color:#bfc4cb; }
-.home-layout > .hero .search-box { background:#969da7; border:1px solid #cbd0d7; box-shadow:none; padding:4px; margin-top:16px; gap:4px; border-radius:10px; }
-.home-layout > .hero .search-box input { min-width:0; background:transparent; border:0; box-shadow:none; padding:10px; font-size:15px; color:#24262a; }
-.home-layout > .hero .search-box button { padding:10px 14px; border-radius:7px; }
+.home-layout > .hero h1 { color:#f4f5f7; font-size:36px; letter-spacing:-.7px; line-height:1.15; margin:0 0 8px; }
+.home-layout > .hero p { color:#e1e4e9; font-size:16px; line-height:1.5; margin:0; max-width:none; }
+.home-layout > .hero .hero-description a { color:#f4f5f7; text-decoration:underline; text-decoration-color:#a5abb5; text-underline-offset:3px; }
+.home-layout > .hero .hero-description a:hover { color:#f0bd55; }
+.home-layout > .hero .search-box { position:relative; height:44px; min-height:0; background:#25282e; border:1px solid #69717e; box-shadow:none; padding:3px; margin-top:12px; gap:0; border-radius:10px; }
+.home-layout > .hero .search-box input { min-width:0; height:36px; min-height:0; background:transparent; border:0; box-shadow:none; padding:8px 48px 8px 10px; line-height:20px; font-size:15px; color:#f4f5f7; }
+.home-layout > .hero .search-box .rg-search-icon { position:absolute; top:50%; right:4px; transform:translateY(-50%); width:34px; height:34px; min-width:34px; min-height:0; padding:0; display:grid; place-items:center; font-size:16px; line-height:1; border-radius:7px; }
+.home-layout > .hero .search-box input::placeholder, .market-page .market-toolbar input::placeholder { color:#c9cdd4; opacity:1; }
 .home-partner-card { background:#080808; color:#ffffff; }
 .home-partner-card strong, .home-club-card strong { color:#ffffff; }
-.business-photo-preview-item button { color:#ffffff; }
+body .home-forum-topic.car-card { background:#30343b; color:#f4f5f7; }
+.market-page .market-toolbar input, .market-page .market-toolbar select { background:#30343b; color:#f4f5f7; }
+body .rg-business-card h2, body .rg-business-card .rg-business-benefits strong { color:#f4f5f7 !important; }
+#garage-history { scroll-margin-top:170px; }
+@media(max-width:900px) { #garage-history { scroll-margin-top:110px; } }
 @media(max-width:600px) {
  .home-layout > .hero { padding:18px; margin-top:8px; }
  .home-layout > .hero h1 { font-size:30px; }
  .home-layout > .hero p { font-size:14px; }
- .home-layout > .hero .hero-actions { display:grid; grid-template-columns:1fr 1fr; }
- .home-layout > .hero .hero-actions a { padding:11px 8px; font-size:13px; }
 }
-body .panel, body .rg-business-card, body .rg-business-benefits,
-body .rg-promo-pair .rg-mobile-slide > .rg-business-card.first-members-card {
- background:#969da7 !important; color:#24262a; border-color:#d4d7dc;
- box-shadow:0 4px 16px rgba(0,0,0,.06);
-}
-body .home-forum-topic.car-card { background:#969da7; border-color:#d4d7dc; }
-body .rg-business-card h2, body .rg-business-card .rg-business-benefits strong { color:#24262a !important; }
 
-/* Description links replace the two homepage action buttons. */
-.home-layout > .hero .hero-description a {
- color:#464b53; text-decoration:underline; text-decoration-color:#9ca1a9;
- text-underline-offset:3px; text-decoration-thickness:1px;
-}
-.home-layout > .hero .hero-description a:hover { color:#111111; text-decoration-color:currentColor; }
-#garage-history { scroll-margin-top:170px; }
-@media(max-width:900px) { #garage-history { scroll-margin-top:110px; } }
-
-/* Grey panels sit one tone below the page; keep the navigation black. */
-:root { --navy:#969da7; --navy2:#a2a8b1; --card:rgba(0,0,0,.08); }
-.home-layout > .hero, body .panel, body .rg-business-card, body .rg-business-benefits,
-body .rg-promo-pair .rg-mobile-slide > .rg-business-card.first-members-card { background:#969da7 !important; }
-.rg-sticky-header { background:#080808; }
-.rg-sticky-header .nav { background:#111111; }
-.rg-sticky-header .burger-dropdown { background:#151515; }
-
-:root { --muted:#34383e; }
-.home-layout > .hero .hero-description a { color:#15171a; text-decoration-color:#555b64; }
-.home-layout > .hero .hero-description a:hover { color:#000000; }
-
-/* Slim homepage search with an integrated icon. */
-.home-layout > .hero .search-box {
- position:relative; height:44px; min-height:0; padding:3px; margin-top:12px;
-}
-.home-layout > .hero .search-box input {
- height:36px; min-height:0; padding:8px 48px 8px 10px; line-height:20px;
-}
-.home-layout > .hero .search-box .rg-search-icon {
- position:absolute; top:50%; right:4px; transform:translateY(-50%);
- width:34px; height:34px; min-width:34px; min-height:0; padding:0;
- display:grid; place-items:center; font-size:16px; line-height:1;
-}
-.market-page .market-hero { background:#969da7; color:#24262a; }
-.market-page .market-toolbar input::placeholder { color:#3d4249; opacity:1; }
-.home-layout > .hero .search-box input::placeholder { color:#3d4249; opacity:1; }
+#homePartnersTitle, #homeClubsTitle, #homePartnersTitle a, #homeClubsTitle a { color:#ffffff; }
+#homePartnersTitle a:hover, #homeClubsTitle a:hover { color:#f0bd55; }
+body .first-members-card { background:#30343b !important; color:#f4f5f7; }
+body .first-members-counter { background:#25282e; color:#f4f5f7; }
+.market-page .market-hero h1, .market-page .market-hero p { color:#f4f5f7; }
+.seller-card a:not(.gold-btn), .seller-card button:not(.gold-btn) { color:#f4f5f7; }

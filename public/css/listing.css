@@ -8,7 +8,7 @@
 .listing-back-link {
     display: inline-block;
     margin-bottom: 20px;
-    color: #87601b;
+    color: #f0c96b;
     text-decoration: none;
 }
 
@@ -25,10 +25,12 @@
 
 .listing-card {
     padding: 24px;
-    background: rgba(250,250,251, 0.92);
+    background: rgba(48,52,59, 0.92);
     border: 1px solid rgba(240, 201, 107, 0.35);
     border-radius: 16px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+
+ color:#f4f5f7;
 }
 
 /* ===== ГОЛОВНЕ ФОТО ===== */
@@ -38,8 +40,10 @@
     width: 100%;
     max-height: 600px;
     object-fit: contain;
-    background: #969da7;
+    background: #30343b;
     border-radius: 12px;
+
+ color:#f4f5f7;
 }
 
 .listing-no-photo {
@@ -53,7 +57,7 @@
 
 .listing-price {
     margin: 12px 0 5px;
-    color: #87601b;
+    color: #f0c96b;
 }
 
 .listing-parameters {
@@ -143,8 +147,8 @@
     width: 46px;
     height: 46px;
 
-    color: #33363b;
-    background: rgba(250,250,251, 0.92);
+    color: #ffffff;
+    background: rgba(48,52,59, 0.92);
 
     border: 1px solid rgba(240, 201, 107, 0.65);
     border-radius: 50%;
@@ -156,7 +160,7 @@
 }
 
 .photo-viewer-close:hover {
-    color: #202123;
+    color: #30343b;
     background: #f0c96b;
 }
 
@@ -213,12 +217,14 @@ body.photo-viewer-open {
     padding: 0 !important;
     margin: 0 !important;
 
-    background: #969da7;
+    background: #30343b;
     border: 2px solid transparent;
     border-radius: 9px;
 
     overflow: hidden;
     cursor: pointer;
+
+ color:#f4f5f7;
 }
 
 .listing-photo-thumbnail.is-active {
@@ -251,9 +257,11 @@ body.photo-viewer-open {
     width: 100%;
     min-height: 300px;
 
-    background: #969da7;
+    background: #30343b;
     border-radius: 12px;
     overflow: hidden;
+
+ color:#f4f5f7;
 }
 
 .listing-photo-stage .listing-main-photo {
@@ -297,8 +305,8 @@ body.photo-viewer-open {
     width: 54px;
     height: 54px;
 
-    color: #33363b;
-    background: rgba(250,250,251, 0.92);
+    color: #ffffff;
+    background: rgba(48,52,59, 0.92);
 
     border: 1px solid rgba(240, 201, 107, 0.7);
     border-radius: 50%;
@@ -320,7 +328,7 @@ body.photo-viewer-open {
 }
 
 .photo-viewer-arrow:hover {
-    color: #202123;
+    color: #30343b;
     background: #f0c96b;
 }
 
@@ -347,13 +355,15 @@ body.photo-viewer-open {
     padding: 18px;
 
     background:
-        rgba(250,250,251, 0.72);
+        rgba(48,52,59, 0.72);
 
     border:
         1px solid
         rgba(240, 201, 107, 0.32);
 
     border-radius: 14px;
+
+ color:#f4f5f7;
 }
 
 .seller-rating-summary {
@@ -381,7 +391,7 @@ body.photo-viewer-open {
 }
 
 .seller-display-star.is-filled {
-    color: #87601b;
+    color: #f0c96b;
 
     text-shadow:
         0 0 8px
@@ -389,7 +399,7 @@ body.photo-viewer-open {
 }
 
 .seller-rating-number {
-    color: #87601b;
+    color: #f0c96b;
 
     font-size: 24px;
 }
@@ -428,7 +438,7 @@ body.photo-viewer-open {
         rgba(255, 255, 255, 0.3);
 
     background:
-        rgba(250,250,251, 0.92);
+        rgba(48,52,59, 0.92);
 
     border:
         1px solid
@@ -450,7 +460,7 @@ body.photo-viewer-open {
 }
 
 .seller-rating-button:hover {
-    color: #87601b;
+    color: #f0c96b;
 
     border-color:
         rgba(240, 201, 107, 0.8);
@@ -469,7 +479,7 @@ body.photo-viewer-open {
 }
 
 .seller-rating-button.is-selected {
-    color: #87601b;
+    color: #f0c96b;
 
     background:
         rgba(75, 57, 11, 0.76);
@@ -518,7 +528,7 @@ body.photo-viewer-open {
 .seller-reviews-title {
     margin: 0 0 14px;
 
-    color: #87601b;
+    color: #f0c96b;
 
     font-size: 22px;
 }
@@ -535,13 +545,15 @@ body.photo-viewer-open {
     padding: 16px;
 
     background:
-        rgba(250,250,251, 0.72);
+        rgba(48,52,59, 0.72);
 
     border:
         1px solid
         rgba(240, 201, 107, 0.28);
 
     border-radius: 12px;
+
+ color:#f4f5f7;
 }
 
 .seller-review-header {
@@ -554,7 +566,7 @@ body.photo-viewer-open {
 }
 
 .seller-review-author {
-    color: #33363b;
+    color: #ffffff;
 
     font-size: 16px;
 }
@@ -581,7 +593,7 @@ body.photo-viewer-open {
 }
 
 .seller-review-star.is-filled {
-    color: #87601b;
+    color: #f0c96b;
 
     text-shadow:
         0 0 7px
@@ -685,7 +697,7 @@ body.photo-viewer-open {
 
     padding: 6px 12px;
 
-    color: #33363b;
+    color: #ffffff;
     background: rgba(0, 0, 0, 0.65);
 
     border-radius: 20px;
@@ -707,9 +719,11 @@ body.photo-viewer-open {
         width: 100%;
         height: 520px;
         min-height: 0;
-        background: #969da7;
+        background: #30343b;
         overflow: hidden;
-    }
+
+ color:#f4f5f7;
+}
 
     .listing-photo-stage .listing-main-photo {
         display: block;
@@ -793,14 +807,16 @@ body.photo-viewer-open {
 .listing-card.seller-card .primary-button,
 .listing-card.seller-card .secondary-button {
   box-sizing: border-box; min-height: 42px; padding: 10px 14px;
-  background: #969da7; color: #87601b;
+  background: #30343b; color: #f0c96b;
   border: 1px solid rgba(240,201,107,.7); border-radius: 10px;
   font: inherit; font-size: 15px; font-weight: 700;
   line-height: 1.35; white-space: normal; cursor: pointer;
 }
 .listing-card.seller-card > button:hover,
 .listing-card.seller-card > button:focus-visible {
-  background: #969da7; border-color: #f0c96b;
+  background: #30343b; border-color: #f0c96b;
+
+ color:#f4f5f7;
 }
 .listing-parameters { gap: 6px 22px; }
 .listing-parameters p { margin: 6px 0; line-height: 1.55; overflow-wrap: anywhere; }
@@ -822,8 +838,8 @@ body.photo-viewer-open {
     min-height: 44px;
     padding: 11px 16px;
     margin: 8px 0;
-    background: #969da7;
-    color: #87601b;
+    background: #30343b;
+    color: #f0c96b;
     border: 1px solid rgba(240, 201, 107, .75);
     border-radius: 10px;
     font: inherit;
@@ -836,15 +852,17 @@ body.photo-viewer-open {
 }
 .listing-card #shareListingButton:hover,
 .listing-card #shareListingButton:focus-visible {
-    background: #969da7;
+    background: #30343b;
     border-color: #f0c96b;
+
+ color:#f4f5f7;
 }
 /* Seller review form: restore the label and full-width dark input. */
 .listing-card .seller-rating-form .seller-review-label {
     display: block;
     width: 100%;
     margin: 14px 0 7px;
-    color: #87601b;
+    color: #f0c96b;
     font-size: 15px;
     font-weight: 700;
 }
@@ -857,8 +875,8 @@ body.photo-viewer-open {
     min-height: 110px;
     padding: 12px 14px;
     margin: 0;
-    color: #33363b;
-    background: #969da7;
+    color: #fff;
+    background: #30343b;
     border: 1px solid rgba(240, 201, 107, .65);
     border-radius: 10px;
     font: inherit;
@@ -900,8 +918,8 @@ body.photo-viewer-open {
     min-height: 34px;
     padding: 6px 11px;
     margin: 6px 0 0 8px;
-    color: #87601b;
-    background: #969da7;
+    color: #f0c96b;
+    background: #30343b;
     border: 1px solid rgba(240, 201, 107, .65);
     border-radius: 8px;
     font: inherit;
@@ -912,8 +930,10 @@ body.photo-viewer-open {
 }
 .listing-card .copy-vin-button:hover,
 .listing-card .copy-vin-button:focus-visible {
-    background: #969da7;
+    background: #30343b;
     border-color: #f0c96b;
+
+ color:#f4f5f7;
 }
 .listing-card .listing-description {
     margin: 12px 0 0;

@@ -7,9 +7,11 @@
 
 .chat-card {
     padding: 24px;
-    background: rgba(250,250,251, 0.95);
+    background: rgba(48,52,59, 0.95);
     border: 1px solid rgba(240, 201, 107, 0.35);
     border-radius: 16px;
+
+ color:#f4f5f7;
 }
 
 /* ===== ПОВІДОМЛЕННЯ ===== */
@@ -19,8 +21,10 @@
     padding: 16px;
     margin: 20px 0;
     overflow-y: auto;
-    background: rgba(250,250,251, 0.75);
+    background: rgba(48,52,59, 0.75);
     border-radius: 12px;
+
+ color:#f4f5f7;
 }
 
 .chat-message {
@@ -41,13 +45,15 @@
 
 .chat-message-own {
     margin-left: auto;
-    color: #1f2022;
+    color: #30343b;
     background: #d8b35b;
 }
 
 .chat-message-other {
     margin-right: auto;
-    background: #969da7;
+    background: #30343b;
+
+ color:#f4f5f7;
 }
 
 /* ===== ФОРМА НАДСИЛАННЯ ===== */
@@ -86,7 +92,7 @@
     padding: 16px 18px;
     color: #222222;
     text-decoration: none;
-    background: #969da7;
+    background: #ffffff;
     border: 1px solid #ececec;
     border-radius: 16px;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
@@ -142,7 +148,7 @@
 }
 
 .chat-time {
-    color: #33363b;
+    color: #999999;
     font-size: 13px;
     white-space: nowrap;
 }
@@ -186,13 +192,15 @@ body.chat-page main {
     margin-bottom: 16px;
     padding: 12px 16px;
 
-    background: rgba(250,250,251, 0.92);
+    background: rgba(48,52,59, 0.92);
     border: 1px solid rgba(240, 201, 107, 0.35);
     border-radius: 12px;
+
+ color:#f4f5f7;
 }
 
 .chat-back-link {
-    color: #87601b;
+    color: #f0c96b;
     text-decoration: none;
     font-weight: 700;
 }
@@ -232,7 +240,7 @@ body.chat-page main {
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 12px;
 
-    background: rgba(255, 255, 255, 0.06);
+    background: #30343b;
     color: inherit;
 
     font-size: 22px;
@@ -245,7 +253,9 @@ body.chat-page main {
 
 .chat-attachment-button:hover {
     transform: translateY(-1px);
-    background: rgba(255, 255, 255, 0.12);
+    background: #30343b;
+
+ color:#f4f5f7;
 }
 
 .chat-attachment-preview {
@@ -256,7 +266,9 @@ body.chat-page main {
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 14px;
 
-    background: rgba(255, 255, 255, 0.05);
+    background: #30343b;
+
+ color:#f4f5f7;
 }
 
 .chat-attachment-content {
@@ -273,7 +285,7 @@ body.chat-page main {
     border-radius: 10px;
     object-fit: cover;
 
-    background: #969da7;
+    background: #111;
 }
 
 .chat-preview-file-info {
@@ -302,7 +314,7 @@ body.chat-page main {
     border-radius: 50%;
 
     background: rgba(0, 0, 0, 0.65);
-    color: #33363b;
+    color: #fff;
 
     font-size: 22px;
     line-height: 1;
@@ -312,7 +324,7 @@ body.chat-page main {
 .chat-file-error {
     margin: 0;
 
-    color: #33363b;
+    color: #ff8d8d;
     font-size: 14px;
 }
 
@@ -405,8 +417,8 @@ body.chat-page main {
     border: 0;
     border-radius: 50%;
 
-    background: rgba(255, 255, 255, 0.14);
-    color: #33363b;
+    background: #30343b;
+    color: #fff;
 
     font-size: 32px;
     cursor: pointer;
@@ -557,9 +569,11 @@ body.chat-viewer-open {
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 12px;
-    background: #969da7;
+    background: #30343b;
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
     z-index: 50;
+
+ color:#f4f5f7;
 }
 
 .chat-message-menu.is-open {
@@ -574,7 +588,7 @@ body.chat-viewer-open {
     border: none;
     border-radius: 0;
     background: transparent;
-    color: #33363b;
+    color: #ffffff;
     font-family: inherit;
     font-size: 14px;
     text-align: left;
@@ -583,11 +597,13 @@ body.chat-viewer-open {
 
 .chat-message-action-button:hover,
 .chat-message-action-button:focus-visible {
-    background: rgba(255, 255, 255, 0.1);
+    background: #30343b;
+
+ color:#f4f5f7;
 }
 
 .chat-message-delete-button {
-    color: #33363b;
+    color: #ff9292;
 }
 
 .chat-message-edited {
@@ -640,19 +656,19 @@ body.chat-viewer-open {
     top: 38px;
     right: 0;
     z-index: 999;
-    background: #969da7 !important;
-    color: #33363b !important;
+    background: #30343b !important;
+    color: #ffffff !important;
 }
 
 .chat-message-action-button {
     display: block;
-    color: #33363b !important;
+    color: #ffffff !important;
     background: transparent !important;
     white-space: nowrap;
 }
 
 .chat-message-delete-button {
-    color: #33363b !important;
+    color: #ff9292 !important;
 }
 
 .chat-message-own .chat-message-menu {

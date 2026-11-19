@@ -22,13 +22,15 @@
     max-height: 90vh;
     padding: 25px;
     overflow: auto;
-    background: #969da7;
+    background: #30343b;
     border: 1px solid rgba(214, 160, 58, 0.4);
     border-radius: 14px;
+
+ color:#f4f5f7;
 }
 
 .modal-content h2 {
-    color: var(--gold-ink);
+    color: var(--gold-light);
 }
 
 /* ===== ПОЛЯ ФОРМИ ===== */
@@ -39,8 +41,8 @@
     margin: 8px 0;
     padding: 14px;
     color: var(--white);
-    background: #969da7;
-    border: 1px solid #2e2f31;
+    background: #30343b;
+    border: 1px solid #30343b;
     border-radius: 8px;
 }
 
@@ -70,7 +72,7 @@
     position: absolute;
     top: 12px;
     right: 18px;
-    color: var(--gold-ink);
+    color: var(--gold-light);
     font-size: 28px;
     cursor: pointer;
 }
@@ -90,7 +92,7 @@
     margin: 0;
     padding: 0;
 
-    color: var(--gold-ink);
+    color: var(--gold-light);
     background: transparent;
     border: none;
     border-radius: 50%;
@@ -132,5 +134,5 @@
 .modal-content .market-modal-header h2 { min-width: 0; margin: 0; }
 .modal-content .listing-photo-remove {
   position: absolute; top: 6px; right: 6px; z-index: 5;
-  color: #33363b; background: #a61f2e; border: 1px solid rgba(255,255,255,.5);
+  color: #fff; background: #a61f2e; border: 1px solid rgba(255,255,255,.5);
 }
