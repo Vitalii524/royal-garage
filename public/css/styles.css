@@ -146,7 +146,7 @@
 
 /* Unified grey page / graphite panels / white content text. About keeps its own stylesheet. */
 :root { --dark:#191b1f; --navy:#30343b; --navy2:#3b414a; --white:#f4f5f7; --muted:#c9cdd4; --card:#30343b; }
-body { background:#969da7; color:#f4f5f7; }
+body { background:#858c96; color:#f4f5f7; }
 .rg-sticky-header { background:#080808; }
 .rg-sticky-header .nav { background:#111111; }
 .rg-sticky-header .burger-dropdown { background:#151515; }
