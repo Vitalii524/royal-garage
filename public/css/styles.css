@@ -194,3 +194,10 @@ body { background:#eef0f2; color:#24262a; }
  .home-layout > .hero .hero-actions { display:grid; grid-template-columns:1fr 1fr; }
  .home-layout > .hero .hero-actions a { padding:11px 8px; font-size:13px; }
 }
+body .panel, body .rg-business-card, body .rg-business-benefits,
+body .rg-promo-pair .rg-mobile-slide > .rg-business-card.first-members-card {
+ background:#ffffff !important; color:#24262a; border-color:#d4d7dc;
+ box-shadow:0 4px 16px rgba(0,0,0,.06);
+}
+body .home-forum-topic.car-card { background:#f5f6f8; border-color:#d4d7dc; }
+body .rg-business-card h2, body .rg-business-card .rg-business-benefits strong { color:#24262a !important; }

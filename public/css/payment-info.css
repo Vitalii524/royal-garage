@@ -6,7 +6,7 @@ body {
     background:
         radial-gradient(
             circle at top,
-            rgba(47,48,50, 0.35),
+            rgba(250,250,251, 0.35),
             transparent 40%
         ),
         #f2f3f5;
@@ -69,8 +69,8 @@ body {
     background:
         linear-gradient(
             145deg,
-            rgba(37,38,40, 0.96),
-            rgba(31,32,34, 0.96)
+            rgba(250,250,251, 0.96),
+            rgba(250,250,251, 0.96)
         );
 
     border: 1px solid rgba(214, 160, 58, 0.3);
@@ -149,7 +149,7 @@ body {
 
 .legal-details {
     padding: 18px;
-    background: rgba(25,26,28, 0.38);
+    background: rgba(250,250,251, 0.38);
     border-radius: 12px;
 }
 
@@ -304,7 +304,7 @@ body {
 .launch-offer {
     margin-top: 22px;
     padding: 22px 24px;
-    background: linear-gradient(145deg, rgba(214,160,58,.14), rgba(31,32,34,.72));
+    background: linear-gradient(145deg, rgba(214,160,58,.14), rgba(250,250,251,.72));
     border: 1px solid rgba(214,160,58,.55);
     border-radius: 14px;
 }

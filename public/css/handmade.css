@@ -46,8 +46,8 @@
     background:
         linear-gradient(
             135deg,
-            rgba(35,36,38, 0.98),
-            rgba(29,30,32, 0.98)
+            rgba(250,250,251, 0.98),
+            rgba(250,250,251, 0.98)
         );
 
     box-shadow:
@@ -224,7 +224,7 @@
     border-radius: 22px;
 
     background:
-        rgba(32,33,35,
+        rgba(250,250,251,
             0.78);
 }
 
@@ -411,7 +411,7 @@
         linear-gradient(
             135deg,
             rgba(232, 197, 106, 0.16),
-            rgba(32,33,35, 0.95)
+            rgba(250,250,251, 0.95)
         );
 }
 
@@ -497,7 +497,7 @@ p:not(.upholstery-label) {
     border-radius: 50%;
 
     background:
-        rgba(32,33,35,
+        rgba(250,250,251,
             0.92);
 
     font-size: 2rem;
@@ -680,8 +680,8 @@ html {
     background:
         linear-gradient(
             135deg,
-            rgba(32,33,35, 0.96),
-            rgba(41,42,44, 0.84)
+            rgba(250,250,251, 0.96),
+            rgba(250,250,251, 0.84)
         );
 
     box-shadow:
@@ -970,7 +970,7 @@ html {
     background:
         linear-gradient(
             135deg,
-            rgba(32,33,35, 0.95),
+            rgba(250,250,251, 0.95),
             rgba(232, 197, 106, 0.12)
         );
 }
