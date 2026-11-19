@@ -116,7 +116,7 @@
     display: grid;
     height: 220px;
     place-items: center;
-    background: #ffffff;
+    background: #969da7;
     font-size: 45px;
 }
 
@@ -292,7 +292,7 @@
     min-width: 0;
     overflow: hidden;
 
-    background: #ffffff;
+    background: #969da7;
 
     border: 2px solid transparent;
     border-radius: 12px;
@@ -716,7 +716,7 @@
 
 .listing-car-name-fields select option {
     color: #33363b;
-    background: #ffffff;
+    background: #969da7;
 }
 
 
@@ -734,7 +734,7 @@
 .market-modal-close {
   display:grid; place-items:center; flex:0 0 36px;
   width:36px; height:36px; padding:0;
-  color:#87601b; background:#ffffff;
+  color:#87601b; background:#969da7;
   border:1px solid rgba(240,201,107,.55); border-radius:50%;
   font-size:23px; line-height:1; cursor:pointer;
 }
@@ -742,11 +742,11 @@
 #listingForm input:not([type="checkbox"]):not([type="radio"]),
 #listingForm select, #listingForm textarea {
   width:100%; max-width:100%; min-width:0; box-sizing:border-box;
-  padding:12px 14px; color:#33363b; background:#ffffff;
+  padding:12px 14px; color:#33363b; background:#969da7;
   border:1px solid rgba(240,201,107,.45); border-radius:10px;
   font:inherit; font-size:16px;
 }
-#listingForm select option { color:#33363b; background:#ffffff; }
+#listingForm select option { color:#33363b; background:#969da7; }
 #listingForm input::placeholder, #listingForm textarea::placeholder { color:#33363b; }
 .listing-photo-remove { font-size:19px; width:30px; height:30px; }
 @media(max-width:600px) {

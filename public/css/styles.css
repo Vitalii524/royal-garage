@@ -71,7 +71,7 @@
 }
 .modal-close, .auth-close {
   color: #87601b;
-  background: #ffffff;
+  background: #969da7;
   border: 1px solid rgba(214,160,58,.55);
 }
 .modal-close:focus-visible, .market-modal-close:focus-visible,
@@ -88,7 +88,7 @@
   box-sizing: border-box;
   font-size: 16px;
 }
-.modal select option, .business-modal select option { color: #33363b; background: #ffffff; }
+.modal select option, .business-modal select option { color: #33363b; background: #969da7; }
 @media (max-width: 600px) {
   .modal, .auth-modal, .business-modal { padding: 10px; }
   .modal .modal-content, .auth-window, .business-modal-card {
@@ -108,7 +108,7 @@
   top: 0;
   z-index: 1200;
   width: 100%;
-  background: #f2f3f5;
+  background: #969da7;
   border-bottom: 1px solid rgba(225, 184, 79, .4);
   box-shadow: 0 5px 18px rgba(0, 0, 0, .25);
 }
@@ -119,9 +119,9 @@
   margin: 0 auto;
   padding: 10px 20px;
 }
-.rg-sticky-header .nav { background: #f2f3f5; }
+.rg-sticky-header .nav { background: #969da7; }
 .rg-sticky-header .burger-dropdown {
-  background: #f2f3f5;
+  background: #969da7;
   max-height: calc(100dvh - 110px);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -170,7 +170,7 @@ body { background:#c4c7cc; color:#24262a; }
   min-height: 0;
   margin-top: 12px;
   padding: 24px;
-  background: #ffffff;
+  background: #969da7;
   border: 1px solid #d4d7dc;
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0,0,0,.06);
@@ -180,8 +180,8 @@ body { background:#c4c7cc; color:#24262a; }
 .home-layout > .hero p { color:#5b6068; font-size:16px; line-height:1.5; margin:0; max-width:none; }
 .home-layout > .hero .hero-actions { gap:10px; margin-top:18px; }
 .home-layout > .hero .hero-actions a { padding:12px 16px; font-size:15px; line-height:1.35; text-align:center; border:1px solid #d1a33c; border-radius:10px; color:#1b1b1b; }
-.home-layout > .hero .hero-actions a + a { background:#ffffff; border-color:#bfc4cb; }
-.home-layout > .hero .search-box { background:#ffffff; border:1px solid #cbd0d7; box-shadow:none; padding:4px; margin-top:16px; gap:4px; border-radius:10px; }
+.home-layout > .hero .hero-actions a + a { background:#969da7; border-color:#bfc4cb; }
+.home-layout > .hero .search-box { background:#969da7; border:1px solid #cbd0d7; box-shadow:none; padding:4px; margin-top:16px; gap:4px; border-radius:10px; }
 .home-layout > .hero .search-box input { min-width:0; background:transparent; border:0; box-shadow:none; padding:10px; font-size:15px; color:#24262a; }
 .home-layout > .hero .search-box button { padding:10px 14px; border-radius:7px; }
 .home-partner-card { background:#080808; color:#ffffff; }
@@ -196,10 +196,10 @@ body { background:#c4c7cc; color:#24262a; }
 }
 body .panel, body .rg-business-card, body .rg-business-benefits,
 body .rg-promo-pair .rg-mobile-slide > .rg-business-card.first-members-card {
- background:#ffffff !important; color:#24262a; border-color:#d4d7dc;
+ background:#969da7 !important; color:#24262a; border-color:#d4d7dc;
  box-shadow:0 4px 16px rgba(0,0,0,.06);
 }
-body .home-forum-topic.car-card { background:#f5f6f8; border-color:#d4d7dc; }
+body .home-forum-topic.car-card { background:#969da7; border-color:#d4d7dc; }
 body .rg-business-card h2, body .rg-business-card .rg-business-benefits strong { color:#24262a !important; }
 
 /* Description links replace the two homepage action buttons. */
@@ -210,3 +210,15 @@ body .rg-business-card h2, body .rg-business-card .rg-business-benefits strong {
 .home-layout > .hero .hero-description a:hover { color:#111111; text-decoration-color:currentColor; }
 #garage-history { scroll-margin-top:170px; }
 @media(max-width:900px) { #garage-history { scroll-margin-top:110px; } }
+
+/* Grey panels sit one tone below the page; keep the navigation black. */
+:root { --navy:#969da7; --navy2:#a2a8b1; --card:rgba(0,0,0,.08); }
+.home-layout > .hero, body .panel, body .rg-business-card, body .rg-business-benefits,
+body .rg-promo-pair .rg-mobile-slide > .rg-business-card.first-members-card { background:#969da7 !important; }
+.rg-sticky-header { background:#080808; }
+.rg-sticky-header .nav { background:#111111; }
+.rg-sticky-header .burger-dropdown { background:#151515; }
+
+:root { --muted:#34383e; }
+.home-layout > .hero .hero-description a { color:#15171a; text-decoration-color:#555b64; }
+.home-layout > .hero .hero-description a:hover { color:#000000; }

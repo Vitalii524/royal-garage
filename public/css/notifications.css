@@ -2,11 +2,11 @@
 .rg-notification-main{max-width:900px;margin:32px auto;padding:0 16px 64px;color:#33363b}
 .rg-notification-main h1{font-size:clamp(1.6rem,5vw,2.4rem);color:#33363b}
 .rg-notification-tools{display:flex;flex-wrap:wrap;gap:12px;margin:20px 0;align-items:center}
-.rg-notification-main button,.rg-notification-main select{font:inherit;font-size:1rem;min-height:44px;padding:10px 16px;border-radius:12px;border:1px solid #bba05f;background:#ffffff;color:#33363b;cursor:pointer}
+.rg-notification-main button,.rg-notification-main select{font:inherit;font-size:1rem;min-height:44px;padding:10px 16px;border-radius:12px;border:1px solid #bba05f;background:#969da7;color:#33363b;cursor:pointer}
 .rg-notification-main button:disabled{opacity:.6;cursor:wait}
 .rg-notification-main a{color:#33363b;overflow-wrap:anywhere}
 .rg-notification-main :focus-visible,.rg-notification-bell:focus-visible{outline:3px solid #f4d58d;outline-offset:3px}
-.rg-notice,.rg-push-settings{border:1px solid #393a3c;border-radius:16px;background:#ffffff;padding:20px;margin:14px 0}
+.rg-notice,.rg-push-settings{border:1px solid #393a3c;border-radius:16px;background:#969da7;padding:20px;margin:14px 0}
 .rg-unread{border-left:5px solid #f4d58d}
 .rg-notice small{display:block;font-size:.9rem;color:#33363b;margin-bottom:12px}
 .rg-notice a{display:block;font-size:1rem;line-height:1.6;text-decoration:none}

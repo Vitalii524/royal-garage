@@ -47,7 +47,7 @@
 
 .chat-message-other {
     margin-right: auto;
-    background: #ffffff;
+    background: #969da7;
 }
 
 /* ===== ФОРМА НАДСИЛАННЯ ===== */
@@ -86,7 +86,7 @@
     padding: 16px 18px;
     color: #222222;
     text-decoration: none;
-    background: #ffffff;
+    background: #969da7;
     border: 1px solid #ececec;
     border-radius: 16px;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
@@ -273,7 +273,7 @@ body.chat-page main {
     border-radius: 10px;
     object-fit: cover;
 
-    background: #f2f3f5;
+    background: #969da7;
 }
 
 .chat-preview-file-info {
@@ -557,7 +557,7 @@ body.chat-viewer-open {
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 12px;
-    background: #ffffff;
+    background: #969da7;
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
     z-index: 50;
 }
@@ -640,7 +640,7 @@ body.chat-viewer-open {
     top: 38px;
     right: 0;
     z-index: 999;
-    background: #ffffff !important;
+    background: #969da7 !important;
     color: #33363b !important;
 }
 

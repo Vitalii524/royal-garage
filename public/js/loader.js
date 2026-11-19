@@ -123,3 +123,5 @@ document.addEventListener(
         );
     }
 );
+// A page restored by Back/Forward keeps its DOM, including a visible transition loader.
+window.addEventListener('pageshow', hideRoyalLoader);

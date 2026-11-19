@@ -461,7 +461,7 @@
     height: 28px;
     padding: 0;
     color: #87601b;
-    background: #ffffff;
+    background: #969da7;
     border: 1px solid #d4af37;
     border-radius: 50%;
     cursor: pointer;
@@ -553,7 +553,7 @@
     width: 100%;
     padding: 12px 14px;
     color: #33363b;
-    background: #ffffff;
+    background: #969da7;
     border: 1px solid rgba(240, 201, 107, 0.35);
     border-radius: 10px;
     font: inherit;
@@ -566,7 +566,7 @@
 #carBody option,
 #carDrive option {
     color: #33363b;
-    background: #ffffff;
+    background: #969da7;
 }
 
 /* ===== МОБІЛЬНА ВЕРСІЯ ===== */
@@ -1041,7 +1041,7 @@
     padding: 0;
     overflow: hidden;
     color: var(--white);
-    background: #ffffff;
+    background: #969da7;
     border: 2px solid rgba(214, 160, 58, 0.55);
     border-radius: 50%;
     font-size: 34px;
@@ -1073,7 +1073,7 @@
     gap: 6px;
     padding: 4px;
     transform: translateY(-50%);
-    background: #ffffff;
+    background: #969da7;
     border: 1px solid rgba(214, 160, 58, 0.55);
     border-radius: 12px;
 }
@@ -1286,7 +1286,7 @@
 .photo-viewer-close {
   display:grid; place-items:center;
   width:40px; height:40px; padding:0;
-  color:#33363b; background:rgba(250,250,251,.95);
+  color:#33363b; background:rgba(150,157,167,.95);
   border:1px solid rgba(240,201,107,.65); border-radius:50%;
   font-size:25px; line-height:1;
 }
@@ -1328,7 +1328,7 @@
 @media(max-width:600px) { .garage-hero .profile-heading-row { align-items:center; gap:10px; } .garage-hero .profile-heading-row h1 { font-size:clamp(25px,7vw,34px); } .garage-hero .profile-heading-row .first-member-badge { padding:6px 9px; } .garage-hero .profile-heading-row .first-member-badge-number { font-size:10px; } }
 /* Review detail page */
 .profile-reviews-page { max-width:850px; margin:30px auto 60px; padding:0 18px; }
-.profile-reviews-page .reviews-panel { background:linear-gradient(140deg,#ffffff,#f2f3f5); border:1px solid rgba(240,201,107,.35); border-radius:18px; padding:24px; }
+.profile-reviews-page .reviews-panel { background:linear-gradient(140deg,#969da7,#969da7); border:1px solid rgba(240,201,107,.35); border-radius:18px; padding:24px; }
 .profile-reviews-page h1 { color:#87601b; margin:0 0 20px; }
 .profile-reviews-page .reviews-back { display:inline-block; margin-bottom:20px; color:#87601b; text-decoration:none; }
 .profile-reviews-page .profile-seller-review-card { margin-top:14px; }
