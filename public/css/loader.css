@@ -14,8 +14,8 @@
     background:
         radial-gradient(
             circle at center,
-            rgba(44, 62, 90, 0.35),
-            rgba(4, 8, 16, 0.96) 65%
+            rgba(49,50,52, 0.35),
+            rgba(25,26,28, 0.96) 65%
         );
 
     opacity: 1;
@@ -46,12 +46,8 @@
     border-radius: 28px;
 
     background:
-        rgba(
-            10,
-            16,
-            28,
-            0.72
-        );
+        rgba(29,30,32,
+            0.72);
 
     border:
         1px solid
@@ -152,7 +148,7 @@
 
     letter-spacing: 0.08em;
 
-    color: #f4d97b;
+    color: #87601b;
 
     text-shadow:
         0 3px 16px

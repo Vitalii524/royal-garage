@@ -2,14 +2,14 @@
 
 body {
     margin: 0;
-    color: #ffffff;
+    color: #33363b;
     background:
         radial-gradient(
             circle at top,
-            rgba(19, 61, 112, 0.35),
+            rgba(47,48,50, 0.35),
             transparent 40%
         ),
-        #020712;
+        #f2f3f5;
 }
 
 
@@ -38,14 +38,14 @@ body {
 
 .legal-header h1 {
     margin: 0 0 8px;
-    color: #f4d58d;
+    color: #33363b;
     font-size: 36px;
     line-height: 1.15;
 }
 
 .legal-header p {
     margin: 0;
-    color: #aebed2;
+    color: #33363b;
     font-size: 16px;
     line-height: 1.5;
 }
@@ -69,8 +69,8 @@ body {
     background:
         linear-gradient(
             145deg,
-            rgba(9, 35, 78, 0.96),
-            rgba(4, 22, 53, 0.96)
+            rgba(37,38,40, 0.96),
+            rgba(31,32,34, 0.96)
         );
 
     border: 1px solid rgba(214, 160, 58, 0.3);
@@ -83,20 +83,20 @@ body {
 
 .legal-card h2 {
     margin: 0 0 18px;
-    color: #f4d58d;
+    color: #33363b;
     font-size: 24px;
 }
 
 .legal-card p {
     margin: 10px 0;
-    color: #d9e3f0;
+    color: #33363b;
     font-size: 16px;
     line-height: 1.65;
 }
 
 .legal-subtitle {
     margin: 32px 0 12px;
-    color: #f4d58d;
+    color: #33363b;
     font-size: 20px;
 }
 
@@ -105,7 +105,7 @@ body {
 
 .legal-note {
     margin-bottom: 18px !important;
-    color: #aebed2 !important;
+    color: #33363b !important;
 }
 
 .price-table {
@@ -133,13 +133,13 @@ body {
 }
 
 .price-heading {
-    color: #f4d58d;
+    color: #33363b;
     background: rgba(214, 160, 58, 0.1);
     font-weight: 700;
 }
 
 .price-row strong {
-    color: #f4d58d;
+    color: #33363b;
     text-align: right;
     white-space: nowrap;
 }
@@ -149,12 +149,12 @@ body {
 
 .legal-details {
     padding: 18px;
-    background: rgba(2, 7, 18, 0.38);
+    background: rgba(25,26,28, 0.38);
     border-radius: 12px;
 }
 
 .legal-details strong {
-    color: #f4d58d;
+    color: #33363b;
 }
 
 .seller-card {
@@ -165,7 +165,7 @@ body {
 /* ===== ПОСИЛАННЯ ===== */
 
 .legal-card a {
-    color: #f4d58d;
+    color: #33363b;
     text-decoration: none;
 }
 
@@ -187,7 +187,7 @@ body {
 
     padding: 13px 22px;
 
-    color: #07182e;
+    color: #202123;
     background:
         linear-gradient(
             135deg,
@@ -226,7 +226,7 @@ body {
 }
 
 .legal-footer a {
-    color: #f4d58d;
+    color: #33363b;
     text-decoration: none;
 }
 
@@ -304,7 +304,7 @@ body {
 .launch-offer {
     margin-top: 22px;
     padding: 22px 24px;
-    background: linear-gradient(145deg, rgba(214,160,58,.14), rgba(4,22,53,.72));
+    background: linear-gradient(145deg, rgba(214,160,58,.14), rgba(31,32,34,.72));
     border: 1px solid rgba(214,160,58,.55);
     border-radius: 14px;
 }
@@ -312,7 +312,7 @@ body {
     display: inline-block;
     margin-bottom: 10px;
     padding: 6px 10px;
-    color: #07182e;
+    color: #202123;
     background: linear-gradient(135deg, #f2cc78, #d99a2b);
     border-radius: 999px;
     font-size: 12px;
@@ -321,7 +321,7 @@ body {
 }
 .launch-offer h3 {
     margin: 0 0 12px;
-    color: #f4d58d;
+    color: #33363b;
     font-size: 22px;
 }
 @media (max-width: 650px) {

@@ -1,6 +1,6 @@
-.home-club-card{position:relative;isolation:isolate;aspect-ratio:2/1;padding:12px;justify-content:flex-end;background:linear-gradient(130deg,#163b56,#061426);border-color:#8b7242}
+.home-club-card{position:relative;isolation:isolate;aspect-ratio:2/1;padding:12px;justify-content:flex-end;background:linear-gradient(130deg,#ffffff,#f2f3f5);border-color:#8b7242}
 .home-club-card::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,rgba(0,0,0,.88),rgba(0,0,0,.08))}
 .home-club-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
 .home-club-card strong{font-size:clamp(14px,3.8vw,19px);line-height:1.2;text-shadow:0 1px 5px #000}
 .home-club-card:focus-visible{outline:3px solid #e8c56a;outline-offset:2px}
-.home-clubs>p{font-size:14px;color:#bac8d5}
+.home-clubs>p{font-size:14px;color:#33363b}

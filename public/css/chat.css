@@ -7,7 +7,7 @@
 
 .chat-card {
     padding: 24px;
-    background: rgba(8, 34, 74, 0.95);
+    background: rgba(36,37,39, 0.95);
     border: 1px solid rgba(240, 201, 107, 0.35);
     border-radius: 16px;
 }
@@ -19,7 +19,7 @@
     padding: 16px;
     margin: 20px 0;
     overflow-y: auto;
-    background: rgba(3, 18, 42, 0.75);
+    background: rgba(29,30,32, 0.75);
     border-radius: 12px;
 }
 
@@ -41,13 +41,13 @@
 
 .chat-message-own {
     margin-left: auto;
-    color: #06152b;
+    color: #1f2022;
     background: #d8b35b;
 }
 
 .chat-message-other {
     margin-right: auto;
-    background: #174b86;
+    background: #ffffff;
 }
 
 /* ===== ФОРМА НАДСИЛАННЯ ===== */
@@ -142,7 +142,7 @@
 }
 
 .chat-time {
-    color: #999999;
+    color: #33363b;
     font-size: 13px;
     white-space: nowrap;
 }
@@ -186,13 +186,13 @@ body.chat-page main {
     margin-bottom: 16px;
     padding: 12px 16px;
 
-    background: rgba(8, 34, 74, 0.92);
+    background: rgba(36,37,39, 0.92);
     border: 1px solid rgba(240, 201, 107, 0.35);
     border-radius: 12px;
 }
 
 .chat-back-link {
-    color: #f0c96b;
+    color: #87601b;
     text-decoration: none;
     font-weight: 700;
 }
@@ -273,7 +273,7 @@ body.chat-page main {
     border-radius: 10px;
     object-fit: cover;
 
-    background: #111;
+    background: #f2f3f5;
 }
 
 .chat-preview-file-info {
@@ -302,7 +302,7 @@ body.chat-page main {
     border-radius: 50%;
 
     background: rgba(0, 0, 0, 0.65);
-    color: #fff;
+    color: #33363b;
 
     font-size: 22px;
     line-height: 1;
@@ -312,7 +312,7 @@ body.chat-page main {
 .chat-file-error {
     margin: 0;
 
-    color: #ff8d8d;
+    color: #33363b;
     font-size: 14px;
 }
 
@@ -406,7 +406,7 @@ body.chat-page main {
     border-radius: 50%;
 
     background: rgba(255, 255, 255, 0.14);
-    color: #fff;
+    color: #33363b;
 
     font-size: 32px;
     cursor: pointer;
@@ -557,7 +557,7 @@ body.chat-viewer-open {
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 12px;
-    background: #202532;
+    background: #ffffff;
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
     z-index: 50;
 }
@@ -574,7 +574,7 @@ body.chat-viewer-open {
     border: none;
     border-radius: 0;
     background: transparent;
-    color: #ffffff;
+    color: #33363b;
     font-family: inherit;
     font-size: 14px;
     text-align: left;
@@ -587,7 +587,7 @@ body.chat-viewer-open {
 }
 
 .chat-message-delete-button {
-    color: #ff9292;
+    color: #33363b;
 }
 
 .chat-message-edited {
@@ -640,19 +640,19 @@ body.chat-viewer-open {
     top: 38px;
     right: 0;
     z-index: 999;
-    background: #202532 !important;
-    color: #ffffff !important;
+    background: #ffffff !important;
+    color: #33363b !important;
 }
 
 .chat-message-action-button {
     display: block;
-    color: #ffffff !important;
+    color: #33363b !important;
     background: transparent !important;
     white-space: nowrap;
 }
 
 .chat-message-delete-button {
-    color: #ff9292 !important;
+    color: #33363b !important;
 }
 
 .chat-message-own .chat-message-menu {

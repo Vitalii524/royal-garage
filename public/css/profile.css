@@ -12,8 +12,8 @@
     margin-bottom: 25px;
     background: linear-gradient(
         120deg,
-        rgba(6, 27, 53, 0.98),
-        rgba(3, 8, 20, 0.96)
+        rgba(33,34,36, 0.98),
+        rgba(26,27,29, 0.96)
     );
     border: 1px solid rgba(214, 160, 58, 0.3);
     border-radius: 16px;
@@ -21,7 +21,7 @@
 
 .garage-hero h1 {
     margin: 5px 0 12px;
-    color: var(--gold-light);
+    color: var(--gold-ink);
     font-size: 40px;
 }
 
@@ -33,7 +33,7 @@
 
 .section-label {
     margin: 0;
-    color: var(--gold);
+    color: var(--gold-ink);
     font-size: 13px;
     font-weight: bold;
     letter-spacing: 1.5px;
@@ -53,8 +53,8 @@
     padding: 24px;
     background: linear-gradient(
         180deg,
-        rgba(7, 31, 61, 0.97),
-        rgba(3, 13, 27, 0.97)
+        rgba(35,36,38, 0.97),
+        rgba(27,28,30, 0.97)
     );
     border: 1px solid rgba(214, 160, 58, 0.25);
     border-radius: 14px;
@@ -62,7 +62,7 @@
 
 .garage-sidebar h2 {
     margin-top: 0;
-    color: var(--gold-light);
+    color: var(--gold-ink);
 }
 
 /* ===== СПИСОК АВТОМОБІЛІВ ===== */
@@ -127,7 +127,7 @@
 
 .selected-car-header h2 {
     margin: 6px 0;
-    color: var(--gold-light);
+    color: var(--gold-ink);
     font-size: 30px;
 }
 
@@ -158,7 +158,7 @@
 }
 
 .service-summary strong {
-    color: var(--gold-light);
+    color: var(--gold-ink);
     font-size: 22px;
 }
 
@@ -194,14 +194,14 @@
 
 .service-date {
     margin: 0;
-    color: var(--gold);
+    color: var(--gold-ink);
     font-size: 14px;
 }
 
 .service-visibility {
     height: fit-content;
     padding: 6px 10px;
-    color: var(--gold-light);
+    color: var(--gold-ink);
     background: rgba(214, 160, 58, 0.12);
     border-radius: 20px;
     font-size: 12px;
@@ -219,7 +219,7 @@
 
 .edit-car-button {
     padding: 12px 20px;
-    color: #f2d27a;
+    color: #87601b;
     background: transparent;
     border: 1px solid #d7b35a;
     border-radius: 10px;
@@ -229,13 +229,13 @@
 }
 
 .edit-car-button:hover {
-    color: #10182c;
+    color: #212224;
     background: #d7b35a;
 }
 
 .edit-service-button {
     padding: 10px 16px;
-    color: #f2d27a;
+    color: #87601b;
     background: transparent;
     border: 1px solid #d7b35a;
     border-radius: 8px;
@@ -244,14 +244,14 @@
 }
 
 .edit-service-button:hover {
-    color: #10182c;
+    color: #212224;
     background: #d7b35a;
 }
 
 .delete-service-button {
     margin-top: 10px;
     padding: 8px 12px;
-    color: #ffb7b7;
+    color: #33363b;
     background: transparent;
     border: 1px solid rgba(255, 120, 120, 0.35);
     border-radius: 7px;
@@ -263,7 +263,7 @@
 }
 
 .delete-service-button:hover {
-    color: #ffffff;
+    color: #33363b;
     background: #b94a55;
     border-color: #b94a55;
 }
@@ -271,7 +271,7 @@
 .delete-car-button {
     margin-top: 10px;
     padding: 11px 16px;
-    color: #ffcccc;
+    color: #33363b;
     background: transparent;
     border: 1px solid rgba(255, 100, 100, 0.55);
     border-radius: 8px;
@@ -280,7 +280,7 @@
 }
 
 .delete-car-button:hover {
-    color: #ffffff;
+    color: #33363b;
     background: #a62828;
 }
 
@@ -288,7 +288,7 @@
     width: 100%;
     margin-top: 12px;
     padding: 12px;
-    color: #ffffff;
+    color: #33363b;
     background: #b22222;
     border: none;
     border-radius: 10px;
@@ -332,7 +332,7 @@
     display: block;
     margin-top: 10px;
     padding: 11px 16px;
-    color: #f3c969;
+    color: #87601b;
     text-align: center;
     border: 1px solid rgba(243, 201, 105, 0.55);
     border-radius: 8px;
@@ -372,7 +372,7 @@
     position: fixed;
     top: 15px;
     right: 25px;
-    color: #ffffff;
+    color: #33363b;
     background: transparent;
     border: none;
     font-size: 42px;
@@ -460,8 +460,8 @@
     width: 28px;
     height: 28px;
     padding: 0;
-    color: #ffd75e;
-    background: #162852;
+    color: #87601b;
+    background: #ffffff;
     border: 1px solid #d4af37;
     border-radius: 50%;
     cursor: pointer;
@@ -506,7 +506,7 @@
     width: 100%;
     margin-top: 7px;
     padding: 7px;
-    color: #ffcccc;
+    color: #33363b;
     background: transparent;
     border: 1px solid rgba(255, 100, 100, 0.55);
     border-radius: 7px;
@@ -514,7 +514,7 @@
 }
 
 .delete-service-photo-button:hover {
-    color: #ffffff;
+    color: #33363b;
     background: #a62828;
 }
 
@@ -522,7 +522,7 @@
 .add-service-photo-button {
     margin-top: 7px;
     padding: 8px 12px;
-    color: #f3c969;
+    color: #87601b;
     background: transparent;
     border: 1px solid rgba(243, 201, 105, 0.55);
     border-radius: 7px;
@@ -552,8 +552,8 @@
 #carDrive  {
     width: 100%;
     padding: 12px 14px;
-    color: #ffffff;
-    background: #173b68;
+    color: #33363b;
+    background: #ffffff;
     border: 1px solid rgba(240, 201, 107, 0.35);
     border-radius: 10px;
     font: inherit;
@@ -565,8 +565,8 @@
 #carTransmission option,
 #carBody option,
 #carDrive option {
-    color: #ffffff;
-    background: #173b68;
+    color: #33363b;
+    background: #ffffff;
 }
 
 /* ===== МОБІЛЬНА ВЕРСІЯ ===== */
@@ -705,7 +705,7 @@
 }
 
 .profile-reputation-star {
-    color: #f0c96b;
+    color: #87601b;
 
     font-size: 20px;
 
@@ -715,7 +715,7 @@
 }
 
 .profile-reputation-rating {
-    color: #f0c96b;
+    color: #87601b;
 
     font-size: 19px;
 }
@@ -741,7 +741,7 @@
     padding: 16px;
 
     background:
-        rgba(6, 24, 50, 0.55);
+        rgba(32,33,35, 0.55);
 
     border:
         1px solid
@@ -753,7 +753,7 @@
 .profile-seller-reviews h3 {
     margin: 0 0 14px;
 
-    color: #f0c96b;
+    color: #87601b;
 
     font-size: 20px;
 }
@@ -789,7 +789,7 @@
 }
 
 .profile-seller-review-header strong {
-    color: #ffffff;
+    color: #33363b;
 }
 
 .profile-seller-review-header span {
@@ -815,7 +815,7 @@
 
 .profile-seller-review-stars
 .is-filled {
-    color: #f0c96b;
+    color: #87601b;
 
     text-shadow:
         0 0 7px
@@ -878,7 +878,7 @@
     border-radius: 18px;
     text-decoration: none;
     color: inherit;
-    background: rgba(8, 30, 58, 0.75);
+    background: rgba(34,35,37, 0.75);
 }
 
 .profile-favorite-photo {
@@ -910,8 +910,8 @@
     padding: 26px;
     background: linear-gradient(
         180deg,
-        rgba(7, 31, 61, 0.97),
-        rgba(3, 13, 27, 0.97)
+        rgba(35,36,38, 0.97),
+        rgba(27,28,30, 0.97)
     );
     border: 1px solid rgba(214, 160, 58, 0.25);
     border-radius: 16px;
@@ -923,7 +923,7 @@
 
 .seller-profile-settings h2 {
     margin: 6px 0 10px;
-    color: var(--gold-light);
+    color: var(--gold-ink);
     font-size: 28px;
 }
 
@@ -1041,7 +1041,7 @@
     padding: 0;
     overflow: hidden;
     color: var(--white);
-    background: #234b7e;
+    background: #ffffff;
     border: 2px solid rgba(214, 160, 58, 0.55);
     border-radius: 50%;
     font-size: 34px;
@@ -1073,7 +1073,7 @@
     gap: 6px;
     padding: 4px;
     transform: translateY(-50%);
-    background: #0b1930;
+    background: #ffffff;
     border: 1px solid rgba(214, 160, 58, 0.55);
     border-radius: 12px;
 }
@@ -1087,12 +1087,12 @@
     border: 0;
     border-radius: 8px;
     background: transparent;
-    color: var(--gold-light);
+    color: var(--gold-ink);
     font-size: 23px;
     cursor: pointer;
 }
 .profile-avatar-actions #removeSellerProfilePhoto {
-    color: #ffaaaa;
+    color: #33363b;
 }
 .profile-avatar-actions button:hover {
     background: rgba(255, 255, 255, 0.1);
@@ -1176,7 +1176,7 @@
 .account-danger-zone h3 {
     margin: 0 0 8px;
 
-    color: #ff9a9a;
+    color: #33363b;
 
     font-size: 21px;
 }
@@ -1256,14 +1256,14 @@
 }
 
 .first-member-badge-title {
-    color: var(--gold-light, #f3c969);
+    color: var(--gold-light, #87601b);
     font-size: 14px;
     font-weight: 800;
     letter-spacing: 1.2px;
 }
 
 .first-member-badge-number {
-    color: var(--white, #ffffff);
+    color: var(--#24262a, #33363b);
     font-size: 13px;
     font-weight: 600;
 }
@@ -1286,12 +1286,12 @@
 .photo-viewer-close {
   display:grid; place-items:center;
   width:40px; height:40px; padding:0;
-  color:#fff; background:rgba(8,34,74,.95);
+  color:#33363b; background:rgba(36,37,39,.95);
   border:1px solid rgba(240,201,107,.65); border-radius:50%;
   font-size:25px; line-height:1;
 }
 .delete-car-photo-button, .replace-car-photo-button {
-  display:grid; place-items:center; color:#fff; line-height:1;
+  display:grid; place-items:center; color:#33363b; line-height:1;
 }
 @media(max-width:600px) {
   .photo-viewer-close { top:12px; right:12px; }
@@ -1328,9 +1328,9 @@
 @media(max-width:600px) { .garage-hero .profile-heading-row { align-items:center; gap:10px; } .garage-hero .profile-heading-row h1 { font-size:clamp(25px,7vw,34px); } .garage-hero .profile-heading-row .first-member-badge { padding:6px 9px; } .garage-hero .profile-heading-row .first-member-badge-number { font-size:10px; } }
 /* Review detail page */
 .profile-reviews-page { max-width:850px; margin:30px auto 60px; padding:0 18px; }
-.profile-reviews-page .reviews-panel { background:linear-gradient(140deg,#0c2b51,#061529); border:1px solid rgba(240,201,107,.35); border-radius:18px; padding:24px; }
-.profile-reviews-page h1 { color:#f3c969; margin:0 0 20px; }
-.profile-reviews-page .reviews-back { display:inline-block; margin-bottom:20px; color:#f3c969; text-decoration:none; }
+.profile-reviews-page .reviews-panel { background:linear-gradient(140deg,#ffffff,#f2f3f5); border:1px solid rgba(240,201,107,.35); border-radius:18px; padding:24px; }
+.profile-reviews-page h1 { color:#87601b; margin:0 0 20px; }
+.profile-reviews-page .reviews-back { display:inline-block; margin-bottom:20px; color:#87601b; text-decoration:none; }
 .profile-reviews-page .profile-seller-review-card { margin-top:14px; }
 .profile-reviews-page .profile-seller-review-card p { overflow-wrap:anywhere; }
 @media(max-width:600px) { .profile-reviews-page { padding:0 12px; margin-top:18px; } .profile-reviews-page .reviews-panel { padding:16px; } }
@@ -1406,7 +1406,7 @@
 }
 .profile-main-actions > .profile-disclosure > summary > h2,
 .profile-main-actions > .profile-action-row {
-    color: var(--gold-light);
+    color: var(--gold-ink);
     font-size: 1rem;
     font-weight: 700;
     line-height: 1.4;
@@ -1452,7 +1452,7 @@
 }
 .profile-avatar-reviews {
     overflow-wrap: anywhere;
-    color: #fff;
+    color: #33363b;
 }
 .garage-hero .profile-avatar-reviews .profile-seller-reputation {
     margin: 0;

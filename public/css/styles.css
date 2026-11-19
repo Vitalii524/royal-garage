@@ -30,7 +30,7 @@
   
   .language-switcher button.active {
     background: #f3d27a;
-    color: #0b1736;
+    color: #202123;
   }
   .language-switcher button[data-language-toggle] {
     box-sizing: border-box;
@@ -40,7 +40,7 @@
     border: 1px solid rgba(198, 165, 94, 0.7);
     border-radius: 10px;
     background: transparent;
-    color: #f4d58d;
+    color: #33363b;
     font-size: 14px;
     line-height: 1;
   }
@@ -70,8 +70,8 @@
   cursor: pointer;
 }
 .modal-close, .auth-close {
-  color: #f0bd55;
-  background: #08284d;
+  color: #87601b;
+  background: #ffffff;
   border: 1px solid rgba(214,160,58,.55);
 }
 .modal-close:focus-visible, .market-modal-close:focus-visible,
@@ -88,7 +88,7 @@
   box-sizing: border-box;
   font-size: 16px;
 }
-.modal select option, .business-modal select option { color: #fff; background: #08284d; }
+.modal select option, .business-modal select option { color: #33363b; background: #ffffff; }
 @media (max-width: 600px) {
   .modal, .auth-modal, .business-modal { padding: 10px; }
   .modal .modal-content, .auth-window, .business-modal-card {
@@ -108,7 +108,7 @@
   top: 0;
   z-index: 1200;
   width: 100%;
-  background: linear-gradient(180deg, #711c27, #4b1018);
+  background: #f2f3f5;
   border-bottom: 1px solid rgba(225, 184, 79, .4);
   box-shadow: 0 5px 18px rgba(0, 0, 0, .25);
 }
@@ -119,9 +119,9 @@
   margin: 0 auto;
   padding: 10px 20px;
 }
-.rg-sticky-header .nav { background: rgba(50, 0, 8, .22); }
+.rg-sticky-header .nav { background: #f2f3f5; }
 .rg-sticky-header .burger-dropdown {
-  background: #53141d;
+  background: #f2f3f5;
   max-height: calc(100dvh - 110px);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -139,7 +139,58 @@
 /* Homepage section titles: readable red accent on the dark background. */
 #homePartnersTitle, #homeClubsTitle,
 #homePartnersTitle a, #homeClubsTitle a {
-  color: #f2767e;
+  color: #87601b;
   text-decoration-color: currentColor;
 }
-#homePartnersTitle a:hover, #homeClubsTitle a:hover { color: #ffadb3; }
+#homePartnersTitle a:hover, #homeClubsTitle a:hover { color: #33363b; }
+
+/* The pinned header replaces the floating return-to-top control. */
+.back-to-top-button, .business-back-to-top { display: none !important; }
+
+/* Light-grey public site with a black pinned navigation bar. */
+:root { --dark:#f2f3f5; --navy:#ffffff; --navy2:#e9ebee; --white:#24262a; --muted:#5b6068; --card:rgba(0,0,0,.035); --gold-ink:#87601b; }
+body { background:#eef0f2; color:#24262a; }
+.rg-sticky-header { background:#080808; color:#f7f0e6; }
+.rg-sticky-header .nav { background:#111111; }
+.rg-sticky-header .nav a,
+.rg-sticky-header .burger-dropdown a { color:#f7f0e6; }
+.rg-sticky-header .burger-dropdown { background:#151515; }
+.rg-sticky-header .burger-button,
+.rg-sticky-header .language-switcher button,
+.rg-sticky-header .auth-area a,
+.rg-sticky-header #logoutButton { color:#edc365; }
+.rg-sticky-header .nav a:hover,
+.rg-sticky-header .burger-dropdown a:hover { color:#141414; background:#edc365; }
+#homePartnersTitle, #homeClubsTitle,
+#homePartnersTitle a, #homeClubsTitle a { color:#111111; text-decoration-color:currentColor; }
+#homePartnersTitle a:hover, #homeClubsTitle a:hover { color:#444444; }
+
+/* Compact homepage introduction. */
+.home-layout > .hero {
+  min-height: 0;
+  margin-top: 12px;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid #d4d7dc;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.06);
+}
+.home-layout > .hero .hero-text { width:100%; min-width:0; }
+.home-layout > .hero h1 { color:#17191c; font-size:36px; letter-spacing:-.7px; line-height:1.15; margin:0 0 8px; }
+.home-layout > .hero p { color:#5b6068; font-size:16px; line-height:1.5; margin:0; max-width:none; }
+.home-layout > .hero .hero-actions { gap:10px; margin-top:18px; }
+.home-layout > .hero .hero-actions a { padding:12px 16px; font-size:15px; line-height:1.35; text-align:center; border:1px solid #d1a33c; border-radius:10px; color:#1b1b1b; }
+.home-layout > .hero .hero-actions a + a { background:#ffffff; border-color:#bfc4cb; }
+.home-layout > .hero .search-box { background:#ffffff; border:1px solid #cbd0d7; box-shadow:none; padding:4px; margin-top:16px; gap:4px; border-radius:10px; }
+.home-layout > .hero .search-box input { min-width:0; background:transparent; border:0; box-shadow:none; padding:10px; font-size:15px; color:#24262a; }
+.home-layout > .hero .search-box button { padding:10px 14px; border-radius:7px; }
+.home-partner-card { background:#080808; color:#ffffff; }
+.home-partner-card strong, .home-club-card strong { color:#ffffff; }
+.business-photo-preview-item button { color:#ffffff; }
+@media(max-width:600px) {
+ .home-layout > .hero { padding:18px; margin-top:8px; }
+ .home-layout > .hero h1 { font-size:30px; }
+ .home-layout > .hero p { font-size:14px; }
+ .home-layout > .hero .hero-actions { display:grid; grid-template-columns:1fr 1fr; }
+ .home-layout > .hero .hero-actions a { padding:11px 8px; font-size:13px; }
+}

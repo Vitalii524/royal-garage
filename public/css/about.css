@@ -27,7 +27,7 @@
     background:
         linear-gradient(135deg, rgba(12, 12, 12, 0.96), rgba(26, 26, 26, 0.93)),
         url("../images/royal-garage-logo.png") center / 420px auto no-repeat;
-    color: #ffffff;
+    color: #33363b;
 }
 
 .about-hero::before {
@@ -93,7 +93,7 @@
     font-size: clamp(1.1rem, 2.4vw, 1.45rem);
     font-weight: 800;
     line-height: 1.45;
-    color: #ffffff;
+    color: #33363b;
 }
 
 .about-hero-actions {
@@ -136,7 +136,7 @@
 .about-button-primary {
     border-color: #d51e1e;
     background: #d51e1e;
-    color: #ffffff;
+    color: #33363b;
 }
 
 .about-button-primary:hover {
@@ -147,7 +147,7 @@
 .about-hero .about-button:not(.about-button-primary) {
     border-color: rgba(255, 255, 255, 0.24);
     background: rgba(255, 255, 255, 0.08);
-    color: #ffffff;
+    color: #33363b;
     backdrop-filter: blur(6px);
 }
 
@@ -294,8 +294,8 @@
     width: 42px;
     height: 42px;
     border-radius: 12px;
-    background: #171717;
-    color: #ffffff;
+    background: #f2f3f5;
+    color: #33363b;
 }
 
 .about-feature h3 {
@@ -355,8 +355,8 @@
     align-items: start;
     padding: 40px;
     border-radius: 24px;
-    background: #171717;
-    color: #ffffff;
+    background: #f2f3f5;
+    color: #33363b;
     overflow: hidden;
     position: relative;
 }

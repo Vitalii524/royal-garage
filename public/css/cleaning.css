@@ -14,7 +14,7 @@
 
     margin-bottom: 24px;
 
-    color: #e8c56a;
+    color: #87601b;
 
     text-decoration: none;
     font-weight: 700;
@@ -46,8 +46,8 @@
     background:
         linear-gradient(
             135deg,
-            rgba(10, 32, 65, 0.98),
-            rgba(4, 18, 39, 0.98)
+            rgba(35,36,38, 0.98),
+            rgba(29,30,32, 0.98)
         );
 
     box-shadow:
@@ -59,7 +59,7 @@
 .upholstery-label {
     margin: 0 0 10px;
 
-    color: #e8c56a;
+    color: #87601b;
 
     font-size: 0.82rem;
     font-weight: 800;
@@ -137,7 +137,7 @@
 
 .upholstery-primary-button,
 .upholstery-contact-buttons a {
-    color: #06162c;
+    color: #1f2022;
     background: #e8c56a;
 }
 
@@ -149,7 +149,7 @@
 
 
 .upholstery-secondary-button {
-    color: #ffffff;
+    color: #33363b;
 
     border:
         1px solid
@@ -224,12 +224,8 @@
     border-radius: 22px;
 
     background:
-        rgba(
-            7,
-            25,
-            52,
-            0.78
-        );
+        rgba(32,33,35,
+            0.78);
 }
 
 
@@ -321,7 +317,7 @@
 
 .upholstery-service-card h3,
 .upholstery-material-item strong {
-    color: #f2d47f;
+    color: #87601b;
 }
 
 
@@ -364,7 +360,7 @@
 
     padding: 20px;
 
-    color: #ffffff;
+    color: #33363b;
 
     border:
         1px dashed
@@ -415,7 +411,7 @@
         linear-gradient(
             135deg,
             rgba(232, 197, 106, 0.16),
-            rgba(7, 25, 52, 0.95)
+            rgba(32,33,35, 0.95)
         );
 }
 
@@ -492,7 +488,7 @@ p:not(.upholstery-label) {
     width: 48px;
     height: 48px;
 
-    color: #ffffff;
+    color: #33363b;
 
     border:
         1px solid
@@ -501,12 +497,8 @@ p:not(.upholstery-label) {
     border-radius: 50%;
 
     background:
-        rgba(
-            7,
-            25,
-            52,
-            0.92
-        );
+        rgba(32,33,35,
+            0.92);
 
     font-size: 2rem;
 
@@ -515,7 +507,7 @@ p:not(.upholstery-label) {
 
 
 .upholstery-viewer-close:hover {
-    color: #071934;
+    color: #202123;
     background: #e8c56a;
 }
 
@@ -650,7 +642,7 @@ html {
 
     margin-top: 16px;
 
-    color: #e8c56a;
+    color: #87601b;
 }
 
 
@@ -688,8 +680,8 @@ html {
     background:
         linear-gradient(
             135deg,
-            rgba(7, 25, 52, 0.96),
-            rgba(10, 48, 92, 0.84)
+            rgba(32,33,35, 0.96),
+            rgba(41,42,44, 0.84)
         );
 
     box-shadow:
@@ -787,7 +779,7 @@ html {
 
     padding: 0 18px;
 
-    color: #06162c;
+    color: #1f2022;
     background: #e8c56a;
 
     border-radius: 11px;
@@ -825,7 +817,7 @@ html {
     min-height: 46px;
     padding: 0 20px;
 
-    color: #06162c;
+    color: #1f2022;
     background: #e8c56a;
 
     border: none;

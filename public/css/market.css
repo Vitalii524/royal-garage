@@ -11,14 +11,14 @@
     align-items: center;
     gap: 24px;
     padding: 32px;
-    background: rgba(12, 25, 55, 0.85);
+    background: rgba(33,34,36, 0.85);
     border: 1px solid rgba(215, 179, 90, 0.35);
     border-radius: 20px;
 }
 
 .market-label {
     margin: 0 0 8px;
-    color: #d7b35a;
+    color: #87601b;
     font-size: 13px;
     font-weight: 700;
     letter-spacing: 2px;
@@ -26,7 +26,7 @@
 
 .market-hero h1 {
     margin: 0 0 10px;
-    color: #f2d27a;
+    color: #87601b;
     font-size: clamp(32px, 5vw, 52px);
 }
 
@@ -47,8 +47,8 @@
 .market-toolbar select {
     width: 100%;
     padding: 14px 16px;
-    color: #ffffff;
-    background: rgba(12, 25, 55, 0.9);
+    color: #33363b;
+    background: rgba(33,34,36, 0.9);
     border: 1px solid rgba(215, 179, 90, 0.35);
     border-radius: 10px;
     font: inherit;
@@ -63,7 +63,7 @@
 .market-listings {
     min-height: 220px;
     padding: 28px;
-    background: rgba(12, 25, 55, 0.75);
+    background: rgba(33,34,36, 0.75);
     border: 1px solid rgba(215, 179, 90, 0.25);
     border-radius: 18px;
 }
@@ -90,7 +90,7 @@
 .market-card {
     position: relative;
     overflow: hidden;
-    background: rgba(8, 34, 74, 0.95);
+    background: rgba(36,37,39, 0.95);
     border: 1px solid rgba(240, 201, 107, 0.35);
     border-radius: 16px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
@@ -116,7 +116,7 @@
     display: grid;
     height: 220px;
     place-items: center;
-    background: #07182e;
+    background: #ffffff;
     font-size: 45px;
 }
 
@@ -129,7 +129,7 @@
 }
 
 .market-card-price {
-    color: #f0c96b;
+    color: #87601b;
     font-size: 19px;
     font-weight: 700;
 }
@@ -146,7 +146,7 @@
     gap: 18px;
     align-items: center;
     padding: 16px;
-    background: rgba(7, 17, 39, 0.65);
+    background: rgba(29,30,32, 0.65);
     border: 1px solid rgba(215, 179, 90, 0.35);
     border-radius: 12px;
 }
@@ -164,7 +164,7 @@
 
 .selected-car-preview h3 {
     margin: 0 0 8px;
-    color: #f2d27a;
+    color: #87601b;
 }
 
 .selected-car-preview p {
@@ -188,8 +188,8 @@
 .listing-specs select {
     width: 100%;
     padding: 12px 14px;
-    color: #ffffff;
-    background: rgba(7, 17, 39, 0.8);
+    color: #33363b;
+    background: rgba(29,30,32, 0.8);
     border: 1px solid rgba(215, 179, 90, 0.35);
     border-radius: 10px;
     font: inherit;
@@ -260,8 +260,8 @@
     width: 100%;
     padding: 12px;
 
-    color: #ffffff;
-    background: rgba(7, 17, 39, 0.8);
+    color: #33363b;
+    background: rgba(29,30,32, 0.8);
 
     border: 1px solid rgba(215, 179, 90, 0.35);
     border-radius: 10px;
@@ -273,7 +273,7 @@
 
     margin-top: -4px;
 
-    color: #f0c96b;
+    color: #87601b;
     font-size: 13px;
     font-weight: 700;
 }
@@ -292,7 +292,7 @@
     min-width: 0;
     overflow: hidden;
 
-    background: #07182e;
+    background: #ffffff;
 
     border: 2px solid transparent;
     border-radius: 12px;
@@ -332,7 +332,7 @@
 
     padding: 5px 7px;
 
-    color: #ffffff;
+    color: #33363b;
     background: rgba(0, 0, 0, 0.72);
 
     border-radius: 7px;
@@ -343,7 +343,7 @@
 
 .listing-photo-preview-card.is-main
 .listing-photo-main-badge {
-    color: #07182e;
+    color: #202123;
     background: #f0c96b;
     font-weight: 700;
 }
@@ -360,7 +360,7 @@
     height: 30px;
     padding: 0;
 
-    color: #ffffff;
+    color: #33363b;
     background: rgba(160, 25, 35, 0.92);
 
     border: none;
@@ -454,7 +454,7 @@
 }
 
 .favorite-headlight-shell {
-    fill: #182338;
+    fill: #252628;
     stroke: currentColor;
     stroke-width: 3;
 
@@ -465,7 +465,7 @@
 }
 
 .favorite-headlight-lens {
-    fill: #263248;
+    fill: #2c2d2f;
     stroke: rgba(255, 255, 255, 0.25);
     stroke-width: 2;
 
@@ -523,7 +523,7 @@
 }
 
 .favorite-headlight-button.is-active {
-    color: #ffe477;
+    color: #87601b;
     animation:
     headlight-blink 0.65s ease;
 }
@@ -661,7 +661,7 @@
 }
 
 .market-card-rating-star {
-    color: #f0c96b;
+    color: #87601b;
 
     font-size: 18px;
 
@@ -671,7 +671,7 @@
 }
 
 .market-card-seller-rating strong {
-    color: #f0c96b;
+    color: #87601b;
 
     font-size: 15px;
 }
@@ -699,8 +699,8 @@
     width: 100%;
     padding: 12px 14px;
 
-    color: #ffffff;
-    background: rgba(7, 17, 39, 0.8);
+    color: #33363b;
+    background: rgba(29,30,32, 0.8);
 
     border: 1px solid rgba(215, 179, 90, 0.35);
     border-radius: 10px;
@@ -710,13 +710,13 @@
 
 .listing-car-name-fields select:disabled {
     color: rgba(255, 255, 255, 0.45);
-    background: rgba(7, 17, 39, 0.55);
+    background: rgba(29,30,32, 0.55);
     cursor: not-allowed;
 }
 
 .listing-car-name-fields select option {
-    color: #ffffff;
-    background: #07182e;
+    color: #33363b;
+    background: #ffffff;
 }
 
 
@@ -734,7 +734,7 @@
 .market-modal-close {
   display:grid; place-items:center; flex:0 0 36px;
   width:36px; height:36px; padding:0;
-  color:#f0c96b; background:#08284d;
+  color:#87601b; background:#ffffff;
   border:1px solid rgba(240,201,107,.55); border-radius:50%;
   font-size:23px; line-height:1; cursor:pointer;
 }
@@ -742,12 +742,12 @@
 #listingForm input:not([type="checkbox"]):not([type="radio"]),
 #listingForm select, #listingForm textarea {
   width:100%; max-width:100%; min-width:0; box-sizing:border-box;
-  padding:12px 14px; color:#fff; background:#0b2345;
+  padding:12px 14px; color:#33363b; background:#ffffff;
   border:1px solid rgba(240,201,107,.45); border-radius:10px;
   font:inherit; font-size:16px;
 }
-#listingForm select option { color:#fff; background:#0b2345; }
-#listingForm input::placeholder, #listingForm textarea::placeholder { color:#b9c5d5; }
+#listingForm select option { color:#33363b; background:#ffffff; }
+#listingForm input::placeholder, #listingForm textarea::placeholder { color:#33363b; }
 .listing-photo-remove { font-size:19px; width:30px; height:30px; }
 @media(max-width:600px) {
   .market-modal-header { align-items:flex-start; }
@@ -762,7 +762,7 @@
   width: 30px; height: 30px; min-width: 30px; min-height: 30px;
   max-width: 30px; margin: 0; padding: 0; flex: none;
   display: grid; place-items: center;
-  border-radius: 50%; background: #a61f2e; color: #fff;
+  border-radius: 50%; background: #a61f2e; color: #33363b;
   border: 1px solid rgba(255,255,255,.45); font-size: 20px; line-height: 1;
   transform: none; z-index: 10;
 }

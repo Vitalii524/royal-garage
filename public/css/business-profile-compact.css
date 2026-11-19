@@ -1,6 +1,6 @@
 /* Compact public business profile; owner editing remains available */
-.business-today-schedule{font-weight:650;margin:8px 0 12px;color:#f0d18a}
-#businessScheduleDetails summary{cursor:pointer;color:#f0d18a;padding:8px 0}
+.business-today-schedule{font-weight:650;margin:8px 0 12px;color:#87601b}
+#businessScheduleDetails summary{cursor:pointer;color:#87601b;padding:8px 0}
 #businessMainGrid .business-content-card{min-width:0}
 #businessPortfolioList{grid-template-columns:repeat(auto-fit,minmax(135px,1fr))}
 #businessPortfolioList img{width:100%;aspect-ratio:4/3;object-fit:cover}
@@ -11,7 +11,7 @@
 .business-description-clamped{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;white-space:normal}
 #businessAddServiceQuick{margin:0 0 16px}
 #businessBookingButton{cursor:pointer}
-#businessBookingStatus{color:#f0d18a;min-height:1.5em}
+#businessBookingStatus{color:#87601b;min-height:1.5em}
 
 .business-hero-owner-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 #businessRequestsList { display: grid; gap: 10px; margin: 10px 0; }
