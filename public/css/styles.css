@@ -101,3 +101,37 @@
   .modal form, .business-form { min-width: 0; }
   .modal form > *, .business-form > * { max-width: 100%; }
 }
+
+/* Sticky navigation: keep only the control row pinned, not the homepage hero. */
+.rg-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 1200;
+  width: 100%;
+  background: linear-gradient(180deg, #711c27, #4b1018);
+  border-bottom: 1px solid rgba(225, 184, 79, .4);
+  box-shadow: 0 5px 18px rgba(0, 0, 0, .25);
+}
+.rg-sticky-header > .top-line {
+  max-width: 1200px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 10px 20px;
+}
+.rg-sticky-header .nav { background: rgba(50, 0, 8, .22); }
+.rg-sticky-header .burger-dropdown {
+  background: #53141d;
+  max-height: calc(100dvh - 110px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.rg-sticky-header .language-switcher button,
+.rg-sticky-header .burger-button,
+.rg-sticky-header #logoutButton,
+.rg-sticky-header .notification-bell {
+  background: transparent;
+}
+@media (max-width: 900px) {
+  .rg-sticky-header > .top-line { padding: 8px 12px; }
+}
