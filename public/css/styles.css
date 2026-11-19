@@ -208,3 +208,12 @@ body .listing-page .listing-card, body .listing-page .seller-card {
 .listing-page .seller-card a:not(.gold-btn), .listing-page .seller-card button:not(.gold-btn) { color:#24262a; font-weight:700; }
 .listing-page .seller-card a:not(.gold-btn), .listing-page .seller-card button:not(.gold-btn) { background:#d9dde3; }
 .listing-page .seller-display-star:not(.is-filled) { color:#727984; }
+
+/* Text-only inline actions, including description expand/collapse. */
+button.business-inline-link {
+ appearance:none; background:transparent; border:0; box-shadow:none;
+ padding:0; font:inherit; color:#f0d18a; text-align:left; cursor:pointer;
+}
+button.business-inline-link:hover { text-decoration:underline; text-underline-offset:3px; }
+button.business-inline-link:focus-visible { outline:2px solid #f0d18a; outline-offset:4px; }
+button.business-inline-link[hidden] { display:none !important; }
