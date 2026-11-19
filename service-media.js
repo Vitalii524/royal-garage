@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const sharp = require('sharp');
 const UUID = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 async function prepareMedia(items = []) {
-    if (!Array.isArray(items) || items.length > 6) throw new Error('Додайте не більше 6 вкладень.');
+    if (!Array.isArray(items) || items.length > 20) throw new Error('Додайте не більше 20 вкладень.');
     let total = 0;
     const result = [];
     for (const item of items) {
@@ -10,9 +10,9 @@ async function prepareMedia(items = []) {
         if (!match) throw new Error('Підтримуються JPG, PNG, WebP, MP4, WebM та MOV.');
         let data = Buffer.from(match[2], 'base64'), mime = match[1];
         const image = mime.startsWith('image/');
-        if (!data.length || data.length > (image ? 5 : 20) * 1024 * 1024) throw new Error('Фото — до 5 МБ, відео — до 20 МБ.');
+        if (!data.length || data.length > (image ? 20 : 50) * 1024 * 1024) throw new Error('Фото — до 20 МБ, відео — до 50 МБ.');
         total += data.length;
-        if (total > 25 * 1024 * 1024) throw new Error('Усі вкладення разом — до 25 МБ.');
+        if (total > 100 * 1024 * 1024) throw new Error('Усі вкладення разом — до 100 МБ.');
         if (image) { data = await sharp(data, {limitInputPixels: 40000000}).rotate().resize({width:1920,height:1920,fit:'inside',withoutEnlargement:true}).jpeg({quality:85}).toBuffer(); mime = 'image/jpeg'; }
         else if (!(mime === 'video/webm' ? data.subarray(0,4).equals(Buffer.from([0x1a,0x45,0xdf,0xa3])) : data.subarray(4,8).toString() === 'ftyp')) throw new Error('Некоректний відеофайл.');
         result.push({id:crypto.randomUUID(),mime,data,caption:String(item.caption || '').trim().slice(0,1000)});

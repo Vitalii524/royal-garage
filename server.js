@@ -1181,6 +1181,9 @@ CREATE TABLE IF NOT EXISTS service_history_purchases (
 
 const databaseReady = initDatabase();
 
+// Larger payloads only for service media; base64 expands the 100 MiB attachment batch.
+app.use(["/api/crm/work-orders/:id/media", "/api/businesses/:ownerId/requests"], express.json({ limit: "140mb" }));
+
 app.use(
     express.json({
         limit: "50mb"
