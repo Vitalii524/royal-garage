@@ -149,7 +149,7 @@
 
 /* Light-grey public site with a black pinned navigation bar. */
 :root { --dark:#f2f3f5; --navy:#ffffff; --navy2:#e9ebee; --white:#24262a; --muted:#5b6068; --card:rgba(0,0,0,.035); --gold-ink:#87601b; }
-body { background:#eef0f2; color:#24262a; }
+body { background:#c4c7cc; color:#24262a; }
 .rg-sticky-header { background:#080808; color:#f7f0e6; }
 .rg-sticky-header .nav { background:#111111; }
 .rg-sticky-header .nav a,
@@ -201,3 +201,12 @@ body .rg-promo-pair .rg-mobile-slide > .rg-business-card.first-members-card {
 }
 body .home-forum-topic.car-card { background:#f5f6f8; border-color:#d4d7dc; }
 body .rg-business-card h2, body .rg-business-card .rg-business-benefits strong { color:#24262a !important; }
+
+/* Description links replace the two homepage action buttons. */
+.home-layout > .hero .hero-description a {
+ color:#464b53; text-decoration:underline; text-decoration-color:#9ca1a9;
+ text-underline-offset:3px; text-decoration-thickness:1px;
+}
+.home-layout > .hero .hero-description a:hover { color:#111111; text-decoration-color:currentColor; }
+#garage-history { scroll-margin-top:170px; }
+@media(max-width:900px) { #garage-history { scroll-margin-top:110px; } }
