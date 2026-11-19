@@ -1148,6 +1148,7 @@ async function bindWorkOrderForm() {
 
                 carSelect.disabled = true;
                 clientInfo.innerHTML = "";
+                mileageInput.value = "";
                 return;
             }
 
@@ -1169,7 +1170,7 @@ async function bindWorkOrderForm() {
             const clientCars =
                 carsCache.filter(
                     (car) =>
-                        car.clientId === clientId
+                        String(car.clientId ?? car.client_id) === String(clientId)
                 );
 
             carSelect.innerHTML = `
@@ -1194,8 +1195,16 @@ async function bindWorkOrderForm() {
                     .join("")}
             `;
 
-            carSelect.disabled =
-                clientCars.length === 0;
+            carSelect.disabled = clientCars.length === 0;
+            if (clientCars.length === 1) {
+                carSelect.value = String(clientCars[0].id);
+                mileageInput.value = clientCars[0].mileage ?? "";
+            } else {
+                mileageInput.value = "";
+                if (!clientCars.length) {
+                    carSelect.innerHTML = '<option value="">У клієнта ще немає автомобіля</option>';
+                }
+            }
         }
     );
 
@@ -1213,7 +1222,7 @@ async function bindWorkOrderForm() {
                 );
     
             mileageInput.value =
-                selectedCar?.mileage || "";
+                selectedCar?.mileage ?? "";
         }
     );
 

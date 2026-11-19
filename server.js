@@ -7,6 +7,7 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const getSiteAnalytics = require("./site-analytics");
+const { prepareMedia, saveMedia, installMedia } = require("./service-media");
 
 const UUID_PATTERN = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 const SERVICE_HUB_OWNER_ID = "d2363e3d-4723-4755-9030-594cd3ccd6f0";
@@ -4742,6 +4743,8 @@ app.get(
 );
 
 // Business service requests. Public submission, owner-only review and confirmation.
+const mediaReady = installMedia({app,pool,requireAuth,requireCrmAccess,databaseReady});
+
 async function ensureBusinessRequestsTable() {
     await pool.query(`CREATE TABLE IF NOT EXISTS business_service_requests (
         id UUID PRIMARY KEY, owner_id UUID NOT NULL REFERENCES users(id),
@@ -4776,7 +4779,12 @@ app.post('/api/businesses/:ownerId/requests', async(req,res)=>{
             !/^\d{1,7}$/.test(mileageText)) {
             return res.status(400).json({ ok: false, message: "Вкажіть коректні рік випуску та пробіг." });
         }
-        const found = await pool.query(
+        let attachments;
+        try { attachments = await prepareMedia(p.attachments); } catch (error) { return res.status(400).json({ok:false,message:error.message}); }
+        await mediaReady;
+        const found = ownerId === ROYAL_AUTO_OWNER_ID
+            ? await pool.query('SELECT 1 FROM users WHERE id=$1 AND NOT account_disabled',[ownerId])
+            : await pool.query(
             `SELECT 1 FROM business_profiles bp
              JOIN users u ON u.id = bp.owner_id
              JOIN subscription_plans sp ON sp.id = bp.subscription_plan_id
@@ -4788,8 +4796,14 @@ app.post('/api/businesses/:ownerId/requests', async(req,res)=>{
         );
         if (!found.rowCount) return res.status(404).json({ ok: false, message: "Бізнес не приймає заявки." });
         const requestId = crypto.randomUUID();
-        await pool.query(`INSERT INTO business_service_requests(id,owner_id,name,phone,brand,model,transmission,fuel,plate,vin,reason,year,mileage,engine) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,[requestId,ownerId,name,phone,brand,model,value('transmission',40),value('fuel',40),value('plate',20),vin,reason,year,mileage,engine]);
-        await notificationCenter.emit({userId:ownerId,kind:'service_request',source:'service',message:'Нова заявка на обслуговування',url:'/business-profile.html?notifications=requests',eventKey:'request:'+requestId});
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query(`INSERT INTO business_service_requests(id,owner_id,name,phone,brand,model,transmission,fuel,plate,vin,reason,year,mileage,engine) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,[requestId,ownerId,name,phone,brand,model,value('transmission',40),value('fuel',40),value('plate',20),vin,reason,year,mileage,engine]);
+            await saveMedia(client,attachments,ownerId,requestId);
+            await client.query('COMMIT');
+        } catch(error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
+        await notificationCenter.emit({userId:ownerId,kind:'service_request',source:'service',message:'Нова заявка на обслуговування',url:ownerId===ROYAL_AUTO_OWNER_ID?'/royal-auto-admin.html?requests=1':'/business-profile.html?notifications=requests',eventKey:'request:'+requestId}).catch(error=>console.error('Request notification:',error));
         res.status(201).json({ok:true});
     } catch(e){console.error('Business request create:',e);res.status(500).json({ok:false,message:'Не вдалося зберегти заявку'});}
 });
@@ -4933,6 +4947,8 @@ app.post("/api/business/requests/:id/confirm", requireAuth, requireCrmAccess, as
             [serviceId, clientId, carId, employeeId, orderNumber, request.mileage, request.reason]
         );
         const workOrderId = workOrder.rows[0].id;
+        await mediaReady;
+        await client.query("UPDATE crm_media SET work_order_id=$1 WHERE request_id=$2 AND owner_id=$3",[workOrderId,request.id,req.user.userId]);
         const appointment = await client.query(
             `INSERT INTO crm_appointments(service_id, client_id, car_id, employee_id, work_order_id,
                  title, scheduled_at, duration_minutes, status, notes)

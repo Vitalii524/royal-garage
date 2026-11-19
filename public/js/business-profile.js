@@ -1094,6 +1094,11 @@
                     } finally { importing = false; }
                 });
                 card.append(title, details, call, importStatus);
+                const mediaDetails = document.createElement("details");
+                const summary = document.createElement("summary");summary.textContent = "Фото та відео заявки";
+                const mediaList = document.createElement("div");mediaDetails.append(summary,mediaList);
+                mediaDetails.addEventListener("toggle",()=>{if(mediaDetails.open) window.RGRequestMedia.render(mediaList,`/api/business/requests/${encodeURIComponent(request.id)}/media`);});
+                card.append(mediaDetails);
                 if (request.crm_work_order_id) {
                     const order = document.createElement("a");
                     order.href = `crm-work-order.html?id=${encodeURIComponent(request.crm_work_order_id)}`;
@@ -1172,6 +1177,7 @@
             const values = Object.fromEntries(new FormData(form).entries());
             button.disabled = true; status.textContent = "Надсилання…";
             try {
+                values.attachments = await window.RGRequestMedia.collect(form);
                 await api(`/api/businesses/${encodeURIComponent(ownerId)}/requests`, { method:"POST", body:JSON.stringify(values) });
                 status.textContent = "Заявку надіслано. СТО зв'яжеться з вами для узгодження часу.";
                 form.reset();
