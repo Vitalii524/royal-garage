@@ -15,7 +15,68 @@
         box.append(legend,input,hint,captions);const submitButton=form.querySelector('[type=submit]');if(submitButton){let anchor=submitButton;while(anchor.parentNode!==form)anchor=anchor.parentNode;form.insertBefore(box,anchor);}else form.append(box);
         form.addEventListener('reset',()=>captions.replaceChildren());
     }
-    async function collect(form){const files=Array.from(form.querySelector('[data-media-input]')?.files||[]);if(files.length>20)throw new Error('Не більше 20 файлів.');let total=0;const captions=form.querySelectorAll('[data-media-caption]');const items=[];for(const [i,file] of files.entries()){total+=file.size;if(file.size>(file.type.startsWith('image/')?20:50)*1048576||total>100*1048576)throw new Error('Перевищено розмір вкладень: фото 20 МБ, відео 50 МБ, разом 100 МБ.');items.push({data:await read(file),caption:captions[i]?.value||''});}return items;}
+    async function optimizePhoto(file) {
+        if (!file.type.startsWith('image/') || file.size < 512 * 1024) return file;
+        let bitmap;
+        try {
+            if (typeof createImageBitmap !== 'function') return file;
+            bitmap = await createImageBitmap(file);
+            const scale = Math.min(1, 2048 / Math.max(bitmap.width, bitmap.height));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+            canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+            const context = canvas.getContext('2d');
+            if (!context) return file;
+            context.fillStyle = '#ffffff';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+            return blob && blob.size < file.size ? blob : file;
+        } catch { return file; }
+        finally { bitmap?.close(); }
+    }
+    async function collect(form) {
+        const files = Array.from(form.querySelector('[data-media-input]')?.files || []);
+        if (files.length > 20) throw new Error('Не більше 20 файлів.');
+        let total = 0;
+        for (const file of files) {
+            total += file.size;
+            if (file.size > (file.type.startsWith('image/') ? 20 : 50) * 1048576 || total > 100 * 1048576)
+                throw new Error('Перевищено розмір вкладень: фото 20 МБ, відео 50 МБ, разом 100 МБ.');
+        }
+        const captions = form.querySelectorAll('[data-media-caption]');
+        const status = form.querySelector('[role=status]');
+        const items = [];
+        for (const [i, file] of files.entries()) {
+            if (status) status.textContent = `Підготовка файлу ${i + 1} із ${files.length}…`;
+            items.push({ data: await read(await optimizePhoto(file)), caption: captions[i]?.value || '' });
+        }
+        return items;
+    }
+    function upload(url, attachments, status) {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', url);
+            xhr.timeout = 180000;
+            xhr.setRequestHeader('Authorization', `Bearer ${token()}`);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.upload.onprogress = event => {
+                status.textContent = event.lengthComputable
+                    ? `Завантаження: ${Math.round(event.loaded / event.total * 100)}%`
+                    : 'Завантаження фото…';
+            };
+            xhr.upload.onload = () => { status.textContent = 'Файли передано. Сервер зберігає фото…'; };
+            xhr.onload = () => {
+                let result = {}; try { result = JSON.parse(xhr.responseText); } catch {}
+                if (xhr.status >= 200 && xhr.status < 300) resolve(result);
+                else reject(new Error(result.message || 'Не вдалося зберегти фото. Оновіть наряд і перевірте вкладення перед повторною спробою.'));
+            };
+            const interrupted = () => reject(new Error('З’єднання перервано або перевищено час очікування. Оновіть наряд і перевірте, чи фото вже збережені, перш ніж повторювати.'));
+            xhr.onerror = interrupted; xhr.ontimeout = interrupted; xhr.onabort = interrupted;
+            status.textContent = 'Завантаження: 0%';
+            xhr.send(JSON.stringify({ attachments }));
+        });
+    }
     async function render(root,url,editable=false){
         root.textContent='Завантажуємо вкладення…';
         try{const {media}=await(await api(url)).json();root.replaceChildren();if(!media.length){root.textContent='Вкладень поки немає.';return;}
@@ -28,5 +89,5 @@
     window.RGRequestMedia={mount,collect,render,api};
     document.querySelectorAll('#businessBookingForm').forEach(form=>mount(form));
     const orderRoot=document.getElementById('crmOrderMedia');
-    if(orderRoot){const id=new URLSearchParams(location.search).get('id');const url='/api/crm/work-orders/'+encodeURIComponent(id||'')+'/media';const list=document.createElement('div');const form=document.createElement('form');const submit=document.createElement('button');submit.type='submit';submit.textContent='Додати фото';const status=document.createElement('p');status.setAttribute('role','status');form.append(submit,status);mount(form,false);orderRoot.append(form,list);if(id)render(list,url,true);form.addEventListener('submit',async e=>{e.preventDefault();submit.disabled=true;status.textContent='Збереження…';try{const attachments=await collect(form);if(!attachments.length)throw new Error('Оберіть фото.');await api(url,{method:'POST',body:JSON.stringify({attachments})});form.reset();status.textContent='Фото збережено.';await render(list,url,true);}catch(e){status.textContent=e.message;}finally{submit.disabled=false;}});}
+    if(orderRoot){const id=new URLSearchParams(location.search).get('id');const url='/api/crm/work-orders/'+encodeURIComponent(id||'')+'/media';const list=document.createElement('div');const form=document.createElement('form');const submit=document.createElement('button');submit.type='submit';submit.textContent='Додати фото';const status=document.createElement('p');status.setAttribute('role','status');form.append(submit,status);mount(form,false);orderRoot.append(form,list);if(id)render(list,url,true);form.addEventListener('submit',async e=>{e.preventDefault();submit.disabled=true;status.textContent='Збереження…';try{const attachments=await collect(form);if(!attachments.length)throw new Error('Оберіть фото.');await upload(url,attachments,status);form.reset();status.textContent='Фото збережено.';await render(list,url,true);}catch(e){status.textContent=e.message;}finally{submit.disabled=false;}});}
 })();
