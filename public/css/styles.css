@@ -32,6 +32,22 @@
     background: #f3d27a;
     color: #0b1736;
   }
+  .language-switcher button[data-language-toggle] {
+    box-sizing: border-box;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 8px;
+    border: 1px solid rgba(198, 165, 94, 0.7);
+    border-radius: 10px;
+    background: transparent;
+    color: #f4d58d;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .language-switcher button[data-language-toggle]:focus-visible {
+    outline: 2px solid #f4d58d;
+    outline-offset: 3px;
+  }
 /* Royal Garage — targeted responsive controls revision */
 .modal .modal-content, .auth-window, .business-modal-card {
   box-sizing: border-box;

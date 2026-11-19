@@ -1219,10 +1219,24 @@ function setLanguage(lang) {
         button.classList.toggle("active", button.dataset.lang === lang);
     });
 
+    document.querySelectorAll("[data-language-toggle]").forEach((button) => {
+        button.textContent = lang === "en" ? "EN" : "UA";
+        const label = lang === "en" ? "Switch to Ukrainian" : "Перемкнути на англійську";
+        button.setAttribute("aria-label", label);
+        button.title = label;
+    });
+
     document.dispatchEvent(new CustomEvent("royalGarageLanguageChange", { detail: { lang } }));
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".language-switcher").forEach((switcher) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.languageToggle = "";
+        button.addEventListener("click", () => setLanguage(getLanguage() === "uk" ? "en" : "uk"));
+        switcher.replaceChildren(button);
+    });
     document.querySelectorAll("[data-lang]").forEach((button) => {
         button.addEventListener("click", () => setLanguage(button.dataset.lang));
     });
