@@ -7323,6 +7323,10 @@ async function initializeProfilePage() {
         return;
     }
 
+    if (String(user.id || user.userId) === "32ce413e-9eb6-417a-b99a-77d9ca7c144a" || user.accountType === "business") {
+        window.location.replace(String(user.id || user.userId) === "32ce413e-9eb6-417a-b99a-77d9ca7c144a" ? "royal-auto-admin.html" : "business-profile.html");
+        return;
+    }
     renderFirstMemberBadge();
     renderAccountSettings();
     fillSellerProfileSettings();

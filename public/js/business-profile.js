@@ -1077,7 +1077,23 @@
                 call.href = `tel:${String(request.phone).replace(/[^+0-9]/g, "")}`;
                 call.textContent = "Зателефонувати";
                 call.className = "business-inline-link";
-                card.append(title, details, call);
+                const importStatus = document.createElement("p");
+                importStatus.setAttribute("role", "status");
+                let importing = false;
+                call.addEventListener("click", async event => {
+                    event.preventDefault();
+                    if (importing) return;
+                    importing = true;
+                    importStatus.textContent = "Зберігаємо клієнта й автомобіль у CRM…";
+                    try {
+                        await api(`/api/business/requests/${encodeURIComponent(request.id)}/contact`, { method: "POST" });
+                        importStatus.textContent = "Клієнта й автомобіль збережено в CRM.";
+                        window.location.href = call.href;
+                    } catch (error) {
+                        importStatus.textContent = error.message;
+                    } finally { importing = false; }
+                });
+                card.append(title, details, call, importStatus);
                 if (request.crm_work_order_id) {
                     const order = document.createElement("a");
                     order.href = `crm-work-order.html?id=${encodeURIComponent(request.crm_work_order_id)}`;

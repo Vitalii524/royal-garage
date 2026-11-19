@@ -3323,6 +3323,24 @@ app.get(
     renderMarketCategoryPage
 );
 
+// Old seller links for businesses resolve to the same public business profile.
+app.get("/seller.html", async (req, res) => {
+    const ownerId = String(req.query.sellerId || "");
+    try {
+        if (ownerId === ROYAL_AUTO_OWNER_ID) return res.redirect(302, "/handmade.html");
+        if (UUID_PATTERN.test(ownerId)) {
+            const business = await pool.query(
+                "SELECT owner_id FROM business_profiles WHERE owner_id = $1 AND is_deleted = FALSE LIMIT 1", [ownerId]
+            );
+            if (business.rowCount) return res.redirect(302, `/business-profile.html?id=${encodeURIComponent(ownerId)}`);
+        }
+        return res.sendFile(path.join(__dirname, "public", "seller.html"));
+    } catch (error) {
+        console.error("Resolve business seller profile:", error);
+        return res.status(503).send("Не вдалося відкрити профіль. Спробуйте ще раз.");
+    }
+});
+
 app.get("/service-hub.html", (req, res) => {
     res.redirect(302, `/business-profile.html?id=${SERVICE_HUB_OWNER_ID}`);
 });
@@ -4795,6 +4813,76 @@ app.get("/api/business/requests", requireAuth, requireCrmAccess, async (req, res
     res.json({ ok: true, pending: count.rows[0].pending, requests: result.rows.slice(0, 50), hasMore: result.rows.length > 50 });
 });
 
+async function importServiceRequest(client, request, serviceId) {
+    // Serialize imports for the same customer across different requests.
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [serviceId + ":" + request.phone.replace(/\D/g, "")]);
+        const existingClient = await client.query(
+            `SELECT id FROM crm_clients WHERE service_id = $1
+             AND (id = $3 OR regexp_replace(phone, '[^0-9]', '', 'g') = $2) ORDER BY created_at, id LIMIT 1`,
+            [serviceId, request.phone.replace(/\D/g, ""), request.crm_client_id]
+        );
+        const clientId = existingClient.rows[0]?.id || (await client.query(
+            "INSERT INTO crm_clients(service_id, name, phone) VALUES ($1, $2, $3) RETURNING id",
+            [serviceId, request.name, request.phone]
+        )).rows[0].id;
+        const existingCar = await client.query(
+            `SELECT id FROM crm_cars WHERE service_id = $1 AND client_id = $2
+               AND (id = $5 OR ($3 <> '' AND UPPER(vin) = $3)
+                    OR ($4 <> '' AND UPPER(BTRIM(plate)) = UPPER($4)
+                        AND ($3 = '' OR COALESCE(vin, '') = '')))
+             ORDER BY CASE WHEN UPPER(vin) = $3 THEN 0 ELSE 1 END, id LIMIT 1`,
+            [serviceId, clientId, request.vin || "", request.plate || "", request.crm_car_id]
+        );
+        const spec = [request.brand, request.model, request.vin || null, request.plate || null,
+            request.fuel || null, request.transmission || null, request.year, request.mileage, request.engine || null];
+        let carId = existingCar.rows[0]?.id;
+        if (carId) {
+            await client.query(
+                `UPDATE crm_cars SET brand = $1, model = $2, vin = COALESCE($3, vin),
+                    plate = COALESCE($4, plate), fuel = COALESCE($5, fuel),
+                    transmission = COALESCE($6, transmission), year = COALESCE($7, year),
+                    mileage = COALESCE($8, mileage), engine = COALESCE($9, engine), updated_at = NOW()
+                 WHERE id = $10`, [...spec, carId]
+            );
+        } else {
+            carId = (await client.query(
+                `INSERT INTO crm_cars(brand, model, vin, plate, fuel, transmission, year, mileage, engine, service_id, client_id)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`, [...spec, serviceId, clientId]
+            )).rows[0].id;
+        }
+
+    await client.query("UPDATE business_service_requests SET crm_client_id = $2, crm_car_id = $3 WHERE id = $1", [request.id, clientId, carId]);
+    return { clientId, carId };
+}
+
+app.post("/api/business/requests/:id/contact", requireAuth, requireCrmAccess, async (req, res) => {
+    if (!UUID_PATTERN.test(req.params.id)) return res.sendStatus(404);
+    const client = await pool.connect();
+    try {
+        await client.query("BEGIN");
+        const result = await client.query("SELECT * FROM business_service_requests WHERE id = $1 AND owner_id = $2 FOR UPDATE", [req.params.id, req.user.userId]);
+        const request = result.rows[0];
+        if (!request) {
+            await client.query("ROLLBACK");
+            return res.status(404).json({ ok: false, message: "Заявку не знайдено." });
+        }
+        const service = await client.query(`
+            INSERT INTO crm_services(id, business_profile_id, name, phone, email, city, address, subscription_status, is_active)
+            SELECT gen_random_uuid(), bp.id, bp.name, COALESCE(bp.phone,u.phone), u.email, bp.city, bp.address, 'active', TRUE
+            FROM business_profiles bp JOIN users u ON u.id = bp.owner_id
+            WHERE bp.id = $1 AND bp.owner_id = $2
+            ON CONFLICT (business_profile_id) DO UPDATE SET updated_at = NOW()
+            RETURNING id`, [req.crm.businessProfileId, req.user.userId]);
+        const imported = await importServiceRequest(client, request, service.rows[0].id);
+        await client.query("COMMIT");
+        return res.json({ ok: true, ...imported });
+    } catch (error) {
+        await client.query("ROLLBACK").catch(() => {});
+        console.error("Import service request:", error);
+        return res.status(500).json({ ok: false, message: "Не вдалося зберегти клієнта й автомобіль у CRM. Спробуйте ще раз." });
+    } finally { client.release(); }
+});
+
 app.post("/api/business/requests/:id/confirm", requireAuth, requireCrmAccess, async (req, res) => {
     if (!UUID_PATTERN.test(req.params.id)) return res.sendStatus(404);
     const client = await pool.connect();
@@ -4837,40 +4925,7 @@ app.post("/api/business/requests/:id/confirm", requireAuth, requireCrmAccess, as
             return res.status(400).json({ ok: false, message: "Виберіть активного майстра зі своєї CRM." });
         }
 
-        const existingClient = await client.query(
-            `SELECT id FROM crm_clients WHERE service_id = $1
-             AND regexp_replace(phone, '[^0-9]', '', 'g') = $2 ORDER BY created_at, id LIMIT 1`,
-            [serviceId, request.phone.replace(/\D/g, "")]
-        );
-        const clientId = existingClient.rows[0]?.id || (await client.query(
-            "INSERT INTO crm_clients(service_id, name, phone) VALUES ($1, $2, $3) RETURNING id",
-            [serviceId, request.name, request.phone]
-        )).rows[0].id;
-        const existingCar = await client.query(
-            `SELECT id FROM crm_cars WHERE service_id = $1 AND client_id = $2
-               AND (($3 <> '' AND UPPER(vin) = $3)
-                    OR ($4 <> '' AND UPPER(BTRIM(plate)) = UPPER($4)
-                        AND ($3 = '' OR COALESCE(vin, '') = '')))
-             ORDER BY CASE WHEN UPPER(vin) = $3 THEN 0 ELSE 1 END, id LIMIT 1`,
-            [serviceId, clientId, request.vin || "", request.plate || ""]
-        );
-        const spec = [request.brand, request.model, request.vin || null, request.plate || null,
-            request.fuel || null, request.transmission || null, request.year, request.mileage, request.engine || null];
-        let carId = existingCar.rows[0]?.id;
-        if (carId) {
-            await client.query(
-                `UPDATE crm_cars SET brand = $1, model = $2, vin = COALESCE($3, vin),
-                    plate = COALESCE($4, plate), fuel = COALESCE($5, fuel),
-                    transmission = COALESCE($6, transmission), year = COALESCE($7, year),
-                    mileage = COALESCE($8, mileage), engine = COALESCE($9, engine), updated_at = NOW()
-                 WHERE id = $10`, [...spec, carId]
-            );
-        } else {
-            carId = (await client.query(
-                `INSERT INTO crm_cars(brand, model, vin, plate, fuel, transmission, year, mileage, engine, service_id, client_id)
-                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`, [...spec, serviceId, clientId]
-            )).rows[0].id;
-        }
+        const { clientId, carId } = await importServiceRequest(client, request, serviceId);
         const orderNumber = await nextCrmOrderNumber(client, serviceId);
         const workOrder = await client.query(
             `INSERT INTO crm_work_orders(service_id, client_id, car_id, employee_id, order_number, status, mileage, customer_complaint)
@@ -8279,7 +8334,7 @@ async function loadPrivateBusinessProfile(ownerId) {
             sp.name AS "planName",
             sp.price_uah AS "priceUah",
             sp.car_limit AS "carLimit",
-            sp.has_crm AS "hasCrm",
+            (sp.has_crm OR bp.owner_id = '32ce413e-9eb6-417a-b99a-77d9ca7c144a'::uuid) AS "hasCrm",
             sp.has_map AS "hasMap",
 
             bp.complimentary_subscription AS "complimentarySubscription",
@@ -10569,16 +10624,25 @@ app.patch("/api/admin/businesses/:id/complimentary", requireAuth, requireAdmin, 
 
 async function requireCrmAccess(req, res, next) {
     try {
-        if (
-            !req.user ||
-            req.user.accountType !== "business"
-        ) {
+        const royalAutoOwner = req.user?.userId === ROYAL_AUTO_OWNER_ID;
+        if (!req.user || (req.user.accountType !== "business" && !royalAutoOwner)) {
             return res.status(403).json({
                 ok: false,
                 code: "CRM_BUSINESS_REQUIRED",
                 message:
                     "CRM RG доступна для бізнес-акаунтів."
             });
+        }
+
+        // Royal Auto predates business registration. Keep its existing cabinet and
+        // create only the CRM backing profile, without changing the account or tariff.
+        if (royalAutoOwner) {
+            await pool.query(`INSERT INTO business_profiles(id,owner_id,business_type_id,subscription_plan_id,name)
+                SELECT gen_random_uuid(),u.id,bt.id,sp.id,'Royal Auto'
+                FROM users u JOIN business_types bt ON bt.code='car_dealer'
+                JOIN subscription_plans sp ON sp.business_type_code=bt.code AND sp.code='business'
+                WHERE u.id=$1 AND NOT u.account_disabled
+                ON CONFLICT (owner_id) DO NOTHING`, [req.user.userId]);
         }
 
         const result =
@@ -10592,7 +10656,7 @@ async function requireCrmAccess(req, res, next) {
                     sp.id AS "planId",
                     sp.code AS "planCode",
                     sp.name AS "planName",
-                    sp.has_crm AS "hasCrm",
+                    (sp.has_crm OR bp.owner_id = '32ce413e-9eb6-417a-b99a-77d9ca7c144a'::uuid) AS "hasCrm",
 
                     bp.complimentary_subscription
                         AS "complimentarySubscription",
@@ -10631,7 +10695,7 @@ async function requireCrmAccess(req, res, next) {
         const business =
             result.rows[0];
 
-        const subscriptionActive =
+        const subscriptionActive = royalAutoOwner ||
             business.complimentarySubscription === true ||
             (
                 business.subscriptionExpiresAt &&
@@ -10703,6 +10767,7 @@ app.get(
             ok: true,
             crm: {
                 name: "CRM RG",
+                ownerId: req.user.userId,
 
                 businessProfileId:
                     req.crm.businessProfileId,
