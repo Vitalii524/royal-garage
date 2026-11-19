@@ -217,3 +217,11 @@ button.business-inline-link {
 button.business-inline-link:hover { text-decoration:underline; text-underline-offset:3px; }
 button.business-inline-link:focus-visible { outline:2px solid #f0d18a; outline-offset:4px; }
 button.business-inline-link[hidden] { display:none !important; }
+
+/* Subtle gold keyline separates graphite panels from the page. */
+body :is(.hero,.panel,.market-hero,.listing-card,.first-members-card,
+ .rg-business-card,.business-content-card,.business-hero,.business-info-card,
+ .business-card,.forum-hero,.forum-topic,.topic-card,.profile-card,
+ .profile-community,.profile-videos,.home-partner-card,.home-club-card) {
+ border:1px solid rgba(230,192,104,.45) !important;
+}
