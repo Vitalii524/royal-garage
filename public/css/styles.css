@@ -191,3 +191,20 @@ body .first-members-card { background:#30343b !important; color:#f4f5f7; }
 body .first-members-counter { background:#25282e; color:#f4f5f7; }
 .market-page .market-hero h1, .market-page .market-hero p { color:#f4f5f7; }
 .seller-card a:not(.gold-btn), .seller-card button:not(.gold-btn) { color:#f4f5f7; }
+
+/* Listing detail cards keep the light appearance selected by the owner. */
+body .listing-page .listing-card, body .listing-page .seller-card {
+ background:#f4f5f7 !important; color:#24262a; border-color:#d7d3c5;
+}
+.listing-page .listing-card h1, .listing-page .listing-card h2,
+.listing-page .listing-card h3, .listing-page .listing-card p,
+.listing-page .listing-card .listing-description,
+.listing-page .listing-card .listing-parameters { color:#24262a; }
+.listing-page .listing-description, .listing-page .listing-parameters,
+.listing-page .listing-card p { font-weight:600; }
+.listing-page .listing-parameters strong { font-weight:800; }
+.listing-page .seller-reputation { background:#e1e4e9; color:#24262a; }
+.listing-page .seller-rating-message, .listing-page .seller-rating-count { color:#454b54; }
+.listing-page .seller-card a:not(.gold-btn), .listing-page .seller-card button:not(.gold-btn) { color:#24262a; font-weight:700; }
+.listing-page .seller-card a:not(.gold-btn), .listing-page .seller-card button:not(.gold-btn) { background:#d9dde3; }
+.listing-page .seller-display-star:not(.is-filled) { color:#727984; }
