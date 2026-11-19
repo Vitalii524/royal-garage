@@ -6,7 +6,7 @@
    .about-page {
     background:
         radial-gradient(circle at top right, rgba(194, 24, 24, 0.08), transparent 30%),
-        linear-gradient(180deg, #f8f8f8 0%, #969da7 24%, #f7f7f7 100%);
+        linear-gradient(180deg, #f8f8f8 0%, #ffffff 24%, #f7f7f7 100%);
     color: #171717;
     min-height: 100vh;
 }
@@ -25,9 +25,9 @@
     overflow: hidden;
     padding: 92px 24px 88px;
     background:
-        linear-gradient(135deg, rgba(12, 12, 12, 0.96), rgba(250,250,251, 0.93)),
+        linear-gradient(135deg, rgba(12, 12, 12, 0.96), rgba(26, 26, 26, 0.93)),
         url("../images/royal-garage-logo.png") center / 420px auto no-repeat;
-    color: #33363b;
+    color: #ffffff;
 }
 
 .about-hero::before {
@@ -93,7 +93,7 @@
     font-size: clamp(1.1rem, 2.4vw, 1.45rem);
     font-weight: 800;
     line-height: 1.45;
-    color: #33363b;
+    color: #ffffff;
 }
 
 .about-hero-actions {
@@ -115,7 +115,7 @@
     padding: 12px 18px;
     border: 1px solid #d5d5d5;
     border-radius: 12px;
-    background: #969da7;
+    background: #ffffff;
     color: #151515;
     text-decoration: none;
     font-size: 0.95rem;
@@ -136,7 +136,7 @@
 .about-button-primary {
     border-color: #d51e1e;
     background: #d51e1e;
-    color: #33363b;
+    color: #ffffff;
 }
 
 .about-button-primary:hover {
@@ -147,7 +147,7 @@
 .about-hero .about-button:not(.about-button-primary) {
     border-color: rgba(255, 255, 255, 0.24);
     background: rgba(255, 255, 255, 0.08);
-    color: #33363b;
+    color: #ffffff;
     backdrop-filter: blur(6px);
 }
 
@@ -283,7 +283,7 @@
     gap: 16px;
     padding: 24px;
     border-radius: 18px;
-    background: #969da7;
+    background: #ffffff;
     border: 1px solid #e6e6e6;
 }
 
@@ -294,8 +294,8 @@
     width: 42px;
     height: 42px;
     border-radius: 12px;
-    background: #969da7;
-    color: #33363b;
+    background: #171717;
+    color: #ffffff;
 }
 
 .about-feature h3 {
@@ -331,7 +331,7 @@
     padding: 10px 14px;
     border: 1px solid #e1e1e1;
     border-radius: 999px;
-    background: #969da7;
+    background: #ffffff;
     color: #333333;
     font-size: 0.92rem;
     font-weight: 700;
@@ -355,8 +355,8 @@
     align-items: start;
     padding: 40px;
     border-radius: 24px;
-    background: #969da7;
-    color: #33363b;
+    background: #171717;
+    color: #ffffff;
     overflow: hidden;
     position: relative;
 }
@@ -472,7 +472,7 @@
 @media (max-width: 680px) {
 
     .about-page {
-        background: #969da7;
+        background: #ffffff;
     }
 
     .about-hero {
@@ -602,7 +602,7 @@
 
     padding: 40px !important;
 
-    background: #969da7;
+    background: #ffffff;
     border: 1px solid #e2e2e2;
     border-radius: 24px;
 
@@ -684,7 +684,7 @@
     border: 1px solid #d8d8d8 !important;
     border-radius: 12px !important;
 
-    background: #969da7 !important;
+    background: #ffffff !important;
     color: #171717 !important;
 
     font: inherit !important;
