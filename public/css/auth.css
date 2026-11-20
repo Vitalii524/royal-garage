@@ -17,7 +17,7 @@
 
 .auth-register-button,
 .auth-header-button:hover {
-    color: #30343b;
+    color: #24272d;
     background: var(--gold);
 }
 
@@ -76,8 +76,8 @@
     padding: 28px;
     background: linear-gradient(
         180deg,
-        #30343b,
-        #30343b
+        #24272d,
+        #24272d
     );
     border: 1px solid rgba(214, 160, 58, 0.45);
     border-radius: 16px;
@@ -114,14 +114,14 @@
 .auth-tab {
     padding: 12px;
     color: var(--white);
-    background: #30343b;
+    background: #24272d;
     border: 1px solid rgba(214, 160, 58, 0.2);
     border-radius: 8px;
     cursor: pointer;
 }
 
 .auth-tab.active {
-    color: #30343b;
+    color: #24272d;
     background: var(--gold);
 }
 
@@ -147,8 +147,8 @@
     width: 100%;
     padding: 14px;
     color: var(--white);
-    background: #30343b;
-    border: 1px solid #30343b;
+    background: #24272d;
+    border: 1px solid #24272d;
     border-radius: 8px;
     font-size: 16px;
 }

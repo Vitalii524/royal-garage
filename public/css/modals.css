@@ -22,7 +22,7 @@
     max-height: 90vh;
     padding: 25px;
     overflow: auto;
-    background: #30343b;
+    background: #24272d;
     border: 1px solid rgba(214, 160, 58, 0.4);
     border-radius: 14px;
 
@@ -41,8 +41,8 @@
     margin: 8px 0;
     padding: 14px;
     color: var(--white);
-    background: #30343b;
-    border: 1px solid #30343b;
+    background: #24272d;
+    border: 1px solid #24272d;
     border-radius: 8px;
 }
 

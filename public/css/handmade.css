@@ -46,8 +46,8 @@
     background:
         linear-gradient(
             135deg,
-            rgba(48,52,59, 0.98),
-            rgba(48,52,59, 0.98)
+            rgba(36,39,45, 0.98),
+            rgba(36,39,45, 0.98)
         );
 
     box-shadow:
@@ -139,7 +139,7 @@
 
 .upholstery-primary-button,
 .upholstery-contact-buttons a {
-    color: #30343b;
+    color: #24272d;
     background: #e8c56a;
 }
 
@@ -226,7 +226,7 @@
     border-radius: 22px;
 
     background:
-        rgba(48,52,59,
+        rgba(36,39,45,
             0.78);
 
  color:#f4f5f7;
@@ -415,7 +415,7 @@
         linear-gradient(
             135deg,
             rgba(232, 197, 106, 0.16),
-            rgba(48,52,59, 0.95)
+            rgba(36,39,45, 0.95)
         );
 
  color:#f4f5f7;
@@ -503,7 +503,7 @@ p:not(.upholstery-label) {
     border-radius: 50%;
 
     background:
-        rgba(48,52,59,
+        rgba(36,39,45,
             0.92);
 
     font-size: 2rem;
@@ -513,7 +513,7 @@ p:not(.upholstery-label) {
 
 
 .upholstery-viewer-close:hover {
-    color: #30343b;
+    color: #24272d;
     background: #e8c56a;
 }
 
@@ -686,8 +686,8 @@ html {
     background:
         linear-gradient(
             135deg,
-            rgba(48,52,59, 0.96),
-            rgba(48,52,59, 0.84)
+            rgba(36,39,45, 0.96),
+            rgba(36,39,45, 0.84)
         );
 
     box-shadow:
@@ -787,7 +787,7 @@ html {
 
     padding: 0 18px;
 
-    color: #30343b;
+    color: #24272d;
     background: #e8c56a;
 
     border-radius: 11px;
@@ -825,7 +825,7 @@ html {
     min-height: 46px;
     padding: 0 20px;
 
-    color: #30343b;
+    color: #24272d;
     background: #e8c56a;
 
     border: none;
@@ -867,7 +867,7 @@ html {
         rgba(255, 255, 255, 0.72);
 
     background:
-        #30343b;
+        #24272d;
 
     text-align: center;
 }
@@ -908,7 +908,7 @@ html {
     border-radius: 18px;
 
     background:
-        #30343b;
+        #24272d;
 
     transition:
         transform 0.2s ease,
@@ -978,7 +978,7 @@ html {
     background:
         linear-gradient(
             135deg,
-            rgba(48,52,59, 0.95),
+            rgba(36,39,45, 0.95),
             rgba(232, 197, 106, 0.12)
         );
 
@@ -1030,7 +1030,7 @@ html {
 
     border-radius: 11px;
 
-    color: #30343b;
+    color: #24272d;
 
     background: #e8c56a;
 
@@ -1262,7 +1262,7 @@ html {
     border: 1px solid #e8c56a;
     border-radius: 30px;
 
-    color: #30343b;
+    color: #24272d;
     background: #e8c56a;
 
     font-weight: 800;

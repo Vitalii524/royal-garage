@@ -1,4 +1,4 @@
-.home-club-card{position:relative;isolation:isolate;aspect-ratio:2/1;padding:12px;justify-content:flex-end;background:linear-gradient(130deg,#30343b,#30343b);border-color:#8b7242
+.home-club-card{position:relative;isolation:isolate;aspect-ratio:2/1;padding:12px;justify-content:flex-end;background:linear-gradient(130deg,#24272d,#24272d);border-color:#8b7242
  color:#f4f5f7;
 }
 .home-club-card::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,rgba(0,0,0,.88),rgba(0,0,0,.08))}
