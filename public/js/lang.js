@@ -1,5 +1,15 @@
 const translations = {
     "uk": {
+        "legal.other.title": "Інші цифрові сервіси оператора",
+        "legal.other.operator": "Оператор і постачальник послуг Royal Garage — ФОП Панасенко Віталій Валерійович. Цей самий оператор також розвиває RG Studio та Кошторис-Link — окремі цифрові вебсервіси з власними сайтами та призначенням.",
+        "legal.other.studio": "Онлайн-конструктор сайтів-візиток. Тарифи публікації одного сайту:",
+        "legal.other.month": "Місячний тариф",
+        "legal.other.year": "Річний тариф",
+        "legal.other.estimates": "Онлайн-сервіс для створення, редагування та розрахунку кошторисів.",
+        "legal.other.pro30": "PRO на 30 днів",
+        "legal.other.pro365": "PRO на 365 днів",
+        "legal.other.verified": "Адреси й тарифи перевірено на публічних сайтах сервісів 18 листопада 2026 року.",
+        "legal.other.bank": "Інформація про ці сервіси не означає, що LiqPay погодив приймання платежів за всі три сайти. Це питання ще уточнюється з банком. Мерчант LiqPay Royal Garage перебуває на перевірці; приймання онлайн-платежів Royal Garage тимчасово недоступне.",
         "auth.logout": "Вийти",
         "nav.home": "Головна",
         "nav.forum": "Клуб",
@@ -11,7 +21,10 @@ const translations = {
         "menu.open": "Відкрити меню",
         "menu.title": "Меню",
         "menu.mobile": "Мобільне меню",
-        "home.heroText": "Міжнародна автоспільнота для водіїв, форум, авторинок і особистий гараж",
+        "home.heroText": "Автоспільнота. Авторинок. Твій гараж.",
+        "home.descriptionCommunity": "Автоспільнота",
+        "home.descriptionMarket": "Авторинок",
+        "home.descriptionGarage": "Твій гараж",
         "home.goForum": "Перейти в клуб",
         "home.viewCars": "Переглянути авто",
         "home.searchPlaceholder": "Пошук авто, тем або користувачів...",
@@ -441,7 +454,7 @@ const translations = {
         "auto.341": "Royal Garage — міжнародний автомобільний веб-портал, що об'єднує водіїв, автомобільну спільноту, авторинок та автомобільні бізнеси.",
         "auto.342": "На платформі можуть надаватися платні послуги з розміщення, рекламного просування та додаткового представлення інформації на веб-порталі Royal Garage.",
         "auto.343": "Послуги та вартість",
-        "auto.344": "Для України ціни зазначені у гривнях (UAH), для США — у доларах США (USD).",
+        "auto.344": "Онлайн-оплата передбачена лише для послуг, які надаються користувачам в Україні. Усі ціни зазначені у гривнях (UAH).",
         "auto.345": "Послуга",
         "auto.346": "Вартість",
         "auto.347": "Перевірка історії автомобіля",
@@ -450,15 +463,13 @@ const translations = {
         "auto.350": "150 грн",
         "auto.351": "Бізнес-профіль Royal Garage",
         "auto.352": "Один тариф для автомобільного бізнесу. Усі можливості Royal Garage, включно з CRM, входять у тариф.",
-        "auto.353": "Країна",
-        "auto.354": "🇺🇦 Україна",
+        "auto.353": "Тариф",
+        "auto.354": "Бізнес-профіль Royal Garage",
         "auto.355": "1 500 грн / місяць",
-        "auto.356": "🇺🇸 США",
-        "auto.357": "$100 / місяць",
         "auto.358": "СТАРТОВА ПРОПОЗИЦІЯ",
         "auto.359": "Перші 3 місяці — безкоштовно",
-        "auto.360": "Для нових бізнес-профілів Royal Garage перші 3 місяці користування платформою надаються безкоштовно як в Україні, так і у США.",
-        "auto.361": "У безкоштовний період доступні всі можливості бізнес-профілю, включно з CRM. Після завершення 3 місяців застосовується стандартний щомісячний тариф відповідно до країни.",
+        "auto.360": "Для нових бізнес-профілів Royal Garage перші 3 місяці користування платформою надаються безкоштовно.",
+        "auto.361": "У безкоштовний період доступні всі можливості бізнес-профілю, включно з CRM. Після завершення 3 місяців для послуг в Україні застосовується тариф 1 500 грн на місяць.",
         "auto.362": "Кому підходить тариф",
         "auto.363": "СТО, детейлінг, автомийки, шиномонтажі, магазини автозапчастин, автосалони, автомобільні майданчики, евакуатори та інші автомобільні бізнеси.",
         "auto.364": "RoyalAuto та Service Hub мають повний доступ до можливостей Royal Garage без оплати.",
@@ -469,12 +480,12 @@ const translations = {
         "auto.369": "Безлімітний тариф",
         "auto.370": "5 000 грн",
         "auto.371": "Порядок оплати",
-        "auto.372": "Платні послуги Royal Garage оплачуються онлайн. Для України застосовується вартість у гривнях (UAH), для США — у доларах США (USD).",
-        "auto.373": "Для здійснення оплати користувач обирає відповідну послугу або тариф на сайті та переходить до захищеної платіжної сторінки.",
+        "auto.372": "Онлайн-оплата передбачена лише для послуг, які надаються користувачам в Україні. Мерчант LiqPay наразі проходить перевірку, тому приймання онлайн-платежів тимчасово недоступне до завершення перевірки.",
+        "auto.373": "Після завершення перевірки для здійснення оплати користувач обирає відповідну послугу або тариф на сайті, переходить до захищеної платіжної сторінки LiqPay та виконує інструкції платіжної системи.",
         "auto.374": "Після підтвердження успішної оплати відповідна платна послуга активується згідно з умовами обраного тарифу.",
         "auto.375": "Строк надання послуг",
-        "auto.376": "Платні послуги Royal Garage активуються після підтвердження успішної оплати.",
-        "auto.377": "Автоматично активовані послуги стають доступними користувачу після обробки платежу системою. Якщо потрібна додаткова перевірка або ручна активація, послуга активується протягом 24 годин після підтвердження успішної оплати.",
+        "auto.376": "Після відновлення приймання платежів платні послуги Royal Garage активуватимуться після підтвердження успішної оплати.",
+        "auto.377": "Автоматично активовані послуги ставатимуть доступними користувачу після обробки платежу системою LiqPay. Якщо потрібна додаткова перевірка або ручна активація, послуга активується протягом 24 годин після підтвердження успішної оплати.",
         "auto.378": "Умови повернення коштів",
         "auto.379": "Користувач має право звернутися щодо повернення коштів, якщо оплачена послуга Royal Garage не була надана або не була активована з технічних чи інших причин з боку сервісу.",
         "auto.380": "Для розгляду звернення необхідно надіслати запит на електронну адресу",
@@ -563,6 +574,16 @@ const translations = {
         "profile.rating.other": "оцінок",
     },
     "en": {
+        "legal.other.title": "Other digital services operated by the provider",
+        "legal.other.operator": "The operator and service provider of Royal Garage is sole proprietor Panasenko Vitalii Valeriiovych. The same operator also develops RG Studio and Koshtorys-Link — separate digital web services with their own websites and purposes.",
+        "legal.other.studio": "An online business-card website builder. Publication plans for one website:",
+        "legal.other.month": "Monthly plan",
+        "legal.other.year": "Annual plan",
+        "legal.other.estimates": "An online service for creating, editing and calculating cost estimates.",
+        "legal.other.pro30": "PRO for 30 days",
+        "legal.other.pro365": "PRO for 365 days",
+        "legal.other.verified": "Service addresses and prices were verified on their public websites on 18 November 2026.",
+        "legal.other.bank": "Listing these services does not mean that LiqPay has approved payment acceptance for all three websites. This is still being clarified with the bank. The Royal Garage LiqPay merchant is under review; online payment acceptance for Royal Garage is temporarily unavailable.",
         "auth.logout": "Logout",
         "nav.home": "Home",
         "nav.forum": "Forum",
@@ -574,7 +595,10 @@ const translations = {
         "menu.open": "Open menu",
         "menu.title": "Menu",
         "menu.mobile": "Mobile menu",
-        "home.heroText": "International automotive community for drivers, forum, car marketplace and personal garage",
+        "home.heroText": "Car community. Marketplace. Your garage.",
+        "home.descriptionCommunity": "Car community",
+        "home.descriptionMarket": "Marketplace",
+        "home.descriptionGarage": "Your garage",
         "home.goForum": "Go to forum",
         "home.viewCars": "View cars",
         "home.searchPlaceholder": "Search cars, topics or users...",
@@ -1004,7 +1028,7 @@ const translations = {
         "auto.341": "Royal Garage is an international automotive web portal bringing together drivers, the automotive community, the car marketplace and automotive businesses.",
         "auto.342": "The platform may provide paid services for placement, advertising promotion and additional presentation of information on the Royal Garage web portal.",
         "auto.343": "Services and pricing",
-        "auto.344": "Prices for Ukraine are listed in Ukrainian hryvnia (UAH), and prices for the USA are listed in US dollars (USD).",
+        "auto.344": "Online payment is intended only for services provided to users in Ukraine. All prices are listed in Ukrainian hryvnia (UAH).",
         "auto.345": "Service",
         "auto.346": "Price",
         "auto.347": "Vehicle history check",
@@ -1013,15 +1037,13 @@ const translations = {
         "auto.350": "150 UAH",
         "auto.351": "Royal Garage Business Profile",
         "auto.352": "One plan for automotive businesses. All Royal Garage features, including CRM, are included.",
-        "auto.353": "Country",
-        "auto.354": "🇺🇦 Ukraine",
+        "auto.353": "Plan",
+        "auto.354": "Royal Garage Business Profile",
         "auto.355": "1,500 UAH / month",
-        "auto.356": "🇺🇸 USA",
-        "auto.357": "$100 / month",
         "auto.358": "LAUNCH OFFER",
         "auto.359": "First 3 months free",
-        "auto.360": "New Royal Garage business profiles receive the first 3 months free in both Ukraine and the USA.",
-        "auto.361": "During the free period, all business-profile features, including CRM, are available. After 3 months, the standard monthly price for the applicable country applies.",
+        "auto.360": "New Royal Garage business profiles receive the first 3 months free.",
+        "auto.361": "During the free period, all business-profile features, including CRM, are available. After 3 months, services in Ukraine are charged at 1,500 UAH per month.",
         "auto.362": "Who this plan is for",
         "auto.363": "Service centers, detailing studios, car washes, tire services, auto parts stores, dealerships, car lots, towing services and other automotive businesses.",
         "auto.364": "RoyalAuto and Service Hub have full access to Royal Garage features at no charge.",
@@ -1032,12 +1054,12 @@ const translations = {
         "auto.369": "Unlimited plan",
         "auto.370": "5,000 UAH",
         "auto.371": "Payment procedure",
-        "auto.372": "Royal Garage paid services are paid online. Prices for Ukraine are charged in UAH, while prices for the USA are charged in USD.",
-        "auto.373": "To make a payment, the user selects the relevant service or plan on the website and proceeds to a secure payment page.",
+        "auto.372": "Online payment is intended only for services provided to users in Ukraine. The LiqPay merchant is currently under review, so online payment acceptance is temporarily unavailable until the review is completed.",
+        "auto.373": "After the review is completed, the user makes a payment by selecting the relevant service or plan, proceeding to LiqPay's secure payment page and following the payment-system instructions.",
         "auto.374": "After successful payment is confirmed, the relevant paid service is activated according to the terms of the selected plan.",
         "auto.375": "Service delivery period",
-        "auto.376": "Royal Garage paid services are activated after successful payment is confirmed.",
-        "auto.377": "Automatically activated services become available to the user after the payment is processed by the system. If additional verification or manual activation is required, the service is activated within 24 hours after successful payment is confirmed.",
+        "auto.376": "Once payment acceptance resumes, Royal Garage paid services will be activated after successful payment is confirmed.",
+        "auto.377": "Automatically activated services will become available after LiqPay processes the payment. If additional verification or manual activation is required, the service is activated within 24 hours after successful payment is confirmed.",
         "auto.378": "Refund terms",
         "auto.379": "A user may request a refund if a paid Royal Garage service was not provided or was not activated due to technical or other reasons on the service side.",
         "auto.380": "To have the request reviewed, send an email to",
@@ -1203,10 +1225,24 @@ function setLanguage(lang) {
         button.classList.toggle("active", button.dataset.lang === lang);
     });
 
+    document.querySelectorAll("[data-language-toggle]").forEach((button) => {
+        button.textContent = lang === "en" ? "EN" : "UA";
+        const label = lang === "en" ? "Switch to Ukrainian" : "Перемкнути на англійську";
+        button.setAttribute("aria-label", label);
+        button.title = label;
+    });
+
     document.dispatchEvent(new CustomEvent("royalGarageLanguageChange", { detail: { lang } }));
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".language-switcher").forEach((switcher) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.languageToggle = "";
+        button.addEventListener("click", () => setLanguage(getLanguage() === "uk" ? "en" : "uk"));
+        switcher.replaceChildren(button);
+    });
     document.querySelectorAll("[data-lang]").forEach((button) => {
         button.addEventListener("click", () => setLanguage(button.dataset.lang));
     });

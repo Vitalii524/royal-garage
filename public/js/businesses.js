@@ -1081,8 +1081,9 @@ function renderAuthArea() {
         return;
     }
 
-    const profileUrl =
-    currentUser.accountType === "business" ||
+    const profileUrl = String(currentUser.id || currentUser.userId || "") === "32ce413e-9eb6-417a-b99a-77d9ca7c144a"
+        ? "royal-auto-admin.html"
+        : currentUser.accountType === "business" ||
     currentUser.account_type === "business"
         ? "business-profile.html"
         : "profile.html";

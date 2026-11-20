@@ -9,6 +9,9 @@
 <link href="images/favicon.png" rel="icon" type="image/png"/>
 <link href="css/styles.css" rel="stylesheet"/>
 <link href="css/profile.css?v=8" rel="stylesheet"/>
+<link rel="stylesheet" href="css/profile-community.css?v=1">
+<link rel="stylesheet" href="css/profile-videos.css?v=1">
+<script src="js/site-header.js?v=20261119" defer></script>
 </head>
 <body>
 <header class="site-header">
@@ -32,6 +35,7 @@
                 ☰
             </summary>
 <nav aria-label="Мобільне меню" class="burger-dropdown" data-i18n-aria-label="auto.113">
+<a href="forum.html#communityClubs" onclick="this.closest(\'details\').open=false">Клуби</a>
 <a data-i18n="auto.002" href="index.html">
                     Головна
                 </a>
@@ -315,6 +319,9 @@
 </details>
 </div>
 </section>
+
+<section id="profileVideos" class="profile-card"><h2>Мої відео</h2><label>Додати відео (до 3 хв, 20 МБ)<input type="file" accept="video/mp4,video/webm,video/quicktime"></label><label>Зняти відео<input type="file" accept="video/*" capture="environment"></label><p></p><div></div></section>
+<section data-community-panel class="profile-community"><h2>Моя спільнота</h2><p role="status">Завантаження…</p></section>
 <details class="account-danger-zone profile-disclosure">
 <summary><h3 data-i18n="auto.021">Видалення акаунта</h3></summary>
 <p data-i18n="auto.022">
@@ -325,7 +332,6 @@
             Видалити акаунт
         </button>
 </details>
-<section id="profileVideos" class="profile-card"><h2>Мої відео</h2><label>Додати відео (до 20 МБ)<input type="file" accept="video/mp4,video/webm,video/quicktime"></label><p></p><div></div></section>
 </main>
 <!-- Вікно додавання автомобіля -->
 <div class="modal" id="carModal">
@@ -545,6 +551,8 @@
 </div>
 <script src="js/profile.js?v=7"></script>
 <script src="js/loader.js"></script>
-<script src="js/lang.js"></script><script src="js/video-upload.js"></script><script src="js/profile-videos.js"></script>
-</body>
+<script src="js/lang.js"></script><script src="js/video-upload.js?v=20261117-social"></script><script src="js/profile-videos.js?v=20261117-delete"></script>
+<script src="js/profile-subscriptions.js?v=20261117-social"></script>
+<script src="js/profile-community.js?v=1"></script>
+<script src="/js/notifications.js?v=1"></script></body>
 </html>

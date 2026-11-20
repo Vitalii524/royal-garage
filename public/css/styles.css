@@ -17,7 +17,7 @@
     gap: 8px;
     align-items: center;
   }
-  
+
   .language-switcher button {
     border: 1px solid rgba(255, 255, 255, 0.25);
     background: transparent;
@@ -27,10 +27,26 @@
     cursor: pointer;
     font-weight: 700;
   }
-  
+
   .language-switcher button.active {
     background: #f3d27a;
-    color: #0b1736;
+    color: var(--rg-panel, #24272d);
+  }
+  .language-switcher button[data-language-toggle] {
+    box-sizing: border-box;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 8px;
+    border: 1px solid rgba(198, 165, 94, 0.7);
+    border-radius: 10px;
+    background: transparent;
+    color: #f4d58d;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .language-switcher button[data-language-toggle]:focus-visible {
+    outline: 2px solid #f4d58d;
+    outline-offset: 3px;
   }
 /* Royal Garage — targeted responsive controls revision */
 .modal .modal-content, .auth-window, .business-modal-card {
@@ -55,7 +71,7 @@
 }
 .modal-close, .auth-close {
   color: #f0bd55;
-  background: #08284d;
+  background: var(--rg-panel, #24272d);
   border: 1px solid rgba(214,160,58,.55);
 }
 .modal-close:focus-visible, .market-modal-close:focus-visible,
@@ -72,7 +88,7 @@
   box-sizing: border-box;
   font-size: 16px;
 }
-.modal select option, .business-modal select option { color: #fff; background: #08284d; }
+.modal select option, .business-modal select option { color: #fff; background: var(--rg-panel, #24272d); }
 @media (max-width: 600px) {
   .modal, .auth-modal, .business-modal { padding: 10px; }
   .modal .modal-content, .auth-window, .business-modal-card {
@@ -85,3 +101,162 @@
   .modal form, .business-form { min-width: 0; }
   .modal form > *, .business-form > * { max-width: 100%; }
 }
+
+/* Sticky navigation: keep only the control row pinned, not the homepage hero. */
+.rg-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 1200;
+  width: 100%;
+  background: linear-gradient(180deg, #711c27, #4b1018);
+  border-bottom: 1px solid rgba(225, 184, 79, .4);
+  box-shadow: 0 5px 18px rgba(0, 0, 0, .25);
+}
+.rg-sticky-header > .top-line {
+  max-width: 1200px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 10px 20px;
+}
+.rg-sticky-header .nav { background: rgba(50, 0, 8, .22); }
+.rg-sticky-header .burger-dropdown {
+  background: #53141d;
+  max-height: calc(100dvh - 110px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.rg-sticky-header .language-switcher button,
+.rg-sticky-header .burger-button,
+.rg-sticky-header #logoutButton,
+.rg-sticky-header .notification-bell {
+  background: transparent;
+}
+@media (max-width: 900px) {
+  .rg-sticky-header > .top-line { padding: 8px 12px; }
+}
+
+/* Homepage section titles: readable red accent on the dark background. */
+#homePartnersTitle, #homeClubsTitle,
+#homePartnersTitle a, #homeClubsTitle a {
+  color: #f2767e;
+  text-decoration-color: currentColor;
+}
+#homePartnersTitle a:hover, #homeClubsTitle a:hover { color: #ffadb3; }
+
+/* Unified grey page / graphite panels / white content text. About keeps its own stylesheet. */
+:root { --dark:#191b1f; --navy:var(--rg-panel, #24272d); --navy2:var(--rg-panel-alt, #2b3037); --white:#f4f5f7; --muted:#c9cdd4; --card:var(--rg-panel, #24272d); }
+body { background:var(--rg-page, #424750); color:#f4f5f7; }
+.rg-sticky-header { background:#080808; }
+.rg-sticky-header .nav { background:#111111; }
+.rg-sticky-header .burger-dropdown { background:#151515; }
+.rg-sticky-header .nav a, .rg-sticky-header .burger-dropdown a { color:#f4f5f7; }
+.back-to-top-button, .business-back-to-top { display:none !important; }
+#homePartnersTitle, #homeClubsTitle, #homePartnersTitle a, #homeClubsTitle a { color:#111111; text-decoration-color:currentColor; }
+#homePartnersTitle a:hover, #homeClubsTitle a:hover { color:#444444; }
+.home-layout > .hero, .market-page .market-hero,
+body .listing-card, body .seller-card, body .panel,
+body .rg-business-card, body .rg-business-benefits,
+body .rg-promo-pair .rg-mobile-slide > .rg-business-card.first-members-card {
+ background:var(--rg-panel, #24272d) !important; color:#f4f5f7; border-color:#555b65;
+}
+.listing-card h1, .listing-card h2, .listing-card h3, .listing-card p,
+.seller-card h2, .seller-card p { color:#f4f5f7; }
+.home-layout > .hero { min-height:0; margin-top:12px; padding:24px; border-radius:16px; box-shadow:0 4px 16px rgba(0,0,0,.12); }
+.home-layout > .hero .hero-text { width:100%; min-width:0; }
+.home-layout > .hero h1 { color:#f0bd55; font-size:36px; letter-spacing:-.7px; line-height:1.15; margin:0 0 8px; }
+.home-layout > .hero p { color:#e1e4e9; font-size:16px; line-height:1.5; margin:0; max-width:none; }
+.home-layout > .hero .hero-description a { color:#f4f5f7; text-decoration:underline; text-decoration-color:#a5abb5; text-underline-offset:3px; }
+.home-layout > .hero .hero-description a:hover { color:#f0bd55; }
+.home-layout > .hero .search-box { position:relative; height:44px; min-height:0; background:var(--rg-inset, #1d2026); border:1px solid #69717e; box-shadow:none; padding:3px; margin-top:12px; gap:0; border-radius:10px; }
+.home-layout > .hero .search-box input { min-width:0; height:36px; min-height:0; background:transparent; border:0; box-shadow:none; padding:8px 48px 8px 10px; line-height:20px; font-size:15px; color:#f4f5f7; }
+.home-layout > .hero .search-box .rg-search-icon { position:absolute; top:50%; right:4px; transform:translateY(-50%); width:34px; height:34px; min-width:34px; min-height:0; padding:0; display:grid; place-items:center; font-size:16px; line-height:1; border-radius:7px; }
+.home-layout > .hero .search-box input::placeholder, .market-page .market-toolbar input::placeholder { color:#c9cdd4; opacity:1; }
+.home-partner-card { background:#080808; color:#ffffff; }
+.home-partner-card strong, .home-club-card strong { color:#ffffff; }
+body .home-forum-topic.car-card { background:var(--rg-panel, #24272d); color:#f4f5f7; }
+.market-page .market-toolbar input, .market-page .market-toolbar select { background:var(--rg-panel, #24272d); color:#f4f5f7; }
+body .rg-business-card h2, body .rg-business-card .rg-business-benefits strong { color:#f4f5f7 !important; }
+#garage-history { scroll-margin-top:170px; }
+@media(max-width:900px) { #garage-history { scroll-margin-top:110px; } }
+@media(max-width:600px) {
+ .home-layout > .hero { padding:18px; margin-top:8px; }
+ .home-layout > .hero h1 { font-size:30px; }
+ .home-layout > .hero p { font-size:14px; }
+}
+
+#homePartnersTitle, #homeClubsTitle, #homePartnersTitle a, #homeClubsTitle a { color:#f0bd55; }
+#homePartnersTitle a:hover, #homeClubsTitle a:hover { color:#f0bd55; }
+body .first-members-card { background:var(--rg-panel, #24272d) !important; color:#f4f5f7; }
+body .first-members-counter { background:var(--rg-inset, #1d2026); color:#f4f5f7; }
+.market-page .market-hero h1, .market-page .market-hero p { color:#f4f5f7; }
+.seller-card a:not(.gold-btn), .seller-card button:not(.gold-btn) { color:#f4f5f7; }
+
+/* Listing detail cards keep the light appearance selected by the owner. */
+body .listing-page .listing-card, body .listing-page .seller-card {
+ background:#f4f5f7 !important; color:#24262a; border-color:#d7d3c5;
+}
+.listing-page .listing-card h1, .listing-page .listing-card h2,
+.listing-page .listing-card h3, .listing-page .listing-card p,
+.listing-page .listing-card .listing-description,
+.listing-page .listing-card .listing-parameters { color:#24262a; }
+.listing-page .listing-description, .listing-page .listing-parameters,
+.listing-page .listing-card p { font-weight:600; }
+.listing-page .listing-parameters strong { font-weight:800; }
+.listing-page .seller-reputation { background:#e1e4e9; color:#24262a; }
+.listing-page .seller-rating-message, .listing-page .seller-rating-count { color:#454b54; }
+.listing-page .seller-card a:not(.gold-btn), .listing-page .seller-card button:not(.gold-btn) { color:#24262a; font-weight:700; }
+.listing-page .seller-card a:not(.gold-btn), .listing-page .seller-card button:not(.gold-btn) { background:#d9dde3; }
+.listing-page .seller-display-star:not(.is-filled) { color:#727984; }
+
+/* Text-only inline actions, including description expand/collapse. */
+button.business-inline-link {
+ appearance:none; background:transparent; border:0; box-shadow:none;
+ padding:0; font:inherit; color:#f0d18a; text-align:left; cursor:pointer;
+}
+button.business-inline-link:hover { text-decoration:underline; text-underline-offset:3px; }
+button.business-inline-link:focus-visible { outline:2px solid #f0d18a; outline-offset:4px; }
+button.business-inline-link[hidden] { display:none !important; }
+
+/* Subtle gold keyline separates graphite panels from the page. */
+body :is(.hero,.panel,.market-hero,.listing-card,.first-members-card,
+ .rg-business-card,.business-content-card,.business-hero,.business-info-card,
+ .business-card,.forum-hero,.forum-topic,.topic-card,.profile-card,
+ .profile-community,.profile-videos,.home-partner-card,.home-club-card) {
+ border:1px solid rgba(230,192,104,.45) !important;
+}
+
+/* Black logo backing fills the space around contained business emblems. */
+.business-page .business-logo-image-wrap { background:#000000; }
+
+/* Clearly outlined sign-in and registration controls. */
+.auth-window .auth-form input:not([type="checkbox"]):not([type="radio"]),
+.auth-window .auth-form select {
+ box-sizing:border-box; width:100%; min-height:46px; padding:12px 14px;
+ background:var(--rg-field, #171a20); color:#f4f5f7; border:1px solid #c8ae76;
+ border-radius:9px; font:inherit; font-size:16px;
+}
+.auth-window .auth-form .password-field input { padding-right:48px; }
+.auth-window .auth-form input::placeholder { color:#bfc5ce; opacity:1; }
+.auth-window .auth-form input:focus-visible,
+.auth-window .auth-form select:focus-visible {
+ outline:2px solid #f0bd55; outline-offset:2px; border-color:#f0bd55;
+}
+.auth-window .auth-form select option { background:var(--rg-field, #171a20); color:#f4f5f7; }
+.auth-window .auth-form label { color:#e2e5eb; }
+.auth-window .forgot-password-btn {
+ background:transparent; border:0; box-shadow:none; color:#f0d18a;
+ font:inherit; text-align:left; padding:4px 0; cursor:pointer;
+}
+.auth-window .forgot-password-btn:hover { text-decoration:underline; }
+
+/* Visitor-selected palette. Graphite remains the default. */
+:root[data-rg-theme="blue"] {
+ --rg-page:#08213b; --rg-panel:#041323; --rg-panel-alt:#0b223a;
+ --rg-inset:#020c18; --rg-field:#020d1b; --rg-panel-rgb:4,19,35;
+}
+.rg-theme-picker { display:block; padding:12px 14px; border-top:1px solid rgba(230,192,104,.35); color:#f0d18a; font-weight:700; }
+.rg-theme-picker span { display:block; margin-bottom:8px; }
+.rg-theme-picker select { width:100%; min-height:44px; padding:8px; border:1px solid #c8ae76; border-radius:8px; background:#171a20; color:#fff; font:inherit; font-size:16px; }
+.rg-theme-picker select:focus-visible { outline:2px solid #f0bd55; outline-offset:2px; }
+@media(min-width:901px) { .rg-sticky-header .burger-menu { display:block; } .rg-sticky-header .burger-dropdown { left:auto; right:0; } }

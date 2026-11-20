@@ -16,10 +16,12 @@
 }
 
 .seller-card {
-    background: rgba(8, 20, 42, 0.92);
+    background: rgba(var(--rg-panel-rgb, 36, 39, 45), 0.92);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 18px;
     padding: 20px;
+
+ color:#f4f5f7;
 }
 
 .seller-main-card {
@@ -38,7 +40,9 @@
     flex-shrink: 0;
     font-size: 34px;
     font-weight: 700;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--rg-panel, #24272d);
+
+ color:#f4f5f7;
 }
 
 .seller-main-info h1 {
@@ -89,7 +93,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--rg-panel, #24272d);
+
+ color:#f4f5f7;
 }
 
 .seller-listings {
@@ -103,8 +109,10 @@
     overflow: hidden;
     border-radius: 14px;
     text-decoration: none;
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--rg-panel, #24272d);
     border: 1px solid rgba(255, 255, 255, 0.1);
+
+ color:#f4f5f7;
 }
 
 .seller-listing-photo {

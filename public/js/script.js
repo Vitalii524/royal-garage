@@ -1289,4 +1289,3 @@ document.addEventListener(
     "DOMContentLoaded",
     renderFirstMembersCounter
 );
-

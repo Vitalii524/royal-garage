@@ -867,7 +867,7 @@
                     );
                 }
             } else {
-                mediaUrl = await uploadGarageVideo($("businessPortfolioVideoUrl").files[0]);
+                mediaUrl = await uploadGarageVideo($("businessPortfolioCamera")?.files[0] || $("businessPortfolioVideoUrl").files[0]);
             }
     
             await api(
@@ -1077,7 +1077,28 @@
                 call.href = `tel:${String(request.phone).replace(/[^+0-9]/g, "")}`;
                 call.textContent = "Зателефонувати";
                 call.className = "business-inline-link";
-                card.append(title, details, call);
+                const importStatus = document.createElement("p");
+                importStatus.setAttribute("role", "status");
+                let importing = false;
+                call.addEventListener("click", async event => {
+                    event.preventDefault();
+                    if (importing) return;
+                    importing = true;
+                    importStatus.textContent = "Зберігаємо клієнта й автомобіль у CRM…";
+                    try {
+                        await api(`/api/business/requests/${encodeURIComponent(request.id)}/contact`, { method: "POST" });
+                        importStatus.textContent = "Клієнта й автомобіль збережено в CRM.";
+                        window.location.href = call.href;
+                    } catch (error) {
+                        importStatus.textContent = error.message;
+                    } finally { importing = false; }
+                });
+                card.append(title, details, call, importStatus);
+                const mediaDetails = document.createElement("details");
+                const summary = document.createElement("summary");summary.textContent = "Фото та відео заявки";
+                const mediaList = document.createElement("div");mediaDetails.append(summary,mediaList);
+                mediaDetails.addEventListener("toggle",()=>{if(mediaDetails.open) window.RGRequestMedia.render(mediaList,`/api/business/requests/${encodeURIComponent(request.id)}/media`);});
+                card.append(mediaDetails);
                 if (request.crm_work_order_id) {
                     const order = document.createElement("a");
                     order.href = `crm-work-order.html?id=${encodeURIComponent(request.crm_work_order_id)}`;
@@ -1156,6 +1177,7 @@
             const values = Object.fromEntries(new FormData(form).entries());
             button.disabled = true; status.textContent = "Надсилання…";
             try {
+                values.attachments = await window.RGRequestMedia.collect(form);
                 await api(`/api/businesses/${encodeURIComponent(ownerId)}/requests`, { method:"POST", body:JSON.stringify(values) });
                 status.textContent = "Заявку надіслано. СТО зв'яжеться з вами для узгодження часу.";
                 form.reset();
@@ -1338,6 +1360,10 @@ if (portfolioDelete) {
     async function init() {
         bindEvents();
         await loadProfile();
+        if (new URLSearchParams(location.search).get('notifications') === 'requests' && !$("businessRequestsBell").hidden) {
+            openModal("businessRequestsModal");
+            await loadBusinessRequests();
+        }
     }
 
     if (document.readyState === "loading") {
