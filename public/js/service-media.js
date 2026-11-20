@@ -5,15 +5,36 @@
         if(!response.ok){let d={};try{d=await response.json();}catch{}throw new Error(d.message||'Не вдалося виконати дію.');}return response;
     }
     const read=file=>new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(new Error('Не вдалося прочитати файл.'));r.readAsDataURL(file);});
+    // Read native picker files immediately: mobile providers may revoke access while a caption is typed.
+    const selections = new WeakMap();
+    function capture(input) {
+        const files = Array.from(input.files || []);
+        let total = 0;
+        if (files.length > 20) throw new Error('Не більше 20 файлів.');
+        for (const file of files) {
+            total += file.size;
+            if (file.size > (file.type.startsWith('image/') ? 20 : 50) * 1048576 || total > 100 * 1048576)
+                throw new Error('Перевищено розмір вкладень: фото 20 МБ, відео 50 МБ, разом 100 МБ.');
+        }
+        const entries = files.map(file => ({
+            file,
+            // Resolve errors as values to avoid an unhandled rejection before submit.
+            ready: read(file).then(data => ({data}), () => ({error: new Error(
+                'Не вдалося прочитати «' + file.name + '». Виберіть файл повторно з пам’яті телефону або спочатку завантажте його з хмари.'
+            )}))
+        }));
+        selections.set(input, entries);
+        return entries;
+    }
     function mount(form,video=true){
         if(form.querySelector('[data-media-input]'))return;
         const box=document.createElement('fieldset');box.className='rg-media';
         const legend=document.createElement('legend');legend.textContent=video?'Фото та відео до скарги (необов’язково)':'Фото до наряду';
         const input=document.createElement('input');input.type='file';input.multiple=true;input.accept=video?'image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime':'image/jpeg,image/png,image/webp';input.dataset.mediaInput='';
         const hint=document.createElement('p');hint.textContent='До 20 файлів: фото до 20 МБ, відео до 50 МБ; разом до 100 МБ. Коментар — до 1000 символів.';
-        const captions=document.createElement('div');input.addEventListener('change',()=>{captions.replaceChildren();for(const file of input.files){const label=document.createElement('label');label.textContent=file.name;const text=document.createElement('textarea');text.maxLength=1000;text.placeholder='Коментар до цього файлу';text.dataset.mediaCaption='';label.append(text);captions.append(label);}});
+        const captions=document.createElement('div');input.addEventListener('change',()=>{selections.delete(input);const status=form.querySelector('[role=status]');try{capture(input);if(status)status.textContent='';}catch(e){if(status)status.textContent=e.message;}captions.replaceChildren();for(const file of input.files){const label=document.createElement('label');label.textContent=file.name;const text=document.createElement('textarea');text.maxLength=1000;text.placeholder='Коментар до цього файлу';text.dataset.mediaCaption='';label.append(text);captions.append(label);}});
         box.append(legend,input,hint,captions);const submitButton=form.querySelector('[type=submit]');if(submitButton){let anchor=submitButton;while(anchor.parentNode!==form)anchor=anchor.parentNode;form.insertBefore(box,anchor);}else form.append(box);
-        form.addEventListener('reset',()=>captions.replaceChildren());
+        form.addEventListener('reset',()=>{selections.delete(input);captions.replaceChildren();});
     }
     async function optimizePhoto(file) {
         if (!file.type.startsWith('image/') || file.size < 512 * 1024) return file;
@@ -36,7 +57,9 @@
         finally { bitmap?.close(); }
     }
     async function collect(form) {
-        const files = Array.from(form.querySelector('[data-media-input]')?.files || []);
+        const input = form.querySelector('[data-media-input]');
+        if (!input) return [];
+        const files = Array.from(input.files || []);
         if (files.length > 20) throw new Error('Не більше 20 файлів.');
         let total = 0;
         for (const file of files) {
@@ -44,12 +67,26 @@
             if (file.size > (file.type.startsWith('image/') ? 20 : 50) * 1048576 || total > 100 * 1048576)
                 throw new Error('Перевищено розмір вкладень: фото 20 МБ, відео 50 МБ, разом 100 МБ.');
         }
+        let entries = selections.get(input);
+        if (!entries || entries.length !== files.length || entries.some((entry,i)=>entry.file !== files[i]))
+            entries = capture(input);
         const captions = form.querySelectorAll('[data-media-caption]');
         const status = form.querySelector('[role=status]');
         const items = [];
         for (const [i, file] of files.entries()) {
             if (status) status.textContent = `Підготовка файлу ${i + 1} із ${files.length}…`;
-            items.push({ data: await read(await optimizePhoto(file)), caption: captions[i]?.value || '' });
+            const result = await entries[i].ready;
+            if (result.error) throw result.error;
+            let data = result.data;
+            if (file.type.startsWith('image/') && file.size >= 512 * 1024) {
+                const binary = atob(data.slice(data.indexOf(',') + 1));
+                const bytes = new Uint8Array(binary.length);
+                for (let j=0;j<binary.length;j++) bytes[j]=binary.charCodeAt(j);
+                const snapshot = new Blob([bytes], {type:file.type});
+                const optimized = await optimizePhoto(snapshot);
+                if (optimized !== snapshot) data = await read(optimized);
+            }
+            items.push({ data, caption: captions[i]?.value || '' });
         }
         return items;
     }
