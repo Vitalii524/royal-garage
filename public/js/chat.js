@@ -818,7 +818,7 @@ if (!currentUser) {
     async function markIncomingMessagesAsRead() {
         if (
             !chatPartnerId ||
-            !listing?.id ||
+            (!listing?.id && !directChat) ||
             document.hidden
         ) {
             return;
@@ -878,7 +878,7 @@ if (!currentUser) {
     ===================================================== */
     async function getConversationMessages() {
         if (
-            !listing?.id ||
+            (!listing?.id && !directChat) ||
             !chatPartnerId
         ) {
             return [];

@@ -970,3 +970,16 @@ window.addEventListener(
 
 
 updateRoyalAutoContactFloat();
+
+// Royal Auto uses the existing participant-scoped chat, without a parallel inbox.
+(() => {
+    const current = getRoyalAutoCurrentUser();
+    const owner = String(current?.id || current?.userId || '') === ROYAL_AUTO_OWNER_ID;
+    for (const id of ['royalAutoChatLink', 'royalAutoChatFloat']) {
+        const link = document.getElementById(id);
+        if (!link) continue;
+        link.href = owner ? 'profile.html?section=chats'
+            : 'chat.html?withUserId=' + encodeURIComponent(ROYAL_AUTO_OWNER_ID);
+        link.textContent = owner ? '💬 Повідомлення клієнтів' : '💬 Написати';
+    }
+})();
