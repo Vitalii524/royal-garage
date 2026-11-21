@@ -611,135 +611,8 @@ function createRoyalAutoDirectionCard(
 }
 
 
-function createRoyalAutoProductCard(
-   product
-) {
-
-   const card =
-       document.createElement(
-           "div"
-       );
-
-   card.className =
-       "royal-auto-car-card";
-
-
-   const photos =
-       Array.isArray(
-           product.photos
-       )
-           ? product.photos
-           : [];
-
-
-   const photoBox =
-       document.createElement(
-           "div"
-       );
-
-   photoBox.className =
-       "royal-auto-car-photo";
-
-
-   if (photos[0]) {
-
-       const image =
-           document.createElement(
-               "img"
-           );
-
-       image.src =
-           photos[0];
-
-       image.alt =
-           product.name ||
-           "Товар RoyalAuto";
-
-       image.loading =
-           "lazy";
-
-
-       photoBox.appendChild(
-           image
-       );
-
-   } else {
-
-       const placeholder =
-           document.createElement(
-               "div"
-           );
-
-       placeholder.className =
-           "royal-auto-car-placeholder";
-
-       placeholder.textContent =
-           "👑";
-
-
-       photoBox.appendChild(
-           placeholder
-       );
-   }
-
-
-   const info =
-       document.createElement(
-           "div"
-       );
-
-   info.className =
-       "royal-auto-car-info";
-
-
-   const title =
-       document.createElement(
-           "h3"
-       );
-
-   title.textContent =
-       product.name ||
-       "Товар";
-
-
-   const price =
-       document.createElement(
-           "strong"
-       );
-
-   price.className =
-       "royal-auto-car-price";
-
-   price.textContent =
-       formatRoyalAutoProductPrice(
-           product
-       );
-
-
-   const description =
-       document.createElement(
-           "p"
-       );
-
-   description.textContent =
-       product.description ||
-       "";
-
-
-   info.append(
-       title,
-       price,
-       description
-   );
-
-
-   card.append(
-       photoBox,
-       info
-   );
-
-
-   return card;
+function createRoyalAutoProductCard(product) {
+    return window.RGServiceGallery.card(product, product.sectionName);
 }
 
 
@@ -836,7 +709,7 @@ function createRoyalAutoProductSection(
            "royal-auto-empty";
 
        empty.textContent =
-           "У цій категорії поки немає товарів.";
+           "У цій категорії поки немає послуг.";
 
 
        content.append(

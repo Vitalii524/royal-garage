@@ -20,6 +20,7 @@
         isOwner: false,
         editingItemPhotos: [],
         editingProduct: false,
+        itemUploading: false,
         editingLogo: null,
         editingPortfolioImage: null
     };
@@ -287,6 +288,18 @@
     }
 
     function itemCard(service, product = false) {
+        if (!product && window.RGServiceGallery) {
+            const card=window.RGServiceGallery.card(service);
+            if(state.isOwner){
+                const actions=document.createElement('div');actions.className='business-card-owner-actions';
+                for(const [action,label] of [['edit','✏️ Редагувати'],['delete','🗑 Видалити послугу']]){
+                    const button=document.createElement('button');button.type='button';button.textContent=label;
+                    button.dataset[action==='edit'?'editItem':'deleteItem']=service.id;button.dataset.product='false';actions.append(button);
+                }
+                card.append(actions);
+            }
+            return card;
+        }
         const card = document.createElement("article");
         card.className = "business-content-card";
         const priceText = money(product ? service.price : service.priceFrom);
@@ -784,6 +797,7 @@
     }
 
     function openItemModal(item = null, product = false) {
+        if(state.itemUploading)return;
         state.editingProduct = product;
         $("businessItemId").value = item?.id || "";
         $("businessItemTitle").value = item?.title || "";
@@ -794,6 +808,10 @@
             : (item ? "Редагувати послугу" : "Додати послугу");
         $("businessItemFormError").textContent = "";
         $("businessItemPhotosInput").value = "";
+        $("businessItemPhotosInput").accept = product ? 'image/*' : 'image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime';
+        let hint=$('serviceMediaHint');
+        if(!hint){hint=document.createElement('p');hint.id='serviceMediaHint';$('businessItemPhotosInput').after(hint);}
+        hint.hidden=product;hint.textContent='До 6 файлів: фото JPG, PNG, WebP — до 10 МБ; відео MP4, WebM, MOV — до 20 МБ та 3 хвилин. Оригінали фото зберігаються.';
         state.editingItemPhotos = Array.isArray(item?.photos) ? [...item.photos] : [];
         renderItemPhotosPreview();
         openModal("businessItemModal");
@@ -806,13 +824,15 @@
         state.editingItemPhotos.forEach((src, index) => {
             const item = document.createElement("div");
             item.className = "business-photo-preview-item";
-            item.innerHTML = `<img src="${escapeHtml(src)}" alt="Фото послуги"><button type="button" data-remove-photo="${index}" aria-label="Видалити">×</button>`;
+            item.innerHTML = `<button type="button" data-remove-photo="${index}" aria-label="Видалити файл">×</button>`;
+            item.prepend(window.RGServiceGallery.media(src,'Фото послуги'));
             root.appendChild(item);
         });
     }
 
     async function saveItem(event) {
         event.preventDefault();
+        if(state.itemUploading)return;
         const id = $("businessItemId").value;
         const error = $("businessItemFormError");
         error.textContent = "";
@@ -1298,23 +1318,18 @@
         );
 
         $("businessItemPhotosInput")?.addEventListener("change", async (event) => {
-            const files = Array.from(event.target.files || []);
-            const free = MAX_ITEM_PHOTOS - state.editingItemPhotos.length;
-
-            if (files.length > free) {
-                $("businessItemFormError").textContent = `Можна додати максимум ${MAX_ITEM_PHOTOS} фото.`;
-            }
-
-            for (const file of files.slice(0, Math.max(0, free))) {
-                try {
-                    state.editingItemPhotos.push(await compressImage(file));
-                } catch (error) {
-                    $("businessItemFormError").textContent = error.message;
-                }
-            }
-
-            renderItemPhotosPreview();
-            event.target.value = "";
+            if(state.itemUploading)return;
+            const input=event.target, files=Array.from(input.files||[]);
+            const free=MAX_ITEM_PHOTOS-state.editingItemPhotos.length;
+            if(files.length>free){$('businessItemFormError').textContent=`Максимум ${MAX_ITEM_PHOTOS} файлів.`;input.value='';return;}
+            const save=$('businessItemForm').querySelector('[type=submit]');
+            state.itemUploading=true;input.disabled=true;if(save)save.disabled=true;
+            $('businessItemFormError').textContent='Завантаження файлів…';
+            try{
+                for(const file of files) state.editingItemPhotos.push(state.editingProduct ? await compressImage(file) : await window.RGServiceGallery.upload(file));
+                $('businessItemFormError').textContent=state.editingProduct?'Фото завантажено. Збережіть товар.':'Файли завантажено. Збережіть послугу.';
+            }catch(error){$('businessItemFormError').textContent=error.message;}
+            finally{renderItemPhotosPreview();input.value='';input.disabled=false;state.itemUploading=false;if(save)save.disabled=false;}
         });
 
         document.addEventListener("click", (event) => {
@@ -1372,3 +1387,4 @@ if (portfolioDelete) {
         init();
     }
 })();
+

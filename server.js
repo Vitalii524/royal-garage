@@ -4747,6 +4747,7 @@ app.get(
 
 // Business service requests. Public submission, owner-only review and confirmation.
 const mediaReady = installMedia({app,pool,requireAuth,requireCrmAccess,databaseReady});
+require("./catalog-media").installCatalogMedia({app,pool,requireAuth,databaseReady});
 
 async function ensureBusinessRequestsTable() {
     await pool.query(`CREATE TABLE IF NOT EXISTS business_service_requests (

@@ -35,7 +35,7 @@
     >
 <link rel="stylesheet" href="css/service-media.css">
 <script src="js/site-header.js?v=20261119" defer></script>
-</head>
+<link rel="stylesheet" href="css/service-gallery.css?v=20261121"><script src="js/service-gallery.js?v=20261121"></script></head>
 
 
 <body>
@@ -135,7 +135,7 @@
 
             <p>
                 Додавання та редагування
-                товарів, фото і напрямків.
+                послуг, фото і напрямків.
             </p>
 
         </div>
@@ -152,11 +152,11 @@
         <div class="upholstery-section-heading">
 
             <p class="upholstery-label">
-                ТОВАРИ
+                ПОСЛУГИ
             </p>
 
             <h2>
-                Додати товар
+                Додати послугу
             </h2>
 
         </div>
@@ -182,7 +182,7 @@
 
 
             <label>
-                Назва товару
+                Назва послуги
 
                 <input
                     type="text"
@@ -212,24 +212,26 @@
                 <textarea
                     id="royalAutoProductDescription"
                     rows="5"
-                    placeholder="Опис товару..."
+                    placeholder="Опис послуги..."
                 ></textarea>
             </label>
 
 
             <label>
-                Фото
+                Фото та відео
 
                 <input
                     type="file"
                     id="royalAutoProductPhotos"
-                    accept="image/jpeg,image/png,image/webp"
+                    accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
                     multiple
                 >
             </label>
 
 
+            <p>До 20 файлів: фото JPG, PNG, WebP — до 10 МБ; відео MP4, WebM, MOV — до 20 МБ і 3 хвилин. Оригінали фото зберігаються.</p>
             <div
+                aria-label="Фото до 10 МБ; відео до 20 МБ і 3 хвилин; до 20 файлів"
                 id="royalAutoPhotoPreview"
                 class="royal-auto-photo-preview"
             ></div>
@@ -239,7 +241,7 @@
                 type="submit"
                 class="upholstery-primary-button"
             >
-                Зберегти товар
+                Зберегти послугу
             </button>
 
         </form>
@@ -248,7 +250,7 @@
 
 
     <!-- =========================
-         ТОВАРИ
+         ПОСЛУГИ
          ========================= -->
 
     <section class="upholstery-section">
@@ -260,7 +262,7 @@
             </p>
 
             <h2>
-                Мої товари
+                Мої послуги
             </h2>
 
         </div>
@@ -358,7 +360,7 @@
 
 
 <script src="js/auth.js"></script>
-<script src="js/royal-auto-admin.js?v=18"></script>
+<script src="js/royal-auto-admin.js?v=20261121-media"></script>
 <script src="js/platform-admin.js?v=4"></script>
 <script src="js/loader.js"></script>
 
