@@ -300,6 +300,10 @@
             }
             return card;
         }
+        if(product && window.RGProductCatalog){
+            const card=window.RGProductCatalog.card({...service,ownerId:state.profile.ownerId,sellerName:state.profile.name||state.profile.businessName});
+            if(state.isOwner){const actions=document.createElement('div');actions.className='business-card-owner-actions';for(const [action,label] of [['edit','✏️ Редагувати'],['delete','🗑 Видалити товар']]){const b=document.createElement('button');b.type='button';b.textContent=label;b.dataset[action==='edit'?'editItem':'deleteItem']=service.id;b.dataset.product='true';actions.append(b);}card.append(actions);}return card;
+        }
         const card = document.createElement("article");
         card.className = "business-content-card";
         const priceText = money(product ? service.price : service.priceFrom);
@@ -799,6 +803,14 @@
     function openItemModal(item = null, product = false) {
         if(state.itemUploading)return;
         state.editingProduct = product;
+        $('businessProductFields').hidden=!product;
+        $('businessProductCategory').value=item?.category||'';
+        $('businessProductAvailability').value=item?.availability||'available';
+        $('businessProductTelegram').value=item?.orderTelegram||'';
+        $('businessProductViber').value=item?.orderViber||'';
+        $('businessProductChat').checked=item?.orderChat!==false;
+        $('businessUploadRetry').hidden=true;
+        $('businessUploadProgress').hidden=true;
         $("businessItemId").value = item?.id || "";
         $("businessItemTitle").value = item?.title || "";
         $("businessItemDescription").value = item?.description || "";
@@ -808,10 +820,10 @@
             : (item ? "Редагувати послугу" : "Додати послугу");
         $("businessItemFormError").textContent = "";
         $("businessItemPhotosInput").value = "";
-        $("businessItemPhotosInput").accept = product ? 'image/*' : 'image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime';
+        $("businessItemPhotosInput").accept = 'image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime';
         let hint=$('serviceMediaHint');
         if(!hint){hint=document.createElement('p');hint.id='serviceMediaHint';$('businessItemPhotosInput').after(hint);}
-        hint.hidden=product;hint.textContent='До 6 файлів: фото JPG, PNG, WebP — до 10 МБ; відео MP4, WebM, MOV — до 20 МБ та 3 хвилин. Оригінали фото зберігаються.';
+        hint.hidden=false;hint.textContent='До 6 файлів: фото JPG, PNG, WebP — до 10 МБ; відео MP4, WebM, MOV — до 20 МБ та 3 хвилин. Оригінали фото зберігаються.';
         state.editingItemPhotos = Array.isArray(item?.photos) ? [...item.photos] : [];
         renderItemPhotosPreview();
         openModal("businessItemModal");
@@ -848,6 +860,7 @@
                 photos: state.editingItemPhotos
             };
 
+            if(state.editingProduct)Object.assign(body,{category:$('businessProductCategory').value,availability:$('businessProductAvailability').value,orderTelegram:$('businessProductTelegram').value,orderViber:$('businessProductViber').value,orderChat:$('businessProductChat').checked});
             await api(
                 `/api/business/${resource}${id ? "/" + encodeURIComponent(id) : ""}`,
                 {
@@ -1317,20 +1330,24 @@
             }
         );
 
-        $("businessItemPhotosInput")?.addEventListener("change", async (event) => {
-            if(state.itemUploading)return;
-            const input=event.target, files=Array.from(input.files||[]);
-            const free=MAX_ITEM_PHOTOS-state.editingItemPhotos.length;
-            if(files.length>free){$('businessItemFormError').textContent=`Максимум ${MAX_ITEM_PHOTOS} файлів.`;input.value='';return;}
-            const save=$('businessItemForm').querySelector('[type=submit]');
-            state.itemUploading=true;input.disabled=true;if(save)save.disabled=true;
-            $('businessItemFormError').textContent='Завантаження файлів…';
-            try{
-                for(const file of files) state.editingItemPhotos.push(state.editingProduct ? await compressImage(file) : await window.RGServiceGallery.upload(file));
-                $('businessItemFormError').textContent=state.editingProduct?'Фото завантажено. Збережіть товар.':'Файли завантажено. Збережіть послугу.';
-            }catch(error){$('businessItemFormError').textContent=error.message;}
-            finally{renderItemPhotosPreview();input.value='';input.disabled=false;state.itemUploading=false;if(save)save.disabled=false;}
-        });
+        let failedProductFiles=[];
+        async function uploadItems(files){
+            if(state.itemUploading||!files.length)return;
+            const errors=[];
+            const input=$('businessItemPhotosInput'),save=$('businessItemForm').querySelector('[type=submit]'),progress=$('businessUploadProgress'),retry=$('businessUploadRetry'),status=$('businessItemFormError');
+            if(files.length>MAX_ITEM_PHOTOS-state.editingItemPhotos.length){status.textContent=`Максимум ${MAX_ITEM_PHOTOS} файлів.`;return;}
+            state.itemUploading=true;input.disabled=true;save.disabled=true;retry.hidden=true;failedProductFiles=[];
+            for(const file of files){
+                status.textContent='Підготовка: '+file.name;progress.hidden=false;progress.removeAttribute('value');
+                try{const url=await window.RGServiceGallery.upload(file,state.editingProduct?percent=>{progress.value=percent;status.textContent=file.name+': '+percent+'%'+(percent===100?' — обробка сервером…':'');}:undefined);state.editingItemPhotos.push(url);renderItemPhotosPreview();}
+                catch(error){failedProductFiles.push(file);errors.push(file.name+': '+error.message);status.textContent=error.message;}
+            }
+            progress.hidden=true;input.value='';input.disabled=false;state.itemUploading=false;save.disabled=false;
+            retry.hidden=!failedProductFiles.length;
+            status.textContent=failedProductFiles.length?errors.join(' • ')+'. Повторіть або виберіть файли з пам’яті пристрою повторно.':'Файли завантажено. Збережіть '+(state.editingProduct?'товар.':'послугу.');
+        }
+        $('businessItemPhotosInput')?.addEventListener('change',e=>uploadItems(Array.from(e.target.files||[])));
+        $('businessUploadRetry')?.addEventListener('click',()=>uploadItems([...failedProductFiles]));
 
         document.addEventListener("click", (event) => {
             const close = event.target.closest("[data-close-modal]");
