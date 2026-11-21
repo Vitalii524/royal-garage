@@ -1003,115 +1003,11 @@ function renderAdminProducts() {
     royalAutoProducts.forEach(
         (product) => {
 
-            const card =
-                document.createElement(
-                    "div"
-                );
-
-
-            card.className =
-                "royal-auto-car-card";
-
-
-            const photos =
-                Array.isArray(
-                    product.photos
-                )
-                    ? product.photos
-                    : [];
-
-
-            if (photos[0]) {
-
-                const photoBox =
-                    document.createElement(
-                        "div"
-                    );
-
-
-                photoBox.className =
-                    "royal-auto-car-photo";
-
-
-                const image = document.createElement(window.RGServiceGallery.isVideo(photos[0]) ? "video" : "img");
-                if (image.tagName === "VIDEO") { image.controls=true; image.preload="none"; image.playsInline=true; }
-
-
-                image.src =
-                    photos[0];
-
-                image.alt =
-                    product.name;
-
-
-                photoBox.appendChild(
-                    image
-                );
-
-
-                card.appendChild(
-                    photoBox
-                );
-            }
-
-
-            const info =
-                document.createElement(
-                    "div"
-                );
-
-
-            info.className =
-                "royal-auto-car-info";
-
-
-            const section =
-                document.createElement(
-                    "small"
-                );
-
-
-            section.textContent =
-                product.sectionName ||
-                "";
-
-
-            const title =
-                document.createElement(
-                    "h3"
-                );
-
-
-            title.textContent =
-                product.name;
-
-
-            const price =
-                document.createElement(
-                    "strong"
-                );
-
-
-            price.className =
-                "royal-auto-car-price";
-
-
-            price.textContent =
-                formatPrice(
-                    product.priceUah ??
-                    product.price_uah
-                );
-
-
-            const description =
-                document.createElement(
-                    "p"
-                );
-
-
-            description.textContent =
-                product.description ||
-                "";
+            // Use the same bounded, original-preserving media gallery as the public profile.
+            const card = window.RGServiceGallery.card(product, product.sectionName);
+            const info = card.querySelector('.rg-service-info');
+            const actions = document.createElement('div');
+            actions.className = 'rg-service-admin-actions';
 
                 const editButton =
                 document.createElement(
@@ -1164,20 +1060,8 @@ function renderAdminProducts() {
         );
         
         
-        info.append(
-            section,
-            title,
-            price,
-            description,
-            editButton,
-            deleteButton
-        );
-
-
-            card.appendChild(
-                info
-            );
-
+            actions.append(editButton, deleteButton);
+            info.append(actions);
 
             adminProducts.appendChild(
                 card
