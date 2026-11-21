@@ -43,7 +43,7 @@
   info.append(cat,title,price,desc,more);root.append(info);return root;
  }
  function read(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(Error('Не вдалося прочитати «'+file.name+'». Виберіть файл із пам’яті пристрою повторно.'));r.readAsDataURL(file);});}
- async function upload(file) {
+ async function upload(file,onProgress) {
   const video=['video/mp4','video/webm','video/quicktime'].includes(file.type);
   if(!video&&!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('Оберіть JPG, PNG, WebP, MP4, WebM або MOV. Для HEIC виберіть експорт у JPG.');
   if(!file.size||file.size>(video?20:10)*1048576)throw Error(video?'Відео — до 20 МБ.':'Фото — до 10 МБ.');
@@ -51,6 +51,14 @@
   const pending=read(file).then(data=>({data}),error=>({error}));
   if(video)await new Promise((resolve,reject)=>{const v=document.createElement('video'),url=URL.createObjectURL(file);const timer=setTimeout(()=>finish(Error('Не вдалося визначити тривалість відео.')),15000);let done=false;function finish(error){if(done)return;done=true;clearTimeout(timer);v.removeAttribute('src');v.load();URL.revokeObjectURL(url);error?reject(error):resolve();}v.preload='metadata';v.onloadedmetadata=()=>finish(!Number.isFinite(v.duration)||v.duration>180?Error('Відео — до 3 хвилин.'):null);v.onerror=()=>finish(Error('Цей відеоформат не підтримується браузером.'));v.src=url;});
   const result=await pending;if(result.error)throw result.error;
+  if(typeof onProgress==='function')return new Promise((resolve,reject)=>{
+   const xhr=new XMLHttpRequest();xhr.open('POST',video?'/api/media/videos':'/api/service-catalog/images');xhr.timeout=180000;
+   xhr.setRequestHeader('Content-Type','application/json');xhr.setRequestHeader('Authorization','Bearer '+(localStorage.getItem('royalGarageToken')||''));
+   xhr.upload.onprogress=e=>{if(e.lengthComputable)onProgress(Math.round(e.loaded/e.total*100));};
+   xhr.onload=()=>{let body;try{body=JSON.parse(xhr.responseText);}catch{reject(Error('Некоректна відповідь сервера.'));return;}if(xhr.status>=200&&xhr.status<300&&body.url)resolve(body.url);else reject(Error(body.message||'Не вдалося завантажити файл.'));};
+   xhr.onerror=()=>reject(Error('Помилка мережі. Спробуйте повторити завантаження.'));xhr.ontimeout=()=>reject(Error('Перевищено час завантаження. Спробуйте повторити.'));
+   xhr.send(JSON.stringify({data:result.data,name:file.name}));
+  });
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),180000);
   try{const response=await fetch(video?'/api/media/videos':'/api/service-catalog/images',{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json',Authorization:'Bearer '+(localStorage.getItem('royalGarageToken')||'')},body:JSON.stringify({data:result.data,name:file.name})});const body=await response.json();if(!response.ok)throw Error(body.message||'Не вдалося завантажити файл.');return body.url;}finally{clearTimeout(timer);}
  }

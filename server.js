@@ -652,6 +652,8 @@ await pool.query(`
     ON CONFLICT (business_type_code, code) DO NOTHING
 `);
 
+await pool.query(fs.readFileSync(path.join(__dirname, 'migrations/20261122-product-catalog.sql'), 'utf8'));
+
 await pool.query(`
     ALTER TABLE users ADD COLUMN IF NOT EXISTS registration_event_pending BOOLEAN
 `);
@@ -4748,6 +4750,7 @@ app.get(
 // Business service requests. Public submission, owner-only review and confirmation.
 const mediaReady = installMedia({app,pool,requireAuth,requireCrmAccess,databaseReady});
 require("./catalog-media").installCatalogMedia({app,pool,requireAuth,databaseReady});
+require("./product-catalog").installProductCatalog({app,pool,databaseReady});
 
 async function ensureBusinessRequestsTable() {
     await pool.query(`CREATE TABLE IF NOT EXISTS business_service_requests (
@@ -8354,7 +8357,7 @@ async function loadPrivateBusinessProfile(ownerId) {
             sp.name AS "planName",
             sp.price_uah AS "priceUah",
             sp.car_limit AS "carLimit",
-            (sp.has_crm OR bp.owner_id = '32ce413e-9eb6-417a-b99a-77d9ca7c144a'::uuid) AS "hasCrm",
+            (COALESCE(bp.crm_enabled, sp.has_crm) OR bp.owner_id = '32ce413e-9eb6-417a-b99a-77d9ca7c144a'::uuid) AS "hasCrm",
             sp.has_map AS "hasMap",
 
             bp.complimentary_subscription AS "complimentarySubscription",
@@ -8411,7 +8414,7 @@ async function loadPrivateBusinessProfile(ownerId) {
                             'title', pr.title,
                             'description', pr.description,
                             'price', pr.price,
-                            'photos', pr.photos
+                            'photos', pr.photos, 'category', pr.category, 'availability', pr.availability, 'orderTelegram', pr.order_telegram, 'orderViber', pr.order_viber, 'orderChat', pr.order_chat
                         )
                         ORDER BY pr.sort_order ASC, pr.created_at ASC
                     )
@@ -8509,7 +8512,7 @@ async function loadPublicBusinessProfile(ownerId) {
                             'title', pr.title,
                             'description', pr.description,
                             'price', pr.price,
-                            'photos', pr.photos
+                            'photos', pr.photos, 'category', pr.category, 'availability', pr.availability, 'orderTelegram', pr.order_telegram, 'orderViber', pr.order_viber, 'orderChat', pr.order_chat
                         )
                         ORDER BY pr.sort_order ASC, pr.created_at ASC
                     )
@@ -9016,15 +9019,18 @@ app.post(
                 return res.status(400).json({ ok: false, message: "Вкажіть назву товару." });
             }
 
+            let extra;
+            try { extra = require('./product-catalog').productFields(req.body); }
+            catch(error){return res.status(400).json({ok:false,message:error.message});}
             const photos = Array.isArray(req.body.photos) ? req.body.photos.slice(0, 6) : [];
             const price = req.body.price == null || req.body.price === "" ? null : Number(req.body.price);
 
             const result = await pool.query(
                 `
                 INSERT INTO business_products (
-                    id, business_id, title, description, price, photos
+                    id, business_id, title, description, price, photos, category, availability, order_telegram, order_viber, order_chat
                 )
-                VALUES ($1, $2, $3, $4, $5, $6::jsonb)
+                VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11)
                 RETURNING id, title, description, price, photos
                 `,
                 [
@@ -9033,7 +9039,8 @@ app.post(
                     title,
                     String(req.body.description || "").trim(),
                     Number.isFinite(price) && price >= 0 ? price : null,
-                    JSON.stringify(photos)
+                    JSON.stringify(photos),
+                    ...extra
                 ]
             );
 
@@ -9055,6 +9062,9 @@ app.patch(
                 return res.status(400).json({ ok: false, message: "Вкажіть назву товару." });
             }
 
+            let extra;
+            try { extra = require('./product-catalog').productFields(req.body); }
+            catch(error){return res.status(400).json({ok:false,message:error.message});}
             const photos = Array.isArray(req.body.photos) ? req.body.photos.slice(0, 6) : [];
             const price = req.body.price == null || req.body.price === "" ? null : Number(req.body.price);
 
@@ -9066,6 +9076,7 @@ app.patch(
                     description = $4,
                     price = $5,
                     photos = $6::jsonb,
+                    category=$7, availability=$8, order_telegram=$9, order_viber=$10, order_chat=$11,
                     updated_at = NOW()
                 FROM business_profiles bp
                 WHERE pr.business_id = bp.id
@@ -9079,7 +9090,8 @@ app.patch(
                     title,
                     String(req.body.description || "").trim(),
                     Number.isFinite(price) && price >= 0 ? price : null,
-                    JSON.stringify(photos)
+                    JSON.stringify(photos),
+                    ...extra
                 ]
             );
 
@@ -9376,7 +9388,7 @@ app.post(["/api/register", "/api/business/register"], async (req, res) => {
 
             if (["car_service", "detailing", "tire_service", "road_assistance"].includes(businessTypeRow.code)) {
                 resolvedContentType = "services";
-            } else if (businessTypeRow.code === "auto_shop") {
+            } else if (["auto_shop", "wholesale"].includes(businessTypeRow.code)) {
                 resolvedContentType = "products";
             } else if (businessTypeRow.code === "car_dealer") {
                 resolvedContentType = "cars";
@@ -9433,9 +9445,10 @@ app.post(["/api/register", "/api/business/register"], async (req, res) => {
                     name,
                     phone,
                     subscription_started_at,
-                    subscription_expires_at
+                    subscription_expires_at,
+                    crm_enabled
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW() + INTERVAL '3 months')
+                VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW() + INTERVAL '3 months', $8)
                 `,
                 [
                     crypto.randomUUID(),
@@ -9444,7 +9457,8 @@ app.post(["/api/register", "/api/business/register"], async (req, res) => {
                     planRow.id,
                     resolvedContentType,
                     cleanName,
-                    normalizedPhone
+                    normalizedPhone,
+                    !["auto_shop","wholesale"].includes(businessTypeRow.code)
                 ]
             );
         }
@@ -10676,7 +10690,7 @@ async function requireCrmAccess(req, res, next) {
                     sp.id AS "planId",
                     sp.code AS "planCode",
                     sp.name AS "planName",
-                    (sp.has_crm OR bp.owner_id = '32ce413e-9eb6-417a-b99a-77d9ca7c144a'::uuid) AS "hasCrm",
+                    (COALESCE(bp.crm_enabled, sp.has_crm) OR bp.owner_id = '32ce413e-9eb6-417a-b99a-77d9ca7c144a'::uuid) AS "hasCrm",
 
                     bp.complimentary_subscription
                         AS "complimentarySubscription",
