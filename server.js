@@ -2034,6 +2034,18 @@ ${vehicleSchemaJson}
 
 /* ===== ФОТО / ЛОГО ДЛЯ OPEN GRAPH ===== */
 
+function businessPreviewImage(business) {
+    const photos = Array.isArray(business.photos) ? business.photos : [];
+    for (const candidate of [business.logo, ...photos]) {
+        const image = typeof candidate === "string" ? candidate.trim() : "";
+        if (/^data:image\/(?:png|jpeg|jpg|webp);base64,[a-z0-9+/=]+$/i.test(image)) return image;
+        if (/^https?:\/\//i.test(image) || /^\/(?![\/\\])/.test(image)) return image;
+    }
+    return String(business.owner_id) === ROYAL_AUTO_OWNER_ID
+        ? "/images/royal-auto-atelier-logo.webp"
+        : "";
+}
+
 app.get(
     "/seo/business-image/:ownerId",
     async (req, res) => {
@@ -2042,10 +2054,12 @@ app.get(
                 await pool.query(
                     `
                     SELECT
-                        logo,
-                        photos
-                    FROM business_profiles
-                    WHERE owner_id = $1
+                        bp.owner_id,
+                        bp.logo,
+                        bp.photos
+                    FROM business_profiles bp
+                    JOIN users u ON u.id = bp.owner_id
+                    WHERE bp.owner_id = $1 AND NOT bp.is_deleted AND NOT u.account_disabled
                     LIMIT 1
                     `,
                     [
@@ -2064,19 +2078,8 @@ app.get(
             const business =
                 result.rows[0];
 
-            const photos =
-                Array.isArray(
-                    business.photos
-                )
-                    ? business.photos
-                    : [];
-
-            const image =
-                String(
-                    business.logo ||
-                    photos[0] ||
-                    ""
-                );
+            const image = businessPreviewImage(business);
+            if (!image) return res.status(404).end();
 
             const dataImageMatch =
                 image.match(
@@ -2108,20 +2111,7 @@ app.get(
                 );
             }
 
-            if (
-                /^https?:\/\//i.test(
-                    image
-                )
-            ) {
-                return res.redirect(
-                    image
-                );
-            }
-
-            return res.redirect(
-                "/images/royal-garage-logo.png"
-            );
-
+            return res.redirect(image);
         } catch (error) {
             console.error(
                 "SEO business image error:",
@@ -2209,6 +2199,8 @@ app.get(
                     bp.instagram,
                 
                     bp.description,
+                    bp.logo,
+                    bp.photos,
                 
                     bp.subscription_expires_at,
 
@@ -2331,10 +2323,9 @@ app.get(
                     business.owner_id
                 )}`;
 
-            const imageUrl =
-                `https://royalgarage.com.ua/seo/business-image/${encodeURIComponent(
-                    business.owner_id
-                )}`;
+            const imageUrl = businessPreviewImage(business)
+                ? `${PUBLIC_ORIGIN}/seo/business-image/${encodeURIComponent(business.owner_id)}`
+                : "";
 
                 const businessSameAs = [
                     business.telegram,
@@ -2357,7 +2348,7 @@ app.get(
                 
                     "name": name,
                     "url": canonical,
-                    "image": imageUrl,
+                    ...(imageUrl ? { image: imageUrl } : {}),
                     "description": description,
                 
                     ...(city || business.address
@@ -2516,12 +2507,7 @@ app.get(
     )}"
 >
 
-<meta
-    property="og:image"
-    content="${escapeSeoHtml(
-        imageUrl
-    )}"
->
+${imageUrl ? `<meta property="og:image" content="${escapeSeoHtml(imageUrl)}">` : ""}
 
 <meta
     property="og:locale"
@@ -2530,7 +2516,7 @@ app.get(
 
 <meta
     name="twitter:card"
-    content="summary_large_image"
+    content="${imageUrl ? "summary_large_image" : "summary"}"
 >
 
 <meta
@@ -2547,12 +2533,7 @@ app.get(
     )}"
 >
 
-<meta
-    name="twitter:image"
-    content="${escapeSeoHtml(
-        imageUrl
-    )}"
->
+${imageUrl ? `<meta name="twitter:image" content="${escapeSeoHtml(imageUrl)}">` : ""}
 
 <script type="application/ld+json">
 ${businessSchemaJson}

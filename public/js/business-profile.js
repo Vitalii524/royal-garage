@@ -570,6 +570,21 @@
         $("businessCityLine").hidden = !cityLine;
         $("businessAddress").textContent = [profile.city, profile.address].filter(Boolean).join(", ") || "Не вказано";
 
+        const shareButton = $("shareBusinessLink");
+        const copyButton = $("copyBusinessLink");
+        if (profile.ownerId && (requestedOwnerId() || profile.subscriptionStatus === "active")) {
+            const url = new URL("business-profile.html", window.location.href);
+            url.searchParams.set("id", profile.ownerId);
+            window.RGShare.bind(shareButton, () => ({
+                title: profile.name || "Бізнес | Royal Garage",
+                text: String(profile.description || profile.businessTypeName || "Профіль бізнесу на Royal Garage")
+                    .replace(/\s+/g, " ").trim().slice(0, 160),
+                url: url.href
+            }), copyButton);
+            shareButton.hidden = false;
+            copyButton.hidden = false;
+        }
+
         renderContacts(profile);
         const chatLink = $("businessChatLink");
         if (chatLink && profile.ownerId && !state.isOwner) {
