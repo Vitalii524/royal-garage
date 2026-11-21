@@ -399,7 +399,7 @@ async function loadRoyalAutoCars() {
 
         const response =
             await fetch(
-                "/api/market/listings"
+                `/api/market/listings?ownerId=${encodeURIComponent(ROYAL_AUTO_OWNER_ID)}`
             );
 
 
@@ -869,136 +869,22 @@ async function loadRoyalAutoCatalog() {
 
 loadRoyalAutoCatalog();
 
-/* =========================
-   КОПІЮВАННЯ ТЕЛЕФОНУ
-   ========================= */
-
-const copyPhoneButton =
-    document.getElementById(
-        "copyPhoneButton"
-    );
-
-
-if (copyPhoneButton) {
-
-    copyPhoneButton.addEventListener(
-        "click",
-        async () => {
-
-            try {
-
-                await navigator.clipboard
-                    .writeText(
-                        "+380632384348"
-                    );
-
-
-                copyPhoneButton.textContent =
-                    "Номер скопійовано ✓";
-
-
-                setTimeout(
-                    () => {
-
-                        copyPhoneButton.textContent =
-                            "Телефон: +380 63 238 43 48";
-
-                    },
-                    1500
-                );
-
-
-            } catch (error) {
-
-                console.error(
-                    "Phone copy error:",
-                    error
-                );
-
-
-                alert(
-                    "Не вдалося скопіювати номер."
-                );
-            }
-        }
-    );
-}
-
-/* =========================
-   ПЛАВАЮЧА КНОПКА ЗВ'ЯЗКУ
-   ========================= */
-
-   const royalAutoContactFloat =
-   document.querySelector(
-       ".royal-auto-contact-float"
-   );
-
-
-   function updateRoyalAutoContactFloat() {
-
-    if (!royalAutoContactFloat) {
-        return;
-    }
-
-
-    const editing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '');
-    const modal = document.querySelector('dialog[open]');
-    const box = royalAutoContactFloat.getBoundingClientRect();
-    const overlapsAction = [...document.querySelectorAll('button, .royal-auto-car-info, input, select, textarea')].some(el => {
-        if (royalAutoContactFloat.contains(el)) return false;
-        const r = el.getBoundingClientRect();
-        return r.width > 0 && r.height > 0 && r.left < box.right && r.right > box.left && r.top < box.bottom && r.bottom > box.top;
-    });
-    const contacts =
-        document.getElementById(
-            "contacts"
-        );
-
-
-    const contactsVisible =
-        contacts &&
-        contacts.getBoundingClientRect().top <
-            window.innerHeight;
-
-
-    royalAutoContactFloat.classList.toggle(
-        "is-visible",
-        window.scrollY > 350 &&
-        !contactsVisible && !editing && !modal && !overlapsAction
-    );
-}
-
-window.addEventListener(
-   "scroll",
-   updateRoyalAutoContactFloat,
-   {
-       passive: true
-   }
-);
-
-
-updateRoyalAutoContactFloat();
-
 // Royal Auto uses the existing participant-scoped chat, without a parallel inbox.
 (() => {
     const current = getRoyalAutoCurrentUser();
     const owner = String(current?.id || current?.userId || '') === ROYAL_AUTO_OWNER_ID;
-    for (const id of ['royalAutoChatLink', 'royalAutoChatFloat']) {
-        const link = document.getElementById(id);
-        if (!link) continue;
-        link.href = owner ? 'profile.html?section=chats'
-            : 'chat.html?withUserId=' + encodeURIComponent(ROYAL_AUTO_OWNER_ID);
-        const label = owner ? 'Повідомлення клієнтів' : 'Написати Royal Auto';
-        if (id === 'royalAutoChatFloat') {
-            link.setAttribute('aria-label', label);
-            link.title = label;
-        } else link.textContent = '💬 ' + label;
-    }
+    const link = document.getElementById('royalAutoChatLink');
+    if (!link) return;
+    link.href = owner ? 'profile.html?section=chats'
+        : 'chat.html?withUserId=' + encodeURIComponent(ROYAL_AUTO_OWNER_ID);
+    const label = owner ? 'Повідомлення клієнтів' : 'Написати Royal Auto';
+    link.setAttribute('aria-label', label);
+    link.title = label;
 })();
 
 // Read-only unread indicator. Conversation storage and permissions remain on the server.
 (() => {
-    const link = document.getElementById('royalAutoChatFloat');
+    const link = document.getElementById('royalAutoChatLink');
     const badge = link?.querySelector('.royal-auto-chat-badge');
     if (!badge) return;
     async function refresh() {
@@ -1026,7 +912,3 @@ updateRoyalAutoContactFloat();
     window.setInterval(refresh,60000);
     document.addEventListener('visibilitychange',refresh);
 })();
-
-window.addEventListener('resize',updateRoyalAutoContactFloat,{passive:true});
-document.addEventListener('focusin',updateRoyalAutoContactFloat);
-document.addEventListener('focusout',()=>requestAnimationFrame(updateRoyalAutoContactFloat));

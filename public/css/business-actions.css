@@ -1,0 +1,63 @@
+.rg-business-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-block: 12px;
+}
+
+.rg-business-actions [hidden] { display: none; }
+
+.rg-business-actions .rg-business-icon {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    box-sizing: border-box;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    padding: 0;
+    border: 1px solid #76613d;
+    border-radius: 10px;
+    background: #202226;
+    color: #efce89;
+    cursor: pointer;
+    list-style: none;
+    text-decoration: none;
+}
+
+.rg-business-icon::-webkit-details-marker { display: none; }
+.rg-business-icon svg { width: 21px; height: 21px; }
+.rg-business-icon:hover, .rg-business-contacts[open] summary { background: #35302a; }
+.rg-business-actions :is(a, button, summary):focus-visible {
+    outline: 2px solid #efce89;
+    outline-offset: 3px;
+}
+
+.rg-business-contacts { position: relative; }
+.rg-business-contact-menu {
+    position: absolute;
+    z-index: 10;
+    inset-block-start: calc(100% + 6px);
+    inset-inline-start: -52px;
+    min-width: 154px;
+    padding: 4px;
+    border: 1px solid #76613d;
+    border-radius: 10px;
+    background: #202226;
+    box-shadow: 0 6px 18px #0007;
+}
+
+.rg-business-contact-menu a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding-inline: 12px;
+    color: #f5e7cd;
+    text-decoration: none;
+}
+
+.rg-business-contact-menu a:hover { background: #35302a; }
+.rg-business-icon .royal-auto-chat-badge { inset: -5px -5px auto auto; }
+.rg-business-share-status { color: #efce89; font-size: .875rem; }
+.rg-business-share-status:empty { display: none; }
