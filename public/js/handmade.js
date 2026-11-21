@@ -941,6 +941,14 @@ if (copyPhoneButton) {
     }
 
 
+    const editing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '');
+    const modal = document.querySelector('dialog[open]');
+    const box = royalAutoContactFloat.getBoundingClientRect();
+    const overlapsAction = [...document.querySelectorAll('button, .royal-auto-car-info, input, select, textarea')].some(el => {
+        if (royalAutoContactFloat.contains(el)) return false;
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && r.left < box.right && r.right > box.left && r.top < box.bottom && r.bottom > box.top;
+    });
     const contacts =
         document.getElementById(
             "contacts"
@@ -956,7 +964,7 @@ if (copyPhoneButton) {
     royalAutoContactFloat.classList.toggle(
         "is-visible",
         window.scrollY > 350 &&
-        !contactsVisible
+        !contactsVisible && !editing && !modal && !overlapsAction
     );
 }
 
@@ -980,6 +988,45 @@ updateRoyalAutoContactFloat();
         if (!link) continue;
         link.href = owner ? 'profile.html?section=chats'
             : 'chat.html?withUserId=' + encodeURIComponent(ROYAL_AUTO_OWNER_ID);
-        link.textContent = owner ? '💬 Повідомлення клієнтів' : '💬 Написати';
+        const label = owner ? 'Повідомлення клієнтів' : 'Написати Royal Auto';
+        if (id === 'royalAutoChatFloat') {
+            link.setAttribute('aria-label', label);
+            link.title = label;
+        } else link.textContent = '💬 ' + label;
     }
 })();
+
+// Read-only unread indicator. Conversation storage and permissions remain on the server.
+(() => {
+    const link = document.getElementById('royalAutoChatFloat');
+    const badge = link?.querySelector('.royal-auto-chat-badge');
+    if (!badge) return;
+    async function refresh() {
+        if (document.hidden) return;
+        const user = getRoyalAutoCurrentUser();
+        const id = String(user?.id || user?.userId || '');
+        const token = localStorage.getItem('royalGarageToken');
+        badge.hidden = true;
+        if (!id || !token) return;
+        try {
+            const response = await fetch('/api/chat/conversations', {headers:{Authorization:'Bearer ' + token}});
+            if (!response.ok) return;
+            const data = await response.json();
+            const count = (data.messages || []).filter(m =>
+                String(m.receiverId) === id && !m.readAt && !m.deletedAt &&
+                (id === ROYAL_AUTO_OWNER_ID || (String(m.senderId) === ROYAL_AUTO_OWNER_ID && !m.listingId))
+            ).length;
+            badge.textContent = count > 99 ? '99+' : String(count);
+            badge.hidden = count === 0;
+            const label = id === ROYAL_AUTO_OWNER_ID ? 'Повідомлення клієнтів' : 'Написати Royal Auto';
+            link.setAttribute('aria-label', label + (count ? ': непрочитаних ' + count : ''));
+        } catch { /* A network failure must not invent an unread count. */ }
+    }
+    refresh();
+    window.setInterval(refresh,60000);
+    document.addEventListener('visibilitychange',refresh);
+})();
+
+window.addEventListener('resize',updateRoyalAutoContactFloat,{passive:true});
+document.addEventListener('focusin',updateRoyalAutoContactFloat);
+document.addEventListener('focusout',()=>requestAnimationFrame(updateRoyalAutoContactFloat));

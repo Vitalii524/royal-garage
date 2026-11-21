@@ -1243,67 +1243,22 @@ html {
    ROYALAUTO — ЗВ'ЯЗАТИСЯ
    ========================= */
 
-   .royal-auto-contact-float {
-    position: fixed;
-
-    right: 20px;
-    bottom: 95px;
-
-    z-index: 1000;
-
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    min-height: 52px;
-
-    padding: 0 20px;
-
-    border: 1px solid #e8c56a;
-    border-radius: 30px;
-
-    color: var(--rg-panel, #24272d);
-    background: #e8c56a;
-
-    font-weight: 800;
-    text-decoration: none;
-
-    box-shadow:
-        0 10px 25px
-        rgba(0, 0, 0, 0.28);
-
-        opacity: 0;
-visibility: hidden;
-
-transform: translateY(18px);
-
-transition:
-    opacity 0.2s ease,
-    visibility 0.2s ease,
-    transform 0.2s ease;
+.royal-auto-contact-float {
+    position:fixed; right:16px; bottom:calc(18px + env(safe-area-inset-bottom,0px));
+    z-index:1000; display:inline-flex; align-items:center; justify-content:center;
+    box-sizing:border-box; width:48px; height:48px; min-height:48px; padding:0;
+    border:1px solid #f1d47d; border-radius:50%; color:#191919;
+    background:linear-gradient(145deg,#f4dc94,#d6a735);
+    font-size:23px; line-height:1; text-decoration:none;
+    box-shadow:0 4px 14px #0005;
+    opacity:0; visibility:hidden; transition:opacity .2s,visibility .2s;
 }
-
-.royal-auto-contact-float.is-visible {
-    opacity: 1;
-    visibility: visible;
-
-    transform: translateY(0);
-}
-
-
-@media (max-width: 600px) {
-
-    .royal-auto-contact-float {
-        right: 18px;
-        bottom: 92px;
-
-        min-height: 48px;
-
-        padding: 0 17px;
-
-        font-size: 15px;
-    }
-}
+.royal-auto-contact-float.is-visible{opacity:1;visibility:visible}
+.royal-auto-contact-float:focus-visible{outline:2px solid white;outline-offset:3px}
+.royal-auto-chat-badge{position:absolute;right:-4px;top:-5px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:10px;background:#c62828;color:white;border:1px solid white;font:700 11px/16px system-ui,sans-serif;text-align:center}
+.royal-auto-chat-badge[hidden]{display:none}
+body:has(.royal-auto-contact-float){padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+@media(prefers-reduced-motion:reduce){.royal-auto-contact-float{transition:none}}
 
 .royal-auto-hero-logo-wrap {
     display: flex;
