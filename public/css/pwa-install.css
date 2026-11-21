@@ -1,0 +1,5 @@
+.rg-install{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:1000;max-width:520px;margin:auto;padding:14px 16px;display:flex;align-items:center;flex-wrap:wrap;gap:10px;background:#202226;color:#f5f5f5;border:1px solid #b89a54;border-radius:14px;box-shadow:0 6px 24px #0006;font:500 14px/1.4 system-ui,sans-serif}
+.rg-install strong{flex:1 1 170px;color:#ecd28e;font-size:15px}.rg-install p{flex-basis:100%;margin:0}.rg-install button{min-height:44px;padding:8px 14px;border:1px solid #b89a54;border-radius:9px;background:#e8c86e;color:#171717;font:600 14px system-ui,sans-serif;cursor:pointer}.rg-install button.rg-install-later{background:transparent;color:#eee;border-color:#797979}.rg-install button:focus-visible{outline:2px solid white;outline-offset:3px}.rg-install button:disabled{opacity:.65;cursor:wait}
+@media(display-mode:standalone){.rg-install{display:none}}
+
+.rg-install>img{width:40px;height:40px;object-fit:contain;border-radius:8px;flex-shrink:0}
