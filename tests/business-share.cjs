@@ -26,8 +26,7 @@ test('Royal Auto uses its public page and metadata in the system share sheet', a
     assert.match(calls[0][1].title, /RoyalAuto/);
     assert.ok(calls[0][1].text);
     assert.equal(calls[0][1].url, 'https://royalgarage.com.ua/handmade.html');
-    await document.getElementById('copyBusinessLink').onclick();
-    assert.deepEqual(calls[1], ['clipboard', 'https://royalgarage.com.ua/handmade.html']);
+    assert.equal(document.getElementById("copyBusinessLink"), null);
 });
 
 test('canonical profiles share their own owner id and fall back to copy', async () => {
@@ -46,6 +45,8 @@ test('canonical profiles share their own owner id and fall back to copy', async 
     assert.equal(button.hidden, false);
     await button.onclick();
     assert.deepEqual(calls[0], ['clipboard', 'https://royalgarage.com.ua/business-profile.html?id=second-business']);
+    assert.match(document.querySelector('[data-share-status]').textContent, /скопійовано/);
+    assert.equal(button.dataset.actionIcon, 'share');
 });
 
 test('cancelling the native menu leaves the clipboard alone', async () => {

@@ -206,6 +206,7 @@
         setContactLink("businessTelegramLink", tg, Boolean(tg));
         setContactLink("businessInstagramLink", ig, Boolean(ig));
         setContactLink("businessRouteLink", route, Boolean(route && mapAllowed));
+        $("businessContactsMenu").hidden = !(phone || tg || ig);
 
         setContactLink("businessBottomPhone", phone ? `tel:${phone}` : "#", Boolean(phone));
         setContactLink("businessBottomTelegram", tg, Boolean(tg));
@@ -571,7 +572,6 @@
         $("businessAddress").textContent = [profile.city, profile.address].filter(Boolean).join(", ") || "Не вказано";
 
         const shareButton = $("shareBusinessLink");
-        const copyButton = $("copyBusinessLink");
         if (profile.ownerId && (requestedOwnerId() || profile.subscriptionStatus === "active")) {
             const url = new URL("business-profile.html", window.location.href);
             url.searchParams.set("id", profile.ownerId);
@@ -580,9 +580,8 @@
                 text: String(profile.description || profile.businessTypeName || "Профіль бізнесу на Royal Garage")
                     .replace(/\s+/g, " ").trim().slice(0, 160),
                 url: url.href
-            }), copyButton);
+            }));
             shareButton.hidden = false;
-            copyButton.hidden = false;
         }
 
         renderContacts(profile);
@@ -603,7 +602,7 @@
         renderServices(profile);
         renderPortfolio(profile);
         renderProducts(profile);
-        if (profile.businessTypeCode === "car_dealer") loadBusinessCars(profile.ownerId);
+        if (profile.ownerId) loadBusinessCars(profile.ownerId, profile.businessTypeCode === "car_dealer");
 
         // Публічно показуємо лише заповнені розділи.
         // Власник бачить порожні розділи, щоб мати можливість їх заповнити.
@@ -639,10 +638,10 @@
         $("businessProductsGrid").replaceChildren(...products.map(product => itemCard(product, true)));
     }
 
-    async function loadBusinessCars(ownerId) {
+    async function loadBusinessCars(ownerId, isDealer) {
         const section = $("businessCarsSection");
         const status = $("businessCarsStatus");
-        section.hidden = false;
+        section.hidden = !isDealer;
         try {
             const { listings } = await api(`/api/market/listings?ownerId=${encodeURIComponent(ownerId)}`);
             const cards = listings.map(listing => {
@@ -653,6 +652,7 @@
                 return card;
             });
             $("businessCarsGrid").replaceChildren(...cards);
+            section.hidden = !(isDealer || cards.length);
             status.textContent = cards.length ? "" : "Активних оголошень поки немає.";
         } catch (error) {
             status.textContent = error.message;

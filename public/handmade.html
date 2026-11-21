@@ -19,7 +19,7 @@
 <meta content="summary_large_image" name="twitter:card"/>
 <link href="images/favicon.png" rel="icon" type="image/png"/>
 <link href="css/styles.css" rel="stylesheet"/>
-<link href="css/handmade.css?v=20261121-float" rel="stylesheet"/>
+<link href="css/handmade.css?v=20261122-actions" rel="stylesheet"/>
 <script type="application/ld+json">
         {
             "@context": "https://schema.org",
@@ -39,7 +39,9 @@
         </script>
 <link rel="stylesheet" href="css/service-media.css">
 <script src="js/site-header.js?v=20261119" defer></script>
-<link rel="stylesheet" href="css/service-gallery.css?v=20261121"><script src="js/service-gallery.js?v=20261121"></script></head>
+<link rel="stylesheet" href="css/service-gallery.css?v=20261121"><script src="js/service-gallery.js?v=20261121"></script><link rel="stylesheet" href="css/business-actions.css?v=1">
+<script defer src="js/business-actions.js?v=1"></script>
+</head>
 <body>
 <header class="site-header">
 <div class="top-line">
@@ -116,15 +118,14 @@
                 Автомобілі та аксесуари
                 для вашого авто.
             </p>
-<div class="upholstery-actions"><button id="royalAutoBooking" type="button" class="upholstery-primary-button">Записатися</button>
-<a class="upholstery-primary-button" data-i18n="auto.161" href="#directions">
-                    Переглянути напрямки
-                </a>
-<a id="royalAutoChatLink" class="upholstery-secondary-button" href="chat.html?withUserId=32ce413e-9eb6-417a-b99a-77d9ca7c144a">
-                    💬 Написати
-                </a>
-<button data-share-business class="upholstery-secondary-button" type="button">Поділитися</button>
-<button id="copyBusinessLink" class="upholstery-secondary-button" type="button">Копіювати посилання</button>
+<div class="rg-business-actions">
+<a class="rg-business-icon" data-action-icon="chat" aria-label="Написати Royal Auto" title="Написати Royal Auto" id="royalAutoChatLink" href="chat.html?withUserId=32ce413e-9eb6-417a-b99a-77d9ca7c144a"><span class="royal-auto-chat-badge" hidden></span></a>
+<details class="rg-business-contacts" ><summary class="rg-business-icon" data-action-icon="contacts" aria-label="Контакти" title="Контакти" ></summary><div class="rg-business-contact-menu"><a href="tel:+380632384348">Телефон</a>
+<a href="https://t.me/Vitalik25675" target="_blank" rel="noopener">Telegram</a>
+<a href="https://www.instagram.com/royalauto0077?igsh=Z2xtZjM3Z2U5bXR6" target="_blank" rel="noopener">Instagram</a></div></details>
+<button class="rg-business-icon" data-action-icon="share" aria-label="Поділитися" title="Поділитися" type="button" data-share-business></button>
+<button class="rg-business-icon" data-action-icon="booking" aria-label="Записатися" title="Записатися" type="button" id="royalAutoBooking"></button>
+<span class="rg-business-share-status" role="status" data-share-status></span>
 </div>
 </div>
 <div class="royal-auto-hero-logo-wrap">
@@ -192,9 +193,7 @@
 <p class="upholstery-label">
                 RoyalAuto
             </p>
-<h2 data-i18n="auto.035">
-                Автомобілі
-            </h2>
+<h2>Автомобілі в продажу</h2>
 <p data-i18n="auto.169">
                 Актуальні автомобілі
                 RoyalAuto у продажу.
@@ -211,30 +210,6 @@
 </article>
 </section>
 <section class="upholstery-details-section" id="royalAutoProductSections">
-</section>
-<!-- =========================
-         КОНТАКТИ
-         ========================= -->
-<section class="upholstery-contact-section" id="contacts">
-<div>
-<p class="upholstery-label">
-                RoyalAuto
-            </p>
-<h2 data-i18n="auto.152">
-                Контакти
-            </h2>
-</div>
-<div class="upholstery-contact-buttons">
-<a href="https://t.me/Vitalik25675" rel="noopener noreferrer" target="_blank">
-                Telegram
-            </a>
-<a href="https://www.instagram.com/royalauto0077?igsh=Z2xtZjM3Z2U5bXR6" rel="noopener noreferrer" target="_blank">
-                Instagram
-            </a>
-<button class="upholstery-phone-button" data-i18n="auto.172" id="copyPhoneButton" type="button">
-                Телефон: +380 63 238 43 48
-            </button>
-</div>
 </section>
 </main>
 <footer class="footer">
@@ -260,12 +235,11 @@
 <a data-i18n="auto.006" href="profile.html">Мій профіль</a>
 </div>
 </footer>
-<a id="royalAutoChatFloat" class="royal-auto-contact-float" aria-label="Повідомлення" title="Повідомлення" href="chat.html?withUserId=32ce413e-9eb6-417a-b99a-77d9ca7c144a">
     <span aria-hidden="true">✉️</span><span class="royal-auto-chat-badge" hidden></span>
 </a>
 <script src="js/auth.js"></script>
-<script src="js/share.js?v=1"></script>
-<script src="js/handmade.js?v=20261121-float"></script>
+<script src="js/share.js?v=2"></script>
+<script src="js/handmade.js?v=20261122-actions"></script>
 <script src="js/loader.js"></script>
 <script src="js/lang.js"></script><script src="/js/notifications.js?v=1"></script><div id="businessBookingModal" class="business-modal rg-booking" hidden><div class="business-modal-backdrop" data-close-modal="businessBookingModal"></div><div class="business-modal-card" role="dialog" aria-modal="true" aria-labelledby="businessBookingTitle"><div class="business-modal-head"><h2 id="businessBookingTitle">Заявка на обслуговування</h2><button type="button" class="business-icon-button" data-close-modal="businessBookingModal">×</button></div><form id="businessBookingForm" class="business-form"><label>Ім’я клієнта<input name="name" required maxlength="120" autocomplete="name"></label><label>Телефон<input name="phone" required type="tel" maxlength="30" autocomplete="tel"></label><div class="business-form-row"><label>Марка авто<input name="brand" required maxlength="80"></label><label>Модель авто<input name="model" required maxlength="80"></label></div><div class="business-form-row"><div class="business-form-row"><label>Рік випуску<input name="year" required type="number" min="1886" max="2100" inputmode="numeric" placeholder="Наприклад, 2018"></label><label>Пробіг, км<input name="mileage" required type="number" min="0" max="9999999" inputmode="numeric" placeholder="Наприклад, 125000"></label></div><label>Двигун<input name="engine" maxlength="100" placeholder="Наприклад, 1.6 бензин (необов’язково)"></label><label>Коробка передач<select name="transmission"><option value="">Оберіть</option><option>Механіка</option><option>Автомат</option><option>Робот</option><option>Варіатор</option></select></label><label>Паливо<select name="fuel"><option value="">Оберіть</option><option>Бензин</option><option>Дизель</option><option>Газ/бензин</option><option>Гібрид</option><option>Електро</option></select></label></div><label>Державний номер<input name="plate" maxlength="20"></label><label>VIN-код<input name="vin" maxlength="17" minlength="17" pattern="[A-HJ-NPR-Za-hj-npr-z0-9]{17}" title="17 символів, без I, O, Q"></label><label>Причина звернення<textarea name="reason" rows="4" required maxlength="2000"></textarea></label><p id="businessBookingStatus" role="status"></p><div class="business-modal-actions"><button type="button" class="business-secondary-button" data-close-modal="businessBookingModal">Скасувати</button><button type="submit" class="business-primary-button">Надіслати заявку</button></div></form></div></div>
 <script src="js/service-media.js"></script><script src="js/royal-auto-booking.js"></script></body>

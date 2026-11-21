@@ -2,6 +2,12 @@
     async function copy(button, url) {
         try {
             await navigator.clipboard.writeText(url);
+            const status = button.closest?.(".rg-business-actions")?.querySelector("[data-share-status]");
+            if (status) {
+                status.textContent = "✓ Посилання скопійовано";
+                setTimeout(() => { status.textContent = ""; }, 2000);
+                return;
+            }
             const label = button.textContent;
             button.disabled = true;
             button.textContent = "✓ Посилання скопійовано";
