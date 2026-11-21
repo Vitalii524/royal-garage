@@ -7323,10 +7323,31 @@ async function initializeProfilePage() {
         return;
     }
 
-    if (String(user.id || user.userId) === "32ce413e-9eb6-417a-b99a-77d9ca7c144a" || user.accountType === "business") {
-        window.location.replace(String(user.id || user.userId) === "32ce413e-9eb6-417a-b99a-77d9ca7c144a" ? "royal-auto-admin.html" : "business-profile.html");
+    const isRoyalAuto = String(user.id || user.userId) === "32ce413e-9eb6-417a-b99a-77d9ca7c144a";
+    const isBusiness = isRoyalAuto || user.accountType === "business";
+    const showChats = new URLSearchParams(window.location.search).get("section") === "chats";
+
+    if (isBusiness) {
+        if (!showChats) {
+            window.location.replace(isRoyalAuto ? "royal-auto-admin.html" : "business-profile.html");
+            return;
+        }
+
+        const inbox = document.getElementById("businessInbox");
+        inbox.querySelector("a").href = isRoyalAuto ? "handmade.html" : "business-profile.html";
+        inbox.append(elements.myChatsList);
+        document.querySelector("main.garage-page").hidden = true;
+        inbox.hidden = false;
+        await renderMyChats();
         return;
     }
+
+    if (showChats) {
+        openModal(elements.chatsModal);
+        window.history.replaceState({}, document.title, "profile.html");
+        void renderMyChats();
+    }
+
     renderFirstMemberBadge();
     renderAccountSettings();
     fillSellerProfileSettings();
@@ -7341,28 +7362,6 @@ async function initializeProfilePage() {
 }
 
    initializeProfilePage();
-
-const profileParams =
-    new URLSearchParams(
-        window.location.search
-    );
-
-if (
-    profileParams.get("section") ===
-    "chats"
-) {
-    renderMyChats();
-
-    openModal(
-        elements.chatsModal
-    );
-
-    window.history.replaceState(
-        {},
-        document.title,
-        "profile.html"
-    );
-}
 
 function updateGlobalChatsButton() {
     if (!globalOpenChatsButton) {
