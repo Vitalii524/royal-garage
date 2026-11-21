@@ -272,6 +272,7 @@
             ? `Діє до ${new Date(profile.subscriptionExpiresAt).toLocaleDateString("uk-UA")}`
             : "";
         $("businessAddCarButton").hidden = profile.businessTypeCode !== "car_dealer";
+        window.RGDealerXml?.mount(state.isOwner && profile.businessTypeCode === "car_dealer");
         $("businessCrmButton").hidden = !profile.hasCrm;
     }
 

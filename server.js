@@ -653,6 +653,7 @@ await pool.query(`
 `);
 
 await pool.query(fs.readFileSync(path.join(__dirname, 'migrations/20261122-product-catalog.sql'), 'utf8'));
+await pool.query(fs.readFileSync(path.join(__dirname, 'migrations/20261122-xml-import.sql'), 'utf8'));
 
 await pool.query(`
     ALTER TABLE users ADD COLUMN IF NOT EXISTS registration_event_pending BOOLEAN
@@ -4751,6 +4752,7 @@ app.get(
 const mediaReady = installMedia({app,pool,requireAuth,requireCrmAccess,databaseReady});
 require("./catalog-media").installCatalogMedia({app,pool,requireAuth,databaseReady});
 require("./product-catalog").installProductCatalog({app,pool,databaseReady});
+require("./dealer-xml").installDealerXml({app,pool,requireAuth,requireAdmin,databaseReady});
 
 async function ensureBusinessRequestsTable() {
     await pool.query(`CREATE TABLE IF NOT EXISTS business_service_requests (
