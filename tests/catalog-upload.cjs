@@ -15,6 +15,7 @@ vm.runInNewContext(fs.readFileSync('public/js/product-catalog.js','utf8'),{...co
  last.status=201;last.responseText=JSON.stringify({url:'/api/service-catalog/images/qa'});last.onload();assert.equal(await pending,'/api/service-catalog/images/qa');
  const failed=window.RGServiceGallery.upload({type:'image/png',size:100,name:'qa.png'},()=>{});await new Promise(r=>setImmediate(r));last.onerror();await assert.rejects(failed,/Помилка мережі/);
  const root=document.createElement('div');window.RGProductCatalog.orders({title:'QA',availability:'available',ownerId:'owner',orderChat:true,orderTelegram:'RoyalShop',orderViber:'+380670000001'},root);
+ assert.equal(root.querySelector('button').textContent,'Замовити');assert.equal(root.querySelector('.catalog-orders').hidden,true);root.querySelector('button').click();assert.equal(root.querySelector('.catalog-orders').hidden,false);
  assert.equal(root.querySelectorAll('a').length,3);assert.match(root.querySelectorAll('a')[1].href,/^viber:\/\/chat\?number=/);
  window.RGProductCatalog.orders({availability:'unavailable'},root);assert.equal(root.querySelectorAll('a').length,0);
  console.log('PASS actual XHR byte percentages, server confirmation required, network failure reported, 3 order methods, unavailable item cannot order');

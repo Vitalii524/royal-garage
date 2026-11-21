@@ -17,8 +17,12 @@
   if(item.orderTelegram&&/^[a-zA-Z0-9_]{5,32}$/.test(item.orderTelegram))methods.push(['Telegram','https://t.me/'+item.orderTelegram+'?text='+encodeURIComponent(item.title+' — '+location.href)]);
   if(item.orderViber&&/^\+[1-9]\d{7,14}$/.test(item.orderViber))methods.push(['Viber','viber://chat?number='+encodeURIComponent(item.orderViber)]);
   if(item.orderChat)methods.push(['Чат Royal Garage','chat.html?withUserId='+encodeURIComponent(item.ownerId)]);
-  const title=document.createElement('strong');title.textContent='Замовити — оберіть спосіб зв’язку';root.append(title);
-  for(const [label,url] of methods){const a=document.createElement('a');a.textContent=label;a.href=url;a.className='rg-service-more';if(url.startsWith('https:')){a.target='_blank';a.rel='noopener';}root.append(a);}
+  if(!methods.length){root.textContent='Способи замовлення ще не налаштовані.';return;}
+  const button=document.createElement('button');button.type='button';button.className='rg-service-more';button.textContent='Замовити';button.setAttribute('aria-expanded','false');
+  const choices=document.createElement('div');choices.className='catalog-orders';choices.hidden=true;
+  const title=document.createElement('strong');title.textContent='Оберіть спосіб зв’язку';choices.append(title);
+  for(const [label,url] of methods){const a=document.createElement('a');a.textContent=label;a.href=url;a.className='rg-service-more';if(url.startsWith('https:')){a.target='_blank';a.rel='noopener';}choices.append(a);}
+  button.addEventListener('click',()=>{choices.hidden=!choices.hidden;button.setAttribute('aria-expanded',String(!choices.hidden));});root.append(button,choices);
  }
  window.RGProductCatalog={card,orders,availability};
  const grid=document.getElementById('catalogGrid'),status=document.getElementById('catalogStatus');
