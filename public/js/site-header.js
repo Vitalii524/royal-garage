@@ -1,4 +1,14 @@
 // Separate navigation from the homepage hero so sticky positioning lasts the whole page.
+// Load one shared install UI without changing navigation, account state or Push handling.
+(() => {
+    if (document.querySelector('script[data-rg-install]')) return;
+    const css = document.createElement('link');
+    css.rel = 'stylesheet'; css.href = '/css/pwa-install.css?v=20261121';
+    document.head.append(css);
+    const script = document.createElement('script');
+    script.src = '/js/pwa-install.js?v=20261121'; script.dataset.rgInstall = 'true';
+    document.head.append(script);
+})();
 (() => {
     function pinNavigation() {
         const header = document.querySelector('.site-header');
