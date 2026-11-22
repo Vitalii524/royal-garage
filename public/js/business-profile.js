@@ -57,7 +57,9 @@
     function isCurrentBusinessOwner(ownerId) {
         const user = getStoredUser();
         const userId = user?.id ?? user?.userId ?? user?.user_id;
-        return Boolean(token() && userId && (user?.accountType || user?.account_type) === "business" && (!ownerId || String(userId) === String(ownerId)));
+        const canManage = String(userId) === ROYAL_AUTO_OWNER_ID ||
+            (user?.accountType || user?.account_type) === "business";
+        return Boolean(token() && userId && canManage && (!ownerId || String(userId) === String(ownerId)));
     }
 
     async function api(url, options = {}) {
