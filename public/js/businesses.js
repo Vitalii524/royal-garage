@@ -1131,6 +1131,15 @@ document.addEventListener("DOMContentLoaded", () => {
     renderAuthArea();
 
     const params = new URLSearchParams(window.location.search);
+    const registrationType = params.get("register");
+    if (registrationType === "user" || registrationType === "business") {
+        openAuthModal("register");
+        const accountType = document.getElementById("registerAccountType");
+        if (accountType) {
+            accountType.value = registrationType;
+            accountType.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+    }
     if (params.get("businessPayment") === "return") {
         setTimeout(() => {
             openAuthModal("login");
