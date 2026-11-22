@@ -1608,3 +1608,13 @@
     flex: 0 0 auto;
     object-fit: contain;
 }
+
+/* RoyalAuto partner tile: enlarge its dark-background emblem without changing other partners. */
+.home-partner-card--royalauto img {
+    width: 94%;
+    height: 74%;
+    object-fit: contain;
+    mix-blend-mode: normal;
+    background: #000;
+}
+.home-partner-card--royalauto { gap: 2px; padding: 6px; }
