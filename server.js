@@ -20,10 +20,6 @@ const ROYAL_AUTO_OWNER_ID = "32ce413e-9eb6-417a-b99a-77d9ca7c144a";
 const PUBLIC_BUSINESS_ACCESS = `(bp.owner_id = '${ROYAL_AUTO_OWNER_ID}'::uuid
     OR bp.complimentary_subscription OR bp.subscription_expires_at > NOW())`;
 const EDITORIAL_OWNER_ID = "b61d05c8-0cab-4432-b36e-267440d87b6a";
-const PUBLIC_MARKET_MODERATION = `NOT EXISTS (
-    SELECT 1 FROM business_profiles bp WHERE bp.owner_id = market_listings.owner_id
-    AND NOT bp.is_deleted AND NOT ${PUBLIC_BUSINESS_MODERATION}
-)`;
 const SERVICE_HUB_OWNER_ID = "d2363e3d-4723-4755-9030-594cd3ccd6f0";
 const PUBLIC_ORIGIN = new URL(process.env.PUBLIC_ORIGIN || "https://royalgarage.com.ua").origin;
 const SERVICE_BOOKING_TYPES = ["car_service", "detailing", "tire_service", "road_assistance"];
@@ -1195,6 +1191,9 @@ CREATE TABLE IF NOT EXISTS service_history_purchases (
         await pool.query(fs.readFileSync(path.join(__dirname, "migrations/20261122-verified-platform-administrator.sql"), "utf8"));
         await pool.query(fs.readFileSync(path.join(__dirname, "migrations/20261122-retire-royal-auto-platform-analytics.sql"), "utf8"));
         await pool.query(fs.readFileSync(path.join(__dirname, "migrations/20261122-editorial-account.sql"), "utf8"));
+        for (const migration of ["admin-business-access", "business-complaints", "business-moderation"]) {
+            await pool.query(fs.readFileSync(path.join(__dirname, `migrations/20261122-${migration}.sql`), "utf8"));
+        }
         console.log("Users table ready");
     } catch (error) {
         throw error;
@@ -1232,7 +1231,7 @@ app.get(
                         id,
                         updated_at
                     FROM market_listings
-                    WHERE status = 'active' AND ${PUBLIC_MARKET_MODERATION}
+                    WHERE status = 'active'
                       AND (
                           expires_at IS NULL
                           OR expires_at > NOW()
@@ -1248,7 +1247,7 @@ app.get(
                         model,
                         MAX(updated_at) AS updated_at
                     FROM market_listings
-                    WHERE status = 'active' AND ${PUBLIC_MARKET_MODERATION}
+                    WHERE status = 'active'
                       AND (
                           expires_at IS NULL
                           OR expires_at > NOW()
@@ -1542,7 +1541,7 @@ app.get(
                         photos,
                         active_photo_index
                     FROM market_listings
-                    WHERE id = $1 AND ${PUBLIC_MARKET_MODERATION}
+                    WHERE id = $1
                     LIMIT 1
                     `,
                     [
@@ -1693,7 +1692,7 @@ app.get(
                         status,
                         expires_at
                     FROM market_listings
-                    WHERE id = $1 AND ${PUBLIC_MARKET_MODERATION}
+                    WHERE id = $1
                     LIMIT 1
                     `,
                     [
@@ -3004,7 +3003,7 @@ async function renderMarketCategoryPage(
                     `
                     SELECT DISTINCT brand
                     FROM market_listings
-                    WHERE status = 'active' AND ${PUBLIC_MARKET_MODERATION}
+                    WHERE status = 'active'
                       AND (
                           expires_at IS NULL
                           OR expires_at > NOW()
@@ -3045,7 +3044,7 @@ async function renderMarketCategoryPage(
                     `
                     SELECT DISTINCT model
                     FROM market_listings
-                    WHERE status = 'active' AND ${PUBLIC_MARKET_MODERATION}
+                    WHERE status = 'active'
                       AND (
                           expires_at IS NULL
                           OR expires_at > NOW()
@@ -3083,7 +3082,7 @@ async function renderMarketCategoryPage(
                 `
                 SELECT COUNT(*)::integer AS count
                 FROM market_listings
-                WHERE status = 'active' AND ${PUBLIC_MARKET_MODERATION}
+                WHERE status = 'active'
                   AND (
                       expires_at IS NULL
                       OR expires_at > NOW()
@@ -5630,7 +5629,7 @@ app.get(
                     created_at AS "createdAt",
                     updated_at AS "updatedAt"
                 FROM market_listings
-                WHERE status = 'active' AND ${PUBLIC_MARKET_MODERATION} AND ($4::uuid IS NULL OR owner_id = $4)
+                WHERE status = 'active' AND ($4::uuid IS NULL OR owner_id = $4)
                   AND (
                       expires_at IS NULL
                       OR expires_at > NOW()
@@ -5758,7 +5757,7 @@ app.get(
                 `
                 SELECT *
                 FROM market_listings
-                WHERE id = $1 AND ${PUBLIC_MARKET_MODERATION}
+                WHERE id = $1
                 LIMIT 1
                 `,
                 [listingId]
