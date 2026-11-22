@@ -89,6 +89,17 @@ function installDealerXml({app,pool,requireAuth,requireAdmin,databaseReady,edito
    res.json({ok:true,feed:result.rows[0]});
   }catch{res.status(500).json({message:'Не вдалося погодити джерело.'});}
  });
+ app.get('/api/admin/xml-feeds',requireAuth,requireAdmin,async(req,res)=>{
+  try{
+   await databaseReady;
+   const rows=await pool.query(`SELECT f.id,f.url,f.approved,f.enabled,f.last_attempt_at,f.last_success_at,f.last_error,
+      bp.name AS business_name
+      FROM business_xml_feeds f
+      JOIN business_profiles bp ON bp.owner_id=f.owner_id
+      ORDER BY f.created_at DESC LIMIT 100`);
+   res.set('Cache-Control','no-store').json({ok:true,feeds:rows.rows});
+  }catch(error){console.error('Admin XML feeds:',error);res.status(500).json({ok:false,message:'Не вдалося завантажити XML-джерела.'});}
+ });
  let running=false;
  async function tick(){if(running)return;running=true;try{await databaseReady;const feeds=await pool.query(`SELECT id FROM business_xml_feeds WHERE approved AND enabled AND (last_attempt_at IS NULL OR last_attempt_at<NOW()-INTERVAL '6 hours')`);for(const feed of feeds.rows){try{await synchronize(pool,feed.id,undefined,editorialOwnerId || null);}catch{await pool.query(`UPDATE business_xml_feeds SET last_attempt_at=NOW(),last_error='Імпорт не виконано. Перевірте доступність та формат джерела.' WHERE id=$1`,[feed.id]);}}}catch{console.error('XML synchronization unavailable');}finally{running=false;}}
  const timer=setInterval(tick,60000);timer.unref?.();return {tick,stop:()=>clearInterval(timer)};
