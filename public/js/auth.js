@@ -927,15 +927,18 @@ function logoutUser() {
 
 function renderAuthArea() {
     const authArea = document.getElementById("authArea");
+    const accountActions = document.querySelector("[data-rg-account-actions]");
 
     if (!authArea) {
         return;
     }
 
     const currentUser = getCurrentUser();
+    if (accountActions) accountActions.replaceChildren();
 
     if (!currentUser) {
-        authArea.innerHTML = `
+        authArea.replaceChildren();
+        (accountActions || authArea).innerHTML = `
             <button
                 type="button"
                 class="auth-header-button"
@@ -987,8 +990,12 @@ function renderAuthArea() {
             <a href="${profileUrl}">
                 👤 ${escapeHtml(currentUser.name)}
             </a>
+        </div>
+    `;
+    (accountActions || authArea).insertAdjacentHTML("beforeend", `
+        ${accountActions ? `
             <a href="/royal-auto-admin.html#platformAdmin" data-rg-admin-link hidden>Адмінпанель</a>
-
+        ` : ""}
         <button
             type="button"
             class="logout-button"
@@ -997,8 +1004,7 @@ function renderAuthArea() {
                 ? window.t("auth.logout", "Вийти")
                 : "Вийти"}
         </button>
-        </div>
-    `;
+    `);
 
     document
         .getElementById("logoutButton")
@@ -1007,7 +1013,7 @@ function renderAuthArea() {
 }
 
 async function refreshHeaderAdminLink() {
-    const link = document.querySelector('#authArea [data-rg-admin-link]');
+    const link = document.querySelector('[data-rg-account-actions] [data-rg-admin-link]');
     const token = localStorage.getItem('royalGarageToken');
     if (!link || !token) return;
     link.hidden = true;

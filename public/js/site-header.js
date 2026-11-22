@@ -48,6 +48,9 @@
         button.textContent = '☰';
         const menu = document.createElement('nav');
         menu.className = 'burger-dropdown';
+        const accountActions = document.createElement('div');
+        accountActions.className = 'rg-header-account-actions';
+        accountActions.dataset.rgAccountActions = '';
         function fill(target) {
             return links.filter(([href]) => href !== 'profile.html').map(([href, uk, en]) => {
                 const link = document.createElement('a');
@@ -58,6 +61,7 @@
         }
         desktop.replaceChildren();
         const items = [...fill(desktop), ...fill(menu)];
+        menu.append(accountActions);
         function translate() {
             const english = document.documentElement.lang.toLowerCase().startsWith('en');
             items.forEach(({ link, uk, en }) => { link.textContent = english ? en : uk; });
@@ -73,7 +77,8 @@
         });
         burger.append(button, menu);
         existing?.remove();
-        const language = row.querySelector('.language-switcher');
+        const language = row.querySelector('.language-switcher') || document.createElement('div');
+        language.classList.add('language-switcher');
         const brand = row.querySelector('.brand, .logo, :scope > a[href="index.html"]');
         const home = document.createElement('a');
         home.className = 'brand';
@@ -84,15 +89,7 @@
         home.append(logo);
         if (brand) brand.replaceWith(home);
         else row.prepend(home);
-        row.append(desktop, auth, bellHost, burger);
-        const narrow = window.matchMedia('(max-width: 1100px)');
-        function placeControls() {
-            burger.open = false;
-            if (narrow.matches) menu.append(...[language, auth].filter(Boolean));
-            else desktop.after(...[language, auth].filter(Boolean));
-        }
-        placeControls();
-        narrow.addEventListener('change', placeControls);
+        row.append(language, desktop, auth, bellHost, burger);
 
         // Keep only the control row pinned, outside the homepage hero.
         const pinned = document.createElement('header');
