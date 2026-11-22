@@ -987,7 +987,7 @@ function renderAuthArea() {
             <a href="${profileUrl}">
                 👤 ${escapeHtml(currentUser.name)}
             </a>
-            ${currentUser.role === "admin" ? '<a href="/royal-auto-admin.html">Адмінпанель</a>' : ""}
+            <a href="/royal-auto-admin.html#platformAdmin" data-rg-admin-link hidden>Адмінпанель</a>
 
         <button
             type="button"
@@ -1003,7 +1003,35 @@ function renderAuthArea() {
     document
         .getElementById("logoutButton")
         .addEventListener("click", logoutUser);
+    refreshHeaderAdminLink();
 }
+
+async function refreshHeaderAdminLink() {
+    const link = document.querySelector('#authArea [data-rg-admin-link]');
+    const token = localStorage.getItem('royalGarageToken');
+    if (!link || !token) return;
+    link.hidden = true;
+    try {
+        const response = await fetch('/api/profile', {
+            cache: 'no-store',
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!response.ok) return;
+        const { user } = await response.json();
+        if (link.isConnected && localStorage.getItem('royalGarageToken') === token) {
+            link.hidden = user?.role !== 'admin';
+        }
+    } catch {
+        // Keep the administration entry hidden until the server confirms access.
+    }
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshHeaderAdminLink();
+});
+window.addEventListener('storage', event => {
+    if (event.key === SESSION_KEY || event.key === 'royalGarageToken') renderAuthArea();
+});
 
 function escapeHtml(value) {
     return String(value)

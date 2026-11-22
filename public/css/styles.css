@@ -270,3 +270,72 @@ body :is(.hero,.panel,.market-hero,.listing-card,.first-members-card,
 .rg-theme-picker select { width:100%; min-height:44px; padding:8px; border:1px solid #c8ae76; border-radius:8px; background:#171a20; color:#fff; font:inherit; font-size:16px; }
 .rg-theme-picker select:focus-visible { outline:2px solid #f0bd55; outline-offset:2px; }
 @media(min-width:901px) { .rg-sticky-header .burger-menu { display:block; } .rg-sticky-header .burger-dropdown { left:auto; right:0; } }
+
+.rg-sticky-header > .top-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  min-height: 64px;
+  gap: .65rem;
+}
+
+.rg-sticky-header .brand img {
+  display: block;
+  width: auto;
+  max-width: 112px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.rg-sticky-header .rg-header-navigation {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: .25rem;
+}
+
+.rg-sticky-header .rg-header-navigation a {
+  padding: .5rem .42rem;
+  white-space: nowrap;
+}
+
+.rg-sticky-header .rg-header-bell { margin-left: auto; }
+.rg-sticky-header .rg-header-bell:empty { display: none; }
+.rg-sticky-header .rg-header-auth,
+.rg-sticky-header .rg-header-auth .logged-user {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  min-width: 0;
+  gap: .4rem;
+}
+
+.rg-sticky-header .rg-header-auth a {
+  color: #f4f5f7;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rg-sticky-header .rg-header-auth [hidden] { display: none; }
+.rg-sticky-header .burger-menu { display: none; }
+
+@media (max-width: 1100px) {
+  .rg-sticky-header .rg-header-navigation { display: none; }
+  .rg-sticky-header .burger-menu { display: block; position: static; }
+  .rg-sticky-header .burger-dropdown {
+    box-sizing: border-box;
+    top: 100%;
+    right: 12px;
+    left: auto;
+    max-width: calc(100vw - 24px);
+  }
+  .rg-sticky-header .burger-dropdown .rg-header-auth,
+  .rg-sticky-header .burger-dropdown .rg-header-auth .logged-user {
+    display: grid;
+    width: 100%;
+  }
+  .rg-sticky-header .burger-dropdown .language-switcher { margin-block: .5rem; }
+  .rg-sticky-header .burger-dropdown button { min-height: 44px; }
+  .rg-sticky-header .brand { margin-right: auto; }
+  .rg-sticky-header .rg-header-bell { margin-left: 0; }
+}

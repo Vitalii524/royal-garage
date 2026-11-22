@@ -32,7 +32,15 @@
         }
 
         const existing = row.querySelector('.burger-menu');
-        const profileLink = existing?.querySelector('.burger-dropdown a:last-child');
+        const auth = document.getElementById('authArea') || document.createElement('div');
+        auth.id = 'authArea';
+        auth.classList.add('rg-header-auth');
+        let desktop = row.querySelector('.nav, :scope > nav');
+        if (!desktop) desktop = document.createElement('nav');
+        desktop.className = 'nav rg-header-navigation';
+        const bellHost = document.createElement('div');
+        bellHost.className = 'rg-header-bell';
+        bellHost.dataset.rgBellHost = '';
         const burger = document.createElement('details');
         burger.className = 'burger-menu';
         const button = document.createElement('summary');
@@ -40,32 +48,51 @@
         button.textContent = '☰';
         const menu = document.createElement('nav');
         menu.className = 'burger-dropdown';
-        const items = links.map(([href]) => {
-            const link = document.createElement('a');
-            link.setAttribute('href', href === 'profile.html' && profileLink ? profileLink.getAttribute('href') : href);
-            menu.append(link);
-            return link;
-        });
+        function fill(target) {
+            return links.filter(([href]) => href !== 'profile.html').map(([href, uk, en]) => {
+                const link = document.createElement('a');
+                link.href = '/' + href;
+                target.append(link);
+                return { link, uk, en };
+            });
+        }
+        desktop.replaceChildren();
+        const items = [...fill(desktop), ...fill(menu)];
         function translate() {
             const english = document.documentElement.lang.toLowerCase().startsWith('en');
-            items.forEach((link, index) => { link.textContent = links[index][english ? 2 : 1]; });
+            items.forEach(({ link, uk, en }) => { link.textContent = english ? en : uk; });
             button.setAttribute('aria-label', english ? 'Open menu' : 'Відкрити меню');
             button.title = english ? 'Menu' : 'Меню';
             menu.setAttribute('aria-label', english ? 'Site navigation' : 'Навігація сайту');
+            desktop.setAttribute('aria-label', english ? 'Site navigation' : 'Навігація сайту');
         }
         translate();
         document.addEventListener('royalGarageLanguageChange', translate);
         menu.addEventListener('click', event => {
-            if (event.target.closest('a')) burger.open = false;
+            if (event.target.closest('a, button')) burger.open = false;
         });
         burger.append(button, menu);
-        if (existing) existing.replaceWith(burger);
-        else {
-            const anchor = row.querySelector('.language-switcher, .brand, .logo');
-            const languageSwitcher = row.querySelector('.language-switcher');
-            if (languageSwitcher || anchor) (languageSwitcher || anchor).after(burger);
-            else row.prepend(burger);
+        existing?.remove();
+        const language = row.querySelector('.language-switcher');
+        const brand = row.querySelector('.brand, .logo, :scope > a[href="index.html"]');
+        const home = document.createElement('a');
+        home.className = 'brand';
+        home.href = '/';
+        const logo = document.createElement('img');
+        logo.src = '/images/royal-garage-logo.png';
+        logo.alt = 'Royal Garage';
+        home.append(logo);
+        if (brand) brand.replaceWith(home);
+        else row.prepend(home);
+        row.append(desktop, auth, bellHost, burger);
+        const narrow = window.matchMedia('(max-width: 1100px)');
+        function placeControls() {
+            burger.open = false;
+            if (narrow.matches) menu.append(...[language, auth].filter(Boolean));
+            else desktop.after(...[language, auth].filter(Boolean));
         }
+        placeControls();
+        narrow.addEventListener('change', placeControls);
 
         // Keep only the control row pinned, outside the homepage hero.
         const pinned = document.createElement('header');

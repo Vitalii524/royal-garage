@@ -10,8 +10,8 @@
     const bell=document.createElement('a'); bell.className='rg-notification-bell'; bell.href='/notifications.html';
     function paintBell() { bell.textContent='🔔'+(unread?' '+(unread>99?'99+':unread):''); bell.setAttribute('aria-label',text('Сповіщення','Notifications')+(unread?' · '+unread:'')); }
     function mount() {
-        const host=document.getElementById('authArea') || document.querySelector('header .top-line') || document.querySelector('header');
-        if(host && token() && !bell.isConnected){host.append(bell);paintBell();}
+        const host=document.querySelector('[data-rg-bell-host]') || document.getElementById('authArea') || document.querySelector('header .top-line') || document.querySelector('header');
+        if(host && token() && bell.parentNode!==host){host.append(bell);paintBell();}
         if(!token())bell.remove();
     }
     const observer=new MutationObserver(mount); observer.observe(document.body,{childList:true,subtree:true}); mount();
