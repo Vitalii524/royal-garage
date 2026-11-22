@@ -105,14 +105,6 @@
   .home-layout .search-box .rg-search-icon { position: absolute; top: 9px; right: 9px; display: grid; place-items: center; width: 40px; height: 40px; min-width: 40px; padding: 0; margin: 0; border-radius: 8px; font-size: 18px; line-height: 1; }
 }
 
-
-/* One compact promotions panel on desktop and mobile. */
-.rg-compact-promo{max-width:1160px;margin:20px auto 26px;padding:20px 24px;border:1px solid rgba(214,160,58,.42);border-radius:18px;background:linear-gradient(135deg,#24272d,#1c1e23);color:#f7f0e6;box-sizing:border-box;box-shadow:0 12px 30px rgba(0,0,0,.18)}
-.rg-compact-promo-main{display:flex;gap:22px;align-items:center;justify-content:space-between}
-.rg-compact-promo-copy{flex:1;min-width:0}.rg-compact-promo-copy h2{font-size:clamp(21px,2.4vw,29px);margin:4px 0 8px;color:#f0bd55}.rg-compact-promo-copy p{margin:5px 0;line-height:1.45}.rg-compact-promo-copy .first-members-label{font-size:12px;letter-spacing:1px;color:#efbd59;font-weight:800}.rg-compact-promo-small{font-size:13px;color:#c8c9d1}
-.rg-compact-promo .first-members-counter{flex:0 0 210px;margin:0;padding:12px 16px;box-sizing:border-box}.rg-compact-promo .first-members-number{font-size:clamp(25px,3vw,35px)}.rg-compact-promo .first-members-counter p{margin:5px 0 0;font-size:12px}
-.rg-compact-promo-business{display:flex;gap:18px;align-items:center;justify-content:space-between;border-top:1px solid rgba(214,160,58,.25);margin-top:15px;padding-top:13px;font-size:14px;line-height:1.45}.rg-compact-promo-business strong{color:#efbd59}.rg-compact-promo-business a{flex:0 0 auto;display:inline-block;text-decoration:none;border-radius:10px;background:#eac36b;color:#222;padding:10px 14px;font-weight:800;text-align:center}
-@media(max-width:767px){.rg-compact-promo{margin:16px 14px 20px;padding:16px;border-radius:15px}.rg-compact-promo-main{display:block}.rg-compact-promo-copy h2{font-size:22px}.rg-compact-promo-copy p{font-size:13px}.rg-compact-promo .first-members-counter{width:100%;margin-top:12px;padding:9px 12px}.rg-compact-promo-business{display:block;font-size:13px}.rg-compact-promo-business a{display:block;margin-top:11px;padding:11px}}
 </style>
 <style id="rg-hero-buttons-mobile-fix">
 /* Ensure the two hero actions remain side by side on phones. */
@@ -236,25 +228,65 @@
 </div>
 </header>
 
-<section class="rg-compact-promo" aria-label="Акції Royal Garage">
-  <div class="rg-compact-promo-main">
-    <div class="rg-compact-promo-copy">
-      <p class="first-members-label">🎁 АКЦІЇ ROYAL GARAGE</p>
-      <h2>Перше оголошення безкоштовно!</h2>
-      <p>Для всіх користувачів. <strong>Перші 100 учасників</strong> отримують статус «ПЕРШИЙ» та <strong>3 безкоштовні оголошення загалом</strong>.</p>
-      <p class="rg-compact-promo-small">Після використання бонусу наступні оголошення платні.</p>
+<div class="rg-promo-pair">
+<section class="first-members-section" aria-labelledby="firstMembersTitle">
+    <div class="first-members-card">
+        <div class="first-members-copy">
+            <p class="first-members-label">🏁 БОНУС ДЛЯ ПЕРШИХ 100</p>
+
+            <h2 id="firstMembersTitle">
+                🎁 Перше оголошення — БЕЗКОШТОВНО для всіх!
+            </h2>
+
+            <p class="first-members-intro">
+                Зареєструйся на Royal Garage та розмісти перше оголошення
+                <strong>безкоштовно</strong> — для кожного користувача .
+            </p>
+
+            <p class="first-members-note">
+                <strong>Перші 100 учасників</strong> отримують постійний статус
+                <strong>«ПЕРШИЙ»</strong> і <strong>3 безкоштовні оголошення загалом</strong>.
+                Після використання бонусу наступні оголошення платні.
+            </p>
+        </div>
+
+        <div class="first-members-counter" id="firstMembersCounter" aria-live="polite">
+            <div class="first-members-number">
+                <span id="firstMembersCount">—</span>
+                <span class="first-members-limit">/ 100</span>
+            </div>
+
+            <div
+                class="first-members-progress"
+                role="progressbar"
+                aria-label="Заповнення перших 100 місць"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="0"
+                id="firstMembersProgress"
+            >
+                <span id="firstMembersProgressBar"></span>
+            </div>
+
+            <p id="firstMembersRemaining">
+                Завантажуємо лічильник...
+            </p>
+        </div>
     </div>
-    <div class="first-members-counter" id="firstMembersCounter" aria-live="polite">
-      <div class="first-members-number"><span id="firstMembersCount">—</span><span class="first-members-limit">/ 100</span></div>
-      <div class="first-members-progress" role="progressbar" aria-label="Заповнення перших 100 місць" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="firstMembersProgress"><span id="firstMembersProgressBar"></span></div>
-      <p id="firstMembersRemaining">Завантажуємо лічильник...</p>
-    </div>
-  </div>
-  <div class="rg-compact-promo-business">
-    <div><strong>🚘 Для автобізнесу</strong><span> СТО, детейлінг, автомайданчики й магазини — створіть бізнес-профіль та знаходьте клієнтів.</span></div>
-    <a href="businesses.html?register=business">Зареєструвати бізнес</a>
-  </div>
 </section>
+<article class="rg-business-card first-members-card" aria-labelledby="rgBusinessTitle">
+  <div class="first-members-copy">
+    <p class="first-members-label">📣 ДЛЯ АВТОБІЗНЕСУ</p>
+    <h2 id="rgBusinessTitle">Розвивайте свій автобізнес разом із Royal Garage</h2>
+    <p class="first-members-intro">СТО, автомайданчики, магазини автотоварів, детейлінг та інші автомобільні послуги — створіть свій бізнес-профіль.</p>
+  </div>
+  <div class="rg-business-benefits">
+    <strong>Ваш бізнес — частина автоспільноти</strong>
+    <p>Представляйте послуги та знаходьте нових клієнтів.</p>
+    <a class="rg-business-link" href="businesses.html?register=business">Зареєструвати бізнес</a>
+  </div>
+</article>
+</div>
 
 <main class="main-content">
 <section class="panel">
@@ -375,6 +407,71 @@
 <script src="js/home-clubs.js?v=1" defer></script>
 <script src="js/loader.js"></script>
 
-<script src="js/lang.js"></script>
+<script src="js/lang.js"></script><script id="rg-mobile-slider-script">(function(){
+  const mq=window.matchMedia('(max-width:767px)');
+  const saved=[];let sliders=[];let resizeTimer;
+  function moveTo(node,parent){
+    if(!node)return;
+    const marker=document.createComment('rg-original-position');
+    node.parentNode.insertBefore(marker,node);
+    saved.push({node,marker});parent.appendChild(node);
+  }
+  function createSlider(nodes,anchor,before=false){
+    if(!anchor||nodes.some(n=>!n))return;
+    const wrap=document.createElement('section');wrap.className='rg-mobile-slider';wrap.setAttribute('aria-label','Блоки Royal Garage');
+    const viewport=document.createElement('div');viewport.className='rg-mobile-viewport';
+    const track=document.createElement('div');track.className='rg-mobile-track';
+    const dots=document.createElement('div');dots.className='rg-mobile-dots';
+    const slides=[];let index=0,timer=null,startX=null,startY=null;
+    nodes.forEach((node,i)=>{
+      const slide=document.createElement('div');slide.className='rg-mobile-slide';
+      if(node.isConnected)moveTo(node,slide);else slide.appendChild(node);
+      track.appendChild(slide);slides.push(slide);
+      const dot=document.createElement('button');dot.type='button';dot.className='rg-mobile-dot';dot.setAttribute('aria-label','Показати слайд '+(i+1));
+      dot.addEventListener('click',()=>{show(i);restart()});dots.appendChild(dot);
+    });
+    viewport.appendChild(track);wrap.append(viewport,dots);
+    if(before)anchor.parentNode.insertBefore(wrap,anchor);else anchor.insertAdjacentElement('afterend',wrap);
+    function show(i){index=(i+slides.length)%slides.length;track.style.transform='translateX(-'+index*100+'%)';
+      slides.forEach((s,j)=>{s.setAttribute('aria-hidden',String(j!==index));s.inert=j!==index});
+      [...dots.children].forEach((d,j)=>{d.classList.toggle('is-active',j===index);d.setAttribute('aria-current',String(j===index))});
+      viewport.style.height=slides[index].offsetHeight+'px';}
+    function stop(){if(timer){clearInterval(timer);timer=null}}
+    function restart(){stop();if(!window.matchMedia('(prefers-reduced-motion:reduce)').matches)timer=setInterval(()=>show(index+1),5000)}
+    viewport.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;startY=e.touches[0].clientY;stop()},{passive:true});
+    viewport.addEventListener('touchend',e=>{if(startX!==null){const dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy))show(index+(dx<0?1:-1));}startX=startY=null;restart()},{passive:true});
+    viewport.addEventListener('touchcancel', () => {
+    startX = null;
+    startY = null;
+    restart();
+}, { passive: true });
+    viewport.addEventListener('mouseenter',stop);viewport.addEventListener('mouseleave',restart);
+    const observer=new ResizeObserver(()=>{viewport.style.height=slides[index].offsetHeight+'px'});
+    slides.forEach(s=>observer.observe(s));show(0);restart();sliders.push({wrap,stop,observer});
+  }
+  function build(){if(!mq.matches||sliders.length)return;
+    const home=document.querySelector('.home-layout');
+    const first=document.querySelector('.first-members-section');const main=document.querySelector('main.main-content');const panels=main?.querySelectorAll(':scope > .panel');
+    if(!home||!first||panels?.length!==2)return;
+    const promo=document.querySelector('.rg-promo-pair > .rg-business-card');
+    createSlider([first,promo],main,true);
+    // Keep business card as tall as the First 100 card, including the live counter.
+    if(promo){
+      const firstCard=first.querySelector('.first-members-card');
+      const syncBusinessHeight=()=>{
+        if(!mq.matches||!firstCard||!promo.isConnected)return;
+        promo.style.minHeight=Math.ceil(firstCard.getBoundingClientRect().height)+'px';
+      };
+      syncBusinessHeight();
+      const equalizer=new ResizeObserver(syncBusinessHeight);
+      if(firstCard)equalizer.observe(firstCard);
+      sliders[sliders.length-1].equalizer=equalizer;
+    }
+  }
+  function restore(){sliders.forEach(s=>{s.stop();s.observer.disconnect();s.equalizer?.disconnect()});saved.reverse().forEach(({node,marker})=>{marker.parentNode.insertBefore(node,marker);marker.remove();node.inert=false;node.removeAttribute('aria-hidden');if(node.classList.contains('rg-business-card'))node.style.minHeight=''});saved.length=0;sliders.forEach(s=>s.wrap.remove());sliders=[]}
+  function update(){if(mq.matches)build();else restore()}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',update);else update();
+  window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(update,150)});
+})();</script>
 <script src="/js/notifications.js?v=shared-header"></script></body>
 </html>
