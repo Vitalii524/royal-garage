@@ -9871,7 +9871,7 @@ app.post("/api/admin/users/:id/convert-to-business", requireAuth, requireBusines
         );
         await client.query("COMMIT");
         res.set("Cache-Control", "no-store").json({
-            ok: true, businessId, message: "Бізнес-профіль створено. Користувачу потрібно увійти повторно."
+            ok: true, businessId, phoneVerificationRequired: true, message: "Бізнес-профіль створено. Користувачу потрібно увійти повторно та підтвердити телефон, якщо його ще не підтверджено. До підтвердження профіль не відображатиметься публічно."
         });
     } catch (error) {
         await client.query("ROLLBACK");
