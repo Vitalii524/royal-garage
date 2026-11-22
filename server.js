@@ -8668,10 +8668,17 @@ function emailConfirmationPage(res, status, content) {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
         "Content-Security-Policy": "default-src 'self'; frame-ancestors 'none'; form-action 'self'"
-    }).type("html").send(`<!doctype html><html lang="uk"><meta charset="utf-8">
+    }).type("html").send(`<!doctype html><html lang="uk"><head><meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Підтвердження email | Royal Garage</title><main>
-        <h1>Royal Garage</h1>${content}<p><a href="/">На головну</a></p></main></html>`);
+        <base href="/">
+        <title>Підтвердження email | Royal Garage</title>
+        <link rel="stylesheet" href="/css/styles.css">
+        <script src="/js/site-header.js?v=crm-navigation" defer></script>
+        <script src="/js/lang.js" defer></script>
+        <script src="/js/auth.js?v=account-menu" defer></script>
+        <script src="/js/notifications.js?v=shared-header" defer></script>
+        </head><body><header data-site-navigation></header><main class="container">
+        <h1>Підтвердження email</h1>${content}<p><a href="/">На головну</a></p></main></body></html>`);
 }
 
 const emailConfirmedMessage = "<h2>Email підтверджено</h2><p>Ви можете увійти у свій кабінет звичайним способом.</p>";

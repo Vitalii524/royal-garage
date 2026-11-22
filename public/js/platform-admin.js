@@ -1,4 +1,4 @@
-(() => {
+(async () => {
     const registrationStatus = document.getElementById("adminRegistrationStatus");
     const trafficStatus = document.getElementById("adminTrafficStatus");
     const businessControls = document.getElementById("adminBusinessControls");
@@ -431,11 +431,16 @@
     });
     const accessStatus = document.getElementById("platformAccessStatus");
     if (!token) {
+        accessStatus.hidden = false;
         accessStatus.textContent = "Увійдіть до Royal Garage, щоб перевірити доступ.";
         return;
     }
 
-    adminApi("/api/admin/registrations").then(data => {
+    try {
+        const { user } = await adminApi("/api/profile");
+        if (user?.role !== "admin" || user.accountType === "business" || user.account_type === "business") return;
+        accessStatus.hidden = false;
+        const data = await adminApi("/api/admin/registrations");
         document.getElementById("platformAdmin").hidden = false;
         accessStatus.hidden = true;
         renderStats(data.stats);
@@ -446,7 +451,7 @@
             document.getElementById("adminBusinessJump").hidden = false;
             return loadBusinesses();
         }
-    }).catch(error => {
+    } catch (error) {
         accessStatus.textContent = error.message;
-    });
+    }
 })();
