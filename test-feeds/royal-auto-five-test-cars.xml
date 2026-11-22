@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='utf-8'?>
+<vehicles>
+  <vehicle id="RG-TEST-001">
+    <brand>BMW</brand>
+    <model>320i</model>
+    <year>2018</year>
+    <price_usd>16500</price_usd>
+    <description>TEST ONLY - fictional vehicle, not for publication.</description>
+    <status>active</status>
+    <photos />
+  </vehicle>
+  <vehicle id="RG-TEST-002">
+    <brand>Audi</brand>
+    <model>A4</model>
+    <year>2019</year>
+    <price_usd>19800</price_usd>
+    <description>TEST ONLY - fictional vehicle, not for publication.</description>
+    <status>active</status>
+    <photos />
+  </vehicle>
+  <vehicle id="RG-TEST-003">
+    <brand>Volkswagen</brand>
+    <model>Passat</model>
+    <year>2017</year>
+    <price_usd>14300</price_usd>
+    <description>TEST ONLY - fictional vehicle, not for publication.</description>
+    <status>active</status>
+    <photos />
+  </vehicle>
+  <vehicle id="RG-TEST-004">
+    <brand>Toyota</brand>
+    <model>Camry</model>
+    <year>2020</year>
+    <price_usd>23000</price_usd>
+    <description>TEST ONLY - fictional vehicle, not for publication.</description>
+    <status>active</status>
+    <photos />
+  </vehicle>
+  <vehicle id="RG-TEST-005">
+    <brand>Ford</brand>
+    <model>Focus</model>
+    <year>2016</year>
+    <price_usd>10500</price_usd>
+    <description>TEST ONLY - fictional vehicle, not for publication.</description>
+    <status>active</status>
+    <photos />
+  </vehicle>
+</vehicles>
