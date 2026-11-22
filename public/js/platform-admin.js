@@ -14,7 +14,7 @@
             body: body ? JSON.stringify(body) : undefined
         });
         if (response.status === 401) throw new Error("Сесія недійсна або завершилася. Увійдіть повторно (401).");
-        if (response.status === 403) throw new Error("Сервер не надав цьому акаунту доступ до аналітики адміністратора (403).");
+        if (response.status === 403) throw new Error("Цей акаунт не має доступу до запитаної дії адміністратора (403).");
         const data = await response.json();
         if (!response.ok || !data.ok) throw new Error(data.message || `HTTP ${response.status}`);
         return data;
@@ -184,6 +184,7 @@
         const submit = document.createElement("button");
         submit.textContent = "Застосувати";
         submit.className = "upholstery-primary-button";
+        submit.disabled = true;
         const feedback = document.createElement("p");
         feedback.setAttribute("role", "status");
         const history = document.createElement("ul");
@@ -198,8 +199,11 @@
         toggleFields();
 
         let loaded = false;
+        let loading = false;
         panel.addEventListener("toggle", async () => {
-            if (!panel.open || loaded) return;
+            if (!panel.open || loaded || loading) return;
+            loading = true;
+            feedback.textContent = "Завантажуємо тарифи та журнал…";
             try {
                 const [options, audit] = await Promise.all([
                     adminApi(`/api/admin/business-plans?category=${encodeURIComponent(business.category || "")}`),
@@ -214,8 +218,12 @@
                 });
                 history.replaceChildren(...entries);
                 loaded = true;
+                submit.disabled = false;
+                feedback.textContent = "";
             } catch (error) {
                 feedback.textContent = error.message;
+            } finally {
+                loading = false;
             }
         });
 
@@ -274,6 +282,7 @@
                         entry.append(reference);
                     }
                     const review = document.createElement("form");
+                    review.className = "royal-auto-admin-form";
                     const select = document.createElement("select");
                     select.setAttribute("aria-label", "Статус скарги");
                     for (const key of ["reviewing", "resolved", "dismissed"]) select.add(new Option(statuses[key], key));
@@ -284,6 +293,7 @@
                     reason.maxLength = 500;
                     const save = document.createElement("button");
                     save.textContent = "Зберегти рішення";
+                    save.className = "upholstery-primary-button";
                     review.append(select, reason, save);
                     review.addEventListener("submit", async event => {
                         event.preventDefault();
@@ -334,6 +344,7 @@
         toggleUntil();
         const submit = document.createElement("button");
         submit.textContent = "Застосувати рішення";
+        submit.className = "upholstery-primary-button";
         const feedback = document.createElement("p");
         feedback.setAttribute("role", "status");
         const appeals = document.createElement("ul");
@@ -373,6 +384,7 @@
                         row.append(resolution);
                     } else {
                         const review = document.createElement("form");
+                        review.className = "royal-auto-admin-form";
                         const result = document.createElement("select");
                         result.setAttribute("aria-label", "Статус оскарження");
                         result.add(new Option("Розглянуто", "resolved"));
@@ -384,6 +396,7 @@
                         response.maxLength = 1000;
                         const save = document.createElement("button");
                         save.textContent = "Зберегти відповідь";
+                        save.className = "upholstery-primary-button";
                         review.append(result, response, save);
                         review.addEventListener("submit", async event => {
                             event.preventDefault();
