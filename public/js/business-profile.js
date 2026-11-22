@@ -3,6 +3,7 @@
 
     const MAX_ITEM_PHOTOS = 6;
     const ROYAL_AUTO_OWNER_ID = "32ce413e-9eb6-417a-b99a-77d9ca7c144a";
+    const EDITORIAL_OWNER_ID = "b61d05c8-0cab-4432-b36e-267440d87b6a";
     const BOOKING_TYPES = new Set(["car_service", "detailing", "tire_service", "road_assistance"]);
     let requestsPage = 0;
     const DAYS = [
@@ -276,7 +277,8 @@
             ? `Діє до ${new Date(profile.subscriptionExpiresAt).toLocaleDateString("uk-UA")}`
             : "";
         $("businessAddCarButton").hidden = profile.businessTypeCode !== "car_dealer";
-        window.RGDealerXml?.mount(state.isOwner && profile.businessTypeCode === "car_dealer");
+        $("editorialProposalPanel").hidden = !(state.isOwner && profile.ownerId === EDITORIAL_OWNER_ID);
+        window.RGDealerXml?.mount(state.isOwner && (profile.businessTypeCode === "car_dealer" || profile.ownerId === EDITORIAL_OWNER_ID));
         $("businessCrmButton").hidden = !profile.hasCrm;
     }
 

@@ -40,14 +40,14 @@ function parseFeed(xml){
   return {externalId:id,brand,model,year:String(year),vin,name:brand+' '+model+' '+year,priceUsd:usd,priceUah:uah,description:String(r.description||'').slice(0,10000),photos,status};
  });
 }
-async function synchronize(pool,feedId,fetchXml=downloadFeed){
+async function synchronize(pool,feedId,fetchXml=downloadFeed, editorialOwnerId = null){
  const source=await pool.query(`SELECT f.* FROM business_xml_feeds f JOIN business_profiles bp ON bp.owner_id=f.owner_id JOIN business_types bt ON bt.id=bp.business_type_id JOIN users u ON u.id=f.owner_id
- WHERE f.id=$1 AND f.approved AND f.enabled AND bt.code='car_dealer' AND NOT bp.is_deleted AND NOT u.account_disabled AND u.email_verified AND u.phone_verified AND (bp.complimentary_subscription OR bp.subscription_expires_at>NOW())`,[feedId]);
+ WHERE f.id=$1 AND f.approved AND f.enabled AND ((bp.owner_id IS DISTINCT FROM $2::uuid AND bt.code='car_dealer') OR (bp.owner_id=$2 AND NULLIF(BTRIM(f.publication_rights_evidence),'') IS NOT NULL)) AND NOT bp.is_deleted AND NOT u.account_disabled AND u.email_verified AND u.phone_verified AND (bp.complimentary_subscription OR bp.subscription_expires_at>NOW())`,[feedId,editorialOwnerId]);
  if(!source.rowCount)return {skipped:true};const feed=source.rows[0];
  const items=parseFeed(await fetchXml(feed.url)); // Download and validate entirely before starting a DB transaction.
  const client=await pool.connect();try{
   await client.query('BEGIN');const locked=await client.query('SELECT * FROM business_xml_feeds WHERE id=$1 AND approved AND enabled FOR UPDATE',[feed.id]);if(!locked.rowCount){await client.query('ROLLBACK');return {skipped:true};}
-  const owner=await client.query(`SELECT bp.name,bp.city,bp.phone FROM business_profiles bp JOIN business_types bt ON bt.id=bp.business_type_id JOIN users u ON u.id=bp.owner_id WHERE bp.owner_id=$1 AND bt.code='car_dealer' AND NOT bp.is_deleted AND NOT u.account_disabled AND u.email_verified AND u.phone_verified AND (bp.complimentary_subscription OR bp.subscription_expires_at>NOW()) FOR UPDATE OF bp`,[feed.owner_id]);
+  const owner=await client.query(`SELECT bp.name,bp.city,bp.phone FROM business_profiles bp JOIN business_types bt ON bt.id=bp.business_type_id JOIN users u ON u.id=bp.owner_id WHERE bp.owner_id=$1 AND ((bp.owner_id IS DISTINCT FROM $2::uuid AND bt.code='car_dealer') OR (bp.owner_id=$2 AND NULLIF(BTRIM($3::text),'') IS NOT NULL)) AND NOT bp.is_deleted AND NOT u.account_disabled AND u.email_verified AND u.phone_verified AND (bp.complimentary_subscription OR bp.subscription_expires_at>NOW()) FOR UPDATE OF bp`,[feed.owner_id,editorialOwnerId,locked.rows[0].publication_rights_evidence || null]);
   if(!owner.rowCount)throw Error('Профіль дилера недоступний для імпорту.');
   for(const car of items){
    const mapped=await client.query('SELECT listing_id FROM business_xml_listings WHERE feed_id=$1 AND external_id=$2',[feed.id,car.externalId]);
@@ -64,8 +64,8 @@ async function synchronize(pool,feedId,fetchXml=downloadFeed){
   await client.query('UPDATE business_xml_feeds SET last_attempt_at=NOW(),last_success_at=NOW(),last_error=NULL WHERE id=$1',[feed.id]);await client.query('COMMIT');return {imported:items.length};
  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
 }
-function installDealerXml({app,pool,requireAuth,requireAdmin,databaseReady}){
- async function dealer(userId){const result=await pool.query(`SELECT bp.id FROM business_profiles bp JOIN business_types bt ON bt.id=bp.business_type_id WHERE bp.owner_id=$1 AND bt.code='car_dealer' AND NOT bp.is_deleted`,[userId]);return result.rowCount>0;}
+function installDealerXml({app,pool,requireAuth,requireAdmin,databaseReady,editorialOwnerId}){
+ async function dealer(userId){const result=await pool.query(`SELECT bp.id FROM business_profiles bp JOIN business_types bt ON bt.id=bp.business_type_id WHERE bp.owner_id=$1 AND (bt.code='car_dealer' OR bp.owner_id=$2) AND NOT bp.is_deleted`,[userId,editorialOwnerId || null]);return result.rowCount>0;}
  app.get('/api/business/xml-feeds',requireAuth,async(req,res)=>{try{await databaseReady;if(!await dealer(req.user.userId))return res.sendStatus(403);const result=await pool.query('SELECT id,url,approved,enabled,last_attempt_at,last_success_at,last_error FROM business_xml_feeds WHERE owner_id=$1 ORDER BY created_at',[req.user.userId]);res.json({ok:true,feeds:result.rows});}catch{res.status(500).json({message:'Не вдалося завантажити фіди.'});}});
  app.post('/api/business/xml-feeds',requireAuth,async(req,res)=>{
   try{await databaseReady;if(!await dealer(req.user.userId))return res.sendStatus(403);let url;try{url=feedUrl(req.body.url).href;}catch(e){return res.status(400).json({message:e.message});}
@@ -79,11 +79,18 @@ function installDealerXml({app,pool,requireAuth,requireAdmin,databaseReady}){
  });
  app.patch('/api/admin/xml-feeds/:id/approval',requireAuth,requireAdmin,async(req,res)=>{
   try{await databaseReady;if(typeof req.body.approved!=='boolean')return res.status(400).json({message:'Вкажіть approved.'});
-   const result=await pool.query('UPDATE business_xml_feeds SET approved=$2,enabled=FALSE WHERE id=$1 RETURNING id,approved,enabled',[req.params.id,req.body.approved]);if(!result.rowCount)return res.sendStatus(404);res.json({ok:true,feed:result.rows[0]});
+   const evidence=typeof req.body.publicationRightsEvidence==='string'?req.body.publicationRightsEvidence.trim():'';
+   if(evidence.length>1000)return res.status(400).json({message:'Підтвердження має містити до 1000 символів.'});
+   const result=await pool.query(`UPDATE business_xml_feeds SET approved=$2,enabled=FALSE,
+     publication_rights_evidence=CASE WHEN $2 AND owner_id=$3 THEN $4 ELSE NULL END
+     WHERE id=$1 AND (NOT $2 OR $3::uuid IS NULL OR owner_id<>$3 OR $4<>'')
+     RETURNING id,approved,enabled`,[req.params.id,req.body.approved,editorialOwnerId || null,evidence]);
+   if(!result.rowCount)return res.status(409).json({message:'Фід не знайдено або бракує підтвердження прав на публікацію.'});
+   res.json({ok:true,feed:result.rows[0]});
   }catch{res.status(500).json({message:'Не вдалося погодити джерело.'});}
  });
  let running=false;
- async function tick(){if(running)return;running=true;try{await databaseReady;const feeds=await pool.query(`SELECT id FROM business_xml_feeds WHERE approved AND enabled AND (last_attempt_at IS NULL OR last_attempt_at<NOW()-INTERVAL '6 hours')`);for(const feed of feeds.rows){try{await synchronize(pool,feed.id);}catch{await pool.query(`UPDATE business_xml_feeds SET last_attempt_at=NOW(),last_error='Імпорт не виконано. Перевірте доступність та формат джерела.' WHERE id=$1`,[feed.id]);}}}catch{console.error('XML synchronization unavailable');}finally{running=false;}}
+ async function tick(){if(running)return;running=true;try{await databaseReady;const feeds=await pool.query(`SELECT id FROM business_xml_feeds WHERE approved AND enabled AND (last_attempt_at IS NULL OR last_attempt_at<NOW()-INTERVAL '6 hours')`);for(const feed of feeds.rows){try{await synchronize(pool,feed.id,undefined,editorialOwnerId || null);}catch{await pool.query(`UPDATE business_xml_feeds SET last_attempt_at=NOW(),last_error='Імпорт не виконано. Перевірте доступність та формат джерела.' WHERE id=$1`,[feed.id]);}}}catch{console.error('XML synchronization unavailable');}finally{running=false;}}
  const timer=setInterval(tick,60000);timer.unref?.();Promise.resolve(databaseReady).then(tick).catch(()=>{});return {tick,stop:()=>clearInterval(timer)};
 }
 module.exports={parseFeed,feedUrl,publicIPv4,downloadFeed,synchronize,installDealerXml};
