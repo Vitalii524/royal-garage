@@ -94,10 +94,18 @@
         <h1>Адміністрування Royal Garage</h1>
         <nav class="platform-admin-jump" aria-label="Розділи адміністрування">
             <a href="#adminTrafficPanel">Відвідування</a>
+            <a href="#adminXmlPanel">XML-імпорт</a>
             <a href="#adminRegistrationPanel">Реєстрації</a>
             <a href="#adminBusinessControls" id="adminBusinessJump" hidden>Бізнес-профілі</a>
             <a href="#adminUsersPanel" id="adminUsersJump" hidden>Користувачі</a>
         </nav>
+        <section id="adminXmlPanel" class="platform-admin-panel" aria-labelledby="adminXmlTitle">
+            <h2 id="adminXmlTitle">XML-імпорт автомобілів</h2>
+            <p>Погоджуйте лише джерела, на які власник бізнесу має право. Після погодження синхронізацію окремо вмикає бізнес.</p>
+            <button id="adminXmlRefresh" type="button" class="upholstery-primary-button">Оновити список XML</button>
+            <p id="adminXmlStatus" role="status"></p>
+            <div id="adminXmlFeeds"></div>
+        </section>
         <section id="adminTrafficPanel" class="platform-admin-panel" aria-labelledby="adminTrafficTitle">
         <h2 id="adminTrafficTitle">Відвідування сайту</h2>
         <p id="adminTrafficStatus" role="status">Завантажуємо дані GA4…</p>
@@ -400,6 +408,7 @@
 <script src="js/auth.js?v=account-menu"></script>
 <script src="js/royal-auto-admin.js?v=20261121-gallery2"></script>
 <script src="js/platform-admin.js?v=business-filter-2"></script>
+<script src="js/admin-xml-feeds.js?v=1"></script>
 <script src="js/loader.js"></script>
 
 <script src="/js/notifications.js?v=shared-header"></script><script src="js/service-media.js"></script><script src="js/royal-auto-requests.js"></script><script src="/js/lang.js" defer></script></body>
