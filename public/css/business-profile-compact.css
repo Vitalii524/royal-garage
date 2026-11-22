@@ -23,3 +23,12 @@
 @media (max-width: 600px) {
     .business-hero-owner-actions { justify-content: center; }
 }
+
+/* Business hero: logo first, contacts anchored to the bottom, all screen sizes. */
+.business-hero-card{display:flex;flex-direction:column;align-items:stretch;gap:16px}
+.business-hero-card>.business-logo-image-wrap{order:0;align-self:center;width:min(180px,52vw);height:min(180px,52vw);margin:0 auto}
+.business-hero-card>.business-hero-main{order:1;width:100%;min-width:0}
+.business-hero-card>#businessHeroContacts{order:3;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px;width:100%;margin:0;padding:14px 0 0;border-top:1px solid rgba(214,160,58,.25);box-sizing:border-box}
+.business-hero-card>#businessComplaintPanel{order:4}
+.business-hero-card>#businessHeroOwnerActions{order:5}
+@media(max-width:767px){.business-hero-card{gap:12px}.business-hero-card>.business-logo-image-wrap{width:min(155px,48vw);height:min(155px,48vw)}.business-hero-card>#businessHeroContacts{gap:9px;padding-top:12px}}
