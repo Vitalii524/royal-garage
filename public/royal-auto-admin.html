@@ -34,7 +34,7 @@
         href="css/handmade.css?v=category-actions-1"
     >
 <link rel="stylesheet" href="css/service-media.css">
-<link rel="stylesheet" href="css/platform-admin.css?v=2">
+<link rel="stylesheet" href="css/platform-admin.css?v=3">
 <script src="js/site-header.js?v=20261119" defer></script>
 <link rel="stylesheet" href="css/service-gallery.css?v=20261121-admin2"><script src="js/service-gallery.js?v=20261121"></script></head>
 
@@ -92,7 +92,12 @@
     <p id="platformAccessStatus" class="upholstery-section" role="status">Перевіряємо доступ до адмінпанелі…</p>
     <section id="platformAdmin" class="upholstery-section" hidden>
         <h1>Адміністрування Royal Garage</h1>
-        <section class="platform-admin-panel" aria-labelledby="adminTrafficTitle">
+        <nav class="platform-admin-jump" aria-label="Розділи адміністрування">
+            <a href="#adminTrafficPanel">Відвідування</a>
+            <a href="#adminRegistrationPanel">Реєстрації</a>
+            <a href="#adminBusinessControls" id="adminBusinessJump" hidden>Бізнес-профілі</a>
+        </nav>
+        <section id="adminTrafficPanel" class="platform-admin-panel" aria-labelledby="adminTrafficTitle">
         <h2 id="adminTrafficTitle">Відвідування сайту</h2>
         <p id="adminTrafficStatus" role="status">Завантажуємо дані GA4…</p>
         <table id="adminTrafficReport" aria-labelledby="adminTrafficTitle" hidden>
@@ -101,7 +106,7 @@
             <tbody></tbody>
         </table>
         </section>
-        <section class="platform-admin-panel" aria-labelledby="adminRegistrationTitle">
+        <section id="adminRegistrationPanel" class="platform-admin-panel" aria-labelledby="adminRegistrationTitle">
         <h2 id="adminRegistrationTitle">Статистика реєстрацій</h2>
         <p id="adminRegistrationStatus" role="status">Завантажуємо статистику реєстрацій…</p>
         <dl id="adminRegistrationStats"></dl>
@@ -380,7 +385,7 @@
 
 <script src="js/auth.js"></script>
 <script src="js/royal-auto-admin.js?v=20261121-gallery2"></script>
-<script src="js/platform-admin.js?v=moderation"></script>
+<script src="js/platform-admin.js?v=moderation-nav"></script>
 <script src="js/loader.js"></script>
 
 <script src="/js/notifications.js?v=1"></script><script src="js/service-media.js"></script><script src="js/royal-auto-requests.js"></script></body>

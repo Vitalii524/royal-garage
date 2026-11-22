@@ -430,6 +430,7 @@
         loadSiteAnalytics();
         if (data.canManageBusinesses) {
             businessControls.hidden = false;
+            document.getElementById("adminBusinessJump").hidden = false;
             return loadBusinesses();
         }
     }).catch(error => {
