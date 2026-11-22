@@ -134,7 +134,17 @@
 }
 @media (max-width: 900px) {
   .rg-sticky-header > .top-line { padding: 8px 12px; }
+  .rg-sticky-header .burger-menu { position: static; }
+  .rg-sticky-header .burger-dropdown {
+    top: 100%;
+    left: auto;
+    right: 12px;
+    box-sizing: border-box;
+    max-width: calc(100vw - 24px);
+  }
 }
+.rg-sticky-header .burger-button:hover,
+.rg-sticky-header .burger-menu[open] .burger-button { color: var(--gold-light); }
 
 /* Homepage section titles: readable red accent on the dark background. */
 #homePartnersTitle, #homeClubsTitle,
