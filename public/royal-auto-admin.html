@@ -96,6 +96,7 @@
             <a href="#adminTrafficPanel">Відвідування</a>
             <a href="#adminRegistrationPanel">Реєстрації</a>
             <a href="#adminBusinessControls" id="adminBusinessJump" hidden>Бізнес-профілі</a>
+            <a href="#adminUsersPanel" id="adminUsersJump" hidden>Користувачі</a>
         </nav>
         <section id="adminTrafficPanel" class="platform-admin-panel" aria-labelledby="adminTrafficTitle">
         <h2 id="adminTrafficTitle">Відвідування сайту</h2>
@@ -110,6 +111,20 @@
         <h2 id="adminRegistrationTitle">Статистика реєстрацій</h2>
         <p id="adminRegistrationStatus" role="status">Завантажуємо статистику реєстрацій…</p>
         <dl id="adminRegistrationStats"></dl>
+        </section>
+        <section id="adminUsersPanel" class="platform-admin-panel" hidden>
+            <h2>Звичайні користувачі</h2>
+            <p>Пошук зареєстрованих користувачів і переведення в бізнес без створення нового акаунта.</p>
+            <form id="adminUsersSearch" class="royal-auto-admin-form">
+                <label>Ім’я, email або ID <input name="q" type="search" maxlength="255"></label>
+                <button type="submit" class="upholstery-primary-button">Знайти</button>
+            </form>
+            <p id="adminUsersStatus" role="status"></p>
+            <div id="adminUsersResults"></div>
+            <nav aria-label="Сторінки користувачів">
+                <button id="adminUsersPrevious" type="button" hidden>Попередня</button>
+                <button id="adminUsersNext" type="button" hidden>Наступна</button>
+            </nav>
         </section>
         <div id="adminBusinessControls" class="platform-admin-panel" hidden>
         <h2>Бізнес-профілі</h2>
@@ -385,7 +400,7 @@
 
 <script src="js/auth.js?v=account-menu"></script>
 <script src="js/royal-auto-admin.js?v=20261121-gallery2"></script>
-<script src="js/platform-admin.js?v=verified-profile"></script>
+<script src="js/platform-admin.js?v=user-directory-1"></script>
 <script src="js/loader.js"></script>
 
 <script src="/js/notifications.js?v=shared-header"></script><script src="js/service-media.js"></script><script src="js/royal-auto-requests.js"></script><script src="/js/lang.js" defer></script></body>
