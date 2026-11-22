@@ -107,17 +107,30 @@
                 : "За цими фільтрами бізнесів не знайдено.";
             for (const business of data.businesses) {
                 const row = document.createElement("article");
-                row.className = "upholstery-section";
+                row.className = "platform-admin-business";
                 const heading = document.createElement("h3");
                 heading.textContent = business.name;
-                const details = document.createElement("p");
+                const details = document.createElement("dl");
+                details.className = "platform-admin-business-details";
                 const expiry = business.complimentarySubscription ? "Безстроково" : date(business.accessUntil);
-                details.textContent = [
-                    business.businessType || "Бізнес", businessStatus[business.status], business.planName || "Тариф не задано",
-                    `Реєстрація: ${date(business.createdAt)}`, `Доступ: ${expiry}`, `Відкриті скарги: ${business.openComplaints}`
-                ].join(" · ");
+                for (const [label, value] of [
+                    ["Категорія", business.businessType || "Бізнес"],
+                    ["Статус", businessStatus[business.status]],
+                    ["Тариф", business.planName || "Не задано"],
+                    ["Реєстрація", date(business.createdAt)],
+                    ["Доступ", expiry],
+                    ["Відкриті скарги", business.openComplaints]
+                ]) {
+                    const field = document.createElement("div");
+                    const term = document.createElement("dt");
+                    const description = document.createElement("dd");
+                    term.textContent = label;
+                    description.textContent = value;
+                    field.append(term, description);
+                    details.append(field);
+                }
                 const link = document.createElement("a");
-                link.href = `seller.html?sellerId=${encodeURIComponent(business.ownerId)}`;
+                link.href = `business-profile.html?id=${encodeURIComponent(business.ownerId)}`;
                 link.textContent = "Публічна сторінка";
                 row.append(heading);
                 if (business.hasLogo && business.status === "active") {
@@ -235,6 +248,12 @@
         feedback.setAttribute("role", "status");
         const list = document.createElement("ul");
         const statuses = { new: "Нова", reviewing: "Розглядається", resolved: "Вирішена", dismissed: "Відхилена" };
+        const reasons = {
+            fraud: "Шахрайство",
+            incorrect_information: "Неправдива інформація",
+            inappropriate_content: "Неприйнятний вміст",
+            other: "Інше"
+        };
         const path = `/api/admin/businesses/${encodeURIComponent(business.id)}/complaints`;
         panel.append(summary, feedback, list);
 
@@ -247,7 +266,7 @@
                 for (const complaint of data.complaints) {
                     const entry = document.createElement("li");
                     const message = document.createElement("p");
-                    message.textContent = `${date(complaint.createdAt)} · ${statuses[complaint.status]} · ${complaint.explanation}`;
+                    message.textContent = `${date(complaint.createdAt)} · ${statuses[complaint.status]} · ${reasons[complaint.reason] || complaint.reason}: ${complaint.explanation}`;
                     entry.append(message);
                     for (const evidence of complaint.evidence) {
                         const reference = document.createElement("p");

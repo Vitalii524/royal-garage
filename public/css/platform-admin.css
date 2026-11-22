@@ -96,8 +96,48 @@
     font-variant-numeric: tabular-nums;
 }
 
-#adminBusinessResults > p {
-    padding: .75rem;
-    border-bottom: 1px solid rgba(231, 193, 102, .18);
+#adminBusinessResults {
+    display: grid;
+    gap: .75rem;
+}
+
+.platform-admin-business {
+    min-width: 0;
+    padding: .85rem;
+    border: 1px solid rgba(231, 193, 102, .22);
+    border-radius: 12px;
     overflow-wrap: anywhere;
+}
+
+.platform-admin-business h3 {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    margin: 0 0 .75rem;
+}
+
+.platform-admin-business h3 img {
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.platform-admin-business-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
+    gap: .65rem;
+    margin: 0 0 .75rem;
+}
+
+.platform-admin-business-details dt { color: #c7cad1; font-size: .8rem; }
+.platform-admin-business-details dd { margin: .2rem 0 0; font-weight: 600; }
+.platform-admin-business > a { display: inline-block; color: #efce89; padding: .6rem 0; }
+.platform-admin-business > details { border-top: 1px solid rgba(231, 193, 102, .18); }
+.platform-admin-business summary { padding: .65rem 0; cursor: pointer; }
+
+@media (max-width: 480px) {
+    #adminRegistrationStats { grid-template-columns: 1fr; }
+    .platform-admin-stat {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+    }
 }
