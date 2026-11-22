@@ -1485,9 +1485,66 @@ if (portfolioDelete) {
         }
     });
 
+    async function showModerationNotices() {
+        if (!state.isOwner || !state.profile) return;
+        const panel = $("businessModerationNotices");
+        const status = $("businessModerationFeedback");
+        const history = $("businessModerationHistory");
+        panel.hidden = false;
+        panel.open = new URLSearchParams(location.search).get("moderation") === "1";
+        try {
+            const { decisions } = await api("/api/business/moderation");
+            status.textContent = decisions.length ? "" : "Рішень немає.";
+            const labels = { warning: "Попередження", review: "На перевірці", restrict: "Обмежено", block: "Заблоковано", restore: "Відновлено" };
+            const appeals = { new: "На розгляді", resolved: "Розглянуто", dismissed: "Відхилено" };
+            for (const decision of decisions) {
+                const row = document.createElement("li");
+                const message = document.createElement("p");
+                message.textContent = `${labels[decision.action]} · ${formatDate(decision.createdAt)} · ${decision.reason}` +
+                    (decision.expiresAt ? ` · До ${new Date(decision.expiresAt).toLocaleString("uk-UA")}` : "");
+                row.append(message);
+                if (decision.appealStatus) {
+                    const result = document.createElement("p");
+                    result.textContent = `Оскарження: ${appeals[decision.appealStatus]}${decision.response ? ` · ${decision.response}` : ""}`;
+                    row.append(result);
+                } else if (decision.action !== "restore") {
+                    const form = document.createElement("form");
+                    form.className = "business-form";
+                    const explanation = document.createElement("textarea");
+                    explanation.placeholder = "Пояснення для оскарження";
+                    explanation.setAttribute("aria-label", explanation.placeholder);
+                    explanation.required = true;
+                    explanation.maxLength = 3000;
+                    const button = document.createElement("button");
+                    button.className = "business-action";
+                    button.textContent = "Оскаржити";
+                    form.append(explanation, button);
+                    form.addEventListener("submit", async event => {
+                        event.preventDefault();
+                        button.disabled = true;
+                        try {
+                            await api(`/api/business/moderation/${encodeURIComponent(decision.id)}/appeal`, {
+                                method: "POST", body: JSON.stringify({ explanation: explanation.value })
+                            });
+                            form.replaceWith(document.createTextNode("Оскарження подано."));
+                        } catch (error) {
+                            status.textContent = error.message;
+                            button.disabled = false;
+                        }
+                    });
+                    row.append(form);
+                }
+                history.append(row);
+            }
+        } catch (error) {
+            status.textContent = error.message;
+        }
+    }
+
     async function init() {
         bindEvents();
         await loadProfile();
+        void showModerationNotices();
         const params = new URLSearchParams(location.search);
         if (params.get("edit") === "1" && state.isOwner && state.profile) {
             fillProfileForm();

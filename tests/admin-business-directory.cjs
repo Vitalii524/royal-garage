@@ -39,7 +39,7 @@ async function request(route, user, query = {}) {
 }
 
 test('only platform administrators can list or manage businesses', async () => {
-    for (const route of routes.keys()) {
+    for (const route of [...routes.keys()].filter(route => route.includes("/api/admin/"))) {
         assert.equal((await request(route)).statusCode, 401);
         for (const user of [{ role: 'user' }, { role: 'business' }, { role: 'admin', userId: royalAuto }]) {
             assert.equal((await request(route, user)).statusCode, 403);

@@ -1,3 +1,4 @@
+const { PUBLIC_BUSINESS_MODERATION } = require("./business-moderation");
 'use strict';
 function productFields(body){
  const category=String(body.category||'').trim();
@@ -17,7 +18,7 @@ function installProductCatalog({app,pool,databaseReady}){
  JOIN subscription_plans sp ON sp.id=bp.subscription_plan_id
  WHERE p.active=TRUE AND bt.code IN ('auto_shop','wholesale') AND NOT bp.is_deleted
  AND NOT u.account_disabled AND u.email_verified AND u.phone_verified AND sp.is_active
- AND (bp.complimentary_subscription OR bp.subscription_expires_at>NOW())`;
+ AND (bp.complimentary_subscription OR bp.subscription_expires_at>NOW()) AND ${PUBLIC_BUSINESS_MODERATION}`;
  const columns=`p.id,p.title,p.description,p.price,p.photos,p.category,p.availability,
  p.order_telegram AS "orderTelegram",p.order_viber AS "orderViber",p.order_chat AS "orderChat",
  bp.name AS "sellerName",bp.owner_id AS "ownerId",bp.city`;

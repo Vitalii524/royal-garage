@@ -299,6 +299,11 @@
     <h3>Надіслані пропозиції</h3>
     <ul id="editorialProposalHistory"></ul>
 </details>
+<details id="businessModerationNotices" class="business-section" hidden>
+    <summary>Рішення й оскарження</summary>
+    <p id="businessModerationFeedback" role="status"></p>
+    <ul id="businessModerationHistory"></ul>
+</details>
 <section id="businessXmlPanel" class="business-section" hidden><h2>XML-імпорт автомобілів</h2><p>Джерело має належати вам або використовуватися з дозволу партнера. Воно залишається вимкненим до окремого погодження власником Royal Garage. Після ввімкнення синхронізація відбувається кожні 6 годин.</p><form class="business-form"><label>HTTPS-адреса фіду<input name="feedUrl" type="url" maxlength="2048" required placeholder="https://example.com/inventory.xml"></label><button type="submit" class="business-primary-button">Додати джерело для погодження</button></form><p role="status"></p><div data-xml-feeds></div><details><summary>Підтримуваний формат XML</summary><p>Корінь inventory, записи vehicle з унікальним атрибутом id. Поля: brand, model, year, price_usd або price_uah, необов’язкові vin, description, status (active або sold), photos/photo. Інші формати потребують узгодження адаптера. Тимчасова помилка фіду не видаляє оголошень.</p></details></section></main>
 
 <footer class="footer">

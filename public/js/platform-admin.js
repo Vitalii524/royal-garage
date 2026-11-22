@@ -78,7 +78,8 @@
     const dateFormat = new Intl.DateTimeFormat("uk-UA", { timeZone: "Europe/Kyiv" });
     const businessStatus = {
         active: "Активний", pending: "Очікує підтвердження",
-        expired: "Доступ неактивний", disabled: "Акаунт обмежено"
+        expired: "Доступ неактивний", disabled: "Акаунт обмежено",
+        review: "На перевірці", restricted: "Тимчасово обмежено", blocked: "Заблоковано"
     };
     let page = 1;
     const date = value => value ? dateFormat.format(new Date(value)) : "Не задано";
@@ -128,7 +129,7 @@
                     logo.addEventListener("error", () => logo.remove());
                     heading.prepend(logo);
                 }
-                row.append(details, link, businessActions(business), businessComplaints(business));
+                row.append(details, link, businessActions(business), businessComplaints(business), businessModeration(business));
                 result.append(row);
             }
         } catch (error) {
@@ -281,6 +282,107 @@
                     });
                     entry.append(review);
                     list.append(entry);
+                }
+            } catch (error) {
+                feedback.textContent = error.message;
+            }
+        });
+        return panel;
+    }
+
+    function businessModeration(business) {
+        const panel = document.createElement("details");
+        const summary = document.createElement("summary");
+        summary.textContent = "Модерація й оскарження";
+        const form = document.createElement("form");
+        form.className = "royal-auto-admin-form";
+        const action = document.createElement("select");
+        action.setAttribute("aria-label", "Рішення модерації");
+        for (const [value, label] of Object.entries({
+            warning: "Попередити", review: "Перевести на перевірку",
+            restrict: "Тимчасово обмежити", block: "Заблокувати", restore: "Відновити"
+        })) action.add(new Option(label, value));
+        const reason = document.createElement("input");
+        reason.required = true;
+        reason.maxLength = 1000;
+        reason.placeholder = "Причина рішення";
+        reason.setAttribute("aria-label", reason.placeholder);
+        const until = document.createElement("input");
+        until.type = "datetime-local";
+        until.setAttribute("aria-label", "Обмеження до");
+        const toggleUntil = () => { until.disabled = until.hidden = action.value !== "restrict"; until.required = !until.disabled; };
+        action.addEventListener("change", toggleUntil);
+        toggleUntil();
+        const submit = document.createElement("button");
+        submit.textContent = "Застосувати рішення";
+        const feedback = document.createElement("p");
+        feedback.setAttribute("role", "status");
+        const appeals = document.createElement("ul");
+        const path = `/api/admin/businesses/${encodeURIComponent(business.id)}`;
+        form.append(action, reason, until, submit);
+        panel.append(summary, form, feedback, appeals);
+        form.addEventListener("submit", async event => {
+            event.preventDefault();
+            if (!window.confirm(`${action.selectedOptions[0].text} «${business.name}»?`)) return;
+            submit.disabled = true;
+            try {
+                await adminApi(`${path}/moderation`, { method: "PATCH", body: {
+                    action: action.value, reason: reason.value, confirmed: true,
+                    until: until.disabled ? null : new Date(until.value).toISOString()
+                }});
+                await loadBusinesses(page);
+                status.textContent = "Рішення записано, власник отримав сповіщення.";
+            } catch (error) {
+                feedback.textContent = error.message;
+            } finally {
+                submit.disabled = false;
+            }
+        });
+        panel.addEventListener("toggle", async () => {
+            if (!panel.open) return;
+            try {
+                const data = await adminApi(`${path}/appeals`);
+                appeals.replaceChildren();
+                for (const appeal of data.appeals) {
+                    const row = document.createElement("li");
+                    const label = document.createElement("p");
+                    label.textContent = `Рішення: ${appeal.reason}. Оскарження: ${appeal.explanation}`;
+                    row.append(label);
+                    if (appeal.status !== "new") {
+                        const resolution = document.createElement("p");
+                        resolution.textContent = `${appeal.status === "resolved" ? "Розглянуто" : "Відхилено"}: ${appeal.response}`;
+                        row.append(resolution);
+                    } else {
+                        const review = document.createElement("form");
+                        const result = document.createElement("select");
+                        result.setAttribute("aria-label", "Статус оскарження");
+                        result.add(new Option("Розглянуто", "resolved"));
+                        result.add(new Option("Відхилено", "dismissed"));
+                        const response = document.createElement("input");
+                        response.placeholder = "Відповідь власнику";
+                        response.setAttribute("aria-label", response.placeholder);
+                        response.required = true;
+                        response.maxLength = 1000;
+                        const save = document.createElement("button");
+                        save.textContent = "Зберегти відповідь";
+                        review.append(result, response, save);
+                        review.addEventListener("submit", async event => {
+                            event.preventDefault();
+                            save.disabled = true;
+                            try {
+                                await adminApi(`${path}/appeals/${encodeURIComponent(appeal.id)}`, {
+                                    method: "PATCH", body: { status: result.value, response: response.value }
+                                });
+                                await loadBusinesses(page);
+                            } catch (error) {
+                                feedback.textContent = error.message;
+                            } finally {
+                                save.disabled = false;
+                            }
+                        });
+                        row.append(review);
+                    }
+                    appeals.append(row);
                 }
             } catch (error) {
                 feedback.textContent = error.message;
