@@ -4688,7 +4688,7 @@ app.get(
                     name,
                     year,
                     vin,
-                    CASE WHEN $4::uuid IS NULL THEN photos END AS photos,
+                    photos,,
                     active_photo_index AS "activePhotoIndex",
                     engine,
                     mileage,
