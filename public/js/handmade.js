@@ -912,3 +912,38 @@ loadRoyalAutoCatalog();
     window.setInterval(refresh,60000);
     document.addEventListener('visibilitychange',refresh);
 })();
+
+
+async function loadRoyalAutoLocation() {
+    const address = document.getElementById("royalAutoAddress");
+    const route = document.getElementById("royalAutoRoute");
+    const hours = document.getElementById("royalAutoHours");
+    const schedule = document.getElementById("royalAutoSchedule");
+    try {
+        const response = await fetch("/api/royal-auto/location");
+        if (!response.ok) return;
+        const profile = await response.json();
+        const location = [profile.city, profile.address].filter(Boolean).join(", ").trim();
+        if (location) {
+            address.textContent = location;
+            address.hidden = false;
+            if (profile.mapEnabled !== false) {
+                route.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
+                route.hidden = false;
+            }
+        }
+        const days = [["mon", "Пн"], ["tue", "Вт"], ["wed", "Ср"], ["thu", "Чт"], ["fri", "Пт"], ["sat", "Сб"], ["sun", "Нд"]];
+        if (!days.some(([day]) => profile.workSchedule?.[day]?.enabled)) return;
+        for (const [day, label] of days) {
+            const entry = profile.workSchedule[day];
+            const item = document.createElement("li");
+            item.textContent = `${label}: ${entry?.enabled ? `${entry.open || "09:00"}–${entry.close || "18:00"}` : "Вихідний"}`;
+            schedule.append(item);
+        }
+        hours.hidden = false;
+    } catch (error) {
+        console.error("Royal Auto location:", error);
+    }
+}
+
+loadRoyalAutoLocation();

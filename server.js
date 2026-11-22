@@ -8576,12 +8576,30 @@ app.get(
     }
 );
 
+app.get("/api/royal-auto/location", async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT bp.city, bp.address, bp.work_schedule AS "workSchedule", sp.has_map AS "mapEnabled"
+             FROM business_profiles bp
+             JOIN users u ON u.id = bp.owner_id
+             LEFT JOIN subscription_plans sp ON sp.id = bp.subscription_plan_id
+             WHERE bp.owner_id = $1 AND NOT bp.is_deleted AND NOT u.account_disabled`,
+            [ROYAL_AUTO_OWNER_ID]
+        );
+        if (!result.rows[0]) return res.sendStatus(404);
+        return res.json(result.rows[0]);
+    } catch (error) {
+        console.error("Royal Auto location:", error);
+        return res.sendStatus(503);
+    }
+});
+
 app.get(
     "/api/business/profile",
     requireAuth,
     async (req, res) => {
         try {
-            if (req.user.accountType !== "business") {
+            if (req.user.accountType !== "business" && req.user.userId !== ROYAL_AUTO_OWNER_ID) {
                 return res.status(403).json({
                     ok: false,
                     message: "Це не бізнес-акаунт."
@@ -8725,7 +8743,7 @@ app.patch(
     requireAuth,
     async (req, res) => {
         try {
-            if (req.user.accountType !== "business") {
+            if (req.user.accountType !== "business" && req.user.userId !== ROYAL_AUTO_OWNER_ID) {
                 return res.status(403).json({ ok: false, message: "Це не бізнес-акаунт." });
             }
 
@@ -8734,7 +8752,7 @@ app.patch(
                 SELECT bp.id, bt.code AS "businessTypeCode"
                 FROM business_profiles bp
                 JOIN business_types bt ON bt.id = bp.business_type_id
-                WHERE bp.owner_id = $1
+                WHERE bp.owner_id = $1 AND NOT bp.is_deleted
                 LIMIT 1
                 `,
                 [req.user.userId]

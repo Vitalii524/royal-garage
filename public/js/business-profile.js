@@ -804,6 +804,10 @@
                 workSchedule: readScheduleEditor()
             };
 
+            if (state.profile.ownerId === ROYAL_AUTO_OWNER_ID &&
+                (!body.phone || body.phone === (state.profile.phone || "").trim())) {
+                delete body.phone;
+            }
             const data = await api("/api/business/profile", {
                 method: "PATCH",
                 body: JSON.stringify(body)
@@ -1408,7 +1412,12 @@ if (portfolioDelete) {
     async function init() {
         bindEvents();
         await loadProfile();
-        if (new URLSearchParams(location.search).get('notifications') === 'requests' && !$("businessRequestsBell").hidden) {
+        const params = new URLSearchParams(location.search);
+        if (params.get("edit") === "1" && state.isOwner && state.profile) {
+            fillProfileForm();
+            openModal("businessProfileModal");
+        }
+        if (params.get('notifications') === 'requests' && !$("businessRequestsBell").hidden) {
             openModal("businessRequestsModal");
             await loadBusinessRequests();
         }
