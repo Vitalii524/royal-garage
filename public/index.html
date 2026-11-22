@@ -105,6 +105,13 @@
   .home-layout .search-box .rg-search-icon { position: absolute; top: 9px; right: 9px; display: grid; place-items: center; width: 40px; height: 40px; min-width: 40px; padding: 0; margin: 0; border-radius: 8px; font-size: 18px; line-height: 1; }
 }
 
+
+/* Compact two-position offers panel */
+.rg-offers{box-sizing:border-box;max-width:900px;margin:22px auto 26px;padding:18px 24px;border:1px solid rgba(214,160,58,.34);border-radius:22px;background:#17191d;color:#f6f5f3}
+.rg-offers h2{display:flex;align-items:center;gap:12px;margin:0;padding:0 0 18px;font-size:clamp(20px,2.4vw,26px);color:#f6f5f3}.rg-offers h2 i{color:#d5b46d;font-size:19px}
+.rg-offer{border-top:1px solid rgba(255,255,255,.13)}.rg-offer summary{display:flex;align-items:center;gap:20px;min-height:92px;padding:12px 3px;cursor:pointer;list-style:none}.rg-offer summary::-webkit-details-marker{display:none}.rg-offer summary>i:first-child{width:32px;text-align:center;font-size:22px;color:#e5e5e5}.rg-offer summary span{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}.rg-offer summary strong{font-size:clamp(19px,2.3vw,25px);line-height:1.25}.rg-offer summary small{font-size:clamp(13px,1.7vw,17px);font-weight:400;color:#bcbec5;line-height:1.45}.rg-offer-chevron{color:#bcbec5;font-size:16px;transition:transform .2s}.rg-offer[open] .rg-offer-chevron{transform:rotate(90deg)}
+.rg-offer-detail{padding:0 8px 19px 52px;color:#d5d6dc;line-height:1.6}.rg-offer-detail p{margin:0 0 12px}.rg-offer-detail a{display:inline-block;background:#e7c46f;color:#191919;font-weight:800;border-radius:10px;padding:10px 16px;text-decoration:none}.rg-offer-detail .first-members-counter{max-width:300px;margin:10px 0 15px}
+@media(max-width:767px){.rg-offers{margin:16px 14px 20px;padding:17px 18px;border-radius:19px}.rg-offers h2{font-size:21px;padding-bottom:14px}.rg-offer summary{min-height:94px;gap:13px}.rg-offer summary>i:first-child{width:28px;font-size:19px}.rg-offer summary strong{font-size:20px}.rg-offer summary small{font-size:14px}.rg-offer-detail{padding-left:0;font-size:14px}}
 </style>
 <style id="rg-hero-buttons-mobile-fix">
 /* Ensure the two hero actions remain side by side on phones. */
@@ -228,65 +235,29 @@
 </div>
 </header>
 
-<div class="rg-promo-pair">
-<section class="first-members-section" aria-labelledby="firstMembersTitle">
-    <div class="first-members-card">
-        <div class="first-members-copy">
-            <p class="first-members-label">🏁 БОНУС ДЛЯ ПЕРШИХ 100</p>
-
-            <h2 id="firstMembersTitle">
-                🎁 Перше оголошення — БЕЗКОШТОВНО для всіх!
-            </h2>
-
-            <p class="first-members-intro">
-                Зареєструйся на Royal Garage та розмісти перше оголошення
-                <strong>безкоштовно</strong> — для кожного користувача .
-            </p>
-
-            <p class="first-members-note">
-                <strong>Перші 100 учасників</strong> отримують постійний статус
-                <strong>«ПЕРШИЙ»</strong> і <strong>3 безкоштовні оголошення загалом</strong>.
-                Після використання бонусу наступні оголошення платні.
-            </p>
-        </div>
-
-        <div class="first-members-counter" id="firstMembersCounter" aria-live="polite">
-            <div class="first-members-number">
-                <span id="firstMembersCount">—</span>
-                <span class="first-members-limit">/ 100</span>
-            </div>
-
-            <div
-                class="first-members-progress"
-                role="progressbar"
-                aria-label="Заповнення перших 100 місць"
-                aria-valuemin="0"
-                aria-valuemax="100"
-                aria-valuenow="0"
-                id="firstMembersProgress"
-            >
-                <span id="firstMembersProgressBar"></span>
-            </div>
-
-            <p id="firstMembersRemaining">
-                Завантажуємо лічильник...
-            </p>
-        </div>
+<section class="rg-offers" aria-labelledby="rgOffersTitle">
+  <h2 id="rgOffersTitle"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> Акції Royal Garage</h2>
+  <details class="rg-offer">
+    <summary><i class="fa-solid fa-briefcase" aria-hidden="true"></i><span><strong>Для бізнесу</strong><small>Автомайданчики та перші 50 бізнесів — безкоштовно</small></span><i class="fa-solid fa-chevron-right rg-offer-chevron" aria-hidden="true"></i></summary>
+    <div class="rg-offer-detail">
+      <p><strong>Автомайданчики:</strong> безкоштовне користування до кінця 2027 року.</p>
+      <p><strong>Перші 50 бізнесів:</strong> акційний доступ. Тривалість та умови залежать від призначеного тарифу; перевірте їх у бізнес-кабінеті.</p>
+      <a href="businesses.html?register=business">Зареєструвати бізнес</a>
     </div>
+  </details>
+  <details class="rg-offer">
+    <summary><i class="fa-solid fa-users" aria-hidden="true"></i><span><strong>Для користувачів</strong><small>Першим 100 — 3 безкоштовні оголошення</small></span><i class="fa-solid fa-chevron-right rg-offer-chevron" aria-hidden="true"></i></summary>
+    <div class="rg-offer-detail">
+      <p>Перше оголошення безкоштовне для кожного користувача. Перші 100 учасників отримують постійний статус «ПЕРШИЙ» і <strong>3 безкоштовні оголошення загалом</strong> (не щороку). Наступні оголошення — платні.</p>
+      <div class="first-members-counter" id="firstMembersCounter" aria-live="polite">
+        <div class="first-members-number"><span id="firstMembersCount">—</span><span class="first-members-limit">/ 100</span></div>
+        <div class="first-members-progress" role="progressbar" aria-label="Заповнення перших 100 місць" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="firstMembersProgress"><span id="firstMembersProgressBar"></span></div>
+        <p id="firstMembersRemaining">Завантажуємо лічильник...</p>
+      </div>
+      <a href="market.html">Перейти на авторинок</a>
+    </div>
+  </details>
 </section>
-<article class="rg-business-card first-members-card" aria-labelledby="rgBusinessTitle">
-  <div class="first-members-copy">
-    <p class="first-members-label">📣 ДЛЯ АВТОБІЗНЕСУ</p>
-    <h2 id="rgBusinessTitle">Розвивайте свій автобізнес разом із Royal Garage</h2>
-    <p class="first-members-intro">СТО, автомайданчики, магазини автотоварів, детейлінг та інші автомобільні послуги — створіть свій бізнес-профіль.</p>
-  </div>
-  <div class="rg-business-benefits">
-    <strong>Ваш бізнес — частина автоспільноти</strong>
-    <p>Представляйте послуги та знаходьте нових клієнтів.</p>
-    <a class="rg-business-link" href="businesses.html?register=business">Зареєструвати бізнес</a>
-  </div>
-</article>
-</div>
 
 <main class="main-content">
 <section class="panel">
@@ -407,71 +378,6 @@
 <script src="js/home-clubs.js?v=1" defer></script>
 <script src="js/loader.js"></script>
 
-<script src="js/lang.js"></script><script id="rg-mobile-slider-script">(function(){
-  const mq=window.matchMedia('(max-width:767px)');
-  const saved=[];let sliders=[];let resizeTimer;
-  function moveTo(node,parent){
-    if(!node)return;
-    const marker=document.createComment('rg-original-position');
-    node.parentNode.insertBefore(marker,node);
-    saved.push({node,marker});parent.appendChild(node);
-  }
-  function createSlider(nodes,anchor,before=false){
-    if(!anchor||nodes.some(n=>!n))return;
-    const wrap=document.createElement('section');wrap.className='rg-mobile-slider';wrap.setAttribute('aria-label','Блоки Royal Garage');
-    const viewport=document.createElement('div');viewport.className='rg-mobile-viewport';
-    const track=document.createElement('div');track.className='rg-mobile-track';
-    const dots=document.createElement('div');dots.className='rg-mobile-dots';
-    const slides=[];let index=0,timer=null,startX=null,startY=null;
-    nodes.forEach((node,i)=>{
-      const slide=document.createElement('div');slide.className='rg-mobile-slide';
-      if(node.isConnected)moveTo(node,slide);else slide.appendChild(node);
-      track.appendChild(slide);slides.push(slide);
-      const dot=document.createElement('button');dot.type='button';dot.className='rg-mobile-dot';dot.setAttribute('aria-label','Показати слайд '+(i+1));
-      dot.addEventListener('click',()=>{show(i);restart()});dots.appendChild(dot);
-    });
-    viewport.appendChild(track);wrap.append(viewport,dots);
-    if(before)anchor.parentNode.insertBefore(wrap,anchor);else anchor.insertAdjacentElement('afterend',wrap);
-    function show(i){index=(i+slides.length)%slides.length;track.style.transform='translateX(-'+index*100+'%)';
-      slides.forEach((s,j)=>{s.setAttribute('aria-hidden',String(j!==index));s.inert=j!==index});
-      [...dots.children].forEach((d,j)=>{d.classList.toggle('is-active',j===index);d.setAttribute('aria-current',String(j===index))});
-      viewport.style.height=slides[index].offsetHeight+'px';}
-    function stop(){if(timer){clearInterval(timer);timer=null}}
-    function restart(){stop();if(!window.matchMedia('(prefers-reduced-motion:reduce)').matches)timer=setInterval(()=>show(index+1),5000)}
-    viewport.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;startY=e.touches[0].clientY;stop()},{passive:true});
-    viewport.addEventListener('touchend',e=>{if(startX!==null){const dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy))show(index+(dx<0?1:-1));}startX=startY=null;restart()},{passive:true});
-    viewport.addEventListener('touchcancel', () => {
-    startX = null;
-    startY = null;
-    restart();
-}, { passive: true });
-    viewport.addEventListener('mouseenter',stop);viewport.addEventListener('mouseleave',restart);
-    const observer=new ResizeObserver(()=>{viewport.style.height=slides[index].offsetHeight+'px'});
-    slides.forEach(s=>observer.observe(s));show(0);restart();sliders.push({wrap,stop,observer});
-  }
-  function build(){if(!mq.matches||sliders.length)return;
-    const home=document.querySelector('.home-layout');
-    const first=document.querySelector('.first-members-section');const main=document.querySelector('main.main-content');const panels=main?.querySelectorAll(':scope > .panel');
-    if(!home||!first||panels?.length!==2)return;
-    const promo=document.querySelector('.rg-promo-pair > .rg-business-card');
-    createSlider([first,promo],main,true);
-    // Keep business card as tall as the First 100 card, including the live counter.
-    if(promo){
-      const firstCard=first.querySelector('.first-members-card');
-      const syncBusinessHeight=()=>{
-        if(!mq.matches||!firstCard||!promo.isConnected)return;
-        promo.style.minHeight=Math.ceil(firstCard.getBoundingClientRect().height)+'px';
-      };
-      syncBusinessHeight();
-      const equalizer=new ResizeObserver(syncBusinessHeight);
-      if(firstCard)equalizer.observe(firstCard);
-      sliders[sliders.length-1].equalizer=equalizer;
-    }
-  }
-  function restore(){sliders.forEach(s=>{s.stop();s.observer.disconnect();s.equalizer?.disconnect()});saved.reverse().forEach(({node,marker})=>{marker.parentNode.insertBefore(node,marker);marker.remove();node.inert=false;node.removeAttribute('aria-hidden');if(node.classList.contains('rg-business-card'))node.style.minHeight=''});saved.length=0;sliders.forEach(s=>s.wrap.remove());sliders=[]}
-  function update(){if(mq.matches)build();else restore()}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',update);else update();
-  window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(update,150)});
-})();</script>
+<script src="js/lang.js"></script>
 <script src="/js/notifications.js?v=shared-header"></script></body>
 </html>
