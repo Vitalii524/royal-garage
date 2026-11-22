@@ -9,11 +9,14 @@ const jwt = require("jsonwebtoken");
 const getSiteAnalytics = require("./site-analytics");
 const { prepareMedia, saveMedia, installMedia } = require("./service-media");
 
+const { recordProposal } = require("./editorial-proposals");
+
 const UUID_PATTERN = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 const ROYAL_AUTO_OWNER_ID = "32ce413e-9eb6-417a-b99a-77d9ca7c144a";
 // Royal Auto already has an established public storefront, independent of billing.
 const PUBLIC_BUSINESS_ACCESS = `(bp.owner_id = '${ROYAL_AUTO_OWNER_ID}'::uuid
     OR bp.complimentary_subscription OR bp.subscription_expires_at > NOW())`;
+const EDITORIAL_OWNER_ID = "b61d05c8-0cab-4432-b36e-267440d87b6a";
 const SERVICE_HUB_OWNER_ID = "d2363e3d-4723-4755-9030-594cd3ccd6f0";
 const PUBLIC_ORIGIN = new URL(process.env.PUBLIC_ORIGIN || "https://royalgarage.com.ua").origin;
 const SERVICE_BOOKING_TYPES = ["car_service", "detailing", "tire_service", "road_assistance"];
@@ -658,6 +661,8 @@ await pool.query(`
 
 await pool.query(fs.readFileSync(path.join(__dirname, 'migrations/20261122-product-catalog.sql'), 'utf8'));
 await pool.query(fs.readFileSync(path.join(__dirname, 'migrations/20261122-xml-import.sql'), 'utf8'));
+await pool.query(fs.readFileSync(path.join(__dirname, 'migrations/20261122-editorial-import-rights.sql'), 'utf8'));
+await pool.query(fs.readFileSync(path.join(__dirname, 'migrations/20261122-editorial-proposals.sql'), 'utf8'));
 
 await pool.query(`
     ALTER TABLE users ADD COLUMN IF NOT EXISTS registration_event_pending BOOLEAN
@@ -1182,6 +1187,7 @@ CREATE TABLE IF NOT EXISTS service_history_purchases (
         await ensureBusinessRequestsTable();
         await pool.query(fs.readFileSync(path.join(__dirname, "migrations/20261122-verified-platform-administrator.sql"), "utf8"));
         await pool.query(fs.readFileSync(path.join(__dirname, "migrations/20261122-retire-royal-auto-platform-analytics.sql"), "utf8"));
+        await pool.query(fs.readFileSync(path.join(__dirname, "migrations/20261122-editorial-account.sql"), "utf8"));
         console.log("Users table ready");
     } catch (error) {
         throw error;
@@ -4738,7 +4744,7 @@ app.get(
 const mediaReady = installMedia({app,pool,requireAuth,requireCrmAccess,databaseReady});
 require("./catalog-media").installCatalogMedia({app,pool,requireAuth,databaseReady});
 require("./product-catalog").installProductCatalog({app,pool,databaseReady});
-require("./dealer-xml").installDealerXml({app,pool,requireAuth,requireAdmin,databaseReady});
+require("./dealer-xml").installDealerXml({app,pool,requireAuth,requireAdmin,databaseReady,editorialOwnerId:EDITORIAL_OWNER_ID});
 
 async function ensureBusinessRequestsTable() {
     await pool.query(`CREATE TABLE IF NOT EXISTS business_service_requests (
@@ -5406,6 +5412,7 @@ app.get(
 
                 WHERE
                     bp.is_deleted = FALSE
+                    AND bp.owner_id <> '${EDITORIAL_OWNER_ID}'::uuid
                     AND u.account_disabled = FALSE
                     AND sp.is_active = TRUE
                     AND ${PUBLIC_BUSINESS_ACCESS}
@@ -5487,6 +5494,7 @@ app.get(
                 WHERE
                     ($1::text IS NULL OR bt.code = $1)
                     AND bp.is_deleted = FALSE
+                    AND bp.owner_id <> '${EDITORIAL_OWNER_ID}'::uuid
                     AND u.account_disabled = FALSE
                     AND sp.is_active = TRUE
                     AND ${PUBLIC_BUSINESS_ACCESS}
@@ -8329,7 +8337,8 @@ async function loadPrivateBusinessProfile(ownerId) {
 
             bt.id AS "businessTypeId",
             bt.code AS "businessTypeCode",
-            bt.name AS "businessTypeName",
+            CASE WHEN bp.owner_id = '${EDITORIAL_OWNER_ID}'::uuid THEN 'Редакція'
+                 ELSE bt.name END AS "businessTypeName",
 
             u.email,
             u.email_verified AS "emailVerified",
@@ -8463,7 +8472,8 @@ async function loadPublicBusinessProfile(ownerId) {
             bp.work_schedule AS "workSchedule",
 
             bt.code AS "businessTypeCode",
-            bt.name AS "businessTypeName",
+            CASE WHEN bp.owner_id = '${EDITORIAL_OWNER_ID}'::uuid THEN 'Редакція'
+                 ELSE bt.name END AS "businessTypeName",
 
             sp.has_map AS "mapEnabled",
             (bp.owner_id = '${ROYAL_AUTO_OWNER_ID}'::uuid OR (sp.has_crm AND bt.code = ANY($2::text[]))) AS "acceptsServiceRequests",
@@ -8546,6 +8556,39 @@ async function loadPublicBusinessProfile(ownerId) {
 
     return result.rows[0] || null;
 }
+
+function requireEditorial(req, res, next) {
+    if (req.user?.userId !== EDITORIAL_OWNER_ID || req.user.role !== "user") {
+        return res.status(403).json({ ok: false, message: "Доступ лише для редакції." });
+    }
+    return next();
+}
+
+app.get("/api/editorial/proposals", requireAuth, requireEditorial, async (req, res) => {
+    const result = await pool.query(
+        `SELECT recipient_id AS "recipientId", recipient_name AS "recipientName",
+                proposal_text AS text, sent_at AS "sentAt"
+         FROM editorial_proposals WHERE sender_id = $1 ORDER BY sent_at DESC LIMIT 200`,
+        [req.user.userId]
+    );
+    res.set("Cache-Control", "no-store").json({ ok: true, proposals: result.rows });
+});
+
+app.post("/api/editorial/proposals", requireAuth, requireEditorial, async (req, res) => {
+    const { recipientId, recipientName, text, confirmed } = req.body || {};
+    if (confirmed !== true || typeof recipientId !== "string" || !UUID_PATTERN.test(recipientId) ||
+        recipientId === EDITORIAL_OWNER_ID || typeof recipientName !== "string" ||
+        typeof text !== "string" || !text.trim() || text.length > 2000) {
+        return res.status(400).json({ ok: false, message: "Перевірте адресата й підтвердьте текст пропозиції." });
+    }
+    const recipient = await loadPublicBusinessProfile(recipientId);
+    if (!recipient || recipient.name !== recipientName) {
+        return res.status(409).json({ ok: false, message: "Дані адресата змінилися. Оновіть список." });
+    }
+    const id = await recordProposal(pool, { senderId: req.user.userId, recipientId, recipientName, text: text.trim() });
+    if (!id) return res.status(409).json({ ok: false, message: "Пропозицію вже надіслано або адресат змінився." });
+    res.status(201).json({ ok: true, id });
+});
 
 app.get(
     "/api/business/profiles/:ownerId",

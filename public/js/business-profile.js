@@ -3,6 +3,7 @@
 
     const MAX_ITEM_PHOTOS = 6;
     const ROYAL_AUTO_OWNER_ID = "32ce413e-9eb6-417a-b99a-77d9ca7c144a";
+    const EDITORIAL_OWNER_ID = "b61d05c8-0cab-4432-b36e-267440d87b6a";
     const BOOKING_TYPES = new Set(["car_service", "detailing", "tire_service", "road_assistance"]);
     let requestsPage = 0;
     const DAYS = [
@@ -259,9 +260,10 @@
 
         const active = profile.profileStatus === "active";
         $("businessProfileStatusText").textContent = active ? "Активний" : "Чернетка";
-        $("businessProfileStatusHint").textContent = active
-            ? "Профіль опублікований у «Партнерах»."
-            : "Перевірте підтвердження email і телефону.";
+        $("businessProfileStatusHint").textContent = profile.ownerId === EDITORIAL_OWNER_ID
+            ? "Редакційний профіль поза комерційним каталогом."
+            : active ? "Профіль опублікований у «Партнерах»."
+                : "Перевірте підтвердження email і телефону.";
         $("businessProfileStatusDot").classList.toggle("active", active);
 
         $("businessEmailStatus").textContent = profile.emailVerified ? "Підтверджено ✓" : "Не підтверджено";
@@ -276,7 +278,8 @@
             ? `Діє до ${new Date(profile.subscriptionExpiresAt).toLocaleDateString("uk-UA")}`
             : "";
         $("businessAddCarButton").hidden = profile.businessTypeCode !== "car_dealer";
-        window.RGDealerXml?.mount(state.isOwner && profile.businessTypeCode === "car_dealer");
+        $("editorialProposalPanel").hidden = !(state.isOwner && profile.ownerId === EDITORIAL_OWNER_ID);
+        window.RGDealerXml?.mount(state.isOwner && (profile.businessTypeCode === "car_dealer" || profile.ownerId === EDITORIAL_OWNER_ID));
         $("businessCrmButton").hidden = !profile.hasCrm;
     }
 
@@ -597,7 +600,7 @@
         renderSchedule(profile);
         renderOwnerControls(profile);
         const bell = $("businessRequestsBell");
-        bell.hidden = !(state.isOwner && profile.hasCrm && profile.subscriptionStatus === "active"
+        bell.hidden = profile.ownerId === EDITORIAL_OWNER_ID || !(state.isOwner && profile.hasCrm && profile.subscriptionStatus === "active"
             && BOOKING_TYPES.has(profile.businessTypeCode));
         if (!bell.hidden) refreshRequestCount();
         const quickAdd = $("businessAddServiceQuick");
@@ -624,7 +627,7 @@
         show("businessAboutScheduleCard", state.isOwner || hasSchedule);
         show("businessAboutSection", state.isOwner || hasDescription || hasAddress || hasSchedule);
         show("businessPortfolioSection", state.isOwner || hasPortfolio);
-        show("businessBookingButton", !state.isOwner && profile.acceptsServiceRequests === true);
+        show("businessBookingButton", !state.isOwner && profile.ownerId !== EDITORIAL_OWNER_ID && profile.acceptsServiceRequests === true);
 
         if (profile.ownerId) loadReviews(profile.ownerId);
 

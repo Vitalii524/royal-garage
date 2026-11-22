@@ -34,7 +34,10 @@
             term.textContent = label;
             const count = document.createElement("dd");
             count.textContent = stats[key];
-            list.append(term, count);
+            const stat = document.createElement("div");
+            stat.className = "platform-admin-stat";
+            stat.append(term, count);
+            list.append(stat);
         }
     }
 

@@ -1,0 +1,103 @@
+#platformAdmin {
+    padding: clamp(1rem, 3vw, 2rem);
+}
+
+#platformAdmin > h1 {
+    margin: 0 0 1rem;
+    font-size: clamp(1.45rem, 4.3vw, 2rem);
+    line-height: 1.22;
+}
+
+.platform-admin-panel {
+    margin-top: 1rem;
+    padding: clamp(.8rem, 2.5vw, 1.25rem);
+    border: 1px solid rgba(231, 193, 102, .22);
+    border-radius: 14px;
+    background: rgba(0, 0, 0, .12);
+}
+
+.platform-admin-panel > h2 {
+    margin: 0 0 .75rem;
+    font-size: clamp(1.1rem, 3.6vw, 1.35rem);
+    line-height: 1.3;
+}
+
+.platform-admin-panel > [role="status"]:empty {
+    display: none;
+}
+
+#adminTrafficReport {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: clamp(.77rem, 2.65vw, .95rem);
+    font-variant-numeric: tabular-nums;
+}
+
+#adminTrafficReport caption {
+    padding-bottom: .65rem;
+    color: #c7cad1;
+    text-align: left;
+    font-size: .8rem;
+}
+
+#adminTrafficReport :is(th, td) {
+    padding: .62rem .3rem;
+    border-bottom: 1px solid rgba(231, 193, 102, .18);
+    text-align: right;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+#adminTrafficReport th:first-child {
+    width: 55%;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+#adminTrafficReport thead th,
+.platform-admin-stat dd {
+    color: #efce89;
+}
+
+#adminTrafficReport tbody tr:last-child > * {
+    border-bottom: 0;
+}
+
+#adminRegistrationStats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+    gap: .55rem;
+    margin: 0;
+}
+
+.platform-admin-stat {
+    min-width: 0;
+    display: grid;
+    align-content: space-between;
+    gap: .45rem;
+    padding: .7rem .75rem;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, .18);
+}
+
+.platform-admin-stat dt {
+    color: #e0e1e5;
+    font-size: .85rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.platform-admin-stat dd {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+#adminBusinessResults > p {
+    padding: .75rem;
+    border-bottom: 1px solid rgba(231, 193, 102, .18);
+    overflow-wrap: anywhere;
+}

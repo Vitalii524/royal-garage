@@ -34,6 +34,7 @@
         href="css/handmade.css?v=category-actions-1"
     >
 <link rel="stylesheet" href="css/service-media.css">
+<link rel="stylesheet" href="css/platform-admin.css?v=1">
 <script src="js/site-header.js?v=20261119" defer></script>
 <link rel="stylesheet" href="css/service-gallery.css?v=20261121-admin2"><script src="js/service-gallery.js?v=20261121"></script></head>
 
@@ -92,6 +93,7 @@
     <section id="platformAdmin" class="upholstery-section" hidden>
         <h1>Адміністрування Royal Garage</h1>
 <a class="upholstery-secondary-button" href="profile.html?section=chats">💬 Повідомлення клієнтів</a>
+        <section class="platform-admin-panel" aria-labelledby="adminTrafficTitle">
         <h2 id="adminTrafficTitle">Відвідування сайту</h2>
         <p id="adminTrafficStatus" role="status">Завантажуємо дані GA4…</p>
         <table id="adminTrafficReport" aria-labelledby="adminTrafficTitle" hidden>
@@ -99,10 +101,13 @@
             <thead><tr><th scope="col">Показник</th><th scope="col">7 днів</th><th scope="col">30 днів</th></tr></thead>
             <tbody></tbody>
         </table>
-        <h2>Статистика реєстрацій</h2>
+        </section>
+        <section class="platform-admin-panel" aria-labelledby="adminRegistrationTitle">
+        <h2 id="adminRegistrationTitle">Статистика реєстрацій</h2>
         <p id="adminRegistrationStatus" role="status">Завантажуємо статистику реєстрацій…</p>
         <dl id="adminRegistrationStats"></dl>
-        <div id="adminBusinessControls" hidden>
+        </section>
+        <div id="adminBusinessControls" class="platform-admin-panel" hidden>
         <h2>Безстроковий безкоштовний доступ</h2>
         <form id="adminBusinessSearch" class="royal-auto-admin-form">
             <label>Назва бізнесу, точний email або ID власника<input name="q" type="search" maxlength="255"></label>
@@ -364,7 +369,7 @@
 
 <script src="js/auth.js"></script>
 <script src="js/royal-auto-admin.js?v=20261121-gallery2"></script>
-<script src="js/platform-admin.js?v=verified-access"></script>
+<script src="js/platform-admin.js?v=compact-stats"></script>
 <script src="js/loader.js"></script>
 
 <script src="/js/notifications.js?v=1"></script><script src="js/service-media.js"></script><script src="js/royal-auto-requests.js"></script></body>
