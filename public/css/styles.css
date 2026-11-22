@@ -271,8 +271,22 @@ body :is(.hero,.panel,.market-hero,.listing-card,.first-members-card,
 .rg-theme-picker select:focus-visible { outline:2px solid #f0bd55; outline-offset:2px; }
 @media(min-width:901px) { .rg-sticky-header .burger-menu { display:block; } .rg-sticky-header .burger-dropdown { left:auto; right:0; } }
 
-/* RoyalAuto partner tile: larger emblem, no visible white image backing. */
+/* RoyalAuto homepage partner tile: preserve the logo and leave room for its name. */
 .home-partner-card--royalauto { background:#000 !important; overflow:hidden; }
-.home-partner-card--royalauto img { width:90% !important; max-width:none !important; height:195px !important; object-fit:contain !important; mix-blend-mode:multiply; background:transparent !important; margin:4px auto 0 !important; }
-.home-partner-card--royalauto strong { margin-top:0 !important; }
-@media(max-width:600px){ .home-partner-card--royalauto img { width:96% !important; height:170px !important; } }
+.home-partner-card--royalauto img {
+    width:90% !important;
+    max-width:100% !important;
+    height:68% !important;
+    min-height:0 !important;
+    flex:0 1 auto !important;
+    object-fit:contain !important;
+    mix-blend-mode:normal !important;
+    background:transparent !important;
+    margin:0 auto !important;
+}
+.home-partner-card--royalauto strong {
+    display:block !important;
+    flex:0 0 auto !important;
+    margin:0 !important;
+    color:#fff !important;
+}
