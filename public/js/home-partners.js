@@ -3,9 +3,9 @@
     const status = document.getElementById("homePartnersStatus");
     const royalAuto = {
         ownerId: "32ce413e-9eb6-417a-b99a-77d9ca7c144a",
-        businessName: "Royal Auto",
+        businessName: "RoyalAuto",
         logoUrl: "images/royal-auto-atelier-logo.webp",
-        href: "handmade.html"
+        href: "business-profile.html?id=32ce413e-9eb6-417a-b99a-77d9ca7c144a"
     };
     const royalAutoNames = new Set(["royalauto", "royalautoatelier"]);
 
@@ -23,7 +23,7 @@
             const card = document.createElement("a");
             card.className = "home-partner-card";
             card.href = (business.ownerId === royalAuto.ownerId || royalAutoNames.has(String(business.businessName || "").trim().toLowerCase().replace(/\s+/g, "")))
-                ? "handmade.html"
+                ? royalAuto.href
                 : (business.href || `business-profile.html?id=${encodeURIComponent(business.ownerId)}`);
             const isRoyalAuto = business.ownerId === royalAuto.ownerId || royalAutoNames.has(String(business.businessName || "").trim().toLowerCase().replace(/\s+/g, ""));
             if (isRoyalAuto) card.classList.add("home-partner-card--royalauto");
@@ -33,11 +33,11 @@
                 logo.alt = "";
                 logo.loading = "lazy";
                 logo.src = logoUrl;
-                logo.addEventListener("error", () => logo.remove(), { once: true });
+                logo.addEventListener("error", () => { logo.hidden = true; }, { once: true });
                 card.append(logo);
             }
             const name = document.createElement("strong");
-            name.textContent = business.businessName;
+            name.textContent = isRoyalAuto ? "RoyalAuto" : business.businessName;
             card.append(name);
             cards.append(card);
         }
