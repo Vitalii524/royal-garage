@@ -429,6 +429,114 @@
         event.preventDefault();
         loadBusinesses();
     });
+
+    // Ordinary users: admin-only directory and explicit, audited conversion.
+    const usersPanel = document.getElementById("adminUsersPanel");
+    const usersForm = document.getElementById("adminUsersSearch");
+    const usersResults = document.getElementById("adminUsersResults");
+    const usersStatus = document.getElementById("adminUsersStatus");
+    const usersPrevious = document.getElementById("adminUsersPrevious");
+    const usersNext = document.getElementById("adminUsersNext");
+    let usersPage = 1;
+    let conversionCategories = [];
+
+    async function loadUsers(targetPage = 1) {
+        usersStatus.textContent = "Завантажуємо користувачів…";
+        usersPrevious.disabled = usersNext.disabled = true;
+        const filters = new URLSearchParams(new FormData(usersForm));
+        filters.set("page", targetPage);
+        try {
+            const data = await adminApi(`/api/admin/users?${filters}`);
+            usersPage = data.page;
+            usersResults.replaceChildren();
+            usersPrevious.hidden = usersPage <= 1;
+            usersNext.hidden = !data.hasMore;
+            usersStatus.textContent = data.users.length
+                ? `Сторінка ${usersPage} · Показано ${data.users.length}`
+                : "Користувачів не знайдено.";
+            for (const user of data.users) {
+                const article = document.createElement("article");
+                article.className = "platform-admin-business";
+                const heading = document.createElement("h3");
+                heading.textContent = user.name;
+                const details = document.createElement("p");
+                details.textContent = `${user.email} · Реєстрація: ${date(user.createdAt)} · Email: ${user.emailVerified ? "підтверджений" : "не підтверджений"} · Телефон: ${user.phoneVerified ? "підтверджений" : "не підтверджений"}${user.disabled ? " · Акаунт обмежено" : ""}`;
+                article.append(heading, details);
+                const panel = document.createElement("details");
+                const summary = document.createElement("summary");
+                summary.textContent = "Перевести в бізнес";
+                const conversion = document.createElement("form");
+                conversion.className = "royal-auto-admin-form";
+                const businessName = document.createElement("input");
+                businessName.required = true;
+                businessName.maxLength = 100;
+                businessName.placeholder = "Назва бізнесу";
+                businessName.setAttribute("aria-label", "Назва бізнесу");
+                const category = document.createElement("select");
+                category.required = true;
+                category.setAttribute("aria-label", "Категорія бізнесу");
+                category.add(new Option("Оберіть категорію", ""));
+                for (const item of conversionCategories) category.add(new Option(item.name, item.code));
+                const contentType = document.createElement("select");
+                contentType.setAttribute("aria-label", "Вміст бізнес-профілю");
+                for (const [value, label] of Object.entries({
+                    services: "Послуги", products: "Товари", both: "Послуги й товари"
+                })) contentType.add(new Option(label, value));
+                const toggleContent = () => {
+                    contentType.hidden = category.value !== "other";
+                    contentType.disabled = contentType.hidden;
+                };
+                category.addEventListener("change", toggleContent);
+                toggleContent();
+                const reason = document.createElement("input");
+                reason.required = true;
+                reason.minLength = 5;
+                reason.maxLength = 500;
+                reason.placeholder = "Причина переведення (для журналу)";
+                reason.setAttribute("aria-label", reason.placeholder);
+                const confirmLabel = document.createElement("label");
+                const consent = document.createElement("input");
+                consent.type = "checkbox";
+                consent.required = true;
+                confirmLabel.append(consent, document.createTextNode(" Підтверджую запит власника акаунта на переведення"));
+                const submit = document.createElement("button");
+                submit.type = "submit";
+                submit.textContent = "Перевести в бізнес";
+                submit.className = "upholstery-primary-button";
+                const feedback = document.createElement("p");
+                feedback.setAttribute("role", "status");
+                conversion.append(businessName, category, contentType, reason, confirmLabel, submit, feedback);
+                conversion.addEventListener("submit", async event => {
+                    event.preventDefault();
+                    if (!window.confirm(`Перевести акаунт «${user.name}» (${user.email}) у бізнес «${businessName.value}»? Дія змінить тип акаунта.`)) return;
+                    submit.disabled = true;
+                    try {
+                        const data = await adminApi(`/api/admin/users/${encodeURIComponent(user.id)}/convert-to-business`, {
+                            method: "POST",
+                            body: { businessName: businessName.value, category: category.value,
+                                contentType: contentType.value, reason: reason.value, confirmed: consent.checked }
+                        });
+                        await loadUsers(usersPage);
+                        usersStatus.textContent = data.message;
+                    } catch (error) {
+                        feedback.textContent = error.message;
+                        submit.disabled = false;
+                    }
+                });
+                panel.append(summary, conversion);
+                article.append(panel);
+                usersResults.append(article);
+            }
+        } catch (error) {
+            usersStatus.textContent = error.message;
+        } finally {
+            usersPrevious.disabled = usersNext.disabled = false;
+        }
+    }
+    usersForm.addEventListener("submit", event => { event.preventDefault(); loadUsers(1); });
+    usersPrevious.addEventListener("click", () => loadUsers(usersPage - 1));
+    usersNext.addEventListener("click", () => loadUsers(usersPage + 1));
+
     const accessStatus = document.getElementById("platformAccessStatus");
     if (!token) {
         accessStatus.hidden = false;
@@ -448,6 +556,11 @@
         loadSiteAnalytics();
         if (data.canManageBusinesses) {
             businessControls.hidden = false;
+            usersPanel.hidden = false;
+            document.getElementById("adminUsersJump").hidden = false;
+            try { const list = await adminApi("/api/admin/businesses?page=1"); conversionCategories = list.categories; }
+            catch (error) { usersStatus.textContent = "Не вдалося завантажити категорії: " + error.message; }
+            loadUsers();
             document.getElementById("adminBusinessJump").hidden = false;
             return loadBusinesses();
         }
