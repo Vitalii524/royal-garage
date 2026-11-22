@@ -32,3 +32,10 @@
 .business-hero-card>#businessComplaintPanel{order:4}
 .business-hero-card>#businessHeroOwnerActions{order:5}
 @media(max-width:767px){.business-hero-card{gap:12px}.business-hero-card>.business-logo-image-wrap{width:min(155px,48vw);height:min(155px,48vw)}.business-hero-card>#businessHeroContacts{gap:9px;padding-top:12px}}
+
+/* Keep the business logo at the top and the five public action icons at the bottom. */
+.business-hero-card>.business-logo-image-wrap{order:0!important;flex:0 0 auto}
+.business-hero-card>.business-hero-main{order:1!important}
+.business-hero-card>#businessHeroContacts{order:4!important;flex:0 0 auto;justify-content:center;margin-top:4px}
+.business-hero-card>#businessComplaintPanel{order:5!important}
+.business-hero-card>#businessHeroOwnerActions{order:6!important}
