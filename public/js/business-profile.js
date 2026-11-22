@@ -260,9 +260,10 @@
 
         const active = profile.profileStatus === "active";
         $("businessProfileStatusText").textContent = active ? "Активний" : "Чернетка";
-        $("businessProfileStatusHint").textContent = active
-            ? "Профіль опублікований у «Партнерах»."
-            : "Перевірте підтвердження email і телефону.";
+        $("businessProfileStatusHint").textContent = profile.ownerId === EDITORIAL_OWNER_ID
+            ? "Редакційний профіль поза комерційним каталогом."
+            : active ? "Профіль опублікований у «Партнерах»."
+                : "Перевірте підтвердження email і телефону.";
         $("businessProfileStatusDot").classList.toggle("active", active);
 
         $("businessEmailStatus").textContent = profile.emailVerified ? "Підтверджено ✓" : "Не підтверджено";
@@ -599,7 +600,7 @@
         renderSchedule(profile);
         renderOwnerControls(profile);
         const bell = $("businessRequestsBell");
-        bell.hidden = !(state.isOwner && profile.hasCrm && profile.subscriptionStatus === "active"
+        bell.hidden = profile.ownerId === EDITORIAL_OWNER_ID || !(state.isOwner && profile.hasCrm && profile.subscriptionStatus === "active"
             && BOOKING_TYPES.has(profile.businessTypeCode));
         if (!bell.hidden) refreshRequestCount();
         const quickAdd = $("businessAddServiceQuick");
@@ -626,7 +627,7 @@
         show("businessAboutScheduleCard", state.isOwner || hasSchedule);
         show("businessAboutSection", state.isOwner || hasDescription || hasAddress || hasSchedule);
         show("businessPortfolioSection", state.isOwner || hasPortfolio);
-        show("businessBookingButton", !state.isOwner && profile.acceptsServiceRequests === true);
+        show("businessBookingButton", !state.isOwner && profile.ownerId !== EDITORIAL_OWNER_ID && profile.acceptsServiceRequests === true);
 
         if (profile.ownerId) loadReviews(profile.ownerId);
 
