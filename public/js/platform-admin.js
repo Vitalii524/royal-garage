@@ -70,22 +70,61 @@
         }
     }
 
-    async function loadBusinesses() {
-        const search = new FormData(form).get("q");
+    const previous = document.getElementById("adminBusinessPrevious");
+    const next = document.getElementById("adminBusinessNext");
+    const dateFormat = new Intl.DateTimeFormat("uk-UA", { timeZone: "Europe/Kyiv" });
+    const businessStatus = {
+        active: "Активний", pending: "Очікує підтвердження",
+        expired: "Доступ неактивний", disabled: "Акаунт обмежено"
+    };
+    let page = 1;
+    const date = value => value ? dateFormat.format(new Date(value)) : "Не задано";
+
+    async function loadBusinesses(targetPage = 1) {
+        const filters = new URLSearchParams(new FormData(form));
+        filters.set("page", targetPage);
         const submit = form.querySelector("button");
-        submit.disabled = true;
-        status.textContent = "Шукаємо…";
+        submit.disabled = previous.disabled = next.disabled = true;
+        status.textContent = "Завантажуємо…";
         try {
-            const data = await adminApi(`/api/admin/businesses?q=${encodeURIComponent(search)}`);
-            if (!data) throw new Error("Увійдіть як адміністратор.");
+            const data = await adminApi(`/api/admin/businesses?${filters}`);
+            const category = form.elements.category;
+            const selected = filters.get("category");
+            category.replaceChildren(new Option("Усі категорії", ""), ...data.categories.map(
+                item => new Option(item.name, item.code)
+            ));
+            category.value = selected;
+            page = data.page;
+            previous.hidden = page <= 1;
+            next.hidden = !data.hasMore;
             result.replaceChildren();
             status.textContent = data.businesses.length
-                ? `Знайдено до 50 результатів · Показано ${data.businesses.length}`
-                : "Активні акаунти за цим запитом відсутні.";
+                ? `Сторінка ${page} · Показано ${data.businesses.length}`
+                : "За цими фільтрами бізнесів не знайдено.";
             for (const business of data.businesses) {
-                const row = document.createElement("p");
-                const details = document.createElement("span");
-                details.textContent = `${business.name} · ${business.businessType || "Бізнес"} · ${business.email} · ${business.ownerId} `;
+                const row = document.createElement("article");
+                row.className = "upholstery-section";
+                const heading = document.createElement("h3");
+                heading.textContent = business.name;
+                const details = document.createElement("p");
+                const expiry = business.complimentarySubscription ? "Безстроково" : date(business.accessUntil);
+                details.textContent = [
+                    business.businessType || "Бізнес", businessStatus[business.status], business.planName || "Тариф не задано",
+                    `Реєстрація: ${date(business.createdAt)}`, `Доступ: ${expiry}`
+                ].join(" · ");
+                const link = document.createElement("a");
+                link.href = `seller.html?sellerId=${encodeURIComponent(business.ownerId)}`;
+                link.textContent = "Публічна сторінка";
+                row.append(heading);
+                if (business.hasLogo && business.status === "active") {
+                    const logo = document.createElement("img");
+                    logo.src = `/api/businesses/${encodeURIComponent(business.ownerId)}/logo`;
+                    logo.alt = "";
+                    logo.width = logo.height = 48;
+                    logo.loading = "lazy";
+                    logo.addEventListener("error", () => logo.remove());
+                    heading.prepend(logo);
+                }
                 const button = document.createElement("button");
                 button.type = "button";
                 button.className = "upholstery-primary-button";
@@ -108,16 +147,18 @@
                         button.disabled = false;
                     }
                 });
-                row.append(details, button);
+                row.append(details, link, button);
                 result.append(row);
             }
         } catch (error) {
             status.textContent = error.message;
         } finally {
-            submit.disabled = false;
+            submit.disabled = previous.disabled = next.disabled = false;
         }
     }
 
+    previous.addEventListener("click", () => loadBusinesses(page - 1));
+    next.addEventListener("click", () => loadBusinesses(page + 1));
     form.addEventListener("submit", event => {
         event.preventDefault();
         loadBusinesses();

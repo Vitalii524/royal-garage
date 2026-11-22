@@ -10622,26 +10622,64 @@ app.get("/api/admin/registrations", requireAuth, requireAnalyticsAccess, async (
                    AND NOT u.account_disabled AND bp.id IS NOT NULL AND NOT bp.is_deleted)::int AS "businesses"
         FROM users u LEFT JOIN business_profiles bp ON bp.owner_id = u.id
         WHERE u.role <> 'admin'`);
-    res.set("Cache-Control", "no-store").json({ ok: true, stats: result.rows[0], canManageBusinesses: req.user.role === "admin" });
+    res.set("Cache-Control", "no-store").json({ ok: true, stats: result.rows[0], canManageBusinesses: req.user.role === "admin" && req.user.userId !== ROYAL_AUTO_OWNER_ID });
 });
 
-app.get("/api/admin/businesses", requireAuth, requireAdmin, async (req, res) => {
+function requireBusinessAdministrator(req, res, next) {
+    if (req.user?.userId === ROYAL_AUTO_OWNER_ID) {
+        return res.status(403).json({ ok: false, message: "Доступ до керування бізнесами заборонено." });
+    }
+    return requireAdmin(req, res, next);
+}
+
+app.get("/api/admin/businesses", requireAuth, requireBusinessAdministrator, async (req, res) => {
     const search = String(req.query.q || "").trim().slice(0, 255);
-    const result = await pool.query(
-        `SELECT bp.id, bp.owner_id AS "ownerId", bp.name, u.email, bt.name AS "businessType",
-                bp.complimentary_subscription AS "complimentarySubscription"
-         FROM business_profiles bp
-         JOIN users u ON u.id = bp.owner_id
-         LEFT JOIN business_types bt ON bt.id = bp.business_type_id
-         WHERE NOT bp.is_deleted AND NOT u.account_disabled
-           AND ($1 = '' OR STRPOS(LOWER(bp.name), LOWER($1)) > 0
-                        OR LOWER(u.email) = LOWER($1) OR bp.owner_id::text = LOWER($1))
-         ORDER BY bp.created_at DESC, bp.id LIMIT 50`, [search]
-    );
-    res.set("Cache-Control", "no-store").json({ ok: true, businesses: result.rows });
+    const category = String(req.query.category || "").slice(0, 60);
+    const status = String(req.query.status || "");
+    const page = Number(req.query.page || 1);
+    const limit = 30;
+    if (!Number.isSafeInteger(page) || page < 1 || page > 1000000 ||
+        !["", "active", "pending", "expired", "disabled"].includes(status)) {
+        return res.status(400).json({ ok: false, message: "Некоректний фільтр або номер сторінки." });
+    }
+    try {
+        const [categories, result] = await Promise.all([
+            pool.query("SELECT code, name FROM business_types ORDER BY name, code"),
+            pool.query(
+                `WITH profiles AS (
+                    SELECT bp.id, bp.owner_id AS "ownerId", bp.name, u.email,
+                           bt.code AS "category", bt.name AS "businessType", bp.created_at AS "createdAt",
+                           sp.name AS "planName", bp.subscription_expires_at AS "accessUntil",
+                           bp.complimentary_subscription AS "complimentarySubscription",
+                           NULLIF(bp.logo, '') IS NOT NULL AS "hasLogo",
+                           CASE WHEN u.account_disabled THEN 'disabled'
+                                WHEN NOT u.email_verified OR NOT u.phone_verified THEN 'pending'
+                                WHEN sp.is_active AND (bp.complimentary_subscription OR bp.subscription_expires_at > NOW()) THEN 'active'
+                                ELSE 'expired' END AS status
+                    FROM business_profiles bp
+                    JOIN users u ON u.id = bp.owner_id
+                    LEFT JOIN business_types bt ON bt.id = bp.business_type_id
+                    LEFT JOIN subscription_plans sp ON sp.id = bp.subscription_plan_id
+                    WHERE NOT bp.is_deleted AND ($2 = '' OR bt.code = $2)
+                      AND ($1 = '' OR STRPOS(LOWER(bp.name), LOWER($1)) > 0
+                                   OR LOWER(u.email) = LOWER($1) OR bp.owner_id::text = LOWER($1))
+                )
+                SELECT * FROM profiles WHERE ($3 = '' OR status = $3)
+                ORDER BY "createdAt", id LIMIT $4 OFFSET $5`,
+                [search, category, status, limit + 1, (page - 1) * limit]
+            )
+        ]);
+        res.set("Cache-Control", "no-store").json({
+            ok: true, categories: categories.rows, businesses: result.rows.slice(0, limit),
+            page, hasMore: result.rows.length > limit
+        });
+    } catch (error) {
+        console.error("Admin business directory:", error);
+        res.status(500).json({ ok: false, message: "Не вдалося завантажити бізнес-профілі." });
+    }
 });
 
-app.patch("/api/admin/businesses/:id/complimentary", requireAuth, requireAdmin, async (req, res) => {
+app.patch("/api/admin/businesses/:id/complimentary", requireAuth, requireBusinessAdministrator, async (req, res) => {
     const { enabled } = req.body || {};
     if (!UUID_PATTERN.test(req.params.id) || typeof enabled !== "boolean") {
         return res.status(400).json({ ok: false, message: "Некоректний бізнес або стан доступу." });
