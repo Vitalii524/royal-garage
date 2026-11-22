@@ -9888,10 +9888,10 @@ app.post("/api/admin/users/:id/convert-to-business", requireAuth, requireBusines
                 from: `"Royal Garage" <${process.env.GMAIL_USER}>`,
                 to: user.email,
                 subject: "Royal Garage — ваш бізнес-профіль створено",
-                text: verificationMessage + "\\n\\nВідкрити бізнес-кабінет: " +
+                text: verificationMessage + "\n\nВідкрити бізнес-кабінет: " +
                     PUBLIC_ORIGIN + "/business-profile.html?edit=1" +
-                    "\\nУ розділі підтвердження телефону натисніть «Підтвердити номер»." +
-                    "\\nЯкщо ви не просили про переведення, зверніться до адміністрації Royal Garage."
+                    "\nУ розділі підтвердження телефону натисніть «Підтвердити номер»." +
+                    "\nЯкщо ви не просили про переведення, зверніться до адміністрації Royal Garage."
             });
         } catch (mailError) {
             console.error("Business conversion email notification failed:", mailError);
