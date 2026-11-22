@@ -25,11 +25,14 @@
             card.href = (business.ownerId === royalAuto.ownerId || royalAutoNames.has(String(business.businessName || "").trim().toLowerCase().replace(/\s+/g, "")))
                 ? "handmade.html"
                 : (business.href || `business-profile.html?id=${encodeURIComponent(business.ownerId)}`);
-            if (business.logoUrl) {
+            const isRoyalAuto = business.ownerId === royalAuto.ownerId || royalAutoNames.has(String(business.businessName || "").trim().toLowerCase().replace(/\s+/g, ""));
+            if (isRoyalAuto) card.classList.add("home-partner-card--royalauto");
+            const logoUrl = isRoyalAuto ? royalAuto.logoUrl : business.logoUrl;
+            if (logoUrl) {
                 const logo = document.createElement("img");
                 logo.alt = "";
                 logo.loading = "lazy";
-                logo.src = business.logoUrl;
+                logo.src = logoUrl;
                 logo.addEventListener("error", () => logo.remove(), { once: true });
                 card.append(logo);
             }
