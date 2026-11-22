@@ -634,11 +634,51 @@
     function renderProducts(profile) {
         const products = profile.products || [];
         const canEdit = state.isOwner && (products.length > 0 || ["products", "both"].includes(profile.businessContentType));
-        const legacyCatalog = profile.ownerId === ROYAL_AUTO_OWNER_ID;
-        $("businessProductsSection").hidden = !(products.length || canEdit || legacyCatalog);
+        $("businessProductsSection").hidden = !(products.length || canEdit);
         $("businessAddProductQuick").hidden = !canEdit;
-        $("businessRoyalAutoCatalog").hidden = !legacyCatalog;
         $("businessProductsGrid").replaceChildren(...products.map(product => itemCard(product, true)));
+    }
+
+    function royalAutoListingCard(listing) {
+        const card = document.createElement("a");
+        card.className = "royal-auto-car-card";
+        card.href = `listing.html?id=${encodeURIComponent(listing.id)}`;
+
+        const photoBox = document.createElement("div");
+        photoBox.className = "royal-auto-car-photo";
+        const photo = listing.photos?.[listing.activePhotoIndex] || listing.photos?.[0];
+        if (photo) {
+            const image = document.createElement("img");
+            image.src = photo;
+            image.alt = listing.name || "Автомобіль";
+            image.loading = "lazy";
+            photoBox.append(image);
+        } else {
+            const placeholder = document.createElement("div");
+            placeholder.className = "royal-auto-car-placeholder";
+            placeholder.textContent = "🚘";
+            photoBox.append(placeholder);
+        }
+
+        const info = document.createElement("div");
+        info.className = "royal-auto-car-info";
+        const title = document.createElement("h3");
+        const name = listing.name || [listing.brand, listing.model].filter(Boolean).join(" ") || "Автомобіль";
+        const year = String(listing.year || "");
+        title.textContent = year && !name.includes(year) ? `${name} ${year}` : name;
+
+        const price = document.createElement("strong");
+        price.className = "royal-auto-car-price";
+        const format = new Intl.NumberFormat("uk-UA");
+        price.textContent = Number(listing.priceUsd) > 0 ? `${format.format(listing.priceUsd)} $`
+            : Number(listing.priceUah) > 0 ? `${format.format(listing.priceUah)} грн` : "Ціна договірна";
+
+        const more = document.createElement("span");
+        more.className = "royal-auto-car-more";
+        more.textContent = "Детальніше";
+        info.append(title, price, more);
+        card.append(photoBox, info);
+        return card;
     }
 
     async function loadBusinessCars(ownerId, isDealer) {
@@ -647,14 +687,19 @@
         section.hidden = !isDealer;
         try {
             const { listings } = await api(`/api/market/listings?ownerId=${encodeURIComponent(ownerId)}`);
+            const royalAuto = ownerId === ROYAL_AUTO_OWNER_ID;
             const cards = listings.map(listing => {
+                if (royalAuto) return royalAutoListingCard(listing);
                 const card = document.createElement("a");
                 card.className = "business-info-card";
                 card.href = `listing.html?id=${encodeURIComponent(listing.id)}`;
                 card.textContent = listing.name || [listing.brand, listing.model, listing.year].filter(Boolean).join(" ");
                 return card;
             });
-            $("businessCarsGrid").replaceChildren(...cards);
+            const grid = $("businessCarsGrid");
+            grid.classList.toggle("royal-auto-cars-grid", royalAuto);
+            grid.classList.toggle("business-content-grid", !royalAuto);
+            grid.replaceChildren(...cards);
             section.hidden = !(isDealer || cards.length);
             status.textContent = cards.length ? "" : "Активних оголошень поки немає.";
         } catch (error) {
