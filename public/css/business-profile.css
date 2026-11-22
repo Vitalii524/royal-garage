@@ -71,6 +71,7 @@
 }
 
 .business-logo { width: 100%; height: 100%; object-fit: contain; display: block; }
+.business-royal-auto-logo { filter: url("#royal-auto-logo-white-background"); }
 .business-logo-placeholder {
     width: 100%; height: 100%; display: grid; place-items: center;
     font-size: 42px; font-weight: 900; letter-spacing: 2px; color: var(--business-gold);

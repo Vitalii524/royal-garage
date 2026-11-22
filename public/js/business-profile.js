@@ -173,6 +173,7 @@
         const image = $("businessLogo");
         const placeholder = $("businessLogoPlaceholder");
         const source = String(profile.logo || "").trim();
+        image.classList.toggle("business-royal-auto-logo", profile.ownerId === ROYAL_AUTO_OWNER_ID);
         placeholder.textContent = initials(profile.name);
         image.onerror = () => {
             image.hidden = true;

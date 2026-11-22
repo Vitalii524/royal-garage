@@ -12,7 +12,7 @@
     <link rel="icon" type="image/png" href="images/favicon.png">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/handmade.css">
-    <link rel="stylesheet" href="css/business-profile.css?v=11">
+    <link rel="stylesheet" href="css/business-profile.css?v=12">
 <link rel="stylesheet" href="css/business-profile-compact.css?v=2">
 <link rel="stylesheet" href="css/profile-community.css?v=1">
 <link rel="stylesheet" href="css/service-media.css">
@@ -21,6 +21,18 @@
 <script defer src="js/business-actions.js?v=1"></script>
 </head>
 <body>
+    <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+        <defs>
+            <filter id="royal-auto-logo-white-background" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%">
+                <feColorMatrix in="SourceGraphic" type="matrix" values="
+                    0 0 0 0 0
+                    0 0 0 0 0
+                    0 0 0 0 0
+                    0 0 -8 0 8" result="foreground-mask"/>
+                <feComposite in="SourceGraphic" in2="foreground-mask" operator="in"/>
+            </filter>
+        </defs>
+    </svg>
 <header class="site-header">
     <div class="top-line">
         <div class="brand">
@@ -606,7 +618,7 @@
 <script src="js/dealer-xml.js?v=20261122"></script>
 <script src="js/product-catalog.js?v=20261122-order"></script>
 <script src="js/share.js?v=2"></script>
-<script src="js/business-profile.js?v=20261122-royal-partner-owner"></script>
+<script src="js/business-profile.js?v=20261122-royal-logo"></script>
 <script src="js/loader.js"></script>
 <script src="js/lang.js"></script>
 <script src="js/profile-community.js?v=1"></script>
