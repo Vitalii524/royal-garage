@@ -189,10 +189,19 @@ function createAuthModal() {
 ${isPartnerDirectory ? "" : '<p><a href="/businesses.html?register=business">Зареєструвати бізнес у «Партнерах»</a></p>'}
 
 
+<div id="rgRegistrationOffer" role="note" style="margin:12px 0;padding:12px 14px;border:1px solid rgba(214,160,58,.45);border-radius:10px;background:rgba(214,160,58,.07);line-height:1.5;font-size:14px">
+  <strong>🎁 Акція для користувачів Royal Garage</strong>
+  <p style="margin:6px 0 0">Перше оголошення безкоштовне для кожного. Перші 100 учасників отримують постійний статус «ПЕРШИЙ» і 3 безкоштовні оголошення загалом.</p>
+</div>
 <div
     id="businessRegistrationFields"
     class="hidden"
 >
+<div id="rgBusinessRegistrationOffer" role="note" style="margin:12px 0;padding:12px 14px;border:1px solid rgba(214,160,58,.45);border-radius:10px;background:rgba(214,160,58,.07);line-height:1.5;font-size:14px">
+  <strong>🎁 Акції для автобізнесу</strong>
+  <p style="margin:6px 0">Автомайданчики — безкоштовно до 31.12.2027. Перші 50 бізнесів — безкоштовно до 31.12.2027 за умовами акції.</p>
+  <p style="margin:6px 0">Для наступних бізнесів передбачено 3 місяці безкоштовного доступу, після чого діє тариф. Наявність акційного місця й остаточні умови необхідно підтвердити під час оформлення.</p>
+</div>
     <label>
         Тип бізнесу
 
@@ -1065,6 +1074,15 @@ document.addEventListener("DOMContentLoaded", () => {
         else if (params.get("register") === "business") openBusinessRegistration();
         registerButton?.addEventListener("click", openBusinessRegistration);
     }
+    const syncRegistrationOffer = () => {
+        const business = document.getElementById("registerAccountType")?.value === "business";
+        const userOffer = document.getElementById("rgRegistrationOffer");
+        const businessOffer = document.getElementById("rgBusinessRegistrationOffer");
+        if (userOffer) userOffer.hidden = business;
+        if (businessOffer) businessOffer.hidden = !business;
+    };
+    document.getElementById("registerAccountType")?.addEventListener("change", syncRegistrationOffer);
+    syncRegistrationOffer();
     const registrationType = params.get("register");
     if (registrationType === "user" || registrationType === "business") {
         openAuthModal("register");
