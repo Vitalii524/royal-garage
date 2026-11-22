@@ -148,7 +148,14 @@ function renderBusinesses(businesses) {
     businessList.innerHTML = "";
 
 
-    businesses.forEach((business) => {
+    businesses.forEach((record) => {
+        const isRoyalAuto = record.ownerId === "32ce413e-9eb6-417a-b99a-77d9ca7c144a";
+        const business = isRoyalAuto ? {
+            ownerId: record.ownerId,
+            businessName: "RoyalAuto",
+            logoUrl: "images/royal-auto-atelier-logo.webp",
+            description: "Автомобілі та аксесуари для вашого авто."
+        } : record;
 
         const card =
             document.createElement("a");
@@ -158,7 +165,7 @@ function renderBusinesses(businesses) {
             "business-list-card";
 
 
-        card.href = business.ownerId === "32ce413e-9eb6-417a-b99a-77d9ca7c144a"
+        card.href = isRoyalAuto
             ? "handmade.html"
             : `business-profile.html?id=${encodeURIComponent(business.ownerId)}`;
 
