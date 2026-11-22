@@ -927,15 +927,18 @@ function logoutUser() {
 
 function renderAuthArea() {
     const authArea = document.getElementById("authArea");
+    const accountActions = document.querySelector("[data-rg-account-actions]");
 
     if (!authArea) {
         return;
     }
 
     const currentUser = getCurrentUser();
+    if (accountActions) accountActions.replaceChildren();
 
     if (!currentUser) {
-        authArea.innerHTML = `
+        authArea.replaceChildren();
+        (accountActions || authArea).innerHTML = `
             <button
                 type="button"
                 class="auth-header-button"
@@ -987,8 +990,12 @@ function renderAuthArea() {
             <a href="${profileUrl}">
                 👤 ${escapeHtml(currentUser.name)}
             </a>
-            ${currentUser.role === "admin" ? '<a href="/royal-auto-admin.html">Адмінпанель</a>' : ""}
-
+        </div>
+    `;
+    (accountActions || authArea).insertAdjacentHTML("beforeend", `
+        ${accountActions ? `
+            <a href="/royal-auto-admin.html#platformAdmin" data-rg-admin-link hidden>Адмінпанель</a>
+        ` : ""}
         <button
             type="button"
             class="logout-button"
@@ -997,13 +1004,40 @@ function renderAuthArea() {
                 ? window.t("auth.logout", "Вийти")
                 : "Вийти"}
         </button>
-        </div>
-    `;
+    `);
 
     document
         .getElementById("logoutButton")
         .addEventListener("click", logoutUser);
+    refreshHeaderAdminLink();
 }
+
+async function refreshHeaderAdminLink() {
+    const link = document.querySelector('[data-rg-account-actions] [data-rg-admin-link]');
+    const token = localStorage.getItem('royalGarageToken');
+    if (!link || !token) return;
+    link.hidden = true;
+    try {
+        const response = await fetch('/api/profile', {
+            cache: 'no-store',
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!response.ok) return;
+        const { user } = await response.json();
+        if (link.isConnected && localStorage.getItem('royalGarageToken') === token) {
+            link.hidden = user?.role !== 'admin';
+        }
+    } catch {
+        // Keep the administration entry hidden until the server confirms access.
+    }
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshHeaderAdminLink();
+});
+window.addEventListener('storage', event => {
+    if (event.key === SESSION_KEY || event.key === 'royalGarageToken') renderAuthArea();
+});
 
 function escapeHtml(value) {
     return String(value)
