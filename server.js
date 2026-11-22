@@ -9765,6 +9765,123 @@ function requireBusinessAdministrator(req, res, next) {
     return requireAdmin(req, res, next);
 }
 
+
+/* Administrative user directory and explicit conversion to an existing business account.
+   No production data is changed until an administrator submits a conversion. */
+app.get("/api/admin/users", requireAuth, requireBusinessAdministrator, async (req, res) => {
+    const q = String(req.query.q || "").trim().slice(0, 255);
+    const page = Number(req.query.page || 1);
+    if (!Number.isSafeInteger(page) || page < 1 || page > 100000) {
+        return res.status(400).json({ ok: false, message: "Некоректна сторінка." });
+    }
+    try {
+        const limit = 30;
+        const users = await pool.query(`
+            SELECT u.id, u.name, u.email, u.created_at AS "createdAt",
+                   u.email_verified AS "emailVerified", u.phone_verified AS "phoneVerified",
+                   u.account_disabled AS "disabled"
+            FROM users u
+            WHERE u.account_type = 'user' AND u.role <> 'admin'
+              AND NOT EXISTS (SELECT 1 FROM business_profiles bp WHERE bp.owner_id = u.id AND NOT bp.is_deleted)
+              AND ($1 = '' OR u.name ILIKE '%' || $1 || '%'
+                   OR u.email ILIKE '%' || $1 || '%' OR u.id::text = $1)
+            ORDER BY u.created_at DESC, u.id
+            LIMIT $2 OFFSET $3`, [q, limit + 1, (page - 1) * limit]);
+        res.set("Cache-Control", "no-store").json({
+            ok: true, users: users.rows.slice(0, limit), page, hasMore: users.rows.length > limit
+        });
+    } catch (error) {
+        console.error("Admin users:", error);
+        res.status(500).json({ ok: false, message: "Не вдалося завантажити користувачів." });
+    }
+});
+
+app.post("/api/admin/users/:id/convert-to-business", requireAuth, requireBusinessAdministrator, async (req, res) => {
+    if (!UUID_PATTERN.test(req.params.id)) {
+        return res.status(400).json({ ok: false, message: "Некоректний користувач." });
+    }
+    const businessName = String(req.body?.businessName || "").trim();
+    const category = String(req.body?.category || "").trim();
+    const reason = String(req.body?.reason || "").trim();
+    const contentType = String(req.body?.contentType || "").trim();
+    if (businessName.length < 2 || businessName.length > 100 || reason.length < 5 ||
+        reason.length > 500 || !req.body?.confirmed) {
+        return res.status(400).json({ ok: false, message: "Вкажіть назву бізнесу, причину та підтвердіть дію." });
+    }
+    const client = await pool.connect();
+    try {
+        await client.query("BEGIN");
+        const userResult = await client.query(
+            "SELECT id, name, phone, account_type, role, account_disabled FROM users WHERE id=$1 FOR UPDATE",
+            [req.params.id]
+        );
+        const user = userResult.rows[0];
+        if (!user || user.role === "admin" || user.account_type !== "user" || user.account_disabled) {
+            await client.query("ROLLBACK");
+            return res.status(409).json({ ok: false, message: "Цей акаунт не можна перевести в бізнес." });
+        }
+        const existing = await client.query(
+            "SELECT id FROM business_profiles WHERE owner_id=$1 LIMIT 1", [user.id]
+        );
+        if (existing.rows.length) {
+            await client.query("ROLLBACK");
+            return res.status(409).json({ ok: false, message: "Для цього користувача вже існує бізнес-профіль." });
+        }
+        const type = await client.query("SELECT id, code FROM business_types WHERE code=$1 LIMIT 1", [category]);
+        if (!type.rows.length) {
+            await client.query("ROLLBACK");
+            return res.status(400).json({ ok: false, message: "Оберіть правильну категорію бізнесу." });
+        }
+        const plan = await client.query(
+            "SELECT id FROM subscription_plans WHERE business_type_code=$1 AND code='business' AND is_active=TRUE LIMIT 1",
+            [category]
+        );
+        if (!plan.rows.length) {
+            await client.query("ROLLBACK");
+            return res.status(409).json({ ok: false, message: "Для категорії немає активного бізнес-тарифу." });
+        }
+        let resolvedContentType = "services";
+        if (category === "car_dealer") resolvedContentType = "cars";
+        else if (["auto_shop", "wholesale"].includes(category)) resolvedContentType = "products";
+        else if (category === "other") {
+            if (!["services", "products", "both"].includes(contentType)) {
+                await client.query("ROLLBACK");
+                return res.status(400).json({ ok: false, message: "Оберіть тип вмісту для категорії «Інше»." });
+            }
+            resolvedContentType = contentType;
+        }
+        const businessId = crypto.randomUUID();
+        await client.query(`
+            INSERT INTO business_profiles (
+                id, owner_id, business_type_id, subscription_plan_id,
+                business_content_type, name, phone, subscription_started_at,
+                subscription_expires_at, crm_enabled
+            ) VALUES ($1,$2,$3,$4,$5,$6,$7,NOW(),NOW() + INTERVAL '3 months',$8)`,
+            [businessId, user.id, type.rows[0].id, plan.rows[0].id, resolvedContentType,
+                businessName, user.phone, !["auto_shop", "wholesale"].includes(category)]
+        );
+        await client.query("UPDATE users SET account_type='business' WHERE id=$1", [user.id]);
+        await client.query(`
+            INSERT INTO admin_business_audit
+                (business_id, admin_id, action, reason, before_state, after_state)
+            VALUES ($1,$2,'convert_user_to_business',$3,$4::jsonb,$5::jsonb)`,
+            [businessId, req.user.userId, reason,
+                JSON.stringify({ userId: user.id, accountType: "user" }),
+                JSON.stringify({ userId: user.id, accountType: "business", category, businessName })]
+        );
+        await client.query("COMMIT");
+        res.set("Cache-Control", "no-store").json({
+            ok: true, businessId, message: "Бізнес-профіль створено. Користувачу потрібно увійти повторно."
+        });
+    } catch (error) {
+        await client.query("ROLLBACK");
+        console.error("Admin user conversion:", error);
+        res.status(500).json({ ok: false, message: "Не вдалося перевести користувача в бізнес." });
+    } finally {
+        client.release();
+    }
+});
+
 app.get("/api/admin/businesses", requireAuth, requireBusinessAdministrator, async (req, res) => {
     const search = String(req.query.q || "").trim().slice(0, 255);
     const category = String(req.query.category || "").slice(0, 60);
