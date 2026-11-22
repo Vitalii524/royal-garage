@@ -505,7 +505,12 @@
                 submit.className = "upholstery-primary-button";
                 const feedback = document.createElement("p");
                 feedback.setAttribute("role", "status");
-                conversion.append(businessName, category, contentType, reason, confirmLabel, submit, feedback);
+                const verificationNotice = document.createElement("p");
+                verificationNotice.setAttribute("role", "note");
+                verificationNotice.textContent = user.phoneVerified
+                    ? "Телефон підтверджено. Після переведення бізнес зможе з’явитися в каталозі за умови активного доступу."
+                    : "Увага: телефон не підтверджений. Після переведення бізнес НЕ з’явиться на головній і в «Партнерах», доки власник не підтвердить номер у своєму кабінеті. Адміністратор не повинен обходити перевірку.";
+                conversion.append(businessName, category, contentType, reason, verificationNotice, confirmLabel, submit, feedback);
                 conversion.addEventListener("submit", async event => {
                     event.preventDefault();
                     if (!window.confirm(`Перевести акаунт «${user.name}» (${user.email}) у бізнес «${businessName.value}»? Дія змінить тип акаунта.`)) return;
@@ -517,7 +522,7 @@
                                 contentType: contentType.value, reason: reason.value, confirmed: consent.checked }
                         });
                         await loadUsers(usersPage);
-                        usersStatus.textContent = data.message;
+                        usersStatus.textContent = data.message + (user.phoneVerified ? "" : " Увага: власник має підтвердити телефон, інакше профіль не буде публічним.");
                     } catch (error) {
                         feedback.textContent = error.message;
                         submit.disabled = false;
