@@ -138,6 +138,11 @@ function createAuthModal() {
 
             <form id="registerForm" class="auth-form hidden">
                 <h2>Реєстрація</h2>
+<div id="rgRegistrationOffer" role="note" style="margin:12px 0;padding:12px 14px;border:1px solid rgba(214,160,58,.45);border-radius:10px;background:rgba(214,160,58,.07);line-height:1.5;font-size:14px">
+  <strong>🎁 Акція для користувачів Royal Garage</strong>
+  <p style="margin:6px 0 0">Перше оголошення безкоштовне для кожного. Перші 100 учасників отримують постійний статус «ПЕРШИЙ» і 3 безкоштовні оголошення загалом.</p>
+</div>
+
 
                 <label>
                     Ім’я
@@ -189,10 +194,6 @@ function createAuthModal() {
 ${isPartnerDirectory ? "" : '<p><a href="/businesses.html?register=business">Зареєструвати бізнес у «Партнерах»</a></p>'}
 
 
-<div id="rgRegistrationOffer" role="note" style="margin:12px 0;padding:12px 14px;border:1px solid rgba(214,160,58,.45);border-radius:10px;background:rgba(214,160,58,.07);line-height:1.5;font-size:14px">
-  <strong>🎁 Акція для користувачів Royal Garage</strong>
-  <p style="margin:6px 0 0">Перше оголошення безкоштовне для кожного. Перші 100 учасників отримують постійний статус «ПЕРШИЙ» і 3 безкоштовні оголошення загалом.</p>
-</div>
 <div
     id="businessRegistrationFields"
     class="hidden"
