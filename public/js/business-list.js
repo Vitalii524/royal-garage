@@ -158,10 +158,9 @@ function renderBusinesses(businesses) {
             "business-list-card";
 
 
-            card.href =
-            `business-profile.html?id=${encodeURIComponent(
-                business.ownerId
-            )}`;
+        card.href = business.ownerId === "32ce413e-9eb6-417a-b99a-77d9ca7c144a"
+            ? "handmade.html"
+            : `business-profile.html?id=${encodeURIComponent(business.ownerId)}`;
 
 
         /* LOGO */
