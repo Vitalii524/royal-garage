@@ -1181,6 +1181,7 @@ CREATE TABLE IF NOT EXISTS service_history_purchases (
 
         await ensureBusinessRequestsTable();
         await pool.query(fs.readFileSync(path.join(__dirname, "migrations/20261122-verified-platform-administrator.sql"), "utf8"));
+        await pool.query(fs.readFileSync(path.join(__dirname, "migrations/20261122-retire-royal-auto-platform-analytics.sql"), "utf8"));
         console.log("Users table ready");
     } catch (error) {
         throw error;
@@ -10589,14 +10590,7 @@ async function requireAdmin(req, res, next) {
     next();
 }
 
-function requireAnalyticsAccess(req, res, next) {
-    if (req.user.role === "admin" || String(req.user.userId) === ROYAL_AUTO_OWNER_ID) {
-        return next();
-    }
-    return res.status(403).json({ ok: false, message: "Доступ до аналітики заборонено." });
-}
-
-app.get("/api/admin/site-analytics", requireAuth, requireAnalyticsAccess, async (req, res) => {
+app.get("/api/admin/site-analytics", requireAuth, requireAdmin, async (req, res) => {
     res.set("Cache-Control", "no-store");
     try {
         const periods = await getSiteAnalytics(new URL(PUBLIC_ORIGIN).hostname);
@@ -10607,7 +10601,7 @@ app.get("/api/admin/site-analytics", requireAuth, requireAnalyticsAccess, async 
     }
 });
 
-app.get("/api/admin/registrations", requireAuth, requireAnalyticsAccess, async (req, res) => {
+app.get("/api/admin/registrations", requireAuth, requireAdmin, async (req, res) => {
     const result = await pool.query(`
         SELECT COUNT(*)::int AS "created",
                COUNT(*) FILTER (WHERE NOT u.email_verified)::int AS "unverifiedEmail",
