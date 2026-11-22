@@ -4688,7 +4688,7 @@ app.get(
                     name,
                     year,
                     vin,
-                    photos,,
+                    photos,
                     active_photo_index AS "activePhotoIndex",
                     engine,
                     mileage,
