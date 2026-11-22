@@ -23,42 +23,38 @@ async function saveMedia(client, items, ownerId, requestId = null, orderId = nul
     for (const item of items) await client.query('INSERT INTO crm_media(id,owner_id,request_id,work_order_id,mime_type,data,caption) VALUES($1,$2,$3,$4,$5,$6,$7)',[item.id,ownerId,requestId,orderId,item.mime,item.data,item.caption]);
 }
 function installMedia({app,pool,requireAuth,requireCrmAccess,databaseReady}) {
-    const ready = databaseReady.then(()=>pool.query(`CREATE TABLE IF NOT EXISTS crm_media (
-        id UUID PRIMARY KEY,owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,request_id UUID REFERENCES business_service_requests(id) ON DELETE SET NULL,
-        work_order_id UUID REFERENCES crm_work_orders(id) ON DELETE CASCADE,mime_type TEXT NOT NULL,data BYTEA NOT NULL,caption TEXT NOT NULL DEFAULT '',created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`));
-    ready.catch(error=>console.error('CRM media initialization:',error));
     const access=[requireAuth,requireCrmAccess];
     const orderOwned=async(req,id)=>UUID.test(id) && (await pool.query('SELECT w.id FROM crm_work_orders w JOIN crm_services s ON s.id=w.service_id WHERE w.id=$1 AND s.business_profile_id=$2',[id,req.crm.businessProfileId])).rowCount>0;
     app.get('/api/business/requests/:id/media',...access,async(req,res)=>{
-        try { await ready; const r=await pool.query('SELECT id FROM business_service_requests WHERE id=$1 AND owner_id=$2',[UUID.test(req.params.id)?req.params.id:null,req.user.userId]);
+        try { await databaseReady; const r=await pool.query('SELECT id FROM business_service_requests WHERE id=$1 AND owner_id=$2',[UUID.test(req.params.id)?req.params.id:null,req.user.userId]);
             if(!r.rowCount)return res.sendStatus(404);
             res.set('Cache-Control','no-store').json({ok:true,media:(await pool.query('SELECT id,mime_type AS mime,caption FROM crm_media WHERE request_id=$1 AND owner_id=$2 ORDER BY created_at,id',[req.params.id,req.user.userId])).rows});
         }catch(e){console.error(e);res.status(500).json({message:'Не вдалося завантажити вкладення.'});}
     });
     app.get('/api/crm/work-orders/:id/media',...access,async(req,res)=>{
-        try {await ready;if(!await orderOwned(req,req.params.id))return res.sendStatus(404);
+        try {await databaseReady;if(!await orderOwned(req,req.params.id))return res.sendStatus(404);
             res.set('Cache-Control','no-store').json({ok:true,media:(await pool.query('SELECT id,mime_type AS mime,caption FROM crm_media WHERE work_order_id=$1 AND owner_id=$2 ORDER BY created_at,id',[req.params.id,req.user.userId])).rows});
         }catch(e){console.error(e);res.status(500).json({message:'Не вдалося завантажити вкладення.'});}
     });
     app.post('/api/crm/work-orders/:id/media',...access,async(req,res)=>{
-        try {await ready;if(!await orderOwned(req,req.params.id))return res.sendStatus(404);
+        try {await databaseReady;if(!await orderOwned(req,req.params.id))return res.sendStatus(404);
             let items;try{items=await prepareMedia(req.body.attachments);}catch(e){return res.status(400).json({message:e.message});}
             const client=await pool.connect();try{await client.query('BEGIN');await saveMedia(client,items,req.user.userId,null,req.params.id);await client.query('COMMIT');}catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
             res.status(201).json({ok:true});
         }catch(e){console.error(e);res.status(500).json({message:'Не вдалося зберегти вкладення.'});}
     });
     app.get('/api/crm/media/:id',...access,async(req,res)=>{
-        try {await ready;const result=await pool.query('SELECT mime_type,data FROM crm_media WHERE id=$1 AND owner_id=$2',[UUID.test(req.params.id)?req.params.id:null,req.user.userId]);
+        try {await databaseReady;const result=await pool.query('SELECT mime_type,data FROM crm_media WHERE id=$1 AND owner_id=$2',[UUID.test(req.params.id)?req.params.id:null,req.user.userId]);
             const media=result.rows[0];if(!media)return res.sendStatus(404);
             res.set({'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}).type(media.mime_type).send(media.data);
         }catch(e){console.error(e);res.sendStatus(500);}
     });
     app.patch('/api/crm/media/:id',...access,async(req,res)=>{
-        try {await ready;if(typeof req.body.caption!=='string'||req.body.caption.length>1000)return res.status(400).json({message:'Коментар — до 1000 символів.'});
+        try {await databaseReady;if(typeof req.body.caption!=='string'||req.body.caption.length>1000)return res.status(400).json({message:'Коментар — до 1000 символів.'});
             const r=await pool.query('UPDATE crm_media SET caption=$3 WHERE id=$1 AND owner_id=$2',[UUID.test(req.params.id)?req.params.id:null,req.user.userId,req.body.caption.trim()]);
             if(!r.rowCount)return res.sendStatus(404);res.json({ok:true});
         }catch(e){console.error(e);res.sendStatus(500);}
     });
-    return ready;
+    return databaseReady;
 }
 module.exports={prepareMedia,saveMedia,installMedia};

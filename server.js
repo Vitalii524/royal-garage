@@ -291,916 +291,14 @@ function validateVin(value) {
     };
 }
 
-async function initDatabase() {
-    try {
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS users (
-                id UUID PRIMARY KEY,
-                name VARCHAR(100) NOT NULL,
-                email VARCHAR(255) UNIQUE NOT NULL,
-                phone VARCHAR(20) UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                account_type VARCHAR(30) NOT NULL DEFAULT 'user',
-                role VARCHAR(30) NOT NULL DEFAULT 'user',
-                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-            )
-        `);
-
-        await pool.query(`
-        ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS city VARCHAR(80),
-        ADD COLUMN IF NOT EXISTS telegram VARCHAR(80),
-        ADD COLUMN IF NOT EXISTS profile_photo TEXT,
-        ADD COLUMN IF NOT EXISTS show_phone BOOLEAN NOT NULL DEFAULT FALSE,
-        ADD COLUMN IF NOT EXISTS show_telegram BOOLEAN NOT NULL DEFAULT FALSE,
-        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    `);
-
-    await pool.query(`
-    ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS
-        email_verified BOOLEAN NOT NULL DEFAULT TRUE,
-    ADD COLUMN IF NOT EXISTS
-        phone_verified BOOLEAN NOT NULL DEFAULT FALSE
+// Resolve the release schema without reading rows or running migrations on boot.
+const databaseReady = pool.query(`
+    SELECT bp.moderation_status, bp.moderation_until, bp.moderation_decision_id,
+           audit.id, complaints.id, decisions.id, appeals.decision_id
+    FROM business_profiles bp, admin_business_audit audit, business_complaints complaints,
+         business_moderation_decisions decisions, business_moderation_appeals appeals
+    LIMIT 0
 `);
-
-    await pool.query(`
-    ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS
-        account_disabled BOOLEAN NOT NULL DEFAULT FALSE,
-    ADD COLUMN IF NOT EXISTS
-        account_disabled_at TIMESTAMPTZ
-`);
-
-    // One lifetime free market listing per account. Never reset on listing deletion.
-    await pool.query(`
-        ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS first_free_listing_used BOOLEAN NOT NULL DEFAULT FALSE
-    `);
-
-    // Lifetime free listing credits: 1 for everyone, 3 total for first 100 members.
-    await pool.query(`
-        ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS free_market_listings_used INTEGER NOT NULL DEFAULT 0
-    `);
-
-    // Перші 100 підтверджених звичайних користувачів Royal Garage.
-    // Статус зберігається в базі назавжди та не залежить від поточного лічильника.
-    await pool.query(`
-        ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS
-            is_first_member BOOLEAN NOT NULL DEFAULT FALSE,
-        ADD COLUMN IF NOT EXISTS
-            first_member_number INTEGER
-    `);
-
-    await pool.query(`
-        WITH ranked_members AS (
-            SELECT
-                id,
-                ROW_NUMBER() OVER (
-                    ORDER BY created_at ASC, id ASC
-                )::integer AS member_number
-            FROM users
-            WHERE
-                account_type = 'user'
-                AND email_verified = TRUE
-        )
-        UPDATE users AS u
-        SET
-            is_first_member = TRUE,
-            first_member_number = ranked_members.member_number
-        FROM ranked_members
-        WHERE
-            u.id = ranked_members.id
-            AND ranked_members.member_number <= 100
-            AND (
-                u.is_first_member IS DISTINCT FROM TRUE
-                OR u.first_member_number IS DISTINCT FROM ranked_members.member_number
-            )
-    `);
-
-    await pool.query(`
-        CREATE UNIQUE INDEX IF NOT EXISTS
-            idx_users_first_member_number
-        ON users (first_member_number)
-        WHERE first_member_number IS NOT NULL
-    `);
-
-    await pool.query(`
-    CREATE TABLE IF NOT EXISTS business_types (
-        id UUID PRIMARY KEY,
-        code VARCHAR(60) UNIQUE NOT NULL,
-        name VARCHAR(120) NOT NULL,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-`);
-
-await pool.query(`
-    CREATE TABLE IF NOT EXISTS subscription_plans (
-        id UUID PRIMARY KEY,
-        business_type_code VARCHAR(60) NOT NULL,
-        code VARCHAR(60) NOT NULL,
-        name VARCHAR(120) NOT NULL,
-        price_uah INTEGER NOT NULL DEFAULT 0,
-        car_limit INTEGER,
-        has_crm BOOLEAN NOT NULL DEFAULT FALSE,
-        has_map BOOLEAN NOT NULL DEFAULT FALSE,
-        is_active BOOLEAN NOT NULL DEFAULT TRUE,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-        UNIQUE (
-            business_type_code,
-            code
-        )
-    )
-`);
-
-await pool.query(`
-    CREATE TABLE IF NOT EXISTS business_profiles (
-        id UUID PRIMARY KEY,
-
-        owner_id UUID UNIQUE NOT NULL
-            REFERENCES users(id)
-            ON DELETE CASCADE,
-
-        business_type_id UUID
-            REFERENCES business_types(id),
-
-        subscription_plan_id UUID
-            REFERENCES subscription_plans(id),
-
-        name VARCHAR(160) NOT NULL,
-        logo TEXT,
-
-        city VARCHAR(100),
-        address VARCHAR(255),
-
-        phone VARCHAR(30),
-        telegram VARCHAR(100),
-        instagram VARCHAR(255),
-
-        description TEXT,
-
-        photos JSONB NOT NULL
-            DEFAULT '[]'::jsonb,
-
-        services JSONB NOT NULL
-            DEFAULT '[]'::jsonb,
-
-        created_at TIMESTAMPTZ NOT NULL
-            DEFAULT NOW(),
-
-        updated_at TIMESTAMPTZ NOT NULL
-            DEFAULT NOW()
-    )
-`);
-
-await pool.query(`
-    ALTER TABLE business_profiles
-    ADD COLUMN IF NOT EXISTS
-        subscription_started_at TIMESTAMPTZ
-`);
-
-await pool.query(`
-    ALTER TABLE business_profiles
-    ADD COLUMN IF NOT EXISTS
-        subscription_expires_at TIMESTAMPTZ
-`);
-
-await pool.query(`
-    ALTER TABLE business_profiles
-    ADD COLUMN IF NOT EXISTS
-        complimentary_subscription BOOLEAN NOT NULL DEFAULT FALSE
-`);
-
-await pool.query(`
-    ALTER TABLE business_profiles
-    ADD COLUMN IF NOT EXISTS
-        business_content_type VARCHAR(20) NOT NULL DEFAULT 'services',
-    ADD COLUMN IF NOT EXISTS
-        work_schedule JSONB NOT NULL DEFAULT '{}'::jsonb
-`);
-
-
-await pool.query(`
-    ALTER TABLE business_profiles
-    ADD COLUMN IF NOT EXISTS
-        is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
-    ADD COLUMN IF NOT EXISTS
-        deleted_at TIMESTAMPTZ
-`);
-
-await pool.query(`
-    CREATE TABLE IF NOT EXISTS business_services (
-        id UUID PRIMARY KEY,
-        business_id UUID NOT NULL
-            REFERENCES business_profiles(id)
-            ON DELETE CASCADE,
-        title VARCHAR(160) NOT NULL,
-        description TEXT,
-        price_from NUMERIC(12, 2),
-        photos JSONB NOT NULL DEFAULT '[]'::jsonb,
-        sort_order INTEGER NOT NULL DEFAULT 0,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-`);
-
-await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_business_services_business
-    ON business_services (business_id, sort_order, created_at)
-`);
-
-await pool.query(`
-    CREATE TABLE IF NOT EXISTS business_products (
-        id UUID PRIMARY KEY,
-        business_id UUID NOT NULL
-            REFERENCES business_profiles(id)
-            ON DELETE CASCADE,
-        title VARCHAR(160) NOT NULL,
-        description TEXT,
-        price NUMERIC(12, 2),
-        photos JSONB NOT NULL DEFAULT '[]'::jsonb,
-        active BOOLEAN NOT NULL DEFAULT TRUE,
-        sort_order INTEGER NOT NULL DEFAULT 0,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-`);
-
-await pool.query(`
-    CREATE TABLE IF NOT EXISTS business_portfolio (
-        id UUID PRIMARY KEY,
-
-        business_id UUID NOT NULL
-            REFERENCES business_profiles(id)
-            ON DELETE CASCADE,
-
-        media_type VARCHAR(20) NOT NULL
-            CHECK (
-                media_type IN (
-                    'image',
-                    'video'
-                )
-            ),
-
-        media_url TEXT NOT NULL,
-
-        description TEXT NOT NULL
-            DEFAULT '',
-
-        sort_order INTEGER NOT NULL
-            DEFAULT 0,
-
-        created_at TIMESTAMPTZ NOT NULL
-            DEFAULT NOW(),
-
-        updated_at TIMESTAMPTZ NOT NULL
-            DEFAULT NOW()
-    )
-`);
-
-await pool.query(`
-    CREATE INDEX IF NOT EXISTS
-        idx_business_portfolio_business
-
-    ON business_portfolio (
-        business_id,
-        sort_order,
-        created_at
-    )
-`);
-
-await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_business_products_business
-    ON business_products (business_id, active, sort_order, created_at)
-`);
-
-await pool.query(`
-    CREATE TABLE IF NOT EXISTS business_subscription_payments (
-        id UUID PRIMARY KEY,
-
-        owner_id UUID NOT NULL
-            REFERENCES users(id)
-            ON DELETE CASCADE,
-
-        business_profile_id UUID NOT NULL
-            REFERENCES business_profiles(id)
-            ON DELETE CASCADE,
-
-        plan_id UUID NOT NULL
-            REFERENCES subscription_plans(id),
-
-        order_id TEXT UNIQUE NOT NULL,
-
-        amount_uah INTEGER NOT NULL,
-
-        status VARCHAR(30) NOT NULL
-            DEFAULT 'pending',
-
-        paid_at TIMESTAMPTZ,
-
-        created_at TIMESTAMPTZ NOT NULL
-            DEFAULT NOW()
-    )
-`);
-
-await pool.query(`
-    INSERT INTO business_types (
-        id,
-        code,
-        name
-    )
-    VALUES
-        (
-            '11111111-1111-1111-1111-111111111111',
-            'car_service',
-            'СТО / автосервіс'
-        ),
-        (
-            '22222222-2222-2222-2222-222222222222',
-            'car_dealer',
-            'Автомайданчик / продаж авто'
-        ),
-        (
-            '33333333-3333-3333-3333-333333333333',
-            'auto_shop',
-            'Магазин автотоварів'
-        ),
-        (
-            '44444444-4444-4444-4444-444444444444',
-            'detailing',
-            'Детейлінг'
-        ),
-        (
-            '55555555-5555-5555-5555-555555555555',
-            'tire_service',
-            'Шиномонтаж'
-        ),
-        (
-            '66666666-6666-6666-6666-666666666666',
-            'road_assistance',
-            'Евакуатор / допомога в дорозі'
-        ),
-        (
-            '77777777-7777-7777-7777-777777777777',
-            'other',
-            'Інше'
-        )
-    ON CONFLICT (code)
-    DO NOTHING
-`);
-
-// Seed defaults only for missing plans. Prices and settings already in PostgreSQL remain authoritative.
-await pool.query(`
-    INSERT INTO subscription_plans (
-        id, business_type_code, code, name, price_uah, car_limit, has_crm, has_map, is_active
-    )
-    SELECT gen_random_uuid(), bt.code, 'business', 'Business', 1500, NULL, TRUE, TRUE, TRUE
-    FROM business_types bt
-    ON CONFLICT (business_type_code, code) DO NOTHING
-`);
-
-await pool.query(fs.readFileSync(path.join(__dirname, 'migrations/20261122-product-catalog.sql'), 'utf8'));
-await pool.query(fs.readFileSync(path.join(__dirname, 'migrations/20261122-xml-import.sql'), 'utf8'));
-await pool.query(fs.readFileSync(path.join(__dirname, 'migrations/20261122-editorial-import-rights.sql'), 'utf8'));
-await pool.query(fs.readFileSync(path.join(__dirname, 'migrations/20261122-editorial-proposals.sql'), 'utf8'));
-
-await pool.query(`
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS registration_event_pending BOOLEAN
-`);
-
-await pool.query(`
-    CREATE TABLE IF NOT EXISTS email_verification_tokens (
-        id UUID PRIMARY KEY,
-
-        user_id UUID NOT NULL
-            REFERENCES users(id)
-            ON DELETE CASCADE,
-
-        token_hash TEXT NOT NULL UNIQUE,
-
-        expires_at TIMESTAMPTZ NOT NULL,
-
-        used_at TIMESTAMPTZ,
-
-        created_at TIMESTAMPTZ NOT NULL
-            DEFAULT NOW()
-    )
-`);
-
-await pool.query(`
-    CREATE TABLE IF NOT EXISTS phone_verification_codes (
-        id UUID PRIMARY KEY,
-
-        user_id UUID NOT NULL
-            REFERENCES users(id)
-            ON DELETE CASCADE,
-
-        phone VARCHAR(20) NOT NULL,
-
-        code_hash TEXT NOT NULL,
-
-        expires_at TIMESTAMPTZ NOT NULL,
-
-        attempts INTEGER NOT NULL
-            DEFAULT 0,
-
-        used_at TIMESTAMPTZ,
-
-        created_at TIMESTAMPTZ NOT NULL
-            DEFAULT NOW()
-    )
-`);
-
-    await pool.query(`
-    CREATE TABLE IF NOT EXISTS password_reset_tokens (
-        id UUID PRIMARY KEY,
-
-        user_id UUID NOT NULL
-            REFERENCES users(id)
-            ON DELETE CASCADE,
-
-        token_hash TEXT NOT NULL
-            UNIQUE,
-
-        expires_at TIMESTAMPTZ NOT NULL,
-
-        used_at TIMESTAMPTZ,
-
-        created_at TIMESTAMPTZ NOT NULL
-            DEFAULT NOW()
-    )
-`);
-
-    await pool.query(`
-    CREATE TABLE IF NOT EXISTS forum_topics (
-        id UUID PRIMARY KEY,
-        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        title VARCHAR(200) NOT NULL,
-        category VARCHAR(80) NOT NULL DEFAULT 'Загальне',
-        content TEXT NOT NULL,
-        attachment JSONB,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-`);
-
-await pool.query(`
-    ALTER TABLE forum_topics
-    ADD COLUMN IF NOT EXISTS attachment JSONB
-`);
-
-await pool.query(`
-    CREATE TABLE IF NOT EXISTS forum_replies (
-        id UUID PRIMARY KEY,
-        topic_id UUID NOT NULL REFERENCES forum_topics(id) ON DELETE CASCADE,
-        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        content TEXT NOT NULL,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-`);
-
-await pool.query(`
-    CREATE TABLE IF NOT EXISTS forum_reply_likes (
-        reply_id UUID NOT NULL
-            REFERENCES forum_replies(id)
-            ON DELETE CASCADE,
-
-        user_id UUID NOT NULL
-            REFERENCES users(id)
-            ON DELETE CASCADE,
-
-        created_at TIMESTAMPTZ
-            NOT NULL DEFAULT NOW(),
-
-        PRIMARY KEY (reply_id, user_id)
-    )
-`);
-
-await pool.query(`CREATE TABLE IF NOT EXISTS forum_topic_likes (
-    topic_id UUID NOT NULL REFERENCES forum_topics(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY(topic_id,user_id)
-)`);
-await pool.query(`CREATE TABLE IF NOT EXISTS forum_follows (
-    follower_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY(follower_id,author_id),
-    CHECK(follower_id <> author_id)
-)`);
-await pool.query(`CREATE TABLE IF NOT EXISTS forum_notifications (
-    id UUID PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    actor_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    kind VARCHAR(32) NOT NULL,
-    topic_id UUID REFERENCES forum_topics(id) ON DELETE CASCADE,
-    message TEXT NOT NULL,
-    is_read BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-)`);
-await pool.query(`CREATE INDEX IF NOT EXISTS idx_forum_notifications_user ON forum_notifications(user_id,created_at DESC)`);
-await pool.query(`CREATE TABLE IF NOT EXISTS forum_push_subscriptions (
-    endpoint TEXT PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    subscription JSONB NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-)`);
-await pool.query(`CREATE INDEX IF NOT EXISTS idx_forum_push_user ON forum_push_subscriptions(user_id)`);
-
-
-await pool.query(`
-    CREATE TABLE IF NOT EXISTS market_listings (
-        id UUID PRIMARY KEY,
-
-        owner_id UUID NOT NULL
-            REFERENCES users(id)
-            ON DELETE CASCADE,
-
-        seller_name VARCHAR(255) NOT NULL,
-
-        car_id TEXT,
-
-        vehicle_type VARCHAR(30) NOT NULL DEFAULT 'car',
-        brand VARCHAR(100),
-        model VARCHAR(160),
-
-        name VARCHAR(255) NOT NULL,
-        year VARCHAR(20),
-        vin VARCHAR(50),
-
-        photos JSONB NOT NULL DEFAULT '[]'::jsonb,
-
-        active_photo_index INTEGER NOT NULL DEFAULT 0,
-
-        engine VARCHAR(100),
-        mileage VARCHAR(100),
-        fuel VARCHAR(100),
-
-        power_type VARCHAR(30),
-        power_value VARCHAR(100),
-
-        transmission VARCHAR(100),
-        body VARCHAR(100),
-        drive VARCHAR(100),
-
-        services JSONB NOT NULL DEFAULT '[]'::jsonb,
-
-        price_usd NUMERIC,
-        price_uah NUMERIC,
-
-        city VARCHAR(150),
-        phone VARCHAR(50),
-
-        description TEXT,
-
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-`);
-
-await pool.query(`
-    CREATE TABLE IF NOT EXISTS chat_messages (
-        id UUID PRIMARY KEY,
-
-        listing_id UUID
-            REFERENCES market_listings(id)
-            ON DELETE CASCADE,
-
-        sender_id UUID NOT NULL
-            REFERENCES users(id)
-            ON DELETE CASCADE,
-
-        receiver_id UUID NOT NULL
-            REFERENCES users(id)
-            ON DELETE CASCADE,
-
-        text TEXT,
-
-        attachment JSONB,
-
-        read_at TIMESTAMPTZ,
-        edited_at TIMESTAMPTZ,
-        deleted_at TIMESTAMPTZ,
-
-        created_at TIMESTAMPTZ
-            NOT NULL DEFAULT NOW()
-    );
-`);
-
-// Preserve already-used allowances and existing listing history, including after deletion.
-// Existing listings count toward the 1/3 lifetime quota; no previously used bonus is reset.
-await pool.query(`
-    UPDATE users u
-    SET free_market_listings_used = GREATEST(
-        u.free_market_listings_used,
-        CASE WHEN u.first_free_listing_used THEN 1 ELSE 0 END,
-        (SELECT LEAST(COUNT(*), 3)::integer FROM market_listings ml WHERE ml.owner_id = u.id)
-    )
-    WHERE u.free_market_listings_used < 3
-`);
-
-// Existing accounts with listings have already used their first-listing allowance.
-await pool.query(`
-    UPDATE users u SET first_free_listing_used = TRUE
-    WHERE first_free_listing_used = FALSE
-      AND EXISTS (SELECT 1 FROM market_listings ml WHERE ml.owner_id = u.id)
-`);
-
-await pool.query(`
-    ALTER TABLE market_listings
-    ADD COLUMN IF NOT EXISTS status VARCHAR(30)
-        NOT NULL DEFAULT 'active',
-    ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS sold_at TIMESTAMPTZ
-`);
-
-await pool.query(`
-    ALTER TABLE market_listings
-    ADD COLUMN IF NOT EXISTS watermark_version INTEGER NOT NULL DEFAULT 0
-`);
-
-/* ===== КАТЕГОРІЇ МАРКЕТУ ===== */
-
-await pool.query(`
-    ALTER TABLE market_listings
-    ADD COLUMN IF NOT EXISTS
-        vehicle_type VARCHAR(30) NOT NULL DEFAULT 'car',
-    ADD COLUMN IF NOT EXISTS
-        brand VARCHAR(100),
-    ADD COLUMN IF NOT EXISTS
-        model VARCHAR(160)
-`);
-
-await pool.query(`
-    CREATE INDEX IF NOT EXISTS
-        idx_market_listings_vehicle_category
-    ON market_listings (
-        vehicle_type,
-        brand,
-        model
-    )
-`);
-
-await pool.query(`
-    CREATE TABLE IF NOT EXISTS market_listing_views (
-        listing_id UUID NOT NULL REFERENCES market_listings(id) ON DELETE CASCADE,
-        viewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        viewed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        PRIMARY KEY (listing_id, viewer_id)
-    )
-`);
-
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS market_listing_guest_views (
-            listing_id UUID NOT NULL REFERENCES market_listings(id) ON DELETE CASCADE,
-            visitor_hash CHAR(64) NOT NULL,
-            viewed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            PRIMARY KEY (listing_id, visitor_hash)
-        )
-    `);
-
-await pool.query(`
-    CREATE TABLE IF NOT EXISTS market_favorites (
-        user_id UUID NOT NULL
-            REFERENCES users(id)
-            ON DELETE CASCADE,
-
-        listing_id UUID NOT NULL
-            REFERENCES market_listings(id)
-            ON DELETE CASCADE,
-
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-        PRIMARY KEY (
-            user_id,
-            listing_id
-        )
-    )
-`);
-
-await pool.query(`
-    CREATE TABLE IF NOT EXISTS garage_cars (
-        id UUID PRIMARY KEY,
-
-        owner_id UUID NOT NULL
-            REFERENCES users(id)
-            ON DELETE CASCADE,
-
-        name VARCHAR(255) NOT NULL,
-        year INTEGER,
-        mileage INTEGER,
-
-        engine VARCHAR(100),
-        fuel VARCHAR(100),
-        transmission VARCHAR(100),
-        body VARCHAR(100),
-        drive VARCHAR(100),
-
-        vin VARCHAR(50),
-        plate VARCHAR(50),
-
-        photo TEXT,
-
-        photos JSONB NOT NULL
-            DEFAULT '[]'::jsonb,
-
-        active_photo_index INTEGER NOT NULL
-            DEFAULT 0,
-
-        services JSONB NOT NULL
-            DEFAULT '[]'::jsonb,
-
-        created_at TIMESTAMPTZ NOT NULL
-            DEFAULT NOW(),
-
-        updated_at TIMESTAMPTZ NOT NULL
-            DEFAULT NOW()
-    )
-`);
-
-await pool.query(`
-    CREATE TABLE IF NOT EXISTS seller_ratings (
-        id UUID PRIMARY KEY,
-
-        seller_id UUID NOT NULL
-            REFERENCES users(id)
-            ON DELETE CASCADE,
-
-        reviewer_id UUID NOT NULL
-            REFERENCES users(id)
-            ON DELETE CASCADE,
-
-        rating INTEGER NOT NULL
-            CHECK (rating >= 1 AND rating <= 5),
-
-        review TEXT NOT NULL DEFAULT '',
-
-        created_at TIMESTAMPTZ NOT NULL
-            DEFAULT NOW(),
-
-        updated_at TIMESTAMPTZ NOT NULL
-            DEFAULT NOW(),
-
-        UNIQUE (
-            seller_id,
-            reviewer_id
-        )
-    )
-`);
-
-await pool.query(`
-    CREATE TABLE IF NOT EXISTS royal_auto_sections (
-        id UUID PRIMARY KEY,
-
-        owner_id UUID NOT NULL
-            REFERENCES users(id)
-            ON DELETE CASCADE,
-
-        name VARCHAR(150) NOT NULL,
-
-        slug VARCHAR(150) NOT NULL,
-
-        description TEXT NOT NULL
-            DEFAULT '',
-
-        icon VARCHAR(50) NOT NULL
-            DEFAULT '👑',
-
-        active BOOLEAN NOT NULL
-            DEFAULT TRUE,
-
-        sort_order INTEGER NOT NULL
-            DEFAULT 0,
-
-        created_at TIMESTAMPTZ NOT NULL
-            DEFAULT NOW(),
-
-        updated_at TIMESTAMPTZ NOT NULL
-            DEFAULT NOW(),
-
-        UNIQUE (
-            owner_id,
-            slug
-        )
-    )
-`);
-
-
-await pool.query(`
-    CREATE TABLE IF NOT EXISTS royal_auto_products (
-        id UUID PRIMARY KEY,
-
-        owner_id UUID NOT NULL
-            REFERENCES users(id)
-            ON DELETE CASCADE,
-
-        section_id UUID NOT NULL
-            REFERENCES royal_auto_sections(id)
-            ON DELETE CASCADE,
-
-        name VARCHAR(200) NOT NULL,
-
-        description TEXT NOT NULL
-            DEFAULT '',
-
-        price_uah NUMERIC(12, 2),
-
-        photos JSONB NOT NULL
-            DEFAULT '[]'::jsonb,
-
-        active BOOLEAN NOT NULL
-            DEFAULT TRUE,
-
-        sort_order INTEGER NOT NULL
-            DEFAULT 0,
-
-        created_at TIMESTAMPTZ NOT NULL
-            DEFAULT NOW(),
-
-        updated_at TIMESTAMPTZ NOT NULL
-            DEFAULT NOW()
-    )
-`);
-
-await pool.query(`
-    CREATE TABLE IF NOT EXISTS service_history_purchases (
-        id UUID PRIMARY KEY,
-
-        user_id UUID NOT NULL
-            REFERENCES users(id)
-            ON DELETE CASCADE,
-
-        listing_id UUID NOT NULL
-            REFERENCES market_listings(id)
-            ON DELETE CASCADE,
-
-        order_id TEXT UNIQUE NOT NULL,
-
-        amount_uah NUMERIC(10, 2) NOT NULL,
-
-        status VARCHAR(30) NOT NULL
-            DEFAULT 'pending',
-
-        paid_at TIMESTAMPTZ,
-
-        created_at TIMESTAMPTZ NOT NULL
-            DEFAULT NOW(),
-
-        UNIQUE (
-            user_id,
-            listing_id
-        )
-    )
-`);await pool.query(`
-CREATE TABLE IF NOT EXISTS service_history_purchases (
-    id UUID PRIMARY KEY,
-
-    user_id UUID NOT NULL
-        REFERENCES users(id)
-        ON DELETE CASCADE,
-
-    listing_id UUID NOT NULL
-        REFERENCES market_listings(id)
-        ON DELETE CASCADE,
-
-    order_id TEXT UNIQUE NOT NULL,
-
-    amount_uah NUMERIC(10, 2) NOT NULL,
-
-    status VARCHAR(30) NOT NULL
-        DEFAULT 'pending',
-
-    paid_at TIMESTAMPTZ,
-
-    created_at TIMESTAMPTZ NOT NULL
-        DEFAULT NOW(),
-
-    UNIQUE (
-        user_id,
-        listing_id
-    )
-)
-`);
-
-        await ensureBusinessRequestsTable();
-        await pool.query(fs.readFileSync(path.join(__dirname, "migrations/20261122-verified-platform-administrator.sql"), "utf8"));
-        await pool.query(fs.readFileSync(path.join(__dirname, "migrations/20261122-retire-royal-auto-platform-analytics.sql"), "utf8"));
-        await pool.query(fs.readFileSync(path.join(__dirname, "migrations/20261122-editorial-account.sql"), "utf8"));
-        for (const migration of ["admin-business-access", "business-complaints", "business-moderation"]) {
-            await pool.query(fs.readFileSync(path.join(__dirname, `migrations/20261122-${migration}.sql`), "utf8"));
-        }
-        console.log("Users table ready");
-    } catch (error) {
-        throw error;
-    }
-}
-
-const databaseReady = initDatabase();
 
 // Larger payloads only for service media; base64 expands the 100 MiB attachment batch.
 app.use(["/api/crm/work-orders/:id/media", "/api/businesses/:ownerId/requests"], express.json({ limit: "140mb" }));
@@ -3351,13 +2449,9 @@ app.get("/service-hub.html", (req, res) => {
 });
 
 
-const videoStoreReady = pool.query(`CREATE TABLE IF NOT EXISTS uploaded_videos (
- id UUID PRIMARY KEY, owner_id UUID NOT NULL REFERENCES users(id), mime_type TEXT NOT NULL,
- data BYTEA NOT NULL, name TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
-videoStoreReady.catch(error => console.error("Video storage initialization:", error));
 app.post("/api/media/videos", requireAuth, async (req, res) => {
  try {
-  await videoStoreReady;
+  await databaseReady;
   const match = /^data:(video\/(?:mp4|webm|quicktime));base64,([A-Za-z0-9+/]+={0,2})$/.exec(String(req.body.data || ""));
   if (!match) return res.status(400).json({message:"Оберіть відео MP4, WebM або MOV."});
   const data = Buffer.from(match[2], "base64");
@@ -3368,13 +2462,13 @@ app.post("/api/media/videos", requireAuth, async (req, res) => {
  } catch(error) { console.error("Video upload:",error); res.status(500).json({message:"Не вдалося зберегти відео."}); }
 });
 app.get("/api/media/videos", requireAuth, async(req,res)=>{
- try { await videoStoreReady;const result=await pool.query("SELECT id,name,created_at FROM uploaded_videos WHERE owner_id=$1 ORDER BY created_at DESC LIMIT 50",[req.user.userId]);res.json({videos:result.rows}); }
+ try { await databaseReady;const result=await pool.query("SELECT id,name,created_at FROM uploaded_videos WHERE owner_id=$1 ORDER BY created_at DESC LIMIT 50",[req.user.userId]);res.json({videos:result.rows}); }
  catch(error){res.status(500).json({message:"Не вдалося завантажити відео."});}
 });
 app.delete("/api/media/videos/:id", requireAuth, async(req,res)=>{
  if(!UUID_PATTERN.test(req.params.id))return res.status(400).json({message:"Некоректне відео."});
  try {
-  await videoStoreReady;
+  await databaseReady;
   const result=await pool.query("DELETE FROM uploaded_videos WHERE id=$1 AND owner_id=$2 RETURNING id",[req.params.id,req.user.userId]);
   if(!result.rowCount)return res.status(404).json({message:"Відео не знайдено або воно вам не належить."});
   res.json({ok:true});
@@ -3383,7 +2477,7 @@ app.delete("/api/media/videos/:id", requireAuth, async(req,res)=>{
 app.get("/api/media/videos/:id",async(req,res)=>{
  if(!UUID_PATTERN.test(req.params.id)) return res.sendStatus(404);
  try {
-  await videoStoreReady;
+  await databaseReady;
   const result=await pool.query("SELECT mime_type,data FROM uploaded_videos WHERE id=$1",[req.params.id]);
   if(!result.rowCount)return res.sendStatus(404);
   const {mime_type,data}=result.rows[0];res.set({"Content-Type":mime_type,"Accept-Ranges":"bytes","X-Content-Type-Options":"nosniff"});
@@ -4761,22 +3855,6 @@ require("./catalog-media").installCatalogMedia({app,pool,requireAuth,databaseRea
 require("./product-catalog").installProductCatalog({app,pool,databaseReady});
 require("./dealer-xml").installDealerXml({app,pool,requireAuth,requireAdmin,databaseReady,editorialOwnerId:EDITORIAL_OWNER_ID});
 
-async function ensureBusinessRequestsTable() {
-    await pool.query(`CREATE TABLE IF NOT EXISTS business_service_requests (
-        id UUID PRIMARY KEY, owner_id UUID NOT NULL REFERENCES users(id),
-        name TEXT NOT NULL, phone TEXT NOT NULL, brand TEXT NOT NULL, model TEXT NOT NULL,
-        transmission TEXT, fuel TEXT, plate TEXT, vin TEXT, year INTEGER, mileage INTEGER, engine TEXT, reason TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'pending', crm_client_id UUID, crm_car_id UUID,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), confirmed_at TIMESTAMPTZ
-    )`);
-    await pool.query(`ALTER TABLE business_service_requests ADD COLUMN IF NOT EXISTS year INTEGER`);
-    await pool.query(`ALTER TABLE business_service_requests ADD COLUMN IF NOT EXISTS mileage INTEGER`);
-    await pool.query(`ALTER TABLE business_service_requests ADD COLUMN IF NOT EXISTS engine TEXT`);
-    await pool.query(`ALTER TABLE business_service_requests
-        ADD COLUMN IF NOT EXISTS crm_work_order_id UUID,
-        ADD COLUMN IF NOT EXISTS crm_appointment_id UUID`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS business_service_requests_owner ON business_service_requests(owner_id,created_at DESC)`);
-}
 app.post('/api/businesses/:ownerId/requests', async(req,res)=>{
     try {
         const ownerId=String(req.params.ownerId||'');
@@ -17650,7 +16728,7 @@ app.post(
             if (cleanCategory.startsWith("club:")) {
                 const clubId = cleanCategory.slice(5);
                 if (!UUID_PATTERN.test(clubId)) return res.status(400).json({message:"Некоректний клуб."});
-                await clubsReady;
+                await databaseReady;
                 const member = await pool.query("SELECT 1 FROM community_club_members m JOIN community_clubs c ON c.id=m.club_id WHERE m.club_id=$1 AND m.user_id=$2 AND c.deleted_at IS NULL",[clubId,req.user.userId]);
                 if (!member.rowCount) return res.status(403).json({message:"Приєднайтеся до клубу, щоб опублікувати допис."});
             }
@@ -17812,26 +16890,12 @@ app.post('/api/forum/topics/:topicId/like', requireAuth, async (req,res) => {
         res.json({ok:true,liked,count:count.rows[0].count});
     } catch(e){console.error('Topic like:',e);res.status(500).json({ok:false,message:'Не вдалося змінити лайк.'});}
 });
-const clubsReady = databaseReady.then(async()=>{
- await pool.query(`CREATE TABLE IF NOT EXISTS community_clubs (
- id UUID PRIMARY KEY, owner_id UUID NOT NULL REFERENCES users(id), name VARCHAR(80) NOT NULL,
- description VARCHAR(1000) NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
- await pool.query("ALTER TABLE community_clubs ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ");
- await pool.query("ALTER TABLE community_clubs ADD COLUMN IF NOT EXISTS cover_image TEXT");
- await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS community_clubs_name ON community_clubs(lower(name))`);
- await pool.query(`CREATE TABLE IF NOT EXISTS community_club_members (
- club_id UUID NOT NULL REFERENCES community_clubs(id) ON DELETE CASCADE,
- user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
- PRIMARY KEY(club_id,user_id))`);
-});
-clubsReady.catch(error=>console.error("Club tables:",error));
-
 function validClubCover(value) {
  return value === null || (typeof value === "string" && value.length <= 700000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(value));
 }
 app.get("/api/clubs/discover", async(req,res)=>{
  try {
-  await clubsReady;
+  await databaseReady;
   const result=await pool.query("SELECT id,name,CASE WHEN cover_image IS NOT NULL THEN '/api/clubs/'||id||'/cover' ELSE NULL END AS cover_url FROM community_clubs WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 200");
   res.json({clubs:result.rows});
  }catch(error){res.status(500).json({message:"Не вдалося завантажити клуби."});}
@@ -17839,7 +16903,7 @@ app.get("/api/clubs/discover", async(req,res)=>{
 app.get("/api/clubs/:id/cover",async(req,res)=>{
  if(!UUID_PATTERN.test(req.params.id))return res.sendStatus(404);
  try {
-  await clubsReady;
+  await databaseReady;
   const result=await pool.query("SELECT cover_image FROM community_clubs WHERE id=$1 AND deleted_at IS NULL",[req.params.id]);
   const cover=result.rows[0]?.cover_image;
   if(!cover)return res.sendStatus(404);
@@ -17850,7 +16914,7 @@ app.get("/api/clubs/:id/cover",async(req,res)=>{
 
 app.get("/api/clubs", requireAuth, async(req,res)=>{
  try {
- await clubsReady;
+ await databaseReady;
  const result=await pool.query(`SELECT c.id,c.owner_id,c.name,c.description,CASE WHEN c.cover_image IS NOT NULL THEN '/api/clubs/'||c.id||'/cover' ELSE NULL END AS cover_url,(c.owner_id=$1) AS owned,
  (SELECT COUNT(*)::int FROM community_club_members m WHERE m.club_id=c.id) AS members,
  EXISTS(SELECT 1 FROM community_club_members m WHERE m.club_id=c.id AND m.user_id=$1) AS joined
@@ -17865,7 +16929,7 @@ app.post("/api/clubs",requireAuth,async(req,res)=>{
  if(name.length<3||name.length>80||description.length>1000)return res.status(400).json({message:"Назва — 3–80 символів, опис — до 1000."});
  let client;
  try {
- await clubsReady;client=await pool.connect();await client.query("BEGIN");
+ await databaseReady;client=await pool.connect();await client.query("BEGIN");
  const id=crypto.randomUUID();await client.query("INSERT INTO community_clubs(id,owner_id,name,description,cover_image) VALUES($1,$2,$3,$4,$5)",[id,req.user.userId,name,description,cover]);
  await client.query("INSERT INTO community_club_members(club_id,user_id) VALUES($1,$2)",[id,req.user.userId]);
  await client.query("COMMIT");res.status(201).json({id});
@@ -17882,7 +16946,7 @@ app.patch("/api/clubs/:id", requireAuth, async (req, res) => {
   return res.status(400).json({message: "Назва — 3–80 символів, опис — до 1000."});
  }
  try {
-  await clubsReady;
+  await databaseReady;
   const result = await pool.query(
    "UPDATE community_clubs SET name=$3,description=$4,cover_image=CASE WHEN $5::boolean THEN $6::text ELSE cover_image END WHERE id=$1 AND owner_id=$2 AND deleted_at IS NULL RETURNING id",
    [req.params.id,req.user.userId,name,description,hasCover,hasCover ? req.body.cover_image : null]
@@ -17898,7 +16962,7 @@ app.patch("/api/clubs/:id", requireAuth, async (req, res) => {
 app.delete("/api/clubs/:id", requireAuth, async (req, res) => {
  if (!UUID_PATTERN.test(req.params.id)) return res.status(400).json({message:"Некоректний клуб."});
  try {
-  await clubsReady;
+  await databaseReady;
   const result = await pool.query(
    "UPDATE community_clubs SET deleted_at=COALESCE(deleted_at,NOW()) WHERE id=$1 AND owner_id=$2 RETURNING id",
    [req.params.id,req.user.userId]
@@ -17913,7 +16977,7 @@ app.delete("/api/clubs/:id", requireAuth, async (req, res) => {
 app.put("/api/clubs/:id/membership",requireAuth,async(req,res)=>{
  if(!UUID_PATTERN.test(req.params.id)||typeof req.body.joined!=="boolean")return res.sendStatus(400);
  try {
- await clubsReady;
+ await databaseReady;
  const club=await pool.query("SELECT owner_id FROM community_clubs WHERE id=$1 AND deleted_at IS NULL",[req.params.id]);
  if(!club.rowCount)return res.sendStatus(404);
  if(!req.body.joined&&String(club.rows[0].owner_id)===String(req.user.userId))return res.status(400).json({message:"Власник залишається учасником свого клубу."});
@@ -17931,7 +16995,7 @@ app.put("/api/clubs/:id/membership",requireAuth,async(req,res)=>{
 
 app.get("/api/profile/community", requireAuth, async (req, res) => {
  try {
-  await clubsReady;
+  await databaseReady;
   const userId = req.user.userId;
   const [clubs, followers, following, members, notifications] = await Promise.all([
    pool.query(`SELECT c.id,c.name,c.owner_id,

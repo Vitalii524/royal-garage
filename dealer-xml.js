@@ -91,6 +91,6 @@ function installDealerXml({app,pool,requireAuth,requireAdmin,databaseReady,edito
  });
  let running=false;
  async function tick(){if(running)return;running=true;try{await databaseReady;const feeds=await pool.query(`SELECT id FROM business_xml_feeds WHERE approved AND enabled AND (last_attempt_at IS NULL OR last_attempt_at<NOW()-INTERVAL '6 hours')`);for(const feed of feeds.rows){try{await synchronize(pool,feed.id,undefined,editorialOwnerId || null);}catch{await pool.query(`UPDATE business_xml_feeds SET last_attempt_at=NOW(),last_error='Імпорт не виконано. Перевірте доступність та формат джерела.' WHERE id=$1`,[feed.id]);}}}catch{console.error('XML synchronization unavailable');}finally{running=false;}}
- const timer=setInterval(tick,60000);timer.unref?.();Promise.resolve(databaseReady).then(tick).catch(()=>{});return {tick,stop:()=>clearInterval(timer)};
+ const timer=setInterval(tick,60000);timer.unref?.();return {tick,stop:()=>clearInterval(timer)};
 }
 module.exports={parseFeed,feedUrl,publicIPv4,downloadFeed,synchronize,installDealerXml};

@@ -18,21 +18,10 @@ function safeUrl(value) {
     catch { return '/notifications.html'; }
 }
 function installNotifications({app, pool, requireAuth, databaseReady, sendPush}) {
-    const ready = databaseReady.then(async () => {
-        await pool.query(`ALTER TABLE forum_notifications ADD COLUMN IF NOT EXISTS source VARCHAR(16) NOT NULL DEFAULT 'forum',
-            ADD COLUMN IF NOT EXISTS url TEXT, ADD COLUMN IF NOT EXISTS event_key TEXT`);
-        await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS notification_event_unique ON forum_notifications(user_id,event_key)`);
-        await pool.query(`CREATE TABLE IF NOT EXISTS notification_preferences (
-            user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-            push_enabled BOOLEAN NOT NULL DEFAULT TRUE)`);
-        await pool.query(`UPDATE forum_notifications SET source=CASE WHEN kind='club_follow' THEN 'clubs' WHEN kind='follow' THEN 'profile' ELSE 'forum' END,
-            url=CASE WHEN topic_id IS NOT NULL THEN '/forum.html?topicId='||topic_id ELSE '/profile.html' END WHERE url IS NULL`);
-    });
-    ready.catch(error => console.error('Notification migration failed:', error.message));
     async function emit({userId, actorId=null, kind, topicId=null, source='forum', message, url, eventKey}) {
         if (!userId || String(userId) === String(actorId)) return;
         try {
-            await ready;
+            await databaseReady;
             const id = crypto.randomUUID();
             const target = safeUrl(url || (topicId ? '/forum.html?topicId='+encodeURIComponent(topicId) : '/notifications.html'));
             const result = await pool.query(`INSERT INTO forum_notifications(id,user_id,actor_id,kind,topic_id,message,source,url,event_key)
@@ -46,7 +35,7 @@ function installNotifications({app, pool, requireAuth, databaseReady, sendPush})
     }
     async function topicPublished(topic) {
         try {
-            await ready;
+            await databaseReady;
             const clubId=String(topic.category||'').startsWith('club:') ? topic.category.slice(5) : null;
             const recipients=await pool.query(`SELECT follower_id AS id FROM forum_follows WHERE author_id=$1
                 UNION SELECT user_id AS id FROM community_club_members WHERE club_id=$2::uuid`,[topic.user_id,clubId]);
@@ -56,7 +45,7 @@ function installNotifications({app, pool, requireAuth, databaseReady, sendPush})
     }
     async function replyPublished(reply) {
         try {
-            await ready;
+            await databaseReady;
             const recipients=await pool.query(`SELECT user_id FROM forum_topics WHERE id=$1 UNION SELECT user_id FROM forum_replies WHERE topic_id=$1`,[reply.topic_id]);
             await Promise.allSettled(recipients.rows.map(row=>emit({userId:row.user_id,actorId:reply.user_id,kind:'reply',topicId:reply.topic_id,
                 message:'Нова відповідь у вашому обговоренні',eventKey:'reply:'+reply.id})));
@@ -64,7 +53,7 @@ function installNotifications({app, pool, requireAuth, databaseReady, sendPush})
     }
     const route = handler => async(req,res) => {
         res.set('Cache-Control','no-store');
-        try { await ready; await handler(req,res); }
+        try { await databaseReady; await handler(req,res); }
         catch(error) { console.error('Notification API:',error.message); res.status(503).json({message:'Сповіщення тимчасово недоступні. Спробуйте ще раз.'}); }
     };
     app.get('/api/notifications',requireAuth,route(async(req,res)=>{
@@ -96,6 +85,6 @@ function installNotifications({app, pool, requireAuth, databaseReady, sendPush})
             ON CONFLICT(user_id) DO UPDATE SET push_enabled=EXCLUDED.push_enabled`,[req.user.userId,req.body.pushEnabled]);
         res.json({ok:true});
     }));
-    return {emit,topicPublished,replyPublished,ready};
+    return {emit,topicPublished,replyPublished,ready: databaseReady};
 }
 module.exports={installNotifications,safeUrl,validSubscription};

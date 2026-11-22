@@ -1,0 +1,4 @@
+\set ON_ERROR_STOP on
+\ir 20261122-admin-business-access.sql
+\ir 20261122-business-complaints.sql
+\ir 20261122-business-moderation.sql
