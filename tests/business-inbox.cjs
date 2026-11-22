@@ -47,10 +47,13 @@ async function openProfile(user, search) {
 }
 
 test('customer message links open the inbox for RoyalAuto and other businesses', async () => {
-    for (const page of ['handmade', 'royal-auto-admin', 'business-profile']) {
+    for (const page of ['handmade', 'business-profile']) {
         const { document } = parseHTML(fs.readFileSync(`public/${page}.html`, 'utf8'));
         assert.ok(document.querySelector('a[href="profile.html?section=chats"]'), page);
     }
+    const admin = parseHTML(fs.readFileSync('public/royal-auto-admin.html', 'utf8')).document;
+    assert.ok(admin.querySelector('#platformAdmin'));
+    assert.equal(admin.querySelector('#platformAdmin a[href="profile.html?section=chats"]'), null);
     for (const [user, destination] of [[royalAuto, 'handmade.html'], [otherBusiness, 'business-profile.html']]) {
         const { document, redirects, calls } = await openProfile(user, '?section=chats');
         const inbox = document.getElementById('businessInbox');
