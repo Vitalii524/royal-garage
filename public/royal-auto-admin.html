@@ -102,13 +102,23 @@
         <p id="adminRegistrationStatus" role="status">Завантажуємо статистику реєстрацій…</p>
         <dl id="adminRegistrationStats"></dl>
         <div id="adminBusinessControls" hidden>
-        <h2>Безстроковий безкоштовний доступ</h2>
+        <h2>Бізнес-профілі</h2>
         <form id="adminBusinessSearch" class="royal-auto-admin-form">
             <label>Назва бізнесу, точний email або ID власника<input name="q" type="search" maxlength="255"></label>
+            <label>Категорія<select name="category"><option value="">Усі категорії</option></select></label>
+            <label>Статус<select name="status">
+                <option value="">Усі статуси</option><option value="active">Активний</option>
+                <option value="pending">Очікує підтвердження</option><option value="expired">Доступ неактивний</option>
+                <option value="disabled">Акаунт обмежено</option>
+            </select></label>
             <button class="upholstery-primary-button" type="submit">Знайти</button>
         </form>
         <p id="adminBusinessStatus" role="status"></p>
         <div id="adminBusinessResults"></div>
+        <nav aria-label="Сторінки бізнес-профілів">
+            <button id="adminBusinessPrevious" type="button" hidden>Попередня</button>
+            <button id="adminBusinessNext" type="button" hidden>Наступна</button>
+        </nav>
         </div>
     </section>
     <div id="royalAutoCatalogAdmin" hidden>
@@ -363,7 +373,7 @@
 
 <script src="js/auth.js"></script>
 <script src="js/royal-auto-admin.js?v=20261121-gallery2"></script>
-<script src="js/platform-admin.js?v=4"></script>
+<script src="js/platform-admin.js?v=business-access"></script>
 <script src="js/loader.js"></script>
 
 <script src="/js/notifications.js?v=1"></script><script src="js/service-media.js"></script><script src="js/royal-auto-requests.js"></script></body>

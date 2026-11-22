@@ -587,6 +587,9 @@
         }
 
         renderContacts(profile);
+        $("businessComplaintPanel").hidden = state.isOwner || !requestedOwnerId();
+        $("businessComplaintForm").hidden = !token();
+        $("businessComplaintSignIn").hidden = Boolean(token());
         const chatLink = $("businessChatLink");
         if (chatLink && profile.ownerId && !state.isOwner) {
             chatLink.hidden = false;
@@ -1410,6 +1413,28 @@ if (portfolioDelete) {
                 .forEach((modal) => closeModal(modal.id));
         });
     }
+
+    $("businessComplaintForm")?.addEventListener("submit", async event => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const status = form.querySelector("[role=status]");
+        const submit = form.querySelector("button");
+        const fields = new FormData(form);
+        submit.disabled = true;
+        try {
+            const evidence = fields.get("evidence").split(/\r?\n/).map(value => value.trim()).filter(Boolean);
+            await api(`/api/businesses/${encodeURIComponent(state.profile.ownerId)}/complaints`, {
+                method: "POST",
+                body: JSON.stringify({ reason: fields.get("reason"), explanation: fields.get("explanation"), evidence })
+            });
+            form.reset();
+            status.textContent = "Скаргу надіслано на розгляд.";
+        } catch (error) {
+            status.textContent = error.message;
+        } finally {
+            submit.disabled = false;
+        }
+    });
 
     async function init() {
         bindEvents();
