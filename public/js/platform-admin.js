@@ -82,9 +82,11 @@
         review: "На перевірці", restricted: "Тимчасово обмежено", blocked: "Заблоковано"
     };
     let page = 1;
+    let businessRequestId = 0;
     const date = value => value ? dateFormat.format(new Date(value)) : "Не задано";
 
     async function loadBusinesses(targetPage = 1) {
+        const requestId = ++businessRequestId;
         const filters = new URLSearchParams(new FormData(form));
         filters.set("page", targetPage);
         const submit = form.querySelector("button");
@@ -92,6 +94,7 @@
         status.textContent = "Завантажуємо…";
         try {
             const data = await adminApi(`/api/admin/businesses?${filters}`);
+            if (requestId !== businessRequestId) return;
             const category = form.elements.category;
             const selected = filters.get("category");
             category.replaceChildren(new Option("Усі категорії", ""), ...data.categories.map(
@@ -146,9 +149,9 @@
                 result.append(row);
             }
         } catch (error) {
-            status.textContent = error.message;
+            if (requestId === businessRequestId) status.textContent = error.message;
         } finally {
-            submit.disabled = previous.disabled = next.disabled = false;
+            if (requestId === businessRequestId) submit.disabled = previous.disabled = next.disabled = false;
         }
     }
 
@@ -423,6 +426,15 @@
         return panel;
     }
 
+    // Apply select filters immediately; never leave a previous category's results visible.
+    for (const fieldName of ["category", "status"]) {
+        form.elements[fieldName].addEventListener("change", () => loadBusinesses(1));
+    }
+    form.elements.q.addEventListener("input", () => {
+        // Clear stale results while the search term is being edited.
+        result.replaceChildren();
+        status.textContent = "Натисніть «Знайти», щоб виконати пошук за назвою.";
+    });
     previous.addEventListener("click", () => loadBusinesses(page - 1));
     next.addEventListener("click", () => loadBusinesses(page + 1));
     form.addEventListener("submit", event => {
