@@ -9812,7 +9812,7 @@ app.post("/api/admin/users/:id/convert-to-business", requireAuth, requireBusines
     try {
         await client.query("BEGIN");
         const userResult = await client.query(
-            "SELECT id, name, phone, account_type, role, account_disabled FROM users WHERE id=$1 FOR UPDATE",
+            "SELECT id, name, email, phone, phone_verified, account_type, role, account_disabled FROM users WHERE id=$1 FOR UPDATE",
             [req.params.id]
         );
         const user = userResult.rows[0];
@@ -9869,9 +9869,35 @@ app.post("/api/admin/users/:id/convert-to-business", requireAuth, requireBusines
                 JSON.stringify({ userId: user.id, accountType: "user" }),
                 JSON.stringify({ userId: user.id, accountType: "business", category, businessName })]
         );
+        // Persist the in-site bell notification together with the conversion.
+        // Do not send email until the transaction commits successfully.
+        const verificationRequired = !user.phone_verified;
+        const verificationMessage = verificationRequired
+            ? "Ваш акаунт переведено в бізнес «" + businessName + "». Підтвердьте номер телефону в бізнес-кабінеті, щоб профіль з’явився на головній та в «Партнерах»."
+            : "Ваш акаунт переведено в бізнес «" + businessName + "». Відкрийте бізнес-кабінет і перевірте профіль.";
+        await client.query(`
+            INSERT INTO forum_notifications (id, user_id, actor_id, kind, message, source, url, event_key)
+            VALUES ($1,$2,$3,'business_conversion',$4,'profile',$5,$6)`,
+            [crypto.randomUUID(), user.id, req.user.userId, verificationMessage,
+                "/business-profile.html?edit=1", "business-conversion:" + businessId]
+        );
         await client.query("COMMIT");
+        // Email delivery is best-effort: mail outages must not undo an already committed account conversion.
+        try {
+            await mailTransporter.sendMail({
+                from: `"Royal Garage" <${process.env.GMAIL_USER}>`,
+                to: user.email,
+                subject: "Royal Garage — ваш бізнес-профіль створено",
+                text: verificationMessage + "\\n\\nВідкрити бізнес-кабінет: " +
+                    PUBLIC_ORIGIN + "/business-profile.html?edit=1" +
+                    "\\nУ розділі підтвердження телефону натисніть «Підтвердити номер»." +
+                    "\\nЯкщо ви не просили про переведення, зверніться до адміністрації Royal Garage."
+            });
+        } catch (mailError) {
+            console.error("Business conversion email notification failed:", mailError);
+        }
         res.set("Cache-Control", "no-store").json({
-            ok: true, businessId, phoneVerificationRequired: true, message: "Бізнес-профіль створено. Користувачу потрібно увійти повторно та підтвердити телефон, якщо його ще не підтверджено. До підтвердження профіль не відображатиметься публічно."
+            ok: true, businessId, phoneVerificationRequired: verificationRequired, message: "Бізнес-профіль створено. Користувачу потрібно увійти повторно та підтвердити телефон, якщо його ще не підтверджено. До підтвердження профіль не відображатиметься публічно."
         });
     } catch (error) {
         await client.query("ROLLBACK");
