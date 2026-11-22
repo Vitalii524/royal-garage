@@ -100,8 +100,41 @@ function installDealerXml({app,pool,requireAuth,requireAdmin,databaseReady,edito
    res.set('Cache-Control','no-store').json({ok:true,feeds:rows.rows});
   }catch(error){console.error('Admin XML feeds:',error);res.status(500).json({ok:false,message:'Не вдалося завантажити XML-джерела.'});}
  });
+ const syncInProgress=new Set();
+ function safeSyncError(error){
+  const message=String(error?.message||'Невідома помилка');
+  if(/^(Адреса фіду|Фід не повернув XML|Фід перевищує|Час завантаження|Некоректний XML|Неприпустимий XML|DTD не підтримується|У XML немає|Перевірте|Статус має бути|Некоректний VIN|Профіль дилера недоступний|VIN уже є)/.test(message))return message.slice(0,240);
+  return 'Помилка імпорту. Перегляньте журнали сервера.';
+ }
+ async function runFeed(feedId){
+  if(syncInProgress.has(feedId))return {busy:true};
+  syncInProgress.add(feedId);
+  try{
+   const outcome=await synchronize(pool,feedId,undefined,editorialOwnerId||null);
+   if(outcome.skipped)return {skipped:true};
+   return {imported:outcome.imported};
+  }catch(error){
+   console.error('XML import failed',feedId,error);
+   const message=safeSyncError(error);
+   await pool.query('UPDATE business_xml_feeds SET last_attempt_at=NOW(),last_error=$2 WHERE id=$1',[feedId,message]).catch(e=>console.error('XML status update failed',e));
+   return {error:message};
+  }finally{syncInProgress.delete(feedId);}
+ }
+ app.post('/api/business/xml-feeds/:id/sync',requireAuth,async(req,res)=>{
+  try{
+   await databaseReady;
+   if(!await dealer(req.user.userId))return res.sendStatus(403);
+   const feed=await pool.query('SELECT id FROM business_xml_feeds WHERE id=$1 AND owner_id=$2 AND approved AND enabled',[req.params.id,req.user.userId]);
+   if(!feed.rowCount)return res.status(409).json({ok:false,message:'Джерело не знайдено, не погоджено або вимкнене.'});
+   const outcome=await runFeed(feed.rows[0].id);
+   if(outcome.busy)return res.status(409).json({ok:false,message:'Синхронізація вже виконується.'});
+   if(outcome.skipped)return res.status(409).json({ok:false,message:'Імпорт пропущено: перевірте статус бізнес-профілю та підтвердження контактів.'});
+   if(outcome.error)return res.status(422).json({ok:false,message:outcome.error});
+   res.json({ok:true,imported:outcome.imported});
+  }catch(error){console.error('Manual XML sync failed',error);res.status(500).json({ok:false,message:'Не вдалося запустити синхронізацію.'});}
+ });
  let running=false;
- async function tick(){if(running)return;running=true;try{await databaseReady;const feeds=await pool.query(`SELECT id FROM business_xml_feeds WHERE approved AND enabled AND (last_attempt_at IS NULL OR last_attempt_at<NOW()-INTERVAL '6 hours')`);for(const feed of feeds.rows){try{await synchronize(pool,feed.id,undefined,editorialOwnerId || null);}catch{await pool.query(`UPDATE business_xml_feeds SET last_attempt_at=NOW(),last_error='Імпорт не виконано. Перевірте доступність та формат джерела.' WHERE id=$1`,[feed.id]);}}}catch{console.error('XML synchronization unavailable');}finally{running=false;}}
+ async function tick(){if(running)return;running=true;try{await databaseReady;const feeds=await pool.query(`SELECT id FROM business_xml_feeds WHERE approved AND enabled AND (last_attempt_at IS NULL OR last_attempt_at<NOW()-INTERVAL '6 hours')`);for(const feed of feeds.rows){await runFeed(feed.id);}}catch{console.error('XML synchronization unavailable');}finally{running=false;}}
  const timer=setInterval(tick,60000);timer.unref?.();return {tick,stop:()=>clearInterval(timer)};
 }
 module.exports={parseFeed,feedUrl,publicIPv4,downloadFeed,synchronize,installDealerXml};
