@@ -22,7 +22,9 @@
         for (const business of partners) {
             const card = document.createElement("a");
             card.className = "home-partner-card";
-            card.href = business.href || `business-profile.html?id=${encodeURIComponent(business.ownerId)}`;
+            card.href = (business.ownerId === royalAuto.ownerId || royalAutoNames.has(String(business.businessName || "").trim().toLowerCase().replace(/\s+/g, "")))
+                ? "handmade.html"
+                : (business.href || `business-profile.html?id=${encodeURIComponent(business.ownerId)}`);
             if (business.logoUrl) {
                 const logo = document.createElement("img");
                 logo.alt = "";
