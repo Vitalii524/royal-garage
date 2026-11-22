@@ -1542,18 +1542,6 @@ if (portfolioDelete) {
     }
 
     async function init() {
-        // RoyalAuto's public storefront is handmade.html. Keep ?edit=1 available
-        // for the existing business editor; do not create a second public profile.
-        const params = new URLSearchParams(window.location.search);
-        const ownerId = requestedOwnerId();
-        const stored = getStoredUser();
-        const signedInOwnerId = stored?.id ?? stored?.userId ?? stored?.user_id;
-        if (params.get("edit") !== "1" &&
-            (ownerId === ROYAL_AUTO_OWNER_ID ||
-             (!ownerId && String(signedInOwnerId) === ROYAL_AUTO_OWNER_ID))) {
-            window.location.replace("handmade.html");
-            return;
-        }
         bindEvents();
         await loadProfile();
         void showModerationNotices();
