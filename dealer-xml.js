@@ -120,6 +120,18 @@ function installDealerXml({app,pool,requireAuth,requireAdmin,databaseReady,edito
    return {error:message};
   }finally{syncInProgress.delete(feedId);}
  }
+ app.post('/api/admin/xml-feeds/:id/sync',requireAuth,requireAdmin,async(req,res)=>{
+  try{
+   await databaseReady;
+   const feed=await pool.query('SELECT id FROM business_xml_feeds WHERE id=$1 AND approved AND enabled',[req.params.id]);
+   if(!feed.rowCount)return res.status(409).json({ok:false,message:'Джерело не погоджене або вимкнене.'});
+   const outcome=await runFeed(feed.rows[0].id);
+   if(outcome.busy)return res.status(409).json({ok:false,message:'Синхронізація вже виконується.'});
+   if(outcome.skipped)return res.status(409).json({ok:false,message:'Імпорт пропущено: перевірте статус бізнес-профілю.'});
+   if(outcome.error)return res.status(422).json({ok:false,message:outcome.error});
+   res.json({ok:true,imported:outcome.imported});
+  }catch(error){console.error('Admin XML sync failed',error);res.status(500).json({ok:false,message:'Не вдалося запустити імпорт.'});}
+ });
  app.post('/api/business/xml-feeds/:id/sync',requireAuth,async(req,res)=>{
   try{
    await databaseReady;
