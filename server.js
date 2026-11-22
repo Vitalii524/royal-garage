@@ -9,11 +9,19 @@ const jwt = require("jsonwebtoken");
 const getSiteAnalytics = require("./site-analytics");
 const { prepareMedia, saveMedia, installMedia } = require("./service-media");
 
+const { AccessChangeError, parseAccessChange, changeBusinessAccess } = require("./admin-business-access");
+
+const { parseModeration, recordModeration, PUBLIC_BUSINESS_MODERATION } = require("./business-moderation");
+
 const UUID_PATTERN = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 const ROYAL_AUTO_OWNER_ID = "32ce413e-9eb6-417a-b99a-77d9ca7c144a";
 // Royal Auto already has an established public storefront, independent of billing.
 const PUBLIC_BUSINESS_ACCESS = `(bp.owner_id = '${ROYAL_AUTO_OWNER_ID}'::uuid
     OR bp.complimentary_subscription OR bp.subscription_expires_at > NOW())`;
+const PUBLIC_MARKET_MODERATION = `NOT EXISTS (
+    SELECT 1 FROM business_profiles bp WHERE bp.owner_id = market_listings.owner_id
+    AND NOT bp.is_deleted AND NOT ${PUBLIC_BUSINESS_MODERATION}
+)`;
 const SERVICE_HUB_OWNER_ID = "d2363e3d-4723-4755-9030-594cd3ccd6f0";
 const PUBLIC_ORIGIN = new URL(process.env.PUBLIC_ORIGIN || "https://royalgarage.com.ua").origin;
 const SERVICE_BOOKING_TYPES = ["car_service", "detailing", "tire_service", "road_assistance"];
@@ -1218,7 +1226,7 @@ app.get(
                         id,
                         updated_at
                     FROM market_listings
-                    WHERE status = 'active'
+                    WHERE status = 'active' AND ${PUBLIC_MARKET_MODERATION}
                       AND (
                           expires_at IS NULL
                           OR expires_at > NOW()
@@ -1234,7 +1242,7 @@ app.get(
                         model,
                         MAX(updated_at) AS updated_at
                     FROM market_listings
-                    WHERE status = 'active'
+                    WHERE status = 'active' AND ${PUBLIC_MARKET_MODERATION}
                       AND (
                           expires_at IS NULL
                           OR expires_at > NOW()
@@ -1528,7 +1536,7 @@ app.get(
                         photos,
                         active_photo_index
                     FROM market_listings
-                    WHERE id = $1
+                    WHERE id = $1 AND ${PUBLIC_MARKET_MODERATION}
                     LIMIT 1
                     `,
                     [
@@ -1679,7 +1687,7 @@ app.get(
                         status,
                         expires_at
                     FROM market_listings
-                    WHERE id = $1
+                    WHERE id = $1 AND ${PUBLIC_MARKET_MODERATION}
                     LIMIT 1
                     `,
                     [
@@ -2064,7 +2072,7 @@ app.get(
                         bp.photos
                     FROM business_profiles bp
                     JOIN users u ON u.id = bp.owner_id
-                    WHERE bp.owner_id = $1 AND NOT bp.is_deleted AND NOT u.account_disabled
+                    WHERE bp.owner_id = $1 AND NOT bp.is_deleted AND NOT u.account_disabled AND ${PUBLIC_BUSINESS_MODERATION}
                     LIMIT 1
                     `,
                     [
@@ -2233,7 +2241,7 @@ app.get(
                     LEFT JOIN users u
                         ON u.id = bp.owner_id
 
-                    WHERE bp.owner_id = $1 AND NOT bp.is_deleted AND NOT u.account_disabled
+                    WHERE bp.owner_id = $1 AND NOT bp.is_deleted AND NOT u.account_disabled AND ${PUBLIC_BUSINESS_MODERATION}
 
                     LIMIT 1
                     `,
@@ -2990,7 +2998,7 @@ async function renderMarketCategoryPage(
                     `
                     SELECT DISTINCT brand
                     FROM market_listings
-                    WHERE status = 'active'
+                    WHERE status = 'active' AND ${PUBLIC_MARKET_MODERATION}
                       AND (
                           expires_at IS NULL
                           OR expires_at > NOW()
@@ -3031,7 +3039,7 @@ async function renderMarketCategoryPage(
                     `
                     SELECT DISTINCT model
                     FROM market_listings
-                    WHERE status = 'active'
+                    WHERE status = 'active' AND ${PUBLIC_MARKET_MODERATION}
                       AND (
                           expires_at IS NULL
                           OR expires_at > NOW()
@@ -3069,7 +3077,7 @@ async function renderMarketCategoryPage(
                 `
                 SELECT COUNT(*)::integer AS count
                 FROM market_listings
-                WHERE status = 'active'
+                WHERE status = 'active' AND ${PUBLIC_MARKET_MODERATION}
                   AND (
                       expires_at IS NULL
                       OR expires_at > NOW()
@@ -3382,6 +3390,15 @@ app.get("/api/media/videos/:id",async(req,res)=>{
   if(!m||start>end||start>=data.length){res.set("Content-Range",`bytes */${data.length}`);return res.sendStatus(416);}
   end=Math.min(end,data.length-1);res.status(206).set({"Content-Range":`bytes ${start}-${end}/${data.length}`,"Content-Length":end-start+1}).send(data.subarray(start,end+1));
  } catch(error){console.error("Video playback:",error);res.sendStatus(500);}
+});
+
+app.get("/handmade.html", async (req, res, next) => {
+    const result = await pool.query(
+        `SELECT 1 FROM business_profiles bp WHERE bp.owner_id=$1 AND NOT bp.is_deleted
+         AND NOT ${PUBLIC_BUSINESS_MODERATION}`, [ROYAL_AUTO_OWNER_ID]
+    );
+    if (result.rowCount) return res.sendStatus(404);
+    next();
 });
 
 app.use(express.static(path.join(__dirname, "public")));
@@ -4777,7 +4794,8 @@ app.post('/api/businesses/:ownerId/requests', async(req,res)=>{
         try { attachments = await prepareMedia(p.attachments); } catch (error) { return res.status(400).json({ok:false,message:error.message}); }
         await mediaReady;
         const found = ownerId === ROYAL_AUTO_OWNER_ID
-            ? await pool.query('SELECT 1 FROM users WHERE id=$1 AND NOT account_disabled',[ownerId])
+            ? await pool.query(`SELECT 1 FROM users u WHERE u.id=$1 AND NOT u.account_disabled
+              AND NOT EXISTS (SELECT 1 FROM business_profiles bp WHERE bp.owner_id=u.id AND NOT ${PUBLIC_BUSINESS_MODERATION})`,[ownerId])
             : await pool.query(
             `SELECT 1 FROM business_profiles bp
              JOIN users u ON u.id = bp.owner_id
@@ -4786,7 +4804,7 @@ app.post('/api/businesses/:ownerId/requests', async(req,res)=>{
              WHERE bp.owner_id = $1 AND NOT bp.is_deleted AND NOT u.account_disabled
                AND u.email_verified AND u.phone_verified AND sp.is_active AND sp.has_crm
                AND (bp.complimentary_subscription OR bp.subscription_expires_at > NOW())
-               AND bt.code = ANY($2::text[])`, [ownerId, SERVICE_BOOKING_TYPES]
+               AND ${PUBLIC_BUSINESS_MODERATION} AND bt.code = ANY($2::text[])`, [ownerId, SERVICE_BOOKING_TYPES]
         );
         if (!found.rowCount) return res.status(404).json({ ok: false, message: "Бізнес не приймає заявки." });
         const requestId = crypto.randomUUID();
@@ -5407,7 +5425,7 @@ app.get(
                     bp.is_deleted = FALSE
                     AND u.account_disabled = FALSE
                     AND sp.is_active = TRUE
-                    AND ${PUBLIC_BUSINESS_ACCESS}
+                    AND ${PUBLIC_BUSINESS_ACCESS} AND ${PUBLIC_BUSINESS_MODERATION} AND ${PUBLIC_BUSINESS_MODERATION}
                     AND u.email_verified = TRUE
                     AND u.phone_verified = TRUE
 
@@ -5488,7 +5506,7 @@ app.get(
                     AND bp.is_deleted = FALSE
                     AND u.account_disabled = FALSE
                     AND sp.is_active = TRUE
-                    AND ${PUBLIC_BUSINESS_ACCESS}
+                    AND ${PUBLIC_BUSINESS_ACCESS} AND ${PUBLIC_BUSINESS_MODERATION}
                     AND u.email_verified = TRUE
                     AND u.phone_verified = TRUE
 
@@ -5536,7 +5554,7 @@ app.get("/api/businesses/:ownerId/logo", async (req, res) => {
          JOIN subscription_plans sp ON sp.id = bp.subscription_plan_id
          WHERE bp.owner_id = $1 AND NOT bp.is_deleted AND NOT u.account_disabled
            AND u.email_verified AND u.phone_verified AND sp.is_active
-           AND ${PUBLIC_BUSINESS_ACCESS}`,
+           AND ${PUBLIC_BUSINESS_ACCESS} AND ${PUBLIC_BUSINESS_MODERATION}`,
         [req.params.ownerId]
     );
     const logo = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=]+)$/i.exec(result.rows[0]?.logo || "");
@@ -5604,7 +5622,7 @@ app.get(
                     created_at AS "createdAt",
                     updated_at AS "updatedAt"
                 FROM market_listings
-                WHERE status = 'active' AND ($4::uuid IS NULL OR owner_id = $4)
+                WHERE status = 'active' AND ${PUBLIC_MARKET_MODERATION} AND ($4::uuid IS NULL OR owner_id = $4)
                   AND (
                       expires_at IS NULL
                       OR expires_at > NOW()
@@ -5732,7 +5750,7 @@ app.get(
                 `
                 SELECT *
                 FROM market_listings
-                WHERE id = $1
+                WHERE id = $1 AND ${PUBLIC_MARKET_MODERATION}
                 LIMIT 1
                 `,
                 [listingId]
@@ -8537,7 +8555,7 @@ async function loadPublicBusinessProfile(ownerId) {
           AND u.email_verified = TRUE
           AND u.phone_verified = TRUE
           AND sp.is_active = TRUE
-          AND ${PUBLIC_BUSINESS_ACCESS}
+          AND ${PUBLIC_BUSINESS_ACCESS} AND ${PUBLIC_BUSINESS_MODERATION}
         LIMIT 1
         `,
         [ownerId, SERVICE_BOOKING_TYPES]
@@ -10617,39 +10635,240 @@ app.get("/api/admin/registrations", requireAuth, requireAnalyticsAccess, async (
                    AND NOT u.account_disabled AND bp.id IS NOT NULL AND NOT bp.is_deleted)::int AS "businesses"
         FROM users u LEFT JOIN business_profiles bp ON bp.owner_id = u.id
         WHERE u.role <> 'admin'`);
-    res.set("Cache-Control", "no-store").json({ ok: true, stats: result.rows[0], canManageBusinesses: req.user.role === "admin" });
+    res.set("Cache-Control", "no-store").json({ ok: true, stats: result.rows[0], canManageBusinesses: req.user.role === "admin" && req.user.userId !== ROYAL_AUTO_OWNER_ID });
 });
 
-app.get("/api/admin/businesses", requireAuth, requireAdmin, async (req, res) => {
+function requireBusinessAdministrator(req, res, next) {
+    if (req.user?.userId === ROYAL_AUTO_OWNER_ID) {
+        return res.status(403).json({ ok: false, message: "Доступ до керування бізнесами заборонено." });
+    }
+    return requireAdmin(req, res, next);
+}
+
+app.get("/api/admin/businesses", requireAuth, requireBusinessAdministrator, async (req, res) => {
     const search = String(req.query.q || "").trim().slice(0, 255);
-    const result = await pool.query(
-        `SELECT bp.id, bp.owner_id AS "ownerId", bp.name, u.email, bt.name AS "businessType",
-                bp.complimentary_subscription AS "complimentarySubscription"
-         FROM business_profiles bp
-         JOIN users u ON u.id = bp.owner_id
-         LEFT JOIN business_types bt ON bt.id = bp.business_type_id
-         WHERE NOT bp.is_deleted AND NOT u.account_disabled
-           AND ($1 = '' OR STRPOS(LOWER(bp.name), LOWER($1)) > 0
-                        OR LOWER(u.email) = LOWER($1) OR bp.owner_id::text = LOWER($1))
-         ORDER BY bp.created_at DESC, bp.id LIMIT 50`, [search]
-    );
-    res.set("Cache-Control", "no-store").json({ ok: true, businesses: result.rows });
+    const category = String(req.query.category || "").slice(0, 60);
+    const status = String(req.query.status || "");
+    const page = Number(req.query.page || 1);
+    const limit = 30;
+    if (!Number.isSafeInteger(page) || page < 1 || page > 1000000 ||
+        !["", "active", "pending", "expired", "disabled", "review", "restricted", "blocked"].includes(status)) {
+        return res.status(400).json({ ok: false, message: "Некоректний фільтр або номер сторінки." });
+    }
+    try {
+        const [categories, result] = await Promise.all([
+            pool.query("SELECT code, name FROM business_types ORDER BY name, code"),
+            pool.query(
+                `WITH profiles AS (
+                    SELECT bp.id, bp.owner_id AS "ownerId", bp.name, u.email,
+                           bt.code AS "category", bt.name AS "businessType", bp.created_at AS "createdAt",
+                           sp.name AS "planName", bp.subscription_expires_at AS "accessUntil", bp.moderation_until AS "moderationUntil",
+                           bp.complimentary_subscription AS "complimentarySubscription",
+                           NULLIF(bp.logo, '') IS NOT NULL AS "hasLogo",
+                           (SELECT COUNT(*)::int FROM business_complaints bc
+                            WHERE bc.business_id = bp.id AND bc.status IN ('new', 'reviewing')) AS "openComplaints",
+                           CASE WHEN u.account_disabled THEN 'disabled'
+                                WHEN bp.moderation_status IN ('review','blocked') THEN bp.moderation_status
+                                WHEN bp.moderation_status = 'restricted' AND bp.moderation_until > NOW() THEN 'restricted'
+                                WHEN NOT u.email_verified OR NOT u.phone_verified THEN 'pending'
+                                WHEN sp.is_active AND (bp.complimentary_subscription OR bp.subscription_expires_at > NOW()) THEN 'active'
+                                ELSE 'expired' END AS status
+                    FROM business_profiles bp
+                    JOIN users u ON u.id = bp.owner_id
+                    LEFT JOIN business_types bt ON bt.id = bp.business_type_id
+                    LEFT JOIN subscription_plans sp ON sp.id = bp.subscription_plan_id
+                    WHERE NOT bp.is_deleted AND ($2 = '' OR bt.code = $2)
+                      AND ($1 = '' OR STRPOS(LOWER(bp.name), LOWER($1)) > 0
+                                   OR LOWER(u.email) = LOWER($1) OR bp.owner_id::text = LOWER($1))
+                )
+                SELECT * FROM profiles WHERE ($3 = '' OR status = $3)
+                ORDER BY "createdAt", id LIMIT $4 OFFSET $5`,
+                [search, category, status, limit + 1, (page - 1) * limit]
+            )
+        ]);
+        res.set("Cache-Control", "no-store").json({
+            ok: true, categories: categories.rows, businesses: result.rows.slice(0, limit),
+            page, hasMore: result.rows.length > limit
+        });
+    } catch (error) {
+        console.error("Admin business directory:", error);
+        res.status(500).json({ ok: false, message: "Не вдалося завантажити бізнес-профілі." });
+    }
 });
 
-app.patch("/api/admin/businesses/:id/complimentary", requireAuth, requireAdmin, async (req, res) => {
-    const { enabled } = req.body || {};
-    if (!UUID_PATTERN.test(req.params.id) || typeof enabled !== "boolean") {
-        return res.status(400).json({ ok: false, message: "Некоректний бізнес або стан доступу." });
+app.post("/api/businesses/:ownerId/complaints", requireAuth, async (req, res) => {
+    const { reason, explanation, evidence = [] } = req.body || {};
+    const validReasons = ["fraud", "incorrect_information", "inappropriate_content", "other"];
+    if (!UUID_PATTERN.test(req.params.ownerId) || req.params.ownerId === req.user.userId ||
+        !validReasons.includes(reason) || typeof explanation !== "string" ||
+        !explanation.trim() || explanation.length > 3000 || !Array.isArray(evidence) || evidence.length > 3 ||
+        evidence.some(value => typeof value !== "string" || value.length > 2048 || !URL.canParse(value) ||
+            new URL(value).protocol !== "https:" || new URL(value).username || new URL(value).password)) {
+        return res.status(400).json({ ok: false, message: "Перевірте причину, пояснення та HTTPS-посилання на докази." });
+    }
+    const business = await loadPublicBusinessProfile(req.params.ownerId);
+    if (!business) return res.status(404).json({ ok: false, message: "Бізнес не знайдено." });
+    const id = crypto.randomUUID();
+    await pool.query(
+        `INSERT INTO business_complaints (id, business_id, reporter_id, reason, explanation, evidence)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [id, business.id, req.user.userId, reason, explanation.trim(), JSON.stringify(evidence)]
+    );
+    res.status(201).json({ ok: true, id });
+});
+
+app.get("/api/admin/businesses/:id/complaints", requireAuth, requireBusinessAdministrator, async (req, res) => {
+    if (!UUID_PATTERN.test(req.params.id)) return res.sendStatus(400);
+    const result = await pool.query(
+        `SELECT id, reason, explanation, evidence, status, created_at AS "createdAt"
+         FROM business_complaints WHERE business_id = $1 ORDER BY created_at DESC, id LIMIT 100`,
+        [req.params.id]
+    );
+    res.set("Cache-Control", "no-store").json({ ok: true, complaints: result.rows });
+});
+
+app.patch("/api/admin/businesses/:id/complaints/:complaintId", requireAuth, requireBusinessAdministrator, async (req, res) => {
+    const { status, reason } = req.body || {};
+    if (![req.params.id, req.params.complaintId].every(id => UUID_PATTERN.test(id)) ||
+        !["reviewing", "resolved", "dismissed"].includes(status) ||
+        typeof reason !== "string" || !reason.trim() || reason.length > 500) {
+        return res.status(400).json({ ok: false, message: "Перевірте статус і причину рішення." });
     }
     const result = await pool.query(
-        `UPDATE business_profiles bp SET complimentary_subscription = $2, updated_at = NOW()
-         FROM users u WHERE bp.id = $1 AND u.id = bp.owner_id AND NOT bp.is_deleted AND NOT u.account_disabled
-         RETURNING bp.id, bp.complimentary_subscription AS "complimentarySubscription"`,
-        [req.params.id, enabled]
+        `WITH previous AS (
+            SELECT id, business_id, status FROM business_complaints
+            WHERE id = $1 AND business_id = $2 FOR UPDATE
+         ), changed AS (
+            UPDATE business_complaints complaint SET status = $3, updated_at = NOW()
+            FROM previous WHERE complaint.id = previous.id AND previous.status <> $3
+            RETURNING complaint.id, complaint.business_id, complaint.status, previous.status AS previous_status
+         )
+         INSERT INTO admin_business_audit (business_id, admin_id, action, reason, before_state, after_state)
+         SELECT business_id, $4, 'complaint_status', $5,
+                jsonb_build_object('complaintId', id, 'status', previous_status),
+                jsonb_build_object('complaintId', id, 'status', status)
+         FROM changed RETURNING id`,
+        [req.params.complaintId, req.params.id, status, req.user.userId, reason.trim()]
     );
-    if (!result.rowCount) return res.status(404).json({ ok: false, message: "Бізнес не знайдено." });
-    console.info("Complimentary business access updated:", { adminId: req.user.userId, businessId: req.params.id, enabled });
-    res.json({ ok: true, business: result.rows[0] });
+    if (!result.rowCount) return res.status(409).json({ ok: false, message: "Скаргу не знайдено або статус уже встановлено." });
+    res.json({ ok: true });
+});
+
+app.patch("/api/admin/businesses/:id/moderation", requireAuth, requireBusinessAdministrator, async (req, res) => {
+    const decision = parseModeration(req.body);
+    if (!UUID_PATTERN.test(req.params.id) || !decision) {
+        return res.status(400).json({ ok: false, message: "Перевірте дію, причину, підтвердження та термін." });
+    }
+    const id = await recordModeration(pool, req.params.id, req.user.userId, decision);
+    if (!id) return res.status(409).json({ ok: false, message: "Бізнес не знайдено або дія суперечить чинному обмеженню." });
+    res.json({ ok: true, id });
+});
+
+app.get("/api/business/moderation", requireAuth, async (req, res) => {
+    const result = await pool.query(
+        `SELECT d.id, d.action, d.reason, d.expires_at AS "expiresAt", d.created_at AS "createdAt",
+                a.status AS "appealStatus", a.response
+         FROM business_moderation_decisions d
+         LEFT JOIN business_moderation_appeals a ON a.decision_id = d.id
+         WHERE d.owner_id = $1 ORDER BY d.created_at DESC, d.id LIMIT 100`,
+        [req.user.userId]
+    );
+    res.set("Cache-Control", "no-store").json({ ok: true, decisions: result.rows });
+});
+
+app.post("/api/business/moderation/:id/appeal", requireAuth, async (req, res) => {
+    const explanation = typeof req.body?.explanation === "string" ? req.body.explanation.trim() : "";
+    if (!UUID_PATTERN.test(req.params.id) || !explanation || explanation.length > 3000) {
+        return res.status(400).json({ ok: false, message: "Додайте пояснення до 3000 символів." });
+    }
+    const result = await pool.query(
+        `INSERT INTO business_moderation_appeals (decision_id,owner_id,explanation)
+         SELECT id,owner_id,$3 FROM business_moderation_decisions
+         WHERE id=$1 AND owner_id=$2 AND action<>'restore'
+         ON CONFLICT (decision_id) DO NOTHING RETURNING decision_id`,
+        [req.params.id, req.user.userId, explanation]
+    );
+    if (!result.rowCount) return res.status(409).json({ ok: false, message: "Оскарження недоступне або вже подане." });
+    res.status(201).json({ ok: true });
+});
+
+app.get("/api/admin/businesses/:id/appeals", requireAuth, requireBusinessAdministrator, async (req, res) => {
+    if (!UUID_PATTERN.test(req.params.id)) return res.sendStatus(400);
+    const result = await pool.query(
+        `SELECT d.id,d.action,d.reason,a.explanation,a.status,a.response,a.created_at AS "createdAt"
+         FROM business_moderation_appeals a JOIN business_moderation_decisions d ON d.id=a.decision_id
+         WHERE d.business_id=$1 ORDER BY a.created_at DESC LIMIT 100`, [req.params.id]
+    );
+    res.set("Cache-Control", "no-store").json({ ok: true, appeals: result.rows });
+});
+
+app.patch("/api/admin/businesses/:id/appeals/:decisionId", requireAuth, requireBusinessAdministrator, async (req, res) => {
+    const { status } = req.body || {};
+    const response = typeof req.body?.response === "string" ? req.body.response.trim() : "";
+    if (![req.params.id, req.params.decisionId].every(id => UUID_PATTERN.test(id)) ||
+        !["resolved","dismissed"].includes(status) || !response || response.length > 1000) {
+        return res.status(400).json({ ok: false, message: "Перевірте рішення та відповідь." });
+    }
+    const result = await pool.query(
+        `WITH changed AS (
+           UPDATE business_moderation_appeals a SET status=$3,response=$4
+           FROM business_moderation_decisions d
+           WHERE a.decision_id=d.id AND d.id=$1 AND d.business_id=$2 AND a.status='new'
+           RETURNING d.business_id,a.owner_id,a.decision_id
+         ), audit AS (
+           INSERT INTO admin_business_audit (business_id,admin_id,action,reason,before_state,after_state)
+           SELECT business_id,$5,'moderation_appeal',$4,jsonb_build_object('status','new'),
+                  jsonb_build_object('status',$3::text,'decisionId',decision_id) FROM changed
+         )
+         INSERT INTO forum_notifications (id,user_id,actor_id,kind,message,source,url,event_key)
+         SELECT $6, owner_id,$5,'business_moderation','Оскарження розглянуто. Відповідь у кабінеті бізнесу.',
+                'profile','/business-profile.html?moderation=1','moderation-appeal:'||decision_id::text
+         FROM changed RETURNING id`,
+         [req.params.decisionId,req.params.id,status,response,req.user.userId,crypto.randomUUID()]
+    );
+    if (!result.rowCount) return res.status(409).json({ ok: false, message: "Оскарження не знайдено або вже розглянуто." });
+    res.json({ ok: true });
+});
+
+app.get("/api/admin/business-plans", requireAuth, requireBusinessAdministrator, async (req, res) => {
+    const result = await pool.query(
+        `SELECT id, code, name FROM subscription_plans WHERE business_type_code = $1 AND is_active
+         ORDER BY name, id`, [String(req.query.category || "").slice(0, 60)]
+    );
+    res.set("Cache-Control", "no-store").json({ ok: true, plans: result.rows });
+});
+
+app.get("/api/admin/businesses/:id/audit", requireAuth, requireBusinessAdministrator, async (req, res) => {
+    if (!UUID_PATTERN.test(req.params.id)) return res.sendStatus(400);
+    const result = await pool.query(
+        `SELECT id, admin_id AS "adminId", action, reason, before_state AS "before",
+                after_state AS "after", created_at AS "createdAt"
+         FROM admin_business_audit WHERE business_id = $1 ORDER BY id DESC LIMIT 50`,
+        [req.params.id]
+    );
+    res.set("Cache-Control", "no-store").json({ ok: true, entries: result.rows });
+});
+
+const updateAdminBusinessAccess = async (req, res) => {
+    try {
+        if (!UUID_PATTERN.test(req.params.id)) throw new AccessChangeError(400, "Некоректний бізнес.");
+        const change = parseAccessChange(req.body, value => UUID_PATTERN.test(value));
+        const business = await changeBusinessAccess(pool, req.params.id, req.user.userId, change);
+        res.json({ ok: true, business });
+    } catch (error) {
+        if (error instanceof AccessChangeError) {
+            return res.status(error.status).json({ ok: false, message: error.message });
+        }
+        console.error("Admin business access:", error);
+        res.status(500).json({ ok: false, message: "Не вдалося змінити доступ." });
+    }
+};
+
+app.patch("/api/admin/businesses/:id/access", requireAuth, requireBusinessAdministrator, updateAdminBusinessAccess);
+app.patch("/api/admin/businesses/:id/complimentary", requireAuth, requireBusinessAdministrator, (req, res) => {
+    if (typeof req.body?.enabled !== "boolean") return res.status(400).json({ ok: false, message: "Некоректний стан доступу." });
+    req.body.action = req.body.enabled ? "grant_complimentary" : "revoke_complimentary";
+    return updateAdminBusinessAccess(req, res);
 });
 
 async function requireCrmAccess(req, res, next) {
@@ -16176,6 +16395,7 @@ app.get(
                     FROM royal_auto_sections
 
                     WHERE owner_id = $1
+                        AND NOT EXISTS (SELECT 1 FROM business_profiles bp WHERE bp.owner_id=$1 AND NOT bp.is_deleted AND NOT ${PUBLIC_BUSINESS_MODERATION})
                       AND active = TRUE
 
                     ORDER BY
@@ -16715,6 +16935,7 @@ app.post(
 
                     WHERE
                         rap.owner_id = $1
+                        AND NOT EXISTS (SELECT 1 FROM business_profiles bp WHERE bp.owner_id=$1 AND NOT bp.is_deleted AND NOT ${PUBLIC_BUSINESS_MODERATION})
 
                         AND rap.active = TRUE
 
