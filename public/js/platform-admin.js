@@ -122,20 +122,23 @@
         event.preventDefault();
         loadBusinesses();
     });
+    const accessStatus = document.getElementById("platformAccessStatus");
     if (!token) {
-        registrationStatus.textContent = trafficStatus.textContent = "Увійдіть до Royal Garage, щоб переглянути аналітику.";
+        accessStatus.textContent = "Увійдіть до Royal Garage, щоб перевірити доступ.";
         return;
     }
 
-    loadSiteAnalytics();
     adminApi("/api/admin/registrations").then(data => {
+        document.getElementById("platformAdmin").hidden = false;
+        accessStatus.hidden = true;
         renderStats(data.stats);
         registrationStatus.hidden = true;
+        loadSiteAnalytics();
         if (data.canManageBusinesses) {
             businessControls.hidden = false;
             return loadBusinesses();
         }
     }).catch(error => {
-        registrationStatus.textContent = error.message;
+        accessStatus.textContent = error.message;
     });
 })();

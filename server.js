@@ -1180,6 +1180,7 @@ CREATE TABLE IF NOT EXISTS service_history_purchases (
 `);
 
         await ensureBusinessRequestsTable();
+        await pool.query(fs.readFileSync(path.join(__dirname, "migrations/20261122-verified-platform-administrator.sql"), "utf8"));
         console.log("Users table ready");
     } catch (error) {
         throw error;

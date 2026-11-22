@@ -7323,6 +7323,9 @@ async function initializeProfilePage() {
         return;
     }
 
+    const adminLink = document.getElementById("openPlatformAdmin");
+    if (adminLink) adminLink.hidden = user.role !== "admin";
+
     const isRoyalAuto = String(user.id || user.userId) === "32ce413e-9eb6-417a-b99a-77d9ca7c144a";
     const isBusiness = isRoyalAuto || user.accountType === "business";
     const showChats = new URLSearchParams(window.location.search).get("section") === "chats";
