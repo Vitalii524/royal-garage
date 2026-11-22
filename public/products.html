@@ -1,1 +1,35 @@
-<!doctype html><html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Автотовари | Royal Garage</title><link rel="stylesheet" href="css/styles.css"><link rel="stylesheet" href="css/service-gallery.css"><link rel="stylesheet" href="css/product-catalog.css"></head><body><header class="site-header"><div class="top-line"><a href="index.html">Royal Garage</a><nav><a href="businesses.html">Партнери</a> · <a href="market.html">Авторинок</a> · <a href="products.html">Автотовари</a></nav><div id="authArea"></div></div></header><main class="catalog-wrap"><h1>Каталог автотоварів</h1><form id="catalogSearchForm" class="catalog-form"><input id="catalogSearch" aria-label="Назва або категорія товару" placeholder="Автотканина, автохімія, поліроль…" maxlength="120"><input id="catalogCategory" aria-label="Точна категорія" placeholder="Категорія" maxlength="100"><button class="rg-service-more">Знайти</button></form><p id="catalogStatus" role="status"></p><div id="catalogGrid" class="catalog-grid"></div><button id="catalogMore" class="rg-service-more" hidden>Показати ще</button></main><script src="js/auth.js"></script><script src="js/site-header.js"></script><script src="js/service-gallery.js"></script><script src="js/product-catalog.js?v=20261122-order"></script></body></html>
+<!doctype html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Автотовари | Royal Garage</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/service-gallery.css">
+    <link rel="stylesheet" href="css/product-catalog.css?v=20261122-layout">
+    <script src="/js/site-header.js?v=20261122-navigation" defer></script>
+</head>
+<body>
+<header data-site-navigation><div id="authArea"></div></header>
+<main class="catalog-wrap">
+    <section class="catalog-panel" aria-labelledby="catalogTitle">
+        <h1 id="catalogTitle">Каталог автотоварів</h1>
+        <form id="catalogSearchForm" class="catalog-form" role="search">
+            <label>Пошук товару
+                <input id="catalogSearch" placeholder="Назва або опис…" maxlength="120">
+            </label>
+            <label>Категорія
+                <input id="catalogCategory" placeholder="Наприклад, Автохімія" maxlength="120">
+            </label>
+            <button class="rg-service-more" type="submit">Знайти</button>
+        </form>
+        <p id="catalogStatus" role="status"></p>
+    </section>
+    <div id="catalogGrid" class="catalog-grid"></div>
+    <button id="catalogMore" class="rg-service-more" type="button" hidden>Показати ще</button>
+</main>
+<script src="js/auth.js"></script>
+<script src="js/service-gallery.js"></script>
+<script src="js/product-catalog.js?v=20261122-order"></script>
+</body>
+</html>

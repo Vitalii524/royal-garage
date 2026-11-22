@@ -11,12 +11,22 @@
     ];
 
     function mountNavigation() {
-        const header = document.querySelector('.site-header');
+        const header = document.querySelector('.site-header') || document.querySelector('[data-site-navigation]');
         if (!header || document.querySelector('.rg-sticky-header')) return;
         let row = header.querySelector('.top-line');
         if (!row) {
             row = document.createElement('div');
             row.className = 'top-line';
+            if (header.hasAttribute('data-site-navigation')) {
+                const brand = document.createElement('a');
+                brand.className = 'brand';
+                brand.href = '/';
+                const logo = document.createElement('img');
+                logo.src = '/images/royal-garage-logo.png';
+                logo.alt = 'Royal Garage';
+                brand.append(logo);
+                row.append(brand);
+            }
             row.append(...header.children);
             header.append(row);
         }
