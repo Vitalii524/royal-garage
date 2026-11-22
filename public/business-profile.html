@@ -12,7 +12,7 @@
     <link rel="icon" type="image/png" href="images/favicon.png">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/handmade.css">
-    <link rel="stylesheet" href="css/business-profile.css?v=11">
+    <link rel="stylesheet" href="css/business-profile.css?v=12">
 <link rel="stylesheet" href="css/business-profile-compact.css?v=2">
 <link rel="stylesheet" href="css/profile-community.css?v=1">
 <link rel="stylesheet" href="css/service-media.css">
@@ -21,6 +21,18 @@
 <script defer src="js/business-actions.js?v=1"></script>
 </head>
 <body>
+    <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+        <defs>
+            <filter id="royal-auto-logo-white-background" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%">
+                <feColorMatrix in="SourceGraphic" type="matrix" values="
+                    0 0 0 0 0
+                    0 0 0 0 0
+                    0 0 0 0 0
+                    0 0 -8 0 8" result="foreground-mask"/>
+                <feComposite in="SourceGraphic" in2="foreground-mask" operator="in"/>
+            </filter>
+        </defs>
+    </svg>
 <header class="site-header">
     <div class="top-line">
         <div class="brand">
@@ -156,7 +168,6 @@
             <h2>Товари</h2>
             <button id="businessAddProductQuick" class="business-primary-button" type="button" hidden>+ Додати товар</button>
             <div id="businessProductsGrid" class="business-content-grid"></div>
-            <a id="businessRoyalAutoCatalog" href="handmade.html" hidden>Каталог Royal Auto →</a>
         </section>
 
         <section id="businessMainContentSection" class="business-section">
@@ -255,6 +266,22 @@
             <a id="businessReviewsLink" class="business-reviews-link" href="#" hidden>Переглянути відгуки <span id="businessReviewsLinkCount"></span><span aria-hidden="true">→</span></a>
         </section>
     </div>
+<details id="editorialProposalPanel" class="business-section" hidden>
+    <summary>Пропозиції співпраці</summary>
+    <form id="editorialProposalForm" class="business-form">
+        <label>Адресат <select name="recipient" required><option value="">Оберіть бізнес</option></select></label>
+        <label>Текст пропозиції <textarea name="message" maxlength="2000" required></textarea></label>
+        <button type="submit" class="business-action">Переглянути перед надсиланням</button>
+        <div id="editorialProposalPreview" hidden>
+            <strong id="editorialProposalRecipient"></strong>
+            <p id="editorialProposalText"></p>
+            <button id="editorialProposalSend" type="button" class="business-action">Підтвердити надсилання в чат</button>
+        </div>
+        <p id="editorialProposalStatus" role="status"></p>
+    </form>
+    <h3>Надіслані пропозиції</h3>
+    <ul id="editorialProposalHistory"></ul>
+</details>
 <section id="businessXmlPanel" class="business-section" hidden><h2>XML-імпорт автомобілів</h2><p>Джерело має належати вам або використовуватися з дозволу партнера. Воно залишається вимкненим до окремого погодження власником Royal Garage. Після ввімкнення синхронізація відбувається кожні 6 годин.</p><form class="business-form"><label>HTTPS-адреса фіду<input name="feedUrl" type="url" maxlength="2048" required placeholder="https://example.com/inventory.xml"></label><button type="submit" class="business-primary-button">Додати джерело для погодження</button></form><p role="status"></p><div data-xml-feeds></div><details><summary>Підтримуваний формат XML</summary><p>Корінь inventory, записи vehicle з унікальним атрибутом id. Поля: brand, model, year, price_usd або price_uah, необов’язкові vin, description, status (active або sold), photos/photo. Інші формати потребують узгодження адаптера. Тимчасова помилка фіду не видаляє оголошень.</p></details></section></main>
 
 <footer class="footer">
@@ -606,7 +633,8 @@
 <script src="js/dealer-xml.js?v=20261122"></script>
 <script src="js/product-catalog.js?v=20261122-order"></script>
 <script src="js/share.js?v=2"></script>
-<script src="js/business-profile.js?v=20261122-actions"></script>
+<script src="js/editorial-proposals.js?v=1"></script>
+<script src="js/business-profile.js?v=20261122-editorial-verified"></script>
 <script src="js/loader.js"></script>
 <script src="js/lang.js"></script>
 <script src="js/profile-community.js?v=1"></script>

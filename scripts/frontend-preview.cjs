@@ -22,8 +22,42 @@ const profiles = {
         businessTypeName: 'Магазин', products: [product], services: [], portfolio: []
     }
 };
+const editorId = 'b61d05c8-0cab-4432-b36e-267440d87b6a';
+const user = { id: editorId, name: 'Редакція Royal Garage', accountType: 'business' };
+const testToken = 'isolated-editorial-preview';
+const proposals = [];
+const feeds = [];
+const editorial = { ownerId: editorId, name: user.name, businessTypeName: 'Редакція', businessTypeCode: 'car_service', logo: '/images/royal-garage-logo.png', profileStatus: 'active', subscriptionStatus: 'active', emailVerified: true, phoneVerified: true, acceptsServiceRequests: false, services: [], portfolio: [] };
+function qaAuth(req, res, next) {
+    if (req.get('Authorization') !== 'Bearer ' + testToken) return res.sendStatus(403);
+    next();
+}
+app.use(express.json({ limit: '20kb' }));
+app.get('/qa/editorial', (req, res) => res.type('html').send(`<script>
+    localStorage.setItem('royalGarageCurrentUser', ${JSON.stringify(JSON.stringify(user))});
+    localStorage.setItem('royalGarageToken', ${JSON.stringify(testToken)});
+    location.replace('/business-profile.html?id=${editorId}');
+</script>`));
+app.get('/api/business/profile', qaAuth, (req, res) => res.json({ profile: editorial }));
+app.get('/api/businesses/featured', (req, res) => res.json({ businesses: [{ ownerId: product.ownerId, businessName: 'Тестовий магазин' }] }));
+app.get('/api/business/xml-feeds', qaAuth, (req, res) => res.json({ feeds }));
+app.post('/api/business/xml-feeds', qaAuth, (req, res) => {
+    if (req.body.url !== 'https://example.test/editorial.xml') return res.sendStatus(400);
+    if (!feeds.length) feeds.push({ id: 'test-feed', url: req.body.url, approved: false, enabled: false });
+    res.status(201).json({ ok: true, feed: feeds[0] });
+});
+app.get('/api/editorial/proposals', qaAuth, (req, res) => res.json({ proposals }));
+app.post('/api/editorial/proposals', qaAuth, (req, res) => {
+    const { confirmed, recipientId, recipientName, text } = req.body;
+    if (!confirmed || recipientId !== product.ownerId || recipientName !== 'Тестовий магазин' || !text) return res.sendStatus(400);
+    if (proposals.length) return res.status(409).json({ message: 'Пропозицію вже надіслано.' });
+    proposals.push({ recipientId, recipientName, text, sentAt: new Date().toISOString() });
+    res.status(201).json({ ok: true, id: 'synthetic-proposal' });
+});
+app.get('/api/forum/topics', (req, res) => res.json({ topics: [] }));
+app.post('/api/forum/topics', qaAuth, (req, res) => res.status(201).json({ ok: true, topic: { ...req.body, id: 'synthetic-topic' } }));
 app.get('/api/business/profiles/:ownerId', (req, res) => {
-    const profile = profiles[req.params.ownerId];
+    const profile = req.params.ownerId === editorId ? editorial : profiles[req.params.ownerId];
     if (!profile) return res.sendStatus(404);
     res.json({ profile });
 });

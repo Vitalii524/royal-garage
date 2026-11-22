@@ -3,6 +3,7 @@
 
     const MAX_ITEM_PHOTOS = 6;
     const ROYAL_AUTO_OWNER_ID = "32ce413e-9eb6-417a-b99a-77d9ca7c144a";
+    const EDITORIAL_OWNER_ID = "b61d05c8-0cab-4432-b36e-267440d87b6a";
     const BOOKING_TYPES = new Set(["car_service", "detailing", "tire_service", "road_assistance"]);
     let requestsPage = 0;
     const DAYS = [
@@ -57,7 +58,9 @@
     function isCurrentBusinessOwner(ownerId) {
         const user = getStoredUser();
         const userId = user?.id ?? user?.userId ?? user?.user_id;
-        return Boolean(token() && userId && (user?.accountType || user?.account_type) === "business" && (!ownerId || String(userId) === String(ownerId)));
+        const canManage = String(userId) === ROYAL_AUTO_OWNER_ID ||
+            (user?.accountType || user?.account_type) === "business";
+        return Boolean(token() && userId && canManage && (!ownerId || String(userId) === String(ownerId)));
     }
 
     async function api(url, options = {}) {
@@ -171,6 +174,7 @@
         const image = $("businessLogo");
         const placeholder = $("businessLogoPlaceholder");
         const source = String(profile.logo || "").trim();
+        image.classList.toggle("business-royal-auto-logo", profile.ownerId === ROYAL_AUTO_OWNER_ID);
         placeholder.textContent = initials(profile.name);
         image.onerror = () => {
             image.hidden = true;
@@ -256,9 +260,10 @@
 
         const active = profile.profileStatus === "active";
         $("businessProfileStatusText").textContent = active ? "Активний" : "Чернетка";
-        $("businessProfileStatusHint").textContent = active
-            ? "Профіль опублікований у «Партнерах»."
-            : "Перевірте підтвердження email і телефону.";
+        $("businessProfileStatusHint").textContent = profile.ownerId === EDITORIAL_OWNER_ID
+            ? "Редакційний профіль поза комерційним каталогом."
+            : active ? "Профіль опублікований у «Партнерах»."
+                : "Перевірте підтвердження email і телефону.";
         $("businessProfileStatusDot").classList.toggle("active", active);
 
         $("businessEmailStatus").textContent = profile.emailVerified ? "Підтверджено ✓" : "Не підтверджено";
@@ -273,7 +278,8 @@
             ? `Діє до ${new Date(profile.subscriptionExpiresAt).toLocaleDateString("uk-UA")}`
             : "";
         $("businessAddCarButton").hidden = profile.businessTypeCode !== "car_dealer";
-        window.RGDealerXml?.mount(state.isOwner && profile.businessTypeCode === "car_dealer");
+        $("editorialProposalPanel").hidden = !(state.isOwner && profile.ownerId === EDITORIAL_OWNER_ID);
+        window.RGDealerXml?.mount(state.isOwner && (profile.businessTypeCode === "car_dealer" || profile.ownerId === EDITORIAL_OWNER_ID));
         $("businessCrmButton").hidden = !profile.hasCrm;
     }
 
@@ -572,7 +578,7 @@
         $("businessAddress").textContent = [profile.city, profile.address].filter(Boolean).join(", ") || "Не вказано";
 
         const shareButton = $("shareBusinessLink");
-        if (profile.ownerId && (requestedOwnerId() || profile.subscriptionStatus === "active")) {
+        if (profile.ownerId && (requestedOwnerId() || profile.profileStatus === "active" || profile.subscriptionStatus === "active")) {
             const url = new URL("business-profile.html", window.location.href);
             url.searchParams.set("id", profile.ownerId);
             window.RGShare.bind(shareButton, () => ({
@@ -594,7 +600,7 @@
         renderSchedule(profile);
         renderOwnerControls(profile);
         const bell = $("businessRequestsBell");
-        bell.hidden = !(state.isOwner && profile.hasCrm && profile.subscriptionStatus === "active"
+        bell.hidden = profile.ownerId === EDITORIAL_OWNER_ID || !(state.isOwner && profile.hasCrm && profile.subscriptionStatus === "active"
             && BOOKING_TYPES.has(profile.businessTypeCode));
         if (!bell.hidden) refreshRequestCount();
         const quickAdd = $("businessAddServiceQuick");
@@ -621,7 +627,7 @@
         show("businessAboutScheduleCard", state.isOwner || hasSchedule);
         show("businessAboutSection", state.isOwner || hasDescription || hasAddress || hasSchedule);
         show("businessPortfolioSection", state.isOwner || hasPortfolio);
-        show("businessBookingButton", !state.isOwner && profile.acceptsServiceRequests === true);
+        show("businessBookingButton", !state.isOwner && profile.ownerId !== EDITORIAL_OWNER_ID && profile.acceptsServiceRequests === true);
 
         if (profile.ownerId) loadReviews(profile.ownerId);
 
@@ -631,11 +637,51 @@
     function renderProducts(profile) {
         const products = profile.products || [];
         const canEdit = state.isOwner && (products.length > 0 || ["products", "both"].includes(profile.businessContentType));
-        const legacyCatalog = profile.ownerId === ROYAL_AUTO_OWNER_ID;
-        $("businessProductsSection").hidden = !(products.length || canEdit || legacyCatalog);
+        $("businessProductsSection").hidden = !(products.length || canEdit);
         $("businessAddProductQuick").hidden = !canEdit;
-        $("businessRoyalAutoCatalog").hidden = !legacyCatalog;
         $("businessProductsGrid").replaceChildren(...products.map(product => itemCard(product, true)));
+    }
+
+    function royalAutoListingCard(listing) {
+        const card = document.createElement("a");
+        card.className = "royal-auto-car-card";
+        card.href = `listing.html?id=${encodeURIComponent(listing.id)}`;
+
+        const photoBox = document.createElement("div");
+        photoBox.className = "royal-auto-car-photo";
+        const photo = listing.photos?.[listing.activePhotoIndex] || listing.photos?.[0];
+        if (photo) {
+            const image = document.createElement("img");
+            image.src = photo;
+            image.alt = listing.name || "Автомобіль";
+            image.loading = "lazy";
+            photoBox.append(image);
+        } else {
+            const placeholder = document.createElement("div");
+            placeholder.className = "royal-auto-car-placeholder";
+            placeholder.textContent = "🚘";
+            photoBox.append(placeholder);
+        }
+
+        const info = document.createElement("div");
+        info.className = "royal-auto-car-info";
+        const title = document.createElement("h3");
+        const name = listing.name || [listing.brand, listing.model].filter(Boolean).join(" ") || "Автомобіль";
+        const year = String(listing.year || "");
+        title.textContent = year && !name.includes(year) ? `${name} ${year}` : name;
+
+        const price = document.createElement("strong");
+        price.className = "royal-auto-car-price";
+        const format = new Intl.NumberFormat("uk-UA");
+        price.textContent = Number(listing.priceUsd) > 0 ? `${format.format(listing.priceUsd)} $`
+            : Number(listing.priceUah) > 0 ? `${format.format(listing.priceUah)} грн` : "Ціна договірна";
+
+        const more = document.createElement("span");
+        more.className = "royal-auto-car-more";
+        more.textContent = "Детальніше";
+        info.append(title, price, more);
+        card.append(photoBox, info);
+        return card;
     }
 
     async function loadBusinessCars(ownerId, isDealer) {
@@ -644,14 +690,19 @@
         section.hidden = !isDealer;
         try {
             const { listings } = await api(`/api/market/listings?ownerId=${encodeURIComponent(ownerId)}`);
+            const royalAuto = ownerId === ROYAL_AUTO_OWNER_ID;
             const cards = listings.map(listing => {
+                if (royalAuto) return royalAutoListingCard(listing);
                 const card = document.createElement("a");
                 card.className = "business-info-card";
                 card.href = `listing.html?id=${encodeURIComponent(listing.id)}`;
                 card.textContent = listing.name || [listing.brand, listing.model, listing.year].filter(Boolean).join(" ");
                 return card;
             });
-            $("businessCarsGrid").replaceChildren(...cards);
+            const grid = $("businessCarsGrid");
+            grid.classList.toggle("royal-auto-cars-grid", royalAuto);
+            grid.classList.toggle("business-content-grid", !royalAuto);
+            grid.replaceChildren(...cards);
             section.hidden = !(isDealer || cards.length);
             status.textContent = cards.length ? "" : "Активних оголошень поки немає.";
         } catch (error) {
@@ -804,6 +855,10 @@
                 workSchedule: readScheduleEditor()
             };
 
+            if (state.profile.ownerId === ROYAL_AUTO_OWNER_ID &&
+                (!body.phone || body.phone === (state.profile.phone || "").trim())) {
+                delete body.phone;
+            }
             const data = await api("/api/business/profile", {
                 method: "PATCH",
                 body: JSON.stringify(body)
@@ -1408,7 +1463,12 @@ if (portfolioDelete) {
     async function init() {
         bindEvents();
         await loadProfile();
-        if (new URLSearchParams(location.search).get('notifications') === 'requests' && !$("businessRequestsBell").hidden) {
+        const params = new URLSearchParams(location.search);
+        if (params.get("edit") === "1" && state.isOwner && state.profile) {
+            fillProfileForm();
+            openModal("businessProfileModal");
+        }
+        if (params.get('notifications') === 'requests' && !$("businessRequestsBell").hidden) {
             openModal("businessRequestsModal");
             await loadBusinessRequests();
         }
