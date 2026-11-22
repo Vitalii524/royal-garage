@@ -55,7 +55,7 @@
 
         .crm-sidebar {
             position: fixed;
-            inset: 0 auto 0 0;
+            inset: 64px auto 0 0;
             width: var(--crm-sidebar-width);
             padding: 22px 16px;
             border-right: 1px solid var(--crm-border);
@@ -306,7 +306,7 @@
 
             .crm-mobile-header {
                 position: sticky;
-                top: 0;
+                top: 64px;
                 z-index: 900;
                 display: flex;
                 align-items: center;
@@ -357,9 +357,15 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="/css/auth.css">
+    <script src="/js/site-header.js?v=crm-navigation" defer></script>
+    <script src="/js/lang.js" defer></script>
+    <script src="/js/auth.js?v=account-menu" defer></script>
+    <script src="/js/notifications.js?v=shared-header" defer></script>
 </head>
 
 <body>
+    <header data-site-navigation></header>
     <div class="crm-layout">
         <aside class="crm-sidebar" id="crmSidebar">
             <div class="crm-sidebar-head">
@@ -441,7 +447,7 @@
                     class="crm-menu-button"
                     type="button"
                 >
-                    ☰ Меню
+                    ☰ Розділи CRM
                 </button>
 
                 <div class="crm-mobile-title">CRM RG</div>

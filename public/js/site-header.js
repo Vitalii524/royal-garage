@@ -13,6 +13,10 @@
     function mountNavigation() {
         const header = document.querySelector('.site-header') || document.querySelector('[data-site-navigation]');
         if (!header || document.querySelector('.rg-sticky-header')) return;
+        const style = document.createElement('link');
+        style.rel = 'stylesheet';
+        style.href = '/css/site-navigation.css?v=1';
+        document.head.append(style);
         let row = header.querySelector('.top-line');
         if (!row) {
             row = document.createElement('div');
