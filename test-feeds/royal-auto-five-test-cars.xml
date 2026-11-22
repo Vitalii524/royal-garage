@@ -13,34 +13,34 @@
     <brand>Audi</brand>
     <model>A4</model>
     <year>2019</year>
-    <price_usd>19800</price_usd>
+    <price_usd>18900</price_usd>
     <description>TEST ONLY - fictional vehicle, not for publication.</description>
     <status>active</status>
     <photos />
   </vehicle>
   <vehicle id="RG-TEST-003">
-    <brand>Volkswagen</brand>
-    <model>Passat</model>
+    <brand>Mercedes-Benz</brand>
+    <model>C 200</model>
     <year>2017</year>
-    <price_usd>14300</price_usd>
+    <price_usd>17500</price_usd>
     <description>TEST ONLY - fictional vehicle, not for publication.</description>
     <status>active</status>
     <photos />
   </vehicle>
   <vehicle id="RG-TEST-004">
-    <brand>Toyota</brand>
-    <model>Camry</model>
+    <brand>Chevrolet</brand>
+    <model>Equinox</model>
     <year>2020</year>
-    <price_usd>23000</price_usd>
+    <price_usd>15400</price_usd>
     <description>TEST ONLY - fictional vehicle, not for publication.</description>
     <status>active</status>
     <photos />
   </vehicle>
   <vehicle id="RG-TEST-005">
-    <brand>Ford</brand>
-    <model>Focus</model>
-    <year>2016</year>
-    <price_usd>10500</price_usd>
+    <brand>Toyota</brand>
+    <model>Camry</model>
+    <year>2021</year>
+    <price_usd>22900</price_usd>
     <description>TEST ONLY - fictional vehicle, not for publication.</description>
     <status>active</status>
     <photos />
