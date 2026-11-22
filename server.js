@@ -10,6 +10,10 @@ const getSiteAnalytics = require("./site-analytics");
 const { prepareMedia, saveMedia, installMedia } = require("./service-media");
 
 const UUID_PATTERN = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
+const ROYAL_AUTO_OWNER_ID = "32ce413e-9eb6-417a-b99a-77d9ca7c144a";
+// Royal Auto already has an established public storefront, independent of billing.
+const PUBLIC_BUSINESS_ACCESS = `(bp.owner_id = '${ROYAL_AUTO_OWNER_ID}'::uuid
+    OR bp.complimentary_subscription OR bp.subscription_expires_at > NOW())`;
 const SERVICE_HUB_OWNER_ID = "d2363e3d-4723-4755-9030-594cd3ccd6f0";
 const PUBLIC_ORIGIN = new URL(process.env.PUBLIC_ORIGIN || "https://royalgarage.com.ua").origin;
 const SERVICE_BOOKING_TYPES = ["car_service", "detailing", "tire_service", "road_assistance"];
@@ -3315,7 +3319,6 @@ app.get(
 app.get("/seller.html", async (req, res) => {
     const ownerId = String(req.query.sellerId || "");
     try {
-        if (ownerId === ROYAL_AUTO_OWNER_ID) return res.redirect(302, "/handmade.html");
         if (UUID_PATTERN.test(ownerId)) {
             const business = await pool.query(
                 "SELECT owner_id FROM business_profiles WHERE owner_id = $1 AND is_deleted = FALSE LIMIT 1", [ownerId]
@@ -5403,10 +5406,7 @@ app.get(
                     bp.is_deleted = FALSE
                     AND u.account_disabled = FALSE
                     AND sp.is_active = TRUE
-                    AND (
-                        bp.complimentary_subscription = TRUE
-                        OR bp.subscription_expires_at > NOW()
-                    )
+                    AND ${PUBLIC_BUSINESS_ACCESS}
                     AND u.email_verified = TRUE
                     AND u.phone_verified = TRUE
 
@@ -5460,7 +5460,8 @@ app.get(
                     bp.id,
                     bp.owner_id AS "ownerId",
                     bp.name AS "businessName",
-                    CASE WHEN $1::text IS NULL AND bp.logo LIKE 'data:%'
+                    CASE WHEN bp.owner_id = $2 AND NULLIF(bp.logo, '') IS NULL THEN '/images/royal-auto-atelier-logo.webp'
+                         WHEN $1::text IS NULL AND bp.logo LIKE 'data:%'
                          THEN '/api/businesses/' || bp.owner_id || '/logo'
                          ELSE bp.logo END AS "logoUrl",
                     bp.city,
@@ -5486,10 +5487,7 @@ app.get(
                     AND bp.is_deleted = FALSE
                     AND u.account_disabled = FALSE
                     AND sp.is_active = TRUE
-                    AND (
-                        bp.complimentary_subscription = TRUE
-                        OR bp.subscription_expires_at > NOW()
-                    )
+                    AND ${PUBLIC_BUSINESS_ACCESS}
                     AND u.email_verified = TRUE
                     AND u.phone_verified = TRUE
 
@@ -5537,7 +5535,7 @@ app.get("/api/businesses/:ownerId/logo", async (req, res) => {
          JOIN subscription_plans sp ON sp.id = bp.subscription_plan_id
          WHERE bp.owner_id = $1 AND NOT bp.is_deleted AND NOT u.account_disabled
            AND u.email_verified AND u.phone_verified AND sp.is_active
-           AND (bp.complimentary_subscription OR bp.subscription_expires_at > NOW())`,
+           AND ${PUBLIC_BUSINESS_ACCESS}`,
         [req.params.ownerId]
     );
     const logo = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=]+)$/i.exec(result.rows[0]?.logo || "");
@@ -8363,10 +8361,7 @@ async function loadPrivateBusinessProfile(ownerId) {
             WHEN u.email_verified = TRUE
              AND u.phone_verified = TRUE
              AND sp.is_active = TRUE
-             AND (
-                 bp.complimentary_subscription = TRUE
-                 OR bp.subscription_expires_at > NOW()
-             )
+             AND ${PUBLIC_BUSINESS_ACCESS}
             THEN 'active'
             ELSE 'draft'
             END AS "profileStatus",
@@ -8453,7 +8448,9 @@ async function loadPublicBusinessProfile(ownerId) {
             bp.id,
             bp.owner_id AS "ownerId",
             bp.name,
-            bp.logo,
+            CASE WHEN bp.owner_id = '${ROYAL_AUTO_OWNER_ID}'::uuid THEN
+                COALESCE(NULLIF(bp.logo, ''), '/images/royal-auto-atelier-logo.webp')
+                ELSE bp.logo END AS logo,
             bp.city,
             bp.address,
             bp.phone,
@@ -8467,7 +8464,7 @@ async function loadPublicBusinessProfile(ownerId) {
             bt.name AS "businessTypeName",
 
             sp.has_map AS "mapEnabled",
-            (sp.has_crm AND bt.code = ANY($2::text[])) AS "acceptsServiceRequests",
+            (bp.owner_id = '${ROYAL_AUTO_OWNER_ID}'::uuid OR (sp.has_crm AND bt.code = ANY($2::text[]))) AS "acceptsServiceRequests",
 
             COALESCE(
                 (
@@ -8539,10 +8536,7 @@ async function loadPublicBusinessProfile(ownerId) {
           AND u.email_verified = TRUE
           AND u.phone_verified = TRUE
           AND sp.is_active = TRUE
-          AND (
-            bp.complimentary_subscription = TRUE
-            OR bp.subscription_expires_at > NOW()
-          )
+          AND ${PUBLIC_BUSINESS_ACCESS}
         LIMIT 1
         `,
         [ownerId, SERVICE_BOOKING_TYPES]
@@ -16027,8 +16021,7 @@ app.post(
    ROYAL AUTO — ДОСТУП ВЛАСНИКА
    ========================= */
 
-   const ROYAL_AUTO_OWNER_ID =
-   "32ce413e-9eb6-417a-b99a-77d9ca7c144a";
+
 
 
 function requireRoyalAutoOwner(

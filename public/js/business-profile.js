@@ -572,7 +572,7 @@
         $("businessAddress").textContent = [profile.city, profile.address].filter(Boolean).join(", ") || "Не вказано";
 
         const shareButton = $("shareBusinessLink");
-        if (profile.ownerId && (requestedOwnerId() || profile.subscriptionStatus === "active")) {
+        if (profile.ownerId && (requestedOwnerId() || profile.profileStatus === "active" || profile.subscriptionStatus === "active")) {
             const url = new URL("business-profile.html", window.location.href);
             url.searchParams.set("id", profile.ownerId);
             window.RGShare.bind(shareButton, () => ({
