@@ -69,6 +69,27 @@
           });
           actions.append(button);
         }
+        if (feed.approved && feed.enabled) {
+          const sync = document.createElement('button');
+          sync.type = 'button';
+          sync.className = 'upholstery-primary-button';
+          sync.textContent = 'Синхронізувати зараз';
+          sync.addEventListener('click', async () => {
+            if (!confirm('Запустити імпорт автомобілів із цього XML прямо зараз?')) return;
+            sync.disabled = true;
+            status.textContent = 'Виконується імпорт…';
+            try {
+              const response = await api('/api/admin/xml-feeds/' + encodeURIComponent(feed.id) + '/sync', 'POST');
+              await load();
+              status.textContent = 'Імпорт завершено. Оброблено автомобілів: ' + response.imported;
+            } catch (error) {
+              status.textContent = 'Помилка імпорту: ' + error.message;
+              await load();
+              status.textContent = 'Помилка імпорту: ' + error.message;
+            } finally { sync.disabled = false; }
+          });
+          actions.append(sync);
+        }
         card.append(actions);
         container.append(card);
       }
