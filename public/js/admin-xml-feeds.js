@@ -90,6 +90,26 @@
           });
           actions.append(sync);
         }
+        if (!feed.enabled) {
+          const hide = document.createElement('button');
+          hide.type = 'button';
+          hide.className = 'upholstery-primary-button';
+          hide.textContent = 'Прибрати імпортовані автомобілі';
+          hide.addEventListener('click', async () => {
+            if (!confirm('Зняти з публікації ВСІ активні автомобілі, імпортовані саме з цього XML-джерела? Інші оголошення не зміняться.')) return;
+            hide.disabled = true;
+            status.textContent = 'Приховуємо імпортовані автомобілі…';
+            try {
+              const result = await api('/api/admin/xml-feeds/' + encodeURIComponent(feed.id) + '/hide-listings', 'POST');
+              await load();
+              status.textContent = 'Знято з публікації: ' + result.hidden + '. XML має залишатися вимкненим.';
+            } catch (error) {
+              status.textContent = error.message;
+              hide.disabled = false;
+            }
+          });
+          actions.append(hide);
+        }
         card.append(actions);
         container.append(card);
       }
