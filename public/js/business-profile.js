@@ -562,6 +562,8 @@
 
     async function renderProfile(profile) {
         state.profile = profile;
+        const royalAutoCarsLink = $("royalAutoCarsLink");
+        if (royalAutoCarsLink) royalAutoCarsLink.hidden = String(profile.ownerId) !== ROYAL_AUTO_OWNER_ID;
         renderLogo(profile);
 
         $("businessTypeLabel").textContent = profile.businessTypeName || "СТО / автосервіс";
