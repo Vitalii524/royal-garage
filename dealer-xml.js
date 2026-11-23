@@ -100,6 +100,24 @@ function installDealerXml({app,pool,requireAuth,requireAdmin,databaseReady,edito
    res.set('Cache-Control','no-store').json({ok:true,feeds:rows.rows});
   }catch(error){console.error('Admin XML feeds:',error);res.status(500).json({ok:false,message:'Не вдалося завантажити XML-джерела.'});}
  });
+ app.post('/api/admin/xml-feeds/:id/hide-listings',requireAuth,requireAdmin,async(req,res)=>{
+  let client;
+  try{
+   await databaseReady;
+   client=await pool.connect();
+   await client.query('BEGIN');
+   const feed=await client.query('SELECT id,enabled FROM business_xml_feeds WHERE id=$1 FOR UPDATE',[req.params.id]);
+   if(!feed.rowCount){await client.query('ROLLBACK');return res.status(404).json({ok:false,message:'XML-джерело не знайдено.'});}
+   if(feed.rows[0].enabled){await client.query('ROLLBACK');return res.status(409).json({ok:false,message:'Спочатку вимкніть синхронізацію XML у бізнес-кабінеті.'});}
+   const result=await client.query(`UPDATE market_listings m SET status='inactive',updated_at=NOW()
+    FROM business_xml_listings x WHERE x.feed_id=$1 AND x.listing_id=m.id AND m.status='active'
+    AND m.owner_id=(SELECT owner_id FROM business_xml_feeds WHERE id=$1)
+    RETURNING m.id`,[req.params.id]);
+   await client.query('COMMIT');
+   res.set('Cache-Control','no-store').json({ok:true,hidden:result.rowCount});
+  }catch(error){if(client)await client.query('ROLLBACK').catch(()=>{});console.error('Hide XML listings failed',error);res.status(500).json({ok:false,message:'Не вдалося приховати імпортовані автомобілі.'});}
+  finally{if(client)client.release();}
+ });
  const syncInProgress=new Set();
  function safeSyncError(error){
   const message=String(error?.message||'Невідома помилка');
