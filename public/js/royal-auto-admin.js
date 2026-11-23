@@ -148,144 +148,10 @@ function getToken() {
    ФОТО
    ========================= */
 
-function compressProductPhoto(
-    file
-) {
-
-    return new Promise(
-        (
-            resolve,
-            reject
-        ) => {
-
-            const reader =
-                new FileReader();
-
-
-            reader.onload =
-                () => {
-
-                    const image =
-                        new Image();
-
-
-                    image.onload =
-                        () => {
-
-                            const maxSize =
-                                1200;
-
-
-                            let width =
-                                image.width;
-
-                            let height =
-                                image.height;
-
-
-                            if (
-                                width >
-                                maxSize ||
-                                height >
-                                maxSize
-                            ) {
-
-                                const scale =
-                                    Math.min(
-                                        maxSize /
-                                            width,
-                                        maxSize /
-                                            height
-                                    );
-
-                                width =
-                                    Math.round(
-                                        width *
-                                        scale
-                                    );
-
-                                height =
-                                    Math.round(
-                                        height *
-                                        scale
-                                    );
-                            }
-
-
-                            const canvas =
-                                document.createElement(
-                                    "canvas"
-                                );
-
-
-                            canvas.width =
-                                width;
-
-                            canvas.height =
-                                height;
-
-
-                            const context =
-                                canvas.getContext(
-                                    "2d"
-                                );
-
-
-                            if (!context) {
-
-                                reject(
-                                    new Error(
-                                        "Canvas недоступний."
-                                    )
-                                );
-
-                                return;
-                            }
-
-
-                            context.drawImage(
-                                image,
-                                0,
-                                0,
-                                width,
-                                height
-                            );
-
-
-                            const result =
-                                canvas.toDataURL(
-                                    "image/jpeg",
-                                    0.82
-                                );
-
-
-                            resolve(
-                                result
-                            );
-                        };
-
-
-                    image.onerror =
-                        reject;
-
-
-                    image.src =
-                        reader.result;
-                };
-
-
-            reader.onerror =
-                reject;
-
-
-            reader.readAsDataURL(
-                file
-            );
-        }
-    );
+let catalogUploading = false;
+async function compressProductPhoto(file) {
+    return window.RGServiceGallery.upload(file);
 }
-
-
 
 function renderPhotoPreview() {
 
@@ -311,13 +177,11 @@ function renderPhotoPreview() {
 
 
             const image =
-                document.createElement(
-                    "img"
-                );
+                document.createElement(window.RGServiceGallery.isVideo(photo) ? "video" : "img");
 
 
-            image.src =
-                photo;
+            image.src = photo;
+            if (image.tagName === "VIDEO") { image.controls = true; image.preload = "metadata"; image.playsInline = true; }
 
             image.alt =
                 `Фото ${index + 1}`;
@@ -385,7 +249,7 @@ productPhotos
             ) {
 
                 alert(
-                    "Максимум 20 фото на один товар."
+                    "Максимум 20 фото та відео на одну послугу."
                 );
 
                 productPhotos.value =
@@ -395,6 +259,11 @@ productPhotos
             }
 
 
+            if (catalogUploading) return;
+            catalogUploading = true;
+            const save = productForm?.querySelector('[type="submit"]');
+            if (save) save.disabled = true;
+            productPhotos.disabled = true;
             try {
 
                 for (
@@ -426,11 +295,15 @@ productPhotos
 
 
                 alert(
-                    "Не вдалося обробити одне з фото."
+                    error.message || "Не вдалося завантажити файл."
                 );
             }
 
 
+            renderPhotoPreview();
+            catalogUploading = false;
+            productPhotos.disabled = false;
+            if (save) save.disabled = false;
             productPhotos.value =
                 "";
         }
@@ -542,7 +415,7 @@ async function deleteRoyalAutoSection(
 
     const confirmed =
         confirm(
-            `Видалити категорію "${section.name}"?\n\nУсі товари в цій категорії також буде видалено.`
+            `Видалити категорію "${section.name}"?\n\nУсі послуги в цій категорії також буде видалено.`
         );
 
 
@@ -917,7 +790,7 @@ async function loadProducts() {
 
             throw new Error(
                 data.message ||
-                "Не вдалося завантажити товари."
+                "Не вдалося завантажити послуги."
             );
         }
 
@@ -944,7 +817,7 @@ async function loadProducts() {
         if (adminProducts) {
 
             adminProducts.textContent =
-                "Не вдалося завантажити товари.";
+                "Не вдалося завантажити послуги.";
         }
     }
 }
@@ -956,7 +829,7 @@ async function deleteRoyalAutoProduct(
 
     const confirmed =
         confirm(
-            `Видалити товар "${productName}"?`
+            `Видалити послугу "${productName}"?`
         );
 
 
@@ -1008,7 +881,7 @@ async function deleteRoyalAutoProduct(
 
             alert(
                 data.message ||
-                "Не вдалося видалити товар."
+                "Не вдалося видалити послугу."
             );
 
             return;
@@ -1019,7 +892,7 @@ async function deleteRoyalAutoProduct(
 
 
         alert(
-            "Товар видалено."
+            "Послугу видалено."
         );
 
 
@@ -1041,6 +914,7 @@ function editRoyalAutoProduct(
     product
 ) {
 
+    if(catalogUploading)return;
     editingProductId =
         product.id;
 
@@ -1120,7 +994,7 @@ function renderAdminProducts() {
     ) {
 
         adminProducts.textContent =
-            "Товарів поки немає.";
+            "Послуг поки немає.";
 
         return;
     }
@@ -1129,117 +1003,11 @@ function renderAdminProducts() {
     royalAutoProducts.forEach(
         (product) => {
 
-            const card =
-                document.createElement(
-                    "div"
-                );
-
-
-            card.className =
-                "royal-auto-car-card";
-
-
-            const photos =
-                Array.isArray(
-                    product.photos
-                )
-                    ? product.photos
-                    : [];
-
-
-            if (photos[0]) {
-
-                const photoBox =
-                    document.createElement(
-                        "div"
-                    );
-
-
-                photoBox.className =
-                    "royal-auto-car-photo";
-
-
-                const image =
-                    document.createElement(
-                        "img"
-                    );
-
-
-                image.src =
-                    photos[0];
-
-                image.alt =
-                    product.name;
-
-
-                photoBox.appendChild(
-                    image
-                );
-
-
-                card.appendChild(
-                    photoBox
-                );
-            }
-
-
-            const info =
-                document.createElement(
-                    "div"
-                );
-
-
-            info.className =
-                "royal-auto-car-info";
-
-
-            const section =
-                document.createElement(
-                    "small"
-                );
-
-
-            section.textContent =
-                product.sectionName ||
-                "";
-
-
-            const title =
-                document.createElement(
-                    "h3"
-                );
-
-
-            title.textContent =
-                product.name;
-
-
-            const price =
-                document.createElement(
-                    "strong"
-                );
-
-
-            price.className =
-                "royal-auto-car-price";
-
-
-            price.textContent =
-                formatPrice(
-                    product.priceUah ??
-                    product.price_uah
-                );
-
-
-            const description =
-                document.createElement(
-                    "p"
-                );
-
-
-            description.textContent =
-                product.description ||
-                "";
+            // Use the same bounded, original-preserving media gallery as the public profile.
+            const card = window.RGServiceGallery.card(product, product.sectionName);
+            const info = card.querySelector('.rg-service-info');
+            const actions = document.createElement('div');
+            actions.className = 'rg-service-admin-actions';
 
                 const editButton =
                 document.createElement(
@@ -1277,7 +1045,7 @@ function renderAdminProducts() {
             "btn-danger";
         
         deleteButton.textContent =
-            "🗑 Видалити товар";
+            "🗑 Видалити послугу";
         
         
         deleteButton.addEventListener(
@@ -1292,20 +1060,8 @@ function renderAdminProducts() {
         );
         
         
-        info.append(
-            section,
-            title,
-            price,
-            description,
-            editButton,
-            deleteButton
-        );
-
-
-            card.appendChild(
-                info
-            );
-
+            actions.append(editButton, deleteButton);
+            info.append(actions);
 
             adminProducts.appendChild(
                 card
@@ -1340,6 +1096,8 @@ productForm
             }
 
 
+            if (catalogUploading) { alert("Зачекайте завершення завантаження файлів."); return; }
+
             const sectionId =
                 productSection
                     ?.value;
@@ -1357,7 +1115,7 @@ productForm
             ) {
 
                 alert(
-                    "Вкажи категорію та назву товару."
+                    "Вкажи категорію та назву послуги."
                 );
 
                 return;
@@ -1429,7 +1187,7 @@ const response =
 
                     alert(
                         data.message ||
-                        "Не вдалося додати товар."
+                        "Не вдалося додати послугу."
                     );
 
                     return;
@@ -1465,7 +1223,7 @@ const response =
             if (submitButton) {
             
                 submitButton.textContent =
-                    "Зберегти товар";
+                    "Зберегти послугу";
             }
             
             
@@ -1475,7 +1233,7 @@ const response =
             alert(
                 wasEditing
                     ? "Зміни успішно збережено."
-                    : "Товар успішно додано."
+                    : "Послугу успішно додано."
             );
 
             } catch (error) {

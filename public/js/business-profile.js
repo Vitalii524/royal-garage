@@ -3,6 +3,7 @@
 
     const MAX_ITEM_PHOTOS = 6;
     const ROYAL_AUTO_OWNER_ID = "32ce413e-9eb6-417a-b99a-77d9ca7c144a";
+    const EDITORIAL_OWNER_ID = "b61d05c8-0cab-4432-b36e-267440d87b6a";
     const BOOKING_TYPES = new Set(["car_service", "detailing", "tire_service", "road_assistance"]);
     let requestsPage = 0;
     const DAYS = [
@@ -20,6 +21,7 @@
         isOwner: false,
         editingItemPhotos: [],
         editingProduct: false,
+        itemUploading: false,
         editingLogo: null,
         editingPortfolioImage: null
     };
@@ -56,7 +58,9 @@
     function isCurrentBusinessOwner(ownerId) {
         const user = getStoredUser();
         const userId = user?.id ?? user?.userId ?? user?.user_id;
-        return Boolean(token() && userId && (user?.accountType || user?.account_type) === "business" && (!ownerId || String(userId) === String(ownerId)));
+        const canManage = String(userId) === ROYAL_AUTO_OWNER_ID ||
+            (user?.accountType || user?.account_type) === "business";
+        return Boolean(token() && userId && canManage && (!ownerId || String(userId) === String(ownerId)));
     }
 
     async function api(url, options = {}) {
@@ -170,6 +174,7 @@
         const image = $("businessLogo");
         const placeholder = $("businessLogoPlaceholder");
         const source = String(profile.logo || "").trim();
+        image.classList.toggle("business-royal-auto-logo", profile.ownerId === ROYAL_AUTO_OWNER_ID);
         placeholder.textContent = initials(profile.name);
         image.onerror = () => {
             image.hidden = true;
@@ -205,6 +210,7 @@
         setContactLink("businessTelegramLink", tg, Boolean(tg));
         setContactLink("businessInstagramLink", ig, Boolean(ig));
         setContactLink("businessRouteLink", route, Boolean(route && mapAllowed));
+        $("businessContactsMenu").hidden = !(phone || tg || ig);
 
         setContactLink("businessBottomPhone", phone ? `tel:${phone}` : "#", Boolean(phone));
         setContactLink("businessBottomTelegram", tg, Boolean(tg));
@@ -254,9 +260,10 @@
 
         const active = profile.profileStatus === "active";
         $("businessProfileStatusText").textContent = active ? "Активний" : "Чернетка";
-        $("businessProfileStatusHint").textContent = active
-            ? "Профіль опублікований у «Партнерах»."
-            : "Перевірте підтвердження email і телефону.";
+        $("businessProfileStatusHint").textContent = profile.ownerId === EDITORIAL_OWNER_ID
+            ? "Редакційний профіль поза комерційним каталогом."
+            : active ? "Профіль опублікований у «Партнерах»."
+                : "Перевірте підтвердження email і телефону.";
         $("businessProfileStatusDot").classList.toggle("active", active);
 
         $("businessEmailStatus").textContent = profile.emailVerified ? "Підтверджено ✓" : "Не підтверджено";
@@ -271,6 +278,8 @@
             ? `Діє до ${new Date(profile.subscriptionExpiresAt).toLocaleDateString("uk-UA")}`
             : "";
         $("businessAddCarButton").hidden = profile.businessTypeCode !== "car_dealer";
+        $("editorialProposalPanel").hidden = !(state.isOwner && profile.ownerId === EDITORIAL_OWNER_ID);
+        window.RGDealerXml?.mount(state.isOwner && (profile.businessTypeCode === "car_dealer" || profile.ownerId === EDITORIAL_OWNER_ID));
         $("businessCrmButton").hidden = !profile.hasCrm;
     }
 
@@ -287,6 +296,22 @@
     }
 
     function itemCard(service, product = false) {
+        if (!product && window.RGServiceGallery) {
+            const card=window.RGServiceGallery.card(service);
+            if(state.isOwner){
+                const actions=document.createElement('div');actions.className='business-card-owner-actions';
+                for(const [action,label] of [['edit','✏️ Редагувати'],['delete','🗑 Видалити послугу']]){
+                    const button=document.createElement('button');button.type='button';button.textContent=label;
+                    button.dataset[action==='edit'?'editItem':'deleteItem']=service.id;button.dataset.product='false';actions.append(button);
+                }
+                card.append(actions);
+            }
+            return card;
+        }
+        if(product && window.RGProductCatalog){
+            const card=window.RGProductCatalog.card({...service,ownerId:state.profile.ownerId,sellerName:state.profile.name||state.profile.businessName});
+            if(state.isOwner){const actions=document.createElement('div');actions.className='business-card-owner-actions';for(const [action,label] of [['edit','✏️ Редагувати'],['delete','🗑 Видалити товар']]){const b=document.createElement('button');b.type='button';b.textContent=label;b.dataset[action==='edit'?'editItem':'deleteItem']=service.id;b.dataset.product='true';actions.append(b);}card.append(actions);}return card;
+        }
         const card = document.createElement("article");
         card.className = "business-content-card";
         const priceText = money(product ? service.price : service.priceFrom);
@@ -552,6 +577,19 @@
         $("businessCityLine").hidden = !cityLine;
         $("businessAddress").textContent = [profile.city, profile.address].filter(Boolean).join(", ") || "Не вказано";
 
+        const shareButton = $("shareBusinessLink");
+        if (profile.ownerId && (requestedOwnerId() || profile.profileStatus === "active" || profile.subscriptionStatus === "active")) {
+            const url = new URL("business-profile.html", window.location.href);
+            url.searchParams.set("id", profile.ownerId);
+            window.RGShare.bind(shareButton, () => ({
+                title: profile.name || "Бізнес | Royal Garage",
+                text: String(profile.description || profile.businessTypeName || "Профіль бізнесу на Royal Garage")
+                    .replace(/\s+/g, " ").trim().slice(0, 160),
+                url: url.href
+            }));
+            shareButton.hidden = false;
+        }
+
         renderContacts(profile);
         const chatLink = $("businessChatLink");
         if (chatLink && profile.ownerId && !state.isOwner) {
@@ -562,7 +600,7 @@
         renderSchedule(profile);
         renderOwnerControls(profile);
         const bell = $("businessRequestsBell");
-        bell.hidden = !(state.isOwner && profile.hasCrm && profile.subscriptionStatus === "active"
+        bell.hidden = profile.ownerId === EDITORIAL_OWNER_ID || !(state.isOwner && profile.hasCrm && profile.subscriptionStatus === "active"
             && BOOKING_TYPES.has(profile.businessTypeCode));
         if (!bell.hidden) refreshRequestCount();
         const quickAdd = $("businessAddServiceQuick");
@@ -570,7 +608,7 @@
         renderServices(profile);
         renderPortfolio(profile);
         renderProducts(profile);
-        if (profile.businessTypeCode === "car_dealer") loadBusinessCars(profile.ownerId);
+        if (profile.ownerId) loadBusinessCars(profile.ownerId, profile.businessTypeCode === "car_dealer");
 
         // Публічно показуємо лише заповнені розділи.
         // Власник бачить порожні розділи, щоб мати можливість їх заповнити.
@@ -589,7 +627,7 @@
         show("businessAboutScheduleCard", state.isOwner || hasSchedule);
         show("businessAboutSection", state.isOwner || hasDescription || hasAddress || hasSchedule);
         show("businessPortfolioSection", state.isOwner || hasPortfolio);
-        show("businessBookingButton", !state.isOwner && profile.acceptsServiceRequests === true);
+        show("businessBookingButton", !state.isOwner && profile.ownerId !== EDITORIAL_OWNER_ID && profile.acceptsServiceRequests === true);
 
         if (profile.ownerId) loadReviews(profile.ownerId);
 
@@ -599,27 +637,73 @@
     function renderProducts(profile) {
         const products = profile.products || [];
         const canEdit = state.isOwner && (products.length > 0 || ["products", "both"].includes(profile.businessContentType));
-        const legacyCatalog = profile.ownerId === ROYAL_AUTO_OWNER_ID;
-        $("businessProductsSection").hidden = !(products.length || canEdit || legacyCatalog);
+        $("businessProductsSection").hidden = !(products.length || canEdit);
         $("businessAddProductQuick").hidden = !canEdit;
-        $("businessRoyalAutoCatalog").hidden = !legacyCatalog;
         $("businessProductsGrid").replaceChildren(...products.map(product => itemCard(product, true)));
     }
 
-    async function loadBusinessCars(ownerId) {
+    function royalAutoListingCard(listing) {
+        const card = document.createElement("a");
+        card.className = "royal-auto-car-card";
+        card.href = `listing.html?id=${encodeURIComponent(listing.id)}`;
+
+        const photoBox = document.createElement("div");
+        photoBox.className = "royal-auto-car-photo";
+        const photo = listing.photos?.[listing.activePhotoIndex] || listing.photos?.[0];
+        if (photo) {
+            const image = document.createElement("img");
+            image.src = photo;
+            image.alt = listing.name || "Автомобіль";
+            image.loading = "lazy";
+            photoBox.append(image);
+        } else {
+            const placeholder = document.createElement("div");
+            placeholder.className = "royal-auto-car-placeholder";
+            placeholder.textContent = "🚘";
+            photoBox.append(placeholder);
+        }
+
+        const info = document.createElement("div");
+        info.className = "royal-auto-car-info";
+        const title = document.createElement("h3");
+        const name = listing.name || [listing.brand, listing.model].filter(Boolean).join(" ") || "Автомобіль";
+        const year = String(listing.year || "");
+        title.textContent = year && !name.includes(year) ? `${name} ${year}` : name;
+
+        const price = document.createElement("strong");
+        price.className = "royal-auto-car-price";
+        const format = new Intl.NumberFormat("uk-UA");
+        price.textContent = Number(listing.priceUsd) > 0 ? `${format.format(listing.priceUsd)} $`
+            : Number(listing.priceUah) > 0 ? `${format.format(listing.priceUah)} грн` : "Ціна договірна";
+
+        const more = document.createElement("span");
+        more.className = "royal-auto-car-more";
+        more.textContent = "Детальніше";
+        info.append(title, price, more);
+        card.append(photoBox, info);
+        return card;
+    }
+
+    async function loadBusinessCars(ownerId, isDealer) {
         const section = $("businessCarsSection");
         const status = $("businessCarsStatus");
-        section.hidden = false;
+        section.hidden = !isDealer;
         try {
             const { listings } = await api(`/api/market/listings?ownerId=${encodeURIComponent(ownerId)}`);
+            const royalAuto = ownerId === ROYAL_AUTO_OWNER_ID;
             const cards = listings.map(listing => {
+                if (royalAuto) return royalAutoListingCard(listing);
                 const card = document.createElement("a");
                 card.className = "business-info-card";
                 card.href = `listing.html?id=${encodeURIComponent(listing.id)}`;
                 card.textContent = listing.name || [listing.brand, listing.model, listing.year].filter(Boolean).join(" ");
                 return card;
             });
-            $("businessCarsGrid").replaceChildren(...cards);
+            const grid = $("businessCarsGrid");
+            grid.classList.toggle("royal-auto-cars-grid", royalAuto);
+            grid.classList.toggle("business-content-grid", !royalAuto);
+            grid.replaceChildren(...cards);
+            section.hidden = !(isDealer || cards.length);
             status.textContent = cards.length ? "" : "Активних оголошень поки немає.";
         } catch (error) {
             status.textContent = error.message;
@@ -771,6 +855,10 @@
                 workSchedule: readScheduleEditor()
             };
 
+            if (state.profile.ownerId === ROYAL_AUTO_OWNER_ID &&
+                (!body.phone || body.phone === (state.profile.phone || "").trim())) {
+                delete body.phone;
+            }
             const data = await api("/api/business/profile", {
                 method: "PATCH",
                 body: JSON.stringify(body)
@@ -784,7 +872,16 @@
     }
 
     function openItemModal(item = null, product = false) {
+        if(state.itemUploading)return;
         state.editingProduct = product;
+        $('businessProductFields').hidden=!product;
+        $('businessProductCategory').value=item?.category||'';
+        $('businessProductAvailability').value=item?.availability||'available';
+        $('businessProductTelegram').value=item?.orderTelegram||'';
+        $('businessProductViber').value=item?.orderViber||'';
+        $('businessProductChat').checked=item?.orderChat!==false;
+        $('businessUploadRetry').hidden=true;
+        $('businessUploadProgress').hidden=true;
         $("businessItemId").value = item?.id || "";
         $("businessItemTitle").value = item?.title || "";
         $("businessItemDescription").value = item?.description || "";
@@ -794,6 +891,10 @@
             : (item ? "Редагувати послугу" : "Додати послугу");
         $("businessItemFormError").textContent = "";
         $("businessItemPhotosInput").value = "";
+        $("businessItemPhotosInput").accept = 'image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime';
+        let hint=$('serviceMediaHint');
+        if(!hint){hint=document.createElement('p');hint.id='serviceMediaHint';$('businessItemPhotosInput').after(hint);}
+        hint.hidden=false;hint.textContent='До 6 файлів: фото JPG, PNG, WebP — до 10 МБ; відео MP4, WebM, MOV — до 20 МБ та 3 хвилин. Оригінали фото зберігаються.';
         state.editingItemPhotos = Array.isArray(item?.photos) ? [...item.photos] : [];
         renderItemPhotosPreview();
         openModal("businessItemModal");
@@ -806,13 +907,15 @@
         state.editingItemPhotos.forEach((src, index) => {
             const item = document.createElement("div");
             item.className = "business-photo-preview-item";
-            item.innerHTML = `<img src="${escapeHtml(src)}" alt="Фото послуги"><button type="button" data-remove-photo="${index}" aria-label="Видалити">×</button>`;
+            item.innerHTML = `<button type="button" data-remove-photo="${index}" aria-label="Видалити файл">×</button>`;
+            item.prepend(window.RGServiceGallery.media(src,'Фото послуги'));
             root.appendChild(item);
         });
     }
 
     async function saveItem(event) {
         event.preventDefault();
+        if(state.itemUploading)return;
         const id = $("businessItemId").value;
         const error = $("businessItemFormError");
         error.textContent = "";
@@ -828,6 +931,7 @@
                 photos: state.editingItemPhotos
             };
 
+            if(state.editingProduct)Object.assign(body,{category:$('businessProductCategory').value,availability:$('businessProductAvailability').value,orderTelegram:$('businessProductTelegram').value,orderViber:$('businessProductViber').value,orderChat:$('businessProductChat').checked});
             await api(
                 `/api/business/${resource}${id ? "/" + encodeURIComponent(id) : ""}`,
                 {
@@ -867,7 +971,7 @@
                     );
                 }
             } else {
-                mediaUrl = await uploadGarageVideo($("businessPortfolioVideoUrl").files[0]);
+                mediaUrl = await uploadGarageVideo($("businessPortfolioCamera")?.files[0] || $("businessPortfolioVideoUrl").files[0]);
             }
     
             await api(
@@ -1077,7 +1181,28 @@
                 call.href = `tel:${String(request.phone).replace(/[^+0-9]/g, "")}`;
                 call.textContent = "Зателефонувати";
                 call.className = "business-inline-link";
-                card.append(title, details, call);
+                const importStatus = document.createElement("p");
+                importStatus.setAttribute("role", "status");
+                let importing = false;
+                call.addEventListener("click", async event => {
+                    event.preventDefault();
+                    if (importing) return;
+                    importing = true;
+                    importStatus.textContent = "Зберігаємо клієнта й автомобіль у CRM…";
+                    try {
+                        await api(`/api/business/requests/${encodeURIComponent(request.id)}/contact`, { method: "POST" });
+                        importStatus.textContent = "Клієнта й автомобіль збережено в CRM.";
+                        window.location.href = call.href;
+                    } catch (error) {
+                        importStatus.textContent = error.message;
+                    } finally { importing = false; }
+                });
+                card.append(title, details, call, importStatus);
+                const mediaDetails = document.createElement("details");
+                const summary = document.createElement("summary");summary.textContent = "Фото та відео заявки";
+                const mediaList = document.createElement("div");mediaDetails.append(summary,mediaList);
+                mediaDetails.addEventListener("toggle",()=>{if(mediaDetails.open) window.RGRequestMedia.render(mediaList,`/api/business/requests/${encodeURIComponent(request.id)}/media`);});
+                card.append(mediaDetails);
                 if (request.crm_work_order_id) {
                     const order = document.createElement("a");
                     order.href = `crm-work-order.html?id=${encodeURIComponent(request.crm_work_order_id)}`;
@@ -1156,6 +1281,7 @@
             const values = Object.fromEntries(new FormData(form).entries());
             button.disabled = true; status.textContent = "Надсилання…";
             try {
+                values.attachments = await window.RGRequestMedia.collect(form);
                 await api(`/api/businesses/${encodeURIComponent(ownerId)}/requests`, { method:"POST", body:JSON.stringify(values) });
                 status.textContent = "Заявку надіслано. СТО зв'яжеться з вами для узгодження часу.";
                 form.reset();
@@ -1275,25 +1401,24 @@
             }
         );
 
-        $("businessItemPhotosInput")?.addEventListener("change", async (event) => {
-            const files = Array.from(event.target.files || []);
-            const free = MAX_ITEM_PHOTOS - state.editingItemPhotos.length;
-
-            if (files.length > free) {
-                $("businessItemFormError").textContent = `Можна додати максимум ${MAX_ITEM_PHOTOS} фото.`;
+        let failedProductFiles=[];
+        async function uploadItems(files){
+            if(state.itemUploading||!files.length)return;
+            const errors=[];
+            const input=$('businessItemPhotosInput'),save=$('businessItemForm').querySelector('[type=submit]'),progress=$('businessUploadProgress'),retry=$('businessUploadRetry'),status=$('businessItemFormError');
+            if(files.length>MAX_ITEM_PHOTOS-state.editingItemPhotos.length){status.textContent=`Максимум ${MAX_ITEM_PHOTOS} файлів.`;return;}
+            state.itemUploading=true;input.disabled=true;save.disabled=true;retry.hidden=true;failedProductFiles=[];
+            for(const file of files){
+                status.textContent='Підготовка: '+file.name;progress.hidden=false;progress.removeAttribute('value');
+                try{const url=await window.RGServiceGallery.upload(file,state.editingProduct?percent=>{progress.value=percent;status.textContent=file.name+': '+percent+'%'+(percent===100?' — обробка сервером…':'');}:undefined);state.editingItemPhotos.push(url);renderItemPhotosPreview();}
+                catch(error){failedProductFiles.push(file);errors.push(file.name+': '+error.message);status.textContent=error.message;}
             }
-
-            for (const file of files.slice(0, Math.max(0, free))) {
-                try {
-                    state.editingItemPhotos.push(await compressImage(file));
-                } catch (error) {
-                    $("businessItemFormError").textContent = error.message;
-                }
-            }
-
-            renderItemPhotosPreview();
-            event.target.value = "";
-        });
+            progress.hidden=true;input.value='';input.disabled=false;state.itemUploading=false;save.disabled=false;
+            retry.hidden=!failedProductFiles.length;
+            status.textContent=failedProductFiles.length?errors.join(' • ')+'. Повторіть або виберіть файли з пам’яті пристрою повторно.':'Файли завантажено. Збережіть '+(state.editingProduct?'товар.':'послугу.');
+        }
+        $('businessItemPhotosInput')?.addEventListener('change',e=>uploadItems(Array.from(e.target.files||[])));
+        $('businessUploadRetry')?.addEventListener('click',()=>uploadItems([...failedProductFiles]));
 
         document.addEventListener("click", (event) => {
             const close = event.target.closest("[data-close-modal]");
@@ -1338,6 +1463,15 @@ if (portfolioDelete) {
     async function init() {
         bindEvents();
         await loadProfile();
+        const params = new URLSearchParams(location.search);
+        if (params.get("edit") === "1" && state.isOwner && state.profile) {
+            fillProfileForm();
+            openModal("businessProfileModal");
+        }
+        if (params.get('notifications') === 'requests' && !$("businessRequestsBell").hidden) {
+            openModal("businessRequestsModal");
+            await loadBusinessRequests();
+        }
     }
 
     if (document.readyState === "loading") {
@@ -1346,3 +1480,4 @@ if (portfolioDelete) {
         init();
     }
 })();
+

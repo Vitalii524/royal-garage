@@ -1,7 +1,7 @@
 :root {
-    --dark: #030814;
-    --navy: #061b35;
-    --navy2: #08284d;
+    --dark: var(--rg-panel, #24272d);
+    --navy: var(--rg-panel, #24272d);
+    --navy2: var(--rg-panel, #24272d);
     --gold: #d6a03a;
     --gold-light: #f0bd55;
     --white: #f7f0e6;
@@ -18,8 +18,8 @@ body {
     font-family: "Manrope", sans-serif;
     background: radial-gradient(
         circle at top,
-        #08284d 0%,
-        #030814 60%
+        var(--rg-panel, #24272d) 0%,
+        var(--rg-panel, #24272d) 60%
     );
     color: var(--white);
 }
@@ -55,11 +55,13 @@ body {
     padding: 12px;
     background: linear-gradient(
         180deg,
-        #0a2b55,
-        #061b35
+        var(--rg-panel, #24272d),
+        var(--rg-panel, #24272d)
     );
     border: 1px solid rgba(214, 160, 58, 0.3);
     border-radius: 12px;
+
+ color:#f4f5f7;
 }
 
 .nav a {
@@ -72,7 +74,7 @@ body {
 }
 
 .nav a:hover {
-    color: #061b35;
+    color: var(--rg-panel, #24272d);
     background: var(--gold);
 }
 
@@ -92,7 +94,7 @@ body {
 }
 
 .auth-buttons button:hover {
-    color: #061b35;
+    color: var(--rg-panel, #24272d);
     background: var(--gold);
 }
 
@@ -114,8 +116,8 @@ body {
     color: var(--gold-light);
     background: linear-gradient(
         180deg,
-        #0a2b55,
-        #061b35
+        var(--rg-panel, #24272d),
+        var(--rg-panel, #24272d)
     );
 
     border: 1px solid rgba(214, 160, 58, 0.45);
@@ -124,12 +126,12 @@ body {
     font-size: 25px;
     cursor: pointer;
     text-decoration: none;
-    
+
     transition: 0.25s;
 }
 
 .burger-button:hover {
-    color: #061b35;
+    color: var(--rg-panel, #24272d);
     background: var(--gold);
 }
 
@@ -156,8 +158,8 @@ body {
 
     background: linear-gradient(
         180deg,
-        #0a2b55,
-        #061b35
+        var(--rg-panel, #24272d),
+        var(--rg-panel, #24272d)
     );
 
     border: 1px solid rgba(214, 160, 58, 0.45);
@@ -177,7 +179,7 @@ body {
 }
 
 .burger-button:hover {
-    color: #061b35;
+    color: var(--rg-panel, #24272d);
     background: var(--gold);
 }
 
@@ -196,7 +198,7 @@ body {
 
     padding: 10px;
 
-    background: #061b35;
+    background: var(--rg-panel, #24272d);
 
     border: 1px solid rgba(214, 160, 58, 0.45);
     border-radius: 12px;
@@ -206,6 +208,8 @@ body {
         rgba(0, 0, 0, 0.45);
 
     z-index: 1000;
+
+ color:#f4f5f7;
 }
 
 .burger-dropdown a {
@@ -221,7 +225,7 @@ body {
 }
 
 .burger-dropdown a:hover {
-    color: #061b35;
+    color: var(--rg-panel, #24272d);
     background: var(--gold);
 }
 
@@ -259,11 +263,13 @@ body {
 
     padding: 35px 20px;
 
-    background: #030814;
+    background: var(--rg-panel, #24272d);
 
     border-top:
         1px solid
         rgba(214, 160, 58, 0.3);
+
+ color:#f4f5f7;
 }
 
 .footer h3 {

@@ -9,6 +9,10 @@
 <link href="images/favicon.png" rel="icon" type="image/png"/>
 <link href="css/styles.css" rel="stylesheet"/>
 <link href="css/profile.css?v=8" rel="stylesheet"/>
+<link href="css/chat.css" rel="stylesheet"/>
+<link rel="stylesheet" href="css/profile-community.css?v=1">
+<link rel="stylesheet" href="css/profile-videos.css?v=1">
+<script src="js/site-header.js?v=20261119" defer></script>
 </head>
 <body>
 <header class="site-header">
@@ -32,6 +36,7 @@
                 ☰
             </summary>
 <nav aria-label="Мобільне меню" class="burger-dropdown" data-i18n-aria-label="auto.113">
+<a href="forum.html#communityClubs" onclick="this.closest(\'details\').open=false">Клуби</a>
 <a data-i18n="auto.002" href="index.html">
                     Головна
                 </a>
@@ -125,6 +130,7 @@
 </div>
 <p id="profileLoadStatus" role="status">Завантажуємо дані профілю…</p>
 <div class="profile-main-actions">
+<a id="openPlatformAdmin" href="royal-auto-admin.html#platformAdmin" hidden>Адмінпанель Royal Garage</a>
 <button class="profile-action-row" data-i18n="auto.013" id="openCarButton" type="button">Додати автомобіль</button>
 <details class="account-settings-section profile-disclosure">
 <summary><h2 data-i18n="auto.014">Налаштування акаунта</h2></summary>
@@ -315,6 +321,9 @@
 </details>
 </div>
 </section>
+
+<section id="profileVideos" class="profile-card"><h2>Мої відео</h2><label>Додати відео (до 3 хв, 20 МБ)<input type="file" accept="video/mp4,video/webm,video/quicktime"></label><label>Зняти відео<input type="file" accept="video/*" capture="environment"></label><p></p><div></div></section>
+<section data-community-panel class="profile-community"><h2>Моя спільнота</h2><p role="status">Завантаження…</p></section>
 <details class="account-danger-zone profile-disclosure">
 <summary><h3 data-i18n="auto.021">Видалення акаунта</h3></summary>
 <p data-i18n="auto.022">
@@ -325,7 +334,6 @@
             Видалити акаунт
         </button>
 </details>
-<section id="profileVideos" class="profile-card"><h2>Мої відео</h2><label>Додати відео (до 20 МБ)<input type="file" accept="video/mp4,video/webm,video/quicktime"></label><p></p><div></div></section>
 </main>
 <!-- Вікно додавання автомобіля -->
 <div class="modal" id="carModal">
@@ -513,6 +521,10 @@
 </div>
 </div>
 </div>
+<main class="garage-page" id="businessInbox" hidden>
+<a href="business-profile.html" data-i18n="profile.businessInbox.back">← До бізнес-профілю</a>
+<h1 data-i18n="profile.businessInbox.title">Повідомлення клієнтів</h1>
+</main>
 <!-- Вікно моїх чатів -->
 <div class="modal" id="chatsModal">
 <div class="modal-content chats-modal-content">
@@ -543,8 +555,10 @@
         <span class="chats-button-badge" hidden="" id="profileUnreadCount"></span>
 </button>
 </div>
-<script src="js/profile.js?v=7"></script>
+<script src="js/profile.js?v=platform-admin-2"></script>
 <script src="js/loader.js"></script>
-<script src="js/lang.js"></script><script src="js/video-upload.js"></script><script src="js/profile-videos.js"></script>
-</body>
+<script src="js/lang.js"></script><script src="js/video-upload.js?v=20261117-social"></script><script src="js/profile-videos.js?v=20261117-delete"></script>
+<script src="js/profile-subscriptions.js?v=20261117-social"></script>
+<script src="js/profile-community.js?v=1"></script>
+<script src="/js/notifications.js?v=1"></script></body>
 </html>

@@ -399,7 +399,7 @@ async function loadRoyalAutoCars() {
 
         const response =
             await fetch(
-                "/api/market/listings"
+                `/api/market/listings?ownerId=${encodeURIComponent(ROYAL_AUTO_OWNER_ID)}`
             );
 
 
@@ -611,135 +611,8 @@ function createRoyalAutoDirectionCard(
 }
 
 
-function createRoyalAutoProductCard(
-   product
-) {
-
-   const card =
-       document.createElement(
-           "div"
-       );
-
-   card.className =
-       "royal-auto-car-card";
-
-
-   const photos =
-       Array.isArray(
-           product.photos
-       )
-           ? product.photos
-           : [];
-
-
-   const photoBox =
-       document.createElement(
-           "div"
-       );
-
-   photoBox.className =
-       "royal-auto-car-photo";
-
-
-   if (photos[0]) {
-
-       const image =
-           document.createElement(
-               "img"
-           );
-
-       image.src =
-           photos[0];
-
-       image.alt =
-           product.name ||
-           "Товар RoyalAuto";
-
-       image.loading =
-           "lazy";
-
-
-       photoBox.appendChild(
-           image
-       );
-
-   } else {
-
-       const placeholder =
-           document.createElement(
-               "div"
-           );
-
-       placeholder.className =
-           "royal-auto-car-placeholder";
-
-       placeholder.textContent =
-           "👑";
-
-
-       photoBox.appendChild(
-           placeholder
-       );
-   }
-
-
-   const info =
-       document.createElement(
-           "div"
-       );
-
-   info.className =
-       "royal-auto-car-info";
-
-
-   const title =
-       document.createElement(
-           "h3"
-       );
-
-   title.textContent =
-       product.name ||
-       "Товар";
-
-
-   const price =
-       document.createElement(
-           "strong"
-       );
-
-   price.className =
-       "royal-auto-car-price";
-
-   price.textContent =
-       formatRoyalAutoProductPrice(
-           product
-       );
-
-
-   const description =
-       document.createElement(
-           "p"
-       );
-
-   description.textContent =
-       product.description ||
-       "";
-
-
-   info.append(
-       title,
-       price,
-       description
-   );
-
-
-   card.append(
-       photoBox,
-       info
-   );
-
-
-   return card;
+function createRoyalAutoProductCard(product) {
+    return window.RGServiceGallery.card(product, product.sectionName);
 }
 
 
@@ -836,7 +709,7 @@ function createRoyalAutoProductSection(
            "royal-auto-empty";
 
        empty.textContent =
-           "У цій категорії поки немає товарів.";
+           "У цій категорії поки немає послуг.";
 
 
        content.append(
@@ -996,104 +869,81 @@ async function loadRoyalAutoCatalog() {
 
 loadRoyalAutoCatalog();
 
-/* =========================
-   КОПІЮВАННЯ ТЕЛЕФОНУ
-   ========================= */
+// Royal Auto uses the existing participant-scoped chat, without a parallel inbox.
+(() => {
+    const current = getRoyalAutoCurrentUser();
+    const owner = String(current?.id || current?.userId || '') === ROYAL_AUTO_OWNER_ID;
+    const link = document.getElementById('royalAutoChatLink');
+    if (!link) return;
+    link.href = owner ? 'profile.html?section=chats'
+        : 'chat.html?withUserId=' + encodeURIComponent(ROYAL_AUTO_OWNER_ID);
+    const label = owner ? 'Повідомлення клієнтів' : 'Написати Royal Auto';
+    link.setAttribute('aria-label', label);
+    link.title = label;
+})();
 
-const copyPhoneButton =
-    document.getElementById(
-        "copyPhoneButton"
-    );
-
-
-if (copyPhoneButton) {
-
-    copyPhoneButton.addEventListener(
-        "click",
-        async () => {
-
-            try {
-
-                await navigator.clipboard
-                    .writeText(
-                        "+380632384348"
-                    );
-
-
-                copyPhoneButton.textContent =
-                    "Номер скопійовано ✓";
-
-
-                setTimeout(
-                    () => {
-
-                        copyPhoneButton.textContent =
-                            "Телефон: +380 63 238 43 48";
-
-                    },
-                    1500
-                );
-
-
-            } catch (error) {
-
-                console.error(
-                    "Phone copy error:",
-                    error
-                );
+// Read-only unread indicator. Conversation storage and permissions remain on the server.
+(() => {
+    const link = document.getElementById('royalAutoChatLink');
+    const badge = link?.querySelector('.royal-auto-chat-badge');
+    if (!badge) return;
+    async function refresh() {
+        if (document.hidden) return;
+        const user = getRoyalAutoCurrentUser();
+        const id = String(user?.id || user?.userId || '');
+        const token = localStorage.getItem('royalGarageToken');
+        badge.hidden = true;
+        if (!id || !token) return;
+        try {
+            const response = await fetch('/api/chat/conversations', {headers:{Authorization:'Bearer ' + token}});
+            if (!response.ok) return;
+            const data = await response.json();
+            const count = (data.messages || []).filter(m =>
+                String(m.receiverId) === id && !m.readAt && !m.deletedAt &&
+                (id === ROYAL_AUTO_OWNER_ID || (String(m.senderId) === ROYAL_AUTO_OWNER_ID && !m.listingId))
+            ).length;
+            badge.textContent = count > 99 ? '99+' : String(count);
+            badge.hidden = count === 0;
+            const label = id === ROYAL_AUTO_OWNER_ID ? 'Повідомлення клієнтів' : 'Написати Royal Auto';
+            link.setAttribute('aria-label', label + (count ? ': непрочитаних ' + count : ''));
+        } catch { /* A network failure must not invent an unread count. */ }
+    }
+    refresh();
+    window.setInterval(refresh,60000);
+    document.addEventListener('visibilitychange',refresh);
+})();
 
 
-                alert(
-                    "Не вдалося скопіювати номер."
-                );
+async function loadRoyalAutoLocation() {
+    const address = document.getElementById("royalAutoAddress");
+    const route = document.getElementById("royalAutoRoute");
+    const hours = document.getElementById("royalAutoHours");
+    const schedule = document.getElementById("royalAutoSchedule");
+    try {
+        const response = await fetch("/api/royal-auto/location");
+        if (!response.ok) return;
+        const profile = await response.json();
+        const location = [profile.city, profile.address].filter(Boolean).join(", ").trim();
+        if (location) {
+            address.textContent = location;
+            address.hidden = false;
+            if (profile.mapEnabled !== false) {
+                route.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
+                route.hidden = false;
             }
         }
-    );
-}
-
-/* =========================
-   ПЛАВАЮЧА КНОПКА ЗВ'ЯЗКУ
-   ========================= */
-
-   const royalAutoContactFloat =
-   document.querySelector(
-       ".royal-auto-contact-float"
-   );
-
-
-   function updateRoyalAutoContactFloat() {
-
-    if (!royalAutoContactFloat) {
-        return;
+        const days = [["mon", "Пн"], ["tue", "Вт"], ["wed", "Ср"], ["thu", "Чт"], ["fri", "Пт"], ["sat", "Сб"], ["sun", "Нд"]];
+        if (!days.some(([day]) => profile.workSchedule?.[day]?.enabled)) return;
+        for (const [day, label] of days) {
+            const entry = profile.workSchedule[day];
+            const item = document.createElement("li");
+            item.textContent = `${label}: ${entry?.enabled ? `${entry.open || "09:00"}–${entry.close || "18:00"}` : "Вихідний"}`;
+            schedule.append(item);
+        }
+        hours.hidden = false;
+    } catch (error) {
+        console.error("Royal Auto location:", error);
     }
-
-
-    const contacts =
-        document.getElementById(
-            "contacts"
-        );
-
-
-    const contactsVisible =
-        contacts &&
-        contacts.getBoundingClientRect().top <
-            window.innerHeight;
-
-
-    royalAutoContactFloat.classList.toggle(
-        "is-visible",
-        window.scrollY > 350 &&
-        !contactsVisible
-    );
 }
 
-window.addEventListener(
-   "scroll",
-   updateRoyalAutoContactFloat,
-   {
-       passive: true
-   }
-);
-
-
-updateRoyalAutoContactFloat();
+loadRoyalAutoLocation();

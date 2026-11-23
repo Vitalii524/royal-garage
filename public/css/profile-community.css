@@ -1,0 +1,6 @@
+.profile-community { padding:20px; margin:20px 0; background:var(--rg-panel, #24272d); border:1px solid var(--rg-panel, #24272d); border-radius:16px; color:#f4f3ee; width:100%; box-sizing:border-box; }
+.profile-community h2 { color:#e8c56a; margin:0 0 16px; }
+.profile-community details { padding:14px 0; border-top:1px solid var(--rg-panel, #24272d); }
+.profile-community summary { cursor:pointer; color:#e8c56a; font-weight:600; }
+.profile-community p,.profile-community a { display:block; margin:12px 0; line-height:1.5; overflow-wrap:anywhere; }
+.profile-community a { color:#e8c56a; }

@@ -17,7 +17,7 @@
 
 .auth-register-button,
 .auth-header-button:hover {
-    color: #061b35;
+    color: var(--rg-panel, #24272d);
     background: var(--gold);
 }
 
@@ -76,12 +76,14 @@
     padding: 28px;
     background: linear-gradient(
         180deg,
-        #08284d,
-        #030814
+        var(--rg-panel, #24272d),
+        var(--rg-panel, #24272d)
     );
     border: 1px solid rgba(214, 160, 58, 0.45);
     border-radius: 16px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+
+ color:#f4f5f7;
 }
 
 /* ===== ХРЕСТИК ===== */
@@ -112,14 +114,14 @@
 .auth-tab {
     padding: 12px;
     color: var(--white);
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--rg-panel, #24272d);
     border: 1px solid rgba(214, 160, 58, 0.2);
     border-radius: 8px;
     cursor: pointer;
 }
 
 .auth-tab.active {
-    color: #061b35;
+    color: var(--rg-panel, #24272d);
     background: var(--gold);
 }
 
@@ -145,8 +147,8 @@
     width: 100%;
     padding: 14px;
     color: var(--white);
-    background: #020712;
-    border: 1px solid #123a68;
+    background: var(--rg-panel, #24272d);
+    border: 1px solid var(--rg-panel, #24272d);
     border-radius: 8px;
     font-size: 16px;
 }

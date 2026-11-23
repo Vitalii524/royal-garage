@@ -7,8 +7,16 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const getSiteAnalytics = require("./site-analytics");
+const { prepareMedia, saveMedia, installMedia } = require("./service-media");
+
+const { recordProposal } = require("./editorial-proposals");
 
 const UUID_PATTERN = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
+const ROYAL_AUTO_OWNER_ID = "32ce413e-9eb6-417a-b99a-77d9ca7c144a";
+// Royal Auto already has an established public storefront, independent of billing.
+const PUBLIC_BUSINESS_ACCESS = `(bp.owner_id = '${ROYAL_AUTO_OWNER_ID}'::uuid
+    OR bp.complimentary_subscription OR bp.subscription_expires_at > NOW())`;
+const EDITORIAL_OWNER_ID = "b61d05c8-0cab-4432-b36e-267440d87b6a";
 const SERVICE_HUB_OWNER_ID = "d2363e3d-4723-4755-9030-594cd3ccd6f0";
 const PUBLIC_ORIGIN = new URL(process.env.PUBLIC_ORIGIN || "https://royalgarage.com.ua").origin;
 const SERVICE_BOOKING_TYPES = ["car_service", "detailing", "tire_service", "road_assistance"];
@@ -185,13 +193,14 @@ try {
     } else { forumWebPush = null; }
 } catch (error) { console.warn('Web Push disabled:', error.message); }
 const forumPushEnabled = () => Boolean(forumWebPush && process.env.VAPID_PUBLIC_KEY);
-async function forumSendPush(userId, message, topicId) {
+async function forumSendPush(userId, message, topicId, notification = {}) {
     if (!forumPushEnabled()) return;
     try {
         const rows = await pool.query('SELECT endpoint,subscription FROM forum_push_subscriptions WHERE user_id=$1', [userId]);
-        const payload = JSON.stringify({title:'Royal Garage · Форум',body:message,url:topicId ? '/forum.html?topicId='+encodeURIComponent(topicId) : '/forum.html'});
+        const payload = JSON.stringify({title:'Royal Garage',body:message,url:notification.url || (topicId ? '/forum.html?topicId='+encodeURIComponent(topicId) : '/notifications.html'),id:notification.id});
         await Promise.allSettled(rows.rows.map(async row => {
-            try { await forumWebPush.sendNotification(row.subscription, payload, {TTL:86400}); }
+            if (!require('./notifications').validSubscription(row.subscription)) return;
+            try { await forumWebPush.sendNotification(row.subscription, payload, {TTL:86400,timeout:10000}); }
             catch (err) {
                 if ([404,410].includes(err.statusCode)) await pool.query('DELETE FROM forum_push_subscriptions WHERE endpoint=$1 AND user_id=$2',[row.endpoint,userId]);
                 else console.warn('Forum push send failed:', err.statusCode || err.message);
@@ -649,6 +658,11 @@ await pool.query(`
     FROM business_types bt
     ON CONFLICT (business_type_code, code) DO NOTHING
 `);
+
+await pool.query(fs.readFileSync(path.join(__dirname, 'migrations/20261122-product-catalog.sql'), 'utf8'));
+await pool.query(fs.readFileSync(path.join(__dirname, 'migrations/20261122-xml-import.sql'), 'utf8'));
+await pool.query(fs.readFileSync(path.join(__dirname, 'migrations/20261122-editorial-import-rights.sql'), 'utf8'));
+await pool.query(fs.readFileSync(path.join(__dirname, 'migrations/20261122-editorial-proposals.sql'), 'utf8'));
 
 await pool.query(`
     ALTER TABLE users ADD COLUMN IF NOT EXISTS registration_event_pending BOOLEAN
@@ -1171,6 +1185,9 @@ CREATE TABLE IF NOT EXISTS service_history_purchases (
 `);
 
         await ensureBusinessRequestsTable();
+        await pool.query(fs.readFileSync(path.join(__dirname, "migrations/20261122-verified-platform-administrator.sql"), "utf8"));
+        await pool.query(fs.readFileSync(path.join(__dirname, "migrations/20261122-retire-royal-auto-platform-analytics.sql"), "utf8"));
+        await pool.query(fs.readFileSync(path.join(__dirname, "migrations/20261122-editorial-account.sql"), "utf8"));
         console.log("Users table ready");
     } catch (error) {
         throw error;
@@ -1178,6 +1195,9 @@ CREATE TABLE IF NOT EXISTS service_history_purchases (
 }
 
 const databaseReady = initDatabase();
+
+// Larger payloads only for service media; base64 expands the 100 MiB attachment batch.
+app.use(["/api/crm/work-orders/:id/media", "/api/businesses/:ownerId/requests"], express.json({ limit: "140mb" }));
 
 app.use(
     express.json({
@@ -1190,6 +1210,10 @@ app.use(
         extended: false
     })
 );
+
+const notificationCenter = require('./notifications').installNotifications({
+    app, pool, requireAuth, databaseReady, sendPush: forumSendPush
+});
 
 app.get(
     "/sitemap.xml",
@@ -2022,6 +2046,18 @@ ${vehicleSchemaJson}
 
 /* ===== ФОТО / ЛОГО ДЛЯ OPEN GRAPH ===== */
 
+function businessPreviewImage(business) {
+    const photos = Array.isArray(business.photos) ? business.photos : [];
+    for (const candidate of [business.logo, ...photos]) {
+        const image = typeof candidate === "string" ? candidate.trim() : "";
+        if (/^data:image\/(?:png|jpeg|jpg|webp);base64,[a-z0-9+/=]+$/i.test(image)) return image;
+        if (/^https?:\/\//i.test(image) || /^\/(?![\/\\])/.test(image)) return image;
+    }
+    return String(business.owner_id) === ROYAL_AUTO_OWNER_ID
+        ? "/images/royal-auto-atelier-logo.webp"
+        : "";
+}
+
 app.get(
     "/seo/business-image/:ownerId",
     async (req, res) => {
@@ -2030,10 +2066,12 @@ app.get(
                 await pool.query(
                     `
                     SELECT
-                        logo,
-                        photos
-                    FROM business_profiles
-                    WHERE owner_id = $1
+                        bp.owner_id,
+                        bp.logo,
+                        bp.photos
+                    FROM business_profiles bp
+                    JOIN users u ON u.id = bp.owner_id
+                    WHERE bp.owner_id = $1 AND NOT bp.is_deleted AND NOT u.account_disabled
                     LIMIT 1
                     `,
                     [
@@ -2052,19 +2090,8 @@ app.get(
             const business =
                 result.rows[0];
 
-            const photos =
-                Array.isArray(
-                    business.photos
-                )
-                    ? business.photos
-                    : [];
-
-            const image =
-                String(
-                    business.logo ||
-                    photos[0] ||
-                    ""
-                );
+            const image = businessPreviewImage(business);
+            if (!image) return res.status(404).end();
 
             const dataImageMatch =
                 image.match(
@@ -2096,20 +2123,7 @@ app.get(
                 );
             }
 
-            if (
-                /^https?:\/\//i.test(
-                    image
-                )
-            ) {
-                return res.redirect(
-                    image
-                );
-            }
-
-            return res.redirect(
-                "/images/royal-garage-logo.png"
-            );
-
+            return res.redirect(image);
         } catch (error) {
             console.error(
                 "SEO business image error:",
@@ -2197,6 +2211,8 @@ app.get(
                     bp.instagram,
                 
                     bp.description,
+                    bp.logo,
+                    bp.photos,
                 
                     bp.subscription_expires_at,
 
@@ -2319,10 +2335,9 @@ app.get(
                     business.owner_id
                 )}`;
 
-            const imageUrl =
-                `https://royalgarage.com.ua/seo/business-image/${encodeURIComponent(
-                    business.owner_id
-                )}`;
+            const imageUrl = businessPreviewImage(business)
+                ? `${PUBLIC_ORIGIN}/seo/business-image/${encodeURIComponent(business.owner_id)}`
+                : "";
 
                 const businessSameAs = [
                     business.telegram,
@@ -2345,7 +2360,7 @@ app.get(
                 
                     "name": name,
                     "url": canonical,
-                    "image": imageUrl,
+                    ...(imageUrl ? { image: imageUrl } : {}),
                     "description": description,
                 
                     ...(city || business.address
@@ -2504,12 +2519,7 @@ app.get(
     )}"
 >
 
-<meta
-    property="og:image"
-    content="${escapeSeoHtml(
-        imageUrl
-    )}"
->
+${imageUrl ? `<meta property="og:image" content="${escapeSeoHtml(imageUrl)}">` : ""}
 
 <meta
     property="og:locale"
@@ -2518,7 +2528,7 @@ app.get(
 
 <meta
     name="twitter:card"
-    content="summary_large_image"
+    content="${imageUrl ? "summary_large_image" : "summary"}"
 >
 
 <meta
@@ -2535,12 +2545,7 @@ app.get(
     )}"
 >
 
-<meta
-    name="twitter:image"
-    content="${escapeSeoHtml(
-        imageUrl
-    )}"
->
+${imageUrl ? `<meta name="twitter:image" content="${escapeSeoHtml(imageUrl)}">` : ""}
 
 <script type="application/ld+json">
 ${businessSchemaJson}
@@ -3318,6 +3323,23 @@ app.get(
     renderMarketCategoryPage
 );
 
+// Old seller links for businesses resolve to the same public business profile.
+app.get("/seller.html", async (req, res) => {
+    const ownerId = String(req.query.sellerId || "");
+    try {
+        if (UUID_PATTERN.test(ownerId)) {
+            const business = await pool.query(
+                "SELECT owner_id FROM business_profiles WHERE owner_id = $1 AND is_deleted = FALSE LIMIT 1", [ownerId]
+            );
+            if (business.rowCount) return res.redirect(302, `/business-profile.html?id=${encodeURIComponent(ownerId)}`);
+        }
+        return res.sendFile(path.join(__dirname, "public", "seller.html"));
+    } catch (error) {
+        console.error("Resolve business seller profile:", error);
+        return res.status(503).send("Не вдалося відкрити профіль. Спробуйте ще раз.");
+    }
+});
+
 app.get("/service-hub.html", (req, res) => {
     res.redirect(302, `/business-profile.html?id=${SERVICE_HUB_OWNER_ID}`);
 });
@@ -3342,6 +3364,15 @@ app.post("/api/media/videos", requireAuth, async (req, res) => {
 app.get("/api/media/videos", requireAuth, async(req,res)=>{
  try { await videoStoreReady;const result=await pool.query("SELECT id,name,created_at FROM uploaded_videos WHERE owner_id=$1 ORDER BY created_at DESC LIMIT 50",[req.user.userId]);res.json({videos:result.rows}); }
  catch(error){res.status(500).json({message:"Не вдалося завантажити відео."});}
+});
+app.delete("/api/media/videos/:id", requireAuth, async(req,res)=>{
+ if(!UUID_PATTERN.test(req.params.id))return res.status(400).json({message:"Некоректне відео."});
+ try {
+  await videoStoreReady;
+  const result=await pool.query("DELETE FROM uploaded_videos WHERE id=$1 AND owner_id=$2 RETURNING id",[req.params.id,req.user.userId]);
+  if(!result.rowCount)return res.status(404).json({message:"Відео не знайдено або воно вам не належить."});
+  res.json({ok:true});
+ }catch(error){console.error("Video deletion:",error);res.status(500).json({message:"Не вдалося видалити відео."});}
 });
 app.get("/api/media/videos/:id",async(req,res)=>{
  if(!UUID_PATTERN.test(req.params.id)) return res.sendStatus(404);
@@ -4710,6 +4741,11 @@ app.get(
 );
 
 // Business service requests. Public submission, owner-only review and confirmation.
+const mediaReady = installMedia({app,pool,requireAuth,requireCrmAccess,databaseReady});
+require("./catalog-media").installCatalogMedia({app,pool,requireAuth,databaseReady});
+require("./product-catalog").installProductCatalog({app,pool,databaseReady});
+require("./dealer-xml").installDealerXml({app,pool,requireAuth,requireAdmin,databaseReady,editorialOwnerId:EDITORIAL_OWNER_ID});
+
 async function ensureBusinessRequestsTable() {
     await pool.query(`CREATE TABLE IF NOT EXISTS business_service_requests (
         id UUID PRIMARY KEY, owner_id UUID NOT NULL REFERENCES users(id),
@@ -4744,7 +4780,12 @@ app.post('/api/businesses/:ownerId/requests', async(req,res)=>{
             !/^\d{1,7}$/.test(mileageText)) {
             return res.status(400).json({ ok: false, message: "Вкажіть коректні рік випуску та пробіг." });
         }
-        const found = await pool.query(
+        let attachments;
+        try { attachments = await prepareMedia(p.attachments); } catch (error) { return res.status(400).json({ok:false,message:error.message}); }
+        await mediaReady;
+        const found = ownerId === ROYAL_AUTO_OWNER_ID
+            ? await pool.query('SELECT 1 FROM users WHERE id=$1 AND NOT account_disabled',[ownerId])
+            : await pool.query(
             `SELECT 1 FROM business_profiles bp
              JOIN users u ON u.id = bp.owner_id
              JOIN subscription_plans sp ON sp.id = bp.subscription_plan_id
@@ -4755,7 +4796,15 @@ app.post('/api/businesses/:ownerId/requests', async(req,res)=>{
                AND bt.code = ANY($2::text[])`, [ownerId, SERVICE_BOOKING_TYPES]
         );
         if (!found.rowCount) return res.status(404).json({ ok: false, message: "Бізнес не приймає заявки." });
-        await pool.query(`INSERT INTO business_service_requests(id,owner_id,name,phone,brand,model,transmission,fuel,plate,vin,reason,year,mileage,engine) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,[crypto.randomUUID(),ownerId,name,phone,brand,model,value('transmission',40),value('fuel',40),value('plate',20),vin,reason,year,mileage,engine]);
+        const requestId = crypto.randomUUID();
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query(`INSERT INTO business_service_requests(id,owner_id,name,phone,brand,model,transmission,fuel,plate,vin,reason,year,mileage,engine) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,[requestId,ownerId,name,phone,brand,model,value('transmission',40),value('fuel',40),value('plate',20),vin,reason,year,mileage,engine]);
+            await saveMedia(client,attachments,ownerId,requestId);
+            await client.query('COMMIT');
+        } catch(error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
+        await notificationCenter.emit({userId:ownerId,kind:'service_request',source:'service',message:'Нова заявка на обслуговування',url:ownerId===ROYAL_AUTO_OWNER_ID?'/royal-auto-admin.html?requests=1':'/business-profile.html?notifications=requests',eventKey:'request:'+requestId}).catch(error=>console.error('Request notification:',error));
         res.status(201).json({ok:true});
     } catch(e){console.error('Business request create:',e);res.status(500).json({ok:false,message:'Не вдалося зберегти заявку'});}
 });
@@ -4777,6 +4826,76 @@ app.get("/api/business/requests", requireAuth, requireCrmAccess, async (req, res
         [req.user.userId, page * 50]
     );
     res.json({ ok: true, pending: count.rows[0].pending, requests: result.rows.slice(0, 50), hasMore: result.rows.length > 50 });
+});
+
+async function importServiceRequest(client, request, serviceId) {
+    // Serialize imports for the same customer across different requests.
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [serviceId + ":" + request.phone.replace(/\D/g, "")]);
+        const existingClient = await client.query(
+            `SELECT id FROM crm_clients WHERE service_id = $1
+             AND (id = $3 OR regexp_replace(phone, '[^0-9]', '', 'g') = $2) ORDER BY created_at, id LIMIT 1`,
+            [serviceId, request.phone.replace(/\D/g, ""), request.crm_client_id]
+        );
+        const clientId = existingClient.rows[0]?.id || (await client.query(
+            "INSERT INTO crm_clients(service_id, name, phone) VALUES ($1, $2, $3) RETURNING id",
+            [serviceId, request.name, request.phone]
+        )).rows[0].id;
+        const existingCar = await client.query(
+            `SELECT id FROM crm_cars WHERE service_id = $1 AND client_id = $2
+               AND (id = $5 OR ($3 <> '' AND UPPER(vin) = $3)
+                    OR ($4 <> '' AND UPPER(BTRIM(plate)) = UPPER($4)
+                        AND ($3 = '' OR COALESCE(vin, '') = '')))
+             ORDER BY CASE WHEN UPPER(vin) = $3 THEN 0 ELSE 1 END, id LIMIT 1`,
+            [serviceId, clientId, request.vin || "", request.plate || "", request.crm_car_id]
+        );
+        const spec = [request.brand, request.model, request.vin || null, request.plate || null,
+            request.fuel || null, request.transmission || null, request.year, request.mileage, request.engine || null];
+        let carId = existingCar.rows[0]?.id;
+        if (carId) {
+            await client.query(
+                `UPDATE crm_cars SET brand = $1, model = $2, vin = COALESCE($3, vin),
+                    plate = COALESCE($4, plate), fuel = COALESCE($5, fuel),
+                    transmission = COALESCE($6, transmission), year = COALESCE($7, year),
+                    mileage = COALESCE($8, mileage), engine = COALESCE($9, engine), updated_at = NOW()
+                 WHERE id = $10`, [...spec, carId]
+            );
+        } else {
+            carId = (await client.query(
+                `INSERT INTO crm_cars(brand, model, vin, plate, fuel, transmission, year, mileage, engine, service_id, client_id)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`, [...spec, serviceId, clientId]
+            )).rows[0].id;
+        }
+
+    await client.query("UPDATE business_service_requests SET crm_client_id = $2, crm_car_id = $3 WHERE id = $1", [request.id, clientId, carId]);
+    return { clientId, carId };
+}
+
+app.post("/api/business/requests/:id/contact", requireAuth, requireCrmAccess, async (req, res) => {
+    if (!UUID_PATTERN.test(req.params.id)) return res.sendStatus(404);
+    const client = await pool.connect();
+    try {
+        await client.query("BEGIN");
+        const result = await client.query("SELECT * FROM business_service_requests WHERE id = $1 AND owner_id = $2 FOR UPDATE", [req.params.id, req.user.userId]);
+        const request = result.rows[0];
+        if (!request) {
+            await client.query("ROLLBACK");
+            return res.status(404).json({ ok: false, message: "Заявку не знайдено." });
+        }
+        const service = await client.query(`
+            INSERT INTO crm_services(id, business_profile_id, name, phone, email, city, address, subscription_status, is_active)
+            SELECT gen_random_uuid(), bp.id, bp.name, COALESCE(bp.phone,u.phone), u.email, bp.city, bp.address, 'active', TRUE
+            FROM business_profiles bp JOIN users u ON u.id = bp.owner_id
+            WHERE bp.id = $1 AND bp.owner_id = $2
+            ON CONFLICT (business_profile_id) DO UPDATE SET updated_at = NOW()
+            RETURNING id`, [req.crm.businessProfileId, req.user.userId]);
+        const imported = await importServiceRequest(client, request, service.rows[0].id);
+        await client.query("COMMIT");
+        return res.json({ ok: true, ...imported });
+    } catch (error) {
+        await client.query("ROLLBACK").catch(() => {});
+        console.error("Import service request:", error);
+        return res.status(500).json({ ok: false, message: "Не вдалося зберегти клієнта й автомобіль у CRM. Спробуйте ще раз." });
+    } finally { client.release(); }
 });
 
 app.post("/api/business/requests/:id/confirm", requireAuth, requireCrmAccess, async (req, res) => {
@@ -4821,40 +4940,7 @@ app.post("/api/business/requests/:id/confirm", requireAuth, requireCrmAccess, as
             return res.status(400).json({ ok: false, message: "Виберіть активного майстра зі своєї CRM." });
         }
 
-        const existingClient = await client.query(
-            `SELECT id FROM crm_clients WHERE service_id = $1
-             AND regexp_replace(phone, '[^0-9]', '', 'g') = $2 ORDER BY created_at, id LIMIT 1`,
-            [serviceId, request.phone.replace(/\D/g, "")]
-        );
-        const clientId = existingClient.rows[0]?.id || (await client.query(
-            "INSERT INTO crm_clients(service_id, name, phone) VALUES ($1, $2, $3) RETURNING id",
-            [serviceId, request.name, request.phone]
-        )).rows[0].id;
-        const existingCar = await client.query(
-            `SELECT id FROM crm_cars WHERE service_id = $1 AND client_id = $2
-               AND (($3 <> '' AND UPPER(vin) = $3)
-                    OR ($4 <> '' AND UPPER(BTRIM(plate)) = UPPER($4)
-                        AND ($3 = '' OR COALESCE(vin, '') = '')))
-             ORDER BY CASE WHEN UPPER(vin) = $3 THEN 0 ELSE 1 END, id LIMIT 1`,
-            [serviceId, clientId, request.vin || "", request.plate || ""]
-        );
-        const spec = [request.brand, request.model, request.vin || null, request.plate || null,
-            request.fuel || null, request.transmission || null, request.year, request.mileage, request.engine || null];
-        let carId = existingCar.rows[0]?.id;
-        if (carId) {
-            await client.query(
-                `UPDATE crm_cars SET brand = $1, model = $2, vin = COALESCE($3, vin),
-                    plate = COALESCE($4, plate), fuel = COALESCE($5, fuel),
-                    transmission = COALESCE($6, transmission), year = COALESCE($7, year),
-                    mileage = COALESCE($8, mileage), engine = COALESCE($9, engine), updated_at = NOW()
-                 WHERE id = $10`, [...spec, carId]
-            );
-        } else {
-            carId = (await client.query(
-                `INSERT INTO crm_cars(brand, model, vin, plate, fuel, transmission, year, mileage, engine, service_id, client_id)
-                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`, [...spec, serviceId, clientId]
-            )).rows[0].id;
-        }
+        const { clientId, carId } = await importServiceRequest(client, request, serviceId);
         const orderNumber = await nextCrmOrderNumber(client, serviceId);
         const workOrder = await client.query(
             `INSERT INTO crm_work_orders(service_id, client_id, car_id, employee_id, order_number, status, mileage, customer_complaint)
@@ -4862,6 +4948,8 @@ app.post("/api/business/requests/:id/confirm", requireAuth, requireCrmAccess, as
             [serviceId, clientId, carId, employeeId, orderNumber, request.mileage, request.reason]
         );
         const workOrderId = workOrder.rows[0].id;
+        await mediaReady;
+        await client.query("UPDATE crm_media SET work_order_id=$1 WHERE request_id=$2 AND owner_id=$3",[workOrderId,request.id,req.user.userId]);
         const appointment = await client.query(
             `INSERT INTO crm_appointments(service_id, client_id, car_id, employee_id, work_order_id,
                  title, scheduled_at, duration_minutes, status, notes)
@@ -5098,6 +5186,9 @@ app.post(
                     ]
                 );
 
+            await notificationCenter.emit({userId:receiverId,actorId:req.user.userId,kind:'chat_message',
+                source:listingId?'market':'service',message:listingId?'Нове повідомлення щодо оголошення':'Нове повідомлення в бізнес-чаті',
+                url:'/chat.html?withUserId='+encodeURIComponent(req.user.userId)+(listingId?'&listingId='+encodeURIComponent(listingId):''),eventKey:'chat:'+messageId});
             res.status(201).json({
                 ok: true,
                 message:
@@ -5321,12 +5412,10 @@ app.get(
 
                 WHERE
                     bp.is_deleted = FALSE
+                    AND bp.owner_id <> '${EDITORIAL_OWNER_ID}'::uuid
                     AND u.account_disabled = FALSE
                     AND sp.is_active = TRUE
-                    AND (
-                        bp.complimentary_subscription = TRUE
-                        OR bp.subscription_expires_at > NOW()
-                    )
+                    AND ${PUBLIC_BUSINESS_ACCESS}
                     AND u.email_verified = TRUE
                     AND u.phone_verified = TRUE
 
@@ -5380,7 +5469,8 @@ app.get(
                     bp.id,
                     bp.owner_id AS "ownerId",
                     bp.name AS "businessName",
-                    CASE WHEN $1::text IS NULL AND bp.logo LIKE 'data:%'
+                    CASE WHEN bp.owner_id = $2 AND NULLIF(bp.logo, '') IS NULL THEN '/images/royal-auto-atelier-logo.webp'
+                         WHEN $1::text IS NULL AND bp.logo LIKE 'data:%'
                          THEN '/api/businesses/' || bp.owner_id || '/logo'
                          ELSE bp.logo END AS "logoUrl",
                     bp.city,
@@ -5404,12 +5494,10 @@ app.get(
                 WHERE
                     ($1::text IS NULL OR bt.code = $1)
                     AND bp.is_deleted = FALSE
+                    AND bp.owner_id <> '${EDITORIAL_OWNER_ID}'::uuid
                     AND u.account_disabled = FALSE
                     AND sp.is_active = TRUE
-                    AND (
-                        bp.complimentary_subscription = TRUE
-                        OR bp.subscription_expires_at > NOW()
-                    )
+                    AND ${PUBLIC_BUSINESS_ACCESS}
                     AND u.email_verified = TRUE
                     AND u.phone_verified = TRUE
 
@@ -5457,7 +5545,7 @@ app.get("/api/businesses/:ownerId/logo", async (req, res) => {
          JOIN subscription_plans sp ON sp.id = bp.subscription_plan_id
          WHERE bp.owner_id = $1 AND NOT bp.is_deleted AND NOT u.account_disabled
            AND u.email_verified AND u.phone_verified AND sp.is_active
-           AND (bp.complimentary_subscription OR bp.subscription_expires_at > NOW())`,
+           AND ${PUBLIC_BUSINESS_ACCESS}`,
         [req.params.ownerId]
     );
     const logo = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=]+)$/i.exec(result.rows[0]?.logo || "");
@@ -6581,7 +6669,7 @@ app.post(
             const listingResult =
                 await pool.query(
                     `
-                    SELECT id
+                    SELECT id, owner_id
                     FROM market_listings
                     WHERE id = $1
                     LIMIT 1
@@ -6602,7 +6690,7 @@ app.post(
                 });
             }
 
-            await pool.query(
+            const savedFavorite = await pool.query(
                 `
                 INSERT INTO market_favorites (
                     user_id,
@@ -6613,13 +6701,15 @@ app.post(
                     user_id,
                     listing_id
                 )
-                DO NOTHING
+                DO NOTHING RETURNING listing_id
                 `,
                 [
                     req.user.userId,
                     listingId
                 ]
             );
+
+            if (savedFavorite.rowCount) await notificationCenter.emit({userId:listingResult.rows[0].owner_id,actorId:req.user.userId,kind:"listing_favorite",source:"market",message:"Ваше оголошення додали в обране",url:"/listing.html?id="+encodeURIComponent(listingId),eventKey:"favorite:"+listingId+":"+req.user.userId});
 
             res.json({
                 ok: true,
@@ -8247,7 +8337,8 @@ async function loadPrivateBusinessProfile(ownerId) {
 
             bt.id AS "businessTypeId",
             bt.code AS "businessTypeCode",
-            bt.name AS "businessTypeName",
+            CASE WHEN bp.owner_id = '${EDITORIAL_OWNER_ID}'::uuid THEN 'Редакція'
+                 ELSE bt.name END AS "businessTypeName",
 
             u.email,
             u.email_verified AS "emailVerified",
@@ -8258,7 +8349,7 @@ async function loadPrivateBusinessProfile(ownerId) {
             sp.name AS "planName",
             sp.price_uah AS "priceUah",
             sp.car_limit AS "carLimit",
-            sp.has_crm AS "hasCrm",
+            (COALESCE(bp.crm_enabled, sp.has_crm) OR bp.owner_id = '32ce413e-9eb6-417a-b99a-77d9ca7c144a'::uuid) AS "hasCrm",
             sp.has_map AS "hasMap",
 
             bp.complimentary_subscription AS "complimentarySubscription",
@@ -8281,10 +8372,7 @@ async function loadPrivateBusinessProfile(ownerId) {
             WHEN u.email_verified = TRUE
              AND u.phone_verified = TRUE
              AND sp.is_active = TRUE
-             AND (
-                 bp.complimentary_subscription = TRUE
-                 OR bp.subscription_expires_at > NOW()
-             )
+             AND ${PUBLIC_BUSINESS_ACCESS}
             THEN 'active'
             ELSE 'draft'
             END AS "profileStatus",
@@ -8315,7 +8403,7 @@ async function loadPrivateBusinessProfile(ownerId) {
                             'title', pr.title,
                             'description', pr.description,
                             'price', pr.price,
-                            'photos', pr.photos
+                            'photos', pr.photos, 'category', pr.category, 'availability', pr.availability, 'orderTelegram', pr.order_telegram, 'orderViber', pr.order_viber, 'orderChat', pr.order_chat
                         )
                         ORDER BY pr.sort_order ASC, pr.created_at ASC
                     )
@@ -8371,7 +8459,9 @@ async function loadPublicBusinessProfile(ownerId) {
             bp.id,
             bp.owner_id AS "ownerId",
             bp.name,
-            bp.logo,
+            CASE WHEN bp.owner_id = '${ROYAL_AUTO_OWNER_ID}'::uuid THEN
+                COALESCE(NULLIF(bp.logo, ''), '/images/royal-auto-atelier-logo.webp')
+                ELSE bp.logo END AS logo,
             bp.city,
             bp.address,
             bp.phone,
@@ -8382,10 +8472,11 @@ async function loadPublicBusinessProfile(ownerId) {
             bp.work_schedule AS "workSchedule",
 
             bt.code AS "businessTypeCode",
-            bt.name AS "businessTypeName",
+            CASE WHEN bp.owner_id = '${EDITORIAL_OWNER_ID}'::uuid THEN 'Редакція'
+                 ELSE bt.name END AS "businessTypeName",
 
             sp.has_map AS "mapEnabled",
-            (sp.has_crm AND bt.code = ANY($2::text[])) AS "acceptsServiceRequests",
+            (bp.owner_id = '${ROYAL_AUTO_OWNER_ID}'::uuid OR (sp.has_crm AND bt.code = ANY($2::text[]))) AS "acceptsServiceRequests",
 
             COALESCE(
                 (
@@ -8413,7 +8504,7 @@ async function loadPublicBusinessProfile(ownerId) {
                             'title', pr.title,
                             'description', pr.description,
                             'price', pr.price,
-                            'photos', pr.photos
+                            'photos', pr.photos, 'category', pr.category, 'availability', pr.availability, 'orderTelegram', pr.order_telegram, 'orderViber', pr.order_viber, 'orderChat', pr.order_chat
                         )
                         ORDER BY pr.sort_order ASC, pr.created_at ASC
                     )
@@ -8457,10 +8548,7 @@ async function loadPublicBusinessProfile(ownerId) {
           AND u.email_verified = TRUE
           AND u.phone_verified = TRUE
           AND sp.is_active = TRUE
-          AND (
-            bp.complimentary_subscription = TRUE
-            OR bp.subscription_expires_at > NOW()
-          )
+          AND ${PUBLIC_BUSINESS_ACCESS}
         LIMIT 1
         `,
         [ownerId, SERVICE_BOOKING_TYPES]
@@ -8468,6 +8556,39 @@ async function loadPublicBusinessProfile(ownerId) {
 
     return result.rows[0] || null;
 }
+
+function requireEditorial(req, res, next) {
+    if (req.user?.userId !== EDITORIAL_OWNER_ID || req.user.role !== "user") {
+        return res.status(403).json({ ok: false, message: "Доступ лише для редакції." });
+    }
+    return next();
+}
+
+app.get("/api/editorial/proposals", requireAuth, requireEditorial, async (req, res) => {
+    const result = await pool.query(
+        `SELECT recipient_id AS "recipientId", recipient_name AS "recipientName",
+                proposal_text AS text, sent_at AS "sentAt"
+         FROM editorial_proposals WHERE sender_id = $1 ORDER BY sent_at DESC LIMIT 200`,
+        [req.user.userId]
+    );
+    res.set("Cache-Control", "no-store").json({ ok: true, proposals: result.rows });
+});
+
+app.post("/api/editorial/proposals", requireAuth, requireEditorial, async (req, res) => {
+    const { recipientId, recipientName, text, confirmed } = req.body || {};
+    if (confirmed !== true || typeof recipientId !== "string" || !UUID_PATTERN.test(recipientId) ||
+        recipientId === EDITORIAL_OWNER_ID || typeof recipientName !== "string" ||
+        typeof text !== "string" || !text.trim() || text.length > 2000) {
+        return res.status(400).json({ ok: false, message: "Перевірте адресата й підтвердьте текст пропозиції." });
+    }
+    const recipient = await loadPublicBusinessProfile(recipientId);
+    if (!recipient || recipient.name !== recipientName) {
+        return res.status(409).json({ ok: false, message: "Дані адресата змінилися. Оновіть список." });
+    }
+    const id = await recordProposal(pool, { senderId: req.user.userId, recipientId, recipientName, text: text.trim() });
+    if (!id) return res.status(409).json({ ok: false, message: "Пропозицію вже надіслано або адресат змінився." });
+    res.status(201).json({ ok: true, id });
+});
 
 app.get(
     "/api/business/profiles/:ownerId",
@@ -8494,12 +8615,30 @@ app.get(
     }
 );
 
+app.get("/api/royal-auto/location", async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT bp.city, bp.address, bp.work_schedule AS "workSchedule", sp.has_map AS "mapEnabled"
+             FROM business_profiles bp
+             JOIN users u ON u.id = bp.owner_id
+             LEFT JOIN subscription_plans sp ON sp.id = bp.subscription_plan_id
+             WHERE bp.owner_id = $1 AND NOT bp.is_deleted AND NOT u.account_disabled`,
+            [ROYAL_AUTO_OWNER_ID]
+        );
+        if (!result.rows[0]) return res.sendStatus(404);
+        return res.json(result.rows[0]);
+    } catch (error) {
+        console.error("Royal Auto location:", error);
+        return res.sendStatus(503);
+    }
+});
+
 app.get(
     "/api/business/profile",
     requireAuth,
     async (req, res) => {
         try {
-            if (req.user.accountType !== "business") {
+            if (req.user.accountType !== "business" && req.user.userId !== ROYAL_AUTO_OWNER_ID) {
                 return res.status(403).json({
                     ok: false,
                     message: "Це не бізнес-акаунт."
@@ -8643,7 +8782,7 @@ app.patch(
     requireAuth,
     async (req, res) => {
         try {
-            if (req.user.accountType !== "business") {
+            if (req.user.accountType !== "business" && req.user.userId !== ROYAL_AUTO_OWNER_ID) {
                 return res.status(403).json({ ok: false, message: "Це не бізнес-акаунт." });
             }
 
@@ -8652,7 +8791,7 @@ app.patch(
                 SELECT bp.id, bt.code AS "businessTypeCode"
                 FROM business_profiles bp
                 JOIN business_types bt ON bt.id = bp.business_type_id
-                WHERE bp.owner_id = $1
+                WHERE bp.owner_id = $1 AND NOT bp.is_deleted
                 LIMIT 1
                 `,
                 [req.user.userId]
@@ -8920,15 +9059,18 @@ app.post(
                 return res.status(400).json({ ok: false, message: "Вкажіть назву товару." });
             }
 
+            let extra;
+            try { extra = require('./product-catalog').productFields(req.body); }
+            catch(error){return res.status(400).json({ok:false,message:error.message});}
             const photos = Array.isArray(req.body.photos) ? req.body.photos.slice(0, 6) : [];
             const price = req.body.price == null || req.body.price === "" ? null : Number(req.body.price);
 
             const result = await pool.query(
                 `
                 INSERT INTO business_products (
-                    id, business_id, title, description, price, photos
+                    id, business_id, title, description, price, photos, category, availability, order_telegram, order_viber, order_chat
                 )
-                VALUES ($1, $2, $3, $4, $5, $6::jsonb)
+                VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11)
                 RETURNING id, title, description, price, photos
                 `,
                 [
@@ -8937,7 +9079,8 @@ app.post(
                     title,
                     String(req.body.description || "").trim(),
                     Number.isFinite(price) && price >= 0 ? price : null,
-                    JSON.stringify(photos)
+                    JSON.stringify(photos),
+                    ...extra
                 ]
             );
 
@@ -8959,6 +9102,9 @@ app.patch(
                 return res.status(400).json({ ok: false, message: "Вкажіть назву товару." });
             }
 
+            let extra;
+            try { extra = require('./product-catalog').productFields(req.body); }
+            catch(error){return res.status(400).json({ok:false,message:error.message});}
             const photos = Array.isArray(req.body.photos) ? req.body.photos.slice(0, 6) : [];
             const price = req.body.price == null || req.body.price === "" ? null : Number(req.body.price);
 
@@ -8970,6 +9116,7 @@ app.patch(
                     description = $4,
                     price = $5,
                     photos = $6::jsonb,
+                    category=$7, availability=$8, order_telegram=$9, order_viber=$10, order_chat=$11,
                     updated_at = NOW()
                 FROM business_profiles bp
                 WHERE pr.business_id = bp.id
@@ -8983,7 +9130,8 @@ app.patch(
                     title,
                     String(req.body.description || "").trim(),
                     Number.isFinite(price) && price >= 0 ? price : null,
-                    JSON.stringify(photos)
+                    JSON.stringify(photos),
+                    ...extra
                 ]
             );
 
@@ -9280,7 +9428,7 @@ app.post(["/api/register", "/api/business/register"], async (req, res) => {
 
             if (["car_service", "detailing", "tire_service", "road_assistance"].includes(businessTypeRow.code)) {
                 resolvedContentType = "services";
-            } else if (businessTypeRow.code === "auto_shop") {
+            } else if (["auto_shop", "wholesale"].includes(businessTypeRow.code)) {
                 resolvedContentType = "products";
             } else if (businessTypeRow.code === "car_dealer") {
                 resolvedContentType = "cars";
@@ -9337,9 +9485,10 @@ app.post(["/api/register", "/api/business/register"], async (req, res) => {
                     name,
                     phone,
                     subscription_started_at,
-                    subscription_expires_at
+                    subscription_expires_at,
+                    crm_enabled
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW() + INTERVAL '3 months')
+                VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW() + INTERVAL '3 months', $8)
                 `,
                 [
                     crypto.randomUUID(),
@@ -9348,7 +9497,8 @@ app.post(["/api/register", "/api/business/register"], async (req, res) => {
                     planRow.id,
                     resolvedContentType,
                     cleanName,
-                    normalizedPhone
+                    normalizedPhone,
+                    !["auto_shop","wholesale"].includes(businessTypeRow.code)
                 ]
             );
         }
@@ -10483,14 +10633,7 @@ async function requireAdmin(req, res, next) {
     next();
 }
 
-function requireAnalyticsAccess(req, res, next) {
-    if (req.user.role === "admin" || String(req.user.userId) === ROYAL_AUTO_OWNER_ID) {
-        return next();
-    }
-    return res.status(403).json({ ok: false, message: "Доступ до аналітики заборонено." });
-}
-
-app.get("/api/admin/site-analytics", requireAuth, requireAnalyticsAccess, async (req, res) => {
+app.get("/api/admin/site-analytics", requireAuth, requireAdmin, async (req, res) => {
     res.set("Cache-Control", "no-store");
     try {
         const periods = await getSiteAnalytics(new URL(PUBLIC_ORIGIN).hostname);
@@ -10501,7 +10644,7 @@ app.get("/api/admin/site-analytics", requireAuth, requireAnalyticsAccess, async 
     }
 });
 
-app.get("/api/admin/registrations", requireAuth, requireAnalyticsAccess, async (req, res) => {
+app.get("/api/admin/registrations", requireAuth, requireAdmin, async (req, res) => {
     const result = await pool.query(`
         SELECT COUNT(*)::int AS "created",
                COUNT(*) FILTER (WHERE NOT u.email_verified)::int AS "unverifiedEmail",
@@ -10548,16 +10691,25 @@ app.patch("/api/admin/businesses/:id/complimentary", requireAuth, requireAdmin, 
 
 async function requireCrmAccess(req, res, next) {
     try {
-        if (
-            !req.user ||
-            req.user.accountType !== "business"
-        ) {
+        const royalAutoOwner = req.user?.userId === ROYAL_AUTO_OWNER_ID;
+        if (!req.user || (req.user.accountType !== "business" && !royalAutoOwner)) {
             return res.status(403).json({
                 ok: false,
                 code: "CRM_BUSINESS_REQUIRED",
                 message:
                     "CRM RG доступна для бізнес-акаунтів."
             });
+        }
+
+        // Royal Auto predates business registration. Keep its existing cabinet and
+        // create only the CRM backing profile, without changing the account or tariff.
+        if (royalAutoOwner) {
+            await pool.query(`INSERT INTO business_profiles(id,owner_id,business_type_id,subscription_plan_id,name)
+                SELECT gen_random_uuid(),u.id,bt.id,sp.id,'Royal Auto'
+                FROM users u JOIN business_types bt ON bt.code='car_dealer'
+                JOIN subscription_plans sp ON sp.business_type_code=bt.code AND sp.code='business'
+                WHERE u.id=$1 AND NOT u.account_disabled
+                ON CONFLICT (owner_id) DO NOTHING`, [req.user.userId]);
         }
 
         const result =
@@ -10571,7 +10723,7 @@ async function requireCrmAccess(req, res, next) {
                     sp.id AS "planId",
                     sp.code AS "planCode",
                     sp.name AS "planName",
-                    sp.has_crm AS "hasCrm",
+                    (COALESCE(bp.crm_enabled, sp.has_crm) OR bp.owner_id = '32ce413e-9eb6-417a-b99a-77d9ca7c144a'::uuid) AS "hasCrm",
 
                     bp.complimentary_subscription
                         AS "complimentarySubscription",
@@ -10610,7 +10762,7 @@ async function requireCrmAccess(req, res, next) {
         const business =
             result.rows[0];
 
-        const subscriptionActive =
+        const subscriptionActive = royalAutoOwner ||
             business.complimentarySubscription === true ||
             (
                 business.subscriptionExpiresAt &&
@@ -10682,6 +10834,7 @@ app.get(
             ok: true,
             crm: {
                 name: "CRM RG",
+                ownerId: req.user.userId,
 
                 businessProfileId:
                     req.crm.businessProfileId,
@@ -15906,8 +16059,7 @@ app.post(
    ROYAL AUTO — ДОСТУП ВЛАСНИКА
    ========================= */
 
-   const ROYAL_AUTO_OWNER_ID =
-   "32ce413e-9eb6-417a-b99a-77d9ca7c144a";
+
 
 
 function requireRoyalAutoOwner(
@@ -17276,6 +17428,13 @@ app.post(
                 });
             }
 
+            if (cleanCategory.startsWith("club:")) {
+                const clubId = cleanCategory.slice(5);
+                if (!UUID_PATTERN.test(clubId)) return res.status(400).json({message:"Некоректний клуб."});
+                await clubsReady;
+                const member = await pool.query("SELECT 1 FROM community_club_members m JOIN community_clubs c ON c.id=m.club_id WHERE m.club_id=$1 AND m.user_id=$2 AND c.deleted_at IS NULL",[clubId,req.user.userId]);
+                if (!member.rowCount) return res.status(403).json({message:"Приєднайтеся до клубу, щоб опублікувати допис."});
+            }
             let cleanAttachment = null;
 
             try {
@@ -17313,6 +17472,7 @@ app.post(
                 ]
             );
 
+            await notificationCenter.topicPublished(result.rows[0]);
             res.status(201).json({
                 ok: true,
                 topic: result.rows[0]
@@ -17367,6 +17527,7 @@ app.post(
                 ]
             );
 
+            await notificationCenter.replyPublished(result.rows[0]);
             res.status(201).json({
                 ok: true,
                 reply: result.rows[0]
@@ -17394,7 +17555,7 @@ app.post('/api/forum/push/subscribe', requireAuth, async(req,res)=>{
     try {
         if(!forumPushEnabled()) return res.status(503).json({ok:false,message:'Push ще не налаштовано на сервері.'});
         const sub=req.body?.subscription;
-        if (!sub || typeof sub.endpoint!=='string' || !/^https:\/\//.test(sub.endpoint) || sub.endpoint.length>2048 || typeof sub.keys?.p256dh!=='string' || typeof sub.keys?.auth!=='string')
+        if (!require('./notifications').validSubscription(sub))
             return res.status(400).json({ok:false,message:'Некоректна підписка.'});
         await pool.query(`INSERT INTO forum_push_subscriptions(endpoint,user_id,subscription) VALUES($1,$2,$3)
             ON CONFLICT(endpoint) DO UPDATE SET user_id=EXCLUDED.user_id,subscription=EXCLUDED.subscription`,[sub.endpoint,req.user.userId,JSON.stringify(sub)]);
@@ -17412,10 +17573,9 @@ app.post('/api/forum/push/unsubscribe', requireAuth, async(req,res)=>{
 
 // Forum social interactions: authenticated, persistent and account-scoped.
 async function forumNotify(userId, actorId, kind, topicId, message) {
-    if (!userId || String(userId) === String(actorId)) return;
-    await pool.query(`INSERT INTO forum_notifications (id,user_id,actor_id,kind,topic_id,message)
-        VALUES ($1,$2,$3,$4,$5,$6)`, [crypto.randomUUID(),userId,actorId,kind,topicId,message]);
-    await forumSendPush(userId, message, topicId);
+    return notificationCenter.emit({userId,actorId,kind,topicId,message,
+        source:kind==='club_follow'?'clubs':kind==='follow'?'profile':'forum',
+        url:topicId?'/forum.html?topicId='+encodeURIComponent(topicId):'/profile.html'});
 }
 app.post('/api/forum/topics/:topicId/like', requireAuth, async (req,res) => {
     try {
@@ -17432,6 +17592,162 @@ app.post('/api/forum/topics/:topicId/like', requireAuth, async (req,res) => {
         const count=await pool.query('SELECT COUNT(*)::int AS count FROM forum_topic_likes WHERE topic_id=$1',[req.params.topicId]);
         res.json({ok:true,liked,count:count.rows[0].count});
     } catch(e){console.error('Topic like:',e);res.status(500).json({ok:false,message:'Не вдалося змінити лайк.'});}
+});
+const clubsReady = databaseReady.then(async()=>{
+ await pool.query(`CREATE TABLE IF NOT EXISTS community_clubs (
+ id UUID PRIMARY KEY, owner_id UUID NOT NULL REFERENCES users(id), name VARCHAR(80) NOT NULL,
+ description VARCHAR(1000) NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+ await pool.query("ALTER TABLE community_clubs ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ");
+ await pool.query("ALTER TABLE community_clubs ADD COLUMN IF NOT EXISTS cover_image TEXT");
+ await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS community_clubs_name ON community_clubs(lower(name))`);
+ await pool.query(`CREATE TABLE IF NOT EXISTS community_club_members (
+ club_id UUID NOT NULL REFERENCES community_clubs(id) ON DELETE CASCADE,
+ user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ PRIMARY KEY(club_id,user_id))`);
+});
+clubsReady.catch(error=>console.error("Club tables:",error));
+
+function validClubCover(value) {
+ return value === null || (typeof value === "string" && value.length <= 700000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(value));
+}
+app.get("/api/clubs/discover", async(req,res)=>{
+ try {
+  await clubsReady;
+  const result=await pool.query("SELECT id,name,CASE WHEN cover_image IS NOT NULL THEN '/api/clubs/'||id||'/cover' ELSE NULL END AS cover_url FROM community_clubs WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 200");
+  res.json({clubs:result.rows});
+ }catch(error){res.status(500).json({message:"Не вдалося завантажити клуби."});}
+});
+app.get("/api/clubs/:id/cover",async(req,res)=>{
+ if(!UUID_PATTERN.test(req.params.id))return res.sendStatus(404);
+ try {
+  await clubsReady;
+  const result=await pool.query("SELECT cover_image FROM community_clubs WHERE id=$1 AND deleted_at IS NULL",[req.params.id]);
+  const cover=result.rows[0]?.cover_image;
+  if(!cover)return res.sendStatus(404);
+  res.set({"Content-Type":"image/jpeg","X-Content-Type-Options":"nosniff","Cache-Control":"no-cache"});
+  res.send(Buffer.from(cover.split(",")[1],"base64"));
+ }catch(error){res.sendStatus(500);}
+});
+
+app.get("/api/clubs", requireAuth, async(req,res)=>{
+ try {
+ await clubsReady;
+ const result=await pool.query(`SELECT c.id,c.owner_id,c.name,c.description,CASE WHEN c.cover_image IS NOT NULL THEN '/api/clubs/'||c.id||'/cover' ELSE NULL END AS cover_url,(c.owner_id=$1) AS owned,
+ (SELECT COUNT(*)::int FROM community_club_members m WHERE m.club_id=c.id) AS members,
+ EXISTS(SELECT 1 FROM community_club_members m WHERE m.club_id=c.id AND m.user_id=$1) AS joined
+ FROM community_clubs c WHERE c.deleted_at IS NULL ORDER BY c.created_at DESC LIMIT 200`,[req.user.userId]);
+ res.json({clubs:result.rows});
+ }catch(error){console.error("Club list:",error);res.status(500).json({message:"Не вдалося завантажити клуби."});}
+});
+app.post("/api/clubs",requireAuth,async(req,res)=>{
+ const name=String(req.body.name||"").trim(),description=String(req.body.description||"").trim();
+ const cover=req.body.cover_image ?? null;
+ if(!validClubCover(cover))return res.status(400).json({message:"Оберіть фото до 500 КБ після обробки."});
+ if(name.length<3||name.length>80||description.length>1000)return res.status(400).json({message:"Назва — 3–80 символів, опис — до 1000."});
+ let client;
+ try {
+ await clubsReady;client=await pool.connect();await client.query("BEGIN");
+ const id=crypto.randomUUID();await client.query("INSERT INTO community_clubs(id,owner_id,name,description,cover_image) VALUES($1,$2,$3,$4,$5)",[id,req.user.userId,name,description,cover]);
+ await client.query("INSERT INTO community_club_members(club_id,user_id) VALUES($1,$2)",[id,req.user.userId]);
+ await client.query("COMMIT");res.status(201).json({id});
+ }catch(error){if(client)await client.query("ROLLBACK");res.status(error.code==='23505'?409:500).json({message:error.code==='23505'?"Клуб із такою назвою вже є.":"Не вдалося створити клуб."});}
+ finally{client?.release();}
+});
+
+app.patch("/api/clubs/:id", requireAuth, async (req, res) => {
+ const hasCover=Object.prototype.hasOwnProperty.call(req.body,"cover_image");
+ if(hasCover&&!validClubCover(req.body.cover_image))return res.status(400).json({message:"Некоректне головне фото."});
+ const name = String(req.body.name || "").trim();
+ const description = String(req.body.description || "").trim();
+ if (!UUID_PATTERN.test(req.params.id) || name.length < 3 || name.length > 80 || description.length > 1000) {
+  return res.status(400).json({message: "Назва — 3–80 символів, опис — до 1000."});
+ }
+ try {
+  await clubsReady;
+  const result = await pool.query(
+   "UPDATE community_clubs SET name=$3,description=$4,cover_image=CASE WHEN $5::boolean THEN $6::text ELSE cover_image END WHERE id=$1 AND owner_id=$2 AND deleted_at IS NULL RETURNING id",
+   [req.params.id,req.user.userId,name,description,hasCover,hasCover ? req.body.cover_image : null]
+  );
+  if (!result.rowCount) return res.status(404).json({message: "Клуб недоступний для редагування."});
+  res.json({ok:true});
+ } catch (error) {
+  res.status(error.code === "23505" ? 409 : 500).json({
+   message: error.code === "23505" ? "Така назва вже зайнята." : "Не вдалося зберегти зміни."
+  });
+ }
+});
+app.delete("/api/clubs/:id", requireAuth, async (req, res) => {
+ if (!UUID_PATTERN.test(req.params.id)) return res.status(400).json({message:"Некоректний клуб."});
+ try {
+  await clubsReady;
+  const result = await pool.query(
+   "UPDATE community_clubs SET deleted_at=COALESCE(deleted_at,NOW()) WHERE id=$1 AND owner_id=$2 RETURNING id",
+   [req.params.id,req.user.userId]
+  );
+  if (!result.rowCount) return res.status(404).json({message:"Клуб недоступний для видалення."});
+  res.json({ok:true});
+ } catch (error) {
+  res.status(500).json({message:"Не вдалося видалити клуб."});
+ }
+});
+
+app.put("/api/clubs/:id/membership",requireAuth,async(req,res)=>{
+ if(!UUID_PATTERN.test(req.params.id)||typeof req.body.joined!=="boolean")return res.sendStatus(400);
+ try {
+ await clubsReady;
+ const club=await pool.query("SELECT owner_id FROM community_clubs WHERE id=$1 AND deleted_at IS NULL",[req.params.id]);
+ if(!club.rowCount)return res.sendStatus(404);
+ if(!req.body.joined&&String(club.rows[0].owner_id)===String(req.user.userId))return res.status(400).json({message:"Власник залишається учасником свого клубу."});
+ if(req.body.joined) {
+  const inserted = await pool.query("INSERT INTO community_club_members(club_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING club_id",[req.params.id,req.user.userId]);
+  if (inserted.rowCount) {
+   await notificationCenter.emit({userId:club.rows[0].owner_id,actorId:req.user.userId,kind:'club_follow',source:'clubs',message:'Новий підписник вашого клубу',url:'/forum.html?club='+encodeURIComponent(req.params.id)})
+    .catch(error => console.error("Club follower notification:", error));
+  }
+ }
+ else await pool.query("DELETE FROM community_club_members WHERE club_id=$1 AND user_id=$2",[req.params.id,req.user.userId]);
+ res.json({ok:true});
+ }catch(error){res.status(500).json({message:"Не вдалося змінити підписку."});}
+});
+
+app.get("/api/profile/community", requireAuth, async (req, res) => {
+ try {
+  await clubsReady;
+  const userId = req.user.userId;
+  const [clubs, followers, following, members, notifications] = await Promise.all([
+   pool.query(`SELECT c.id,c.name,c.owner_id,
+    (SELECT COUNT(*)::int FROM community_club_members cm WHERE cm.club_id=c.id) AS members
+    FROM community_clubs c
+    WHERE c.deleted_at IS NULL AND (c.owner_id=$1 OR EXISTS(SELECT 1 FROM community_club_members cm WHERE cm.club_id=c.id AND cm.user_id=$1))
+    ORDER BY c.name`, [userId]),
+   pool.query(`SELECT u.id,u.name FROM forum_follows f JOIN users u ON u.id=f.follower_id
+    WHERE f.author_id=$1 ORDER BY u.name`, [userId]),
+   pool.query(`SELECT u.id,u.name FROM forum_follows f JOIN users u ON u.id=f.author_id
+    WHERE f.follower_id=$1 ORDER BY u.name`, [userId]),
+   pool.query(`SELECT c.id AS club_id,c.name AS club_name,u.id,u.name FROM community_clubs c
+    JOIN community_club_members cm ON cm.club_id=c.id JOIN users u ON u.id=cm.user_id
+    WHERE c.owner_id=$1 AND c.deleted_at IS NULL AND cm.user_id<>$1 ORDER BY c.name,u.name`, [userId]),
+   pool.query(`SELECT n.id,n.message,n.is_read,n.created_at,u.name AS actor_name
+    FROM forum_notifications n LEFT JOIN users u ON u.id=n.actor_id
+    WHERE n.user_id=$1 AND n.kind IN ('follow','club_follow')
+    ORDER BY n.created_at DESC LIMIT 30`, [userId])
+  ]);
+  res.set("Cache-Control", "no-store").json({
+   clubs: clubs.rows.map(club => ({...club, owned: String(club.owner_id) === String(userId)})),
+   followers: followers.rows, following: following.rows, members: members.rows,
+   notifications: notifications.rows
+  });
+ } catch (error) {
+  console.error("Profile community:", error);
+  res.status(500).json({message: "Не вдалося завантажити клуби та підписників."});
+ }
+});
+
+app.get("/api/forum/subscriptions", requireAuth, async(req,res)=>{
+ try {
+ const result=await pool.query(`SELECT u.id,u.name FROM forum_follows f JOIN users u ON u.id=f.author_id WHERE f.follower_id=$1 ORDER BY u.name`,[req.user.userId]);
+ res.json({authors:result.rows});
+ } catch(error){console.error("Subscriptions:",error);res.status(500).json({message:"Не вдалося завантажити підписки."});}
 });
 app.get('/api/forum/social',requireAuth,async(req,res)=>{
     try {
@@ -17468,7 +17784,7 @@ app.post(
 
             const replyResult = await pool.query(
                 `
-                SELECT id, user_id
+                SELECT id, user_id, topic_id
                 FROM forum_replies
                 WHERE id = $1
                 LIMIT 1
@@ -17541,6 +17857,8 @@ app.post(
 
                 liked = true;
             }
+
+            if (liked) await forumNotify(replyResult.rows[0].user_id, req.user.userId, "reply_like", replyResult.rows[0].topic_id, "Вашу відповідь вподобали");
 
             const countResult = await pool.query(
                 `

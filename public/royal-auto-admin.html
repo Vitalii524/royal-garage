@@ -33,7 +33,10 @@
         rel="stylesheet"
         href="css/handmade.css?v=category-actions-1"
     >
-</head>
+<link rel="stylesheet" href="css/service-media.css">
+<link rel="stylesheet" href="css/platform-admin.css?v=1">
+<script src="js/site-header.js?v=20261119" defer></script>
+<link rel="stylesheet" href="css/service-gallery.css?v=20261121-admin2"><script src="js/service-gallery.js?v=20261121"></script></head>
 
 
 <body>
@@ -86,8 +89,11 @@
 
 
 <main class="upholstery-page">
-    <section id="platformAdmin" class="upholstery-section">
+    <p id="platformAccessStatus" class="upholstery-section" role="status">Перевіряємо доступ до адмінпанелі…</p>
+    <section id="platformAdmin" class="upholstery-section" hidden>
         <h1>Адміністрування Royal Garage</h1>
+<a class="upholstery-secondary-button" href="profile.html?section=chats">💬 Повідомлення клієнтів</a>
+        <section class="platform-admin-panel" aria-labelledby="adminTrafficTitle">
         <h2 id="adminTrafficTitle">Відвідування сайту</h2>
         <p id="adminTrafficStatus" role="status">Завантажуємо дані GA4…</p>
         <table id="adminTrafficReport" aria-labelledby="adminTrafficTitle" hidden>
@@ -95,10 +101,13 @@
             <thead><tr><th scope="col">Показник</th><th scope="col">7 днів</th><th scope="col">30 днів</th></tr></thead>
             <tbody></tbody>
         </table>
-        <h2>Статистика реєстрацій</h2>
+        </section>
+        <section class="platform-admin-panel" aria-labelledby="adminRegistrationTitle">
+        <h2 id="adminRegistrationTitle">Статистика реєстрацій</h2>
         <p id="adminRegistrationStatus" role="status">Завантажуємо статистику реєстрацій…</p>
         <dl id="adminRegistrationStats"></dl>
-        <div id="adminBusinessControls" hidden>
+        </section>
+        <div id="adminBusinessControls" class="platform-admin-panel" hidden>
         <h2>Безстроковий безкоштовний доступ</h2>
         <form id="adminBusinessSearch" class="royal-auto-admin-form">
             <label>Назва бізнесу, точний email або ID власника<input name="q" type="search" maxlength="255"></label>
@@ -128,11 +137,13 @@
 
             <h1>
                 Керування RoyalAuto
-            </h1>
+            </h1><details><summary>Заявки на обслуговування</summary><button id="royalRequestsRefresh" type="button">Оновити заявки</button><div id="royalRequests"></div></details>
+            <p><a href="business-profile.html?edit=1" class="upholstery-primary-button">Редагувати бізнес-профіль</a></p>
+            <p><a href="crm.html" class="upholstery-primary-button">Відкрити CRM Royal Auto</a></p>
 
             <p>
                 Додавання та редагування
-                товарів, фото і напрямків.
+                послуг, фото і напрямків.
             </p>
 
         </div>
@@ -149,11 +160,11 @@
         <div class="upholstery-section-heading">
 
             <p class="upholstery-label">
-                ТОВАРИ
+                ПОСЛУГИ
             </p>
 
             <h2>
-                Додати товар
+                Додати послугу
             </h2>
 
         </div>
@@ -179,7 +190,7 @@
 
 
             <label>
-                Назва товару
+                Назва послуги
 
                 <input
                     type="text"
@@ -209,24 +220,26 @@
                 <textarea
                     id="royalAutoProductDescription"
                     rows="5"
-                    placeholder="Опис товару..."
+                    placeholder="Опис послуги..."
                 ></textarea>
             </label>
 
 
             <label>
-                Фото
+                Фото та відео
 
                 <input
                     type="file"
                     id="royalAutoProductPhotos"
-                    accept="image/jpeg,image/png,image/webp"
+                    accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
                     multiple
                 >
             </label>
 
 
+            <p>До 20 файлів: фото JPG, PNG, WebP — до 10 МБ; відео MP4, WebM, MOV — до 20 МБ і 3 хвилин. Оригінали фото зберігаються.</p>
             <div
+                aria-label="Фото до 10 МБ; відео до 20 МБ і 3 хвилин; до 20 файлів"
                 id="royalAutoPhotoPreview"
                 class="royal-auto-photo-preview"
             ></div>
@@ -236,7 +249,7 @@
                 type="submit"
                 class="upholstery-primary-button"
             >
-                Зберегти товар
+                Зберегти послугу
             </button>
 
         </form>
@@ -245,7 +258,7 @@
 
 
     <!-- =========================
-         ТОВАРИ
+         ПОСЛУГИ
          ========================= -->
 
     <section class="upholstery-section">
@@ -257,7 +270,7 @@
             </p>
 
             <h2>
-                Мої товари
+                Мої послуги
             </h2>
 
         </div>
@@ -355,10 +368,10 @@
 
 
 <script src="js/auth.js"></script>
-<script src="js/royal-auto-admin.js?v=18"></script>
-<script src="js/platform-admin.js?v=4"></script>
+<script src="js/royal-auto-admin.js?v=20261121-gallery2"></script>
+<script src="js/platform-admin.js?v=compact-stats"></script>
 <script src="js/loader.js"></script>
 
-</body>
+<script src="/js/notifications.js?v=1"></script><script src="js/service-media.js"></script><script src="js/royal-auto-requests.js"></script></body>
 
 </html>

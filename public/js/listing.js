@@ -1241,82 +1241,10 @@ Boolean(
 
     /* ===== ПОДІЛИТИСЯ ОГОЛОШЕННЯМ ===== */
 
-const shareListingButton =
-document.getElementById(
-    "shareListingButton"
-);
-
-if (shareListingButton) {
-shareListingButton.addEventListener(
-    "click",
-    async () => {
-        const shareUrl =
-            window.location.href;
-
-        const shareTitle =
-            `${listing.name || "Автомобіль"} ${
-                listing.year || ""
-            } — Royal Garage`
-                .trim();
-
-        try {
-                        const isMobileDevice =
-                /Android|iPhone|iPad|iPod/i.test(
-                    navigator.userAgent
-                );
-
-            if (
-                isMobileDevice &&
-                navigator.share
-            ) {
-                await navigator.share({
-                    title: shareTitle,
-                    text:
-                        `Перегляньте оголошення: ${shareTitle}`,
-                    url: shareUrl
-                });
-
-                return;
-            }
-
-            await navigator.clipboard.writeText(
-                shareUrl
-            );
-
-            const originalText =
-                shareListingButton.textContent;
-
-            shareListingButton.textContent =
-                "✓ Посилання скопійовано";
-
-            setTimeout(
-                () => {
-                    shareListingButton.textContent =
-                        originalText;
-                },
-                2000
-            );
-
-        } catch (error) {
-            if (
-                error.name ===
-                "AbortError"
-            ) {
-                return;
-            }
-
-            console.error(
-                "Listing share error:",
-                error
-            );
-
-            alert(
-                "Не вдалося поділитися оголошенням."
-            );
-        }
-    }
-);
-}
+window.RGShare.bind(document.getElementById("shareListingButton"), () => {
+    const title = `${listing.name || "Автомобіль"} ${listing.year || ""}`.trim() + " — Royal Garage";
+    return { title, text: `Перегляньте оголошення: ${title}`, url: window.location.href };
+});
 
   /* ===== КНОПКА ДЗВІНКА ===== */
 
