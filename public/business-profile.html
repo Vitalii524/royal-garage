@@ -133,7 +133,8 @@
 #businessProfileTabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
 #businessProfileTabs button{border:1px solid #a58a50;border-radius:12px;padding:12px 6px;background:transparent;color:inherit;font:inherit;font-weight:600;cursor:pointer}
 #businessProfileTabs button[aria-pressed="true"]{background:#ebd18a;color:#222}
-.business-page[data-profile-tab="posts"] > :not(.business-hero-card):not(#businessProfileTabs):not(#garagePosts):not(#businessOwnerPanel){display:none!important}
+.business-page[data-profile-tab="posts"] #businessPageContent > .business-section{display:none!important}
+.business-page[data-profile-tab="posts"] > #businessXmlPanel,.business-page[data-profile-tab="posts"] > #editorialProposalPanel,.business-page[data-profile-tab="posts"] > #businessModerationNotices{display:none!important}
 .business-page[data-profile-tab="catalog"] > #garagePosts{display:none!important}
 </style>
 <div id="businessProfileTabs" role="group" aria-label="Розділи профілю"><button type="button" aria-pressed="true">Послуги</button><button type="button" aria-pressed="false">Публікації</button></div>
