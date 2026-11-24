@@ -59,7 +59,16 @@ window.mountGaragePosts = function(root, ownerId, isOwner) {
     const a=post.attachment;
     if(a?.type==="image" && /^data:image\/(jpeg|png|webp);base64,/i.test(a.data)){const img=el("img");img.src=a.data;img.alt="Фото публікації";img.style.maxWidth="100%";card.append(img);}
     if(a?.type==="video" && /^\/api\/media\/videos\/[a-zA-Z0-9-]+$/.test(a.data)){const video=el("video");video.src=a.data;video.controls=true;video.preload="metadata";video.style.maxWidth="100%";card.append(video);}
-    const link=el("a","Переглянути · лайки та коментарі");link.href="forum.html?topicId="+encodeURIComponent(post.id);card.append(link);feed.append(card);
+    const link=el("a","Переглянути · лайки та коментарі");link.href="forum.html?topicId="+encodeURIComponent(post.id);card.append(link);
+    const share=el("button","Поділитися");share.type="button";
+    share.onclick=async()=>{
+     const url=new URL(link.href,location.href).href;
+     try{
+      if(navigator.share)await navigator.share({title:post.title,text:post.content,url});
+      else if(navigator.clipboard){await navigator.clipboard.writeText(url);status.textContent="Посилання скопійовано.";}
+      else window.prompt("Скопіюйте посилання",url);
+     }catch(error){if(error.name!=="AbortError")window.prompt("Скопіюйте посилання",url);}
+    };card.append(share);feed.append(card);
    }
   }catch(error){status.textContent=error.message;}
  }
