@@ -238,6 +238,12 @@ const LIQPAY_PRIVATE_KEY =
         }
     });
 
+// Idle PostgreSQL connections can be terminated by the database or network.
+// pg-pool removes the failed client; keep the HTTP process alive.
+pool.on("error", (error) => {
+    console.error("PostgreSQL idle connection error:", error.code || "", error.message);
+});
+
 function normalizeVin(value) {
     return String(value || "")
         .trim()
@@ -2459,7 +2465,7 @@ app.post("/api/media/videos", requireAuth, async (req, res) => {
   const id = crypto.randomUUID();
   await pool.query("INSERT INTO uploaded_videos (id,owner_id,mime_type,data,name) VALUES ($1,$2,$3,$4,$5)", [id,req.user.userId,match[1],data,String(req.body.name || "Відео").slice(0,180)]);
   res.status(201).json({url:`/api/media/videos/${id}`});
- } catch(error) { console.error("Video upload:",error); res.status(500).json({message:"Не вдалося зберегти відео."}); }
+ } catch(error) { console.error("Video upload:",error.code || "",error.message); res.status(500).json({message:"Не вдалося зберегти відео."}); }
 });
 app.get("/api/media/videos", requireAuth, async(req,res)=>{
  try { await databaseReady;const result=await pool.query("SELECT id,name,created_at FROM uploaded_videos WHERE owner_id=$1 ORDER BY created_at DESC LIMIT 50",[req.user.userId]);res.json({videos:result.rows}); }
