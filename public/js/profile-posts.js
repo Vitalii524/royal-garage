@@ -75,7 +75,21 @@ window.mountGaragePosts = function(root, ownerId, isOwner) {
       else if(navigator.clipboard){await navigator.clipboard.writeText(url);status.textContent="Посилання скопійовано.";}
       else window.prompt("Скопіюйте посилання",url);
      }catch(error){if(error.name!=="AbortError")window.prompt("Скопіюйте посилання",url);}
-    };card.append(share);feed.append(card);
+    };card.append(share);
+    const endpoint="/api/forum/topics/"+encodeURIComponent(post.id);
+    const action=(label,handler)=>{const b=el("button",label);b.type="button";b.onclick=async()=>{b.disabled=true;try{await handler();}catch(error){status.textContent=error.message;}finally{b.disabled=false;}};card.append(b);return b;};
+    const request=async(url,method,body)=>{const r=await fetch(url,{method,headers,...(body?{body:JSON.stringify(body)}:{})});if(!r.ok){const d=await r.json().catch(()=>({}));throw Error(d.message||"Не вдалося виконати дію.");}await load();};
+    if(token){
+     action("♡ Лайк",()=>request(endpoint+"/like","POST"));
+     const comment=el("textarea");comment.placeholder="Написати коментар";comment.maxLength=2000;card.append(comment);
+     action("Надіслати",async()=>{const content=comment.value.trim();if(content)await request(endpoint+"/replies","POST",{content});});
+    }
+    for(const reply of (Array.isArray(post.replies)?post.replies:[])){const p=el("p",(reply.author_name||reply.authorName||"Користувач")+": "+(reply.content||reply.text||""));card.append(p);}
+    if(isOwner && token){
+     action("Редагувати",async()=>{const content=window.prompt("Опис публікації",post.content);if(content===null)return;await request(endpoint,"PATCH",{title:post.title,category:post.category,content:content.trim()||"Публікація",attachment:post.attachment||null});});
+     action("Видалити",async()=>{if(window.confirm("Видалити цю публікацію з профілю та форуму?"))await request(endpoint,"DELETE");});
+    }
+    feed.append(card);
    }
   }catch(error){status.textContent=error.message;}
  }
