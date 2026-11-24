@@ -7364,6 +7364,7 @@ async function initializeProfilePage() {
         renderProfileSellerReputation(),
         renderProfileSellerReviews()
     ]);
+    window.mountGaragePosts?.(document.getElementById('garagePosts'), currentUser?.id, true);
     await openServiceHistoryFromUrl();
 }
 

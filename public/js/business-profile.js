@@ -739,6 +739,7 @@
             $("businessPageLoading").hidden = true;
             $("businessPageError").hidden = true;
             $("businessPageContent").hidden = false;
+            window.mountGaragePosts?.($("garagePosts"), data.profile.ownerId, state.isOwner);
         } catch (error) {
             console.error("Business profile load error:", error);
             setPageError(error.status === 404
