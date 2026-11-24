@@ -4,6 +4,11 @@ window.mountGaragePosts = function(root, ownerId, isOwner) {
  const token = localStorage.getItem("royalGarageToken") || "";
  const headers = {"Content-Type":"application/json", Authorization:"Bearer "+token};
  const el = (tag, value) => { const n=document.createElement(tag); if(value)n.textContent=value; return n; };
+ root.classList.add("garage-posts");
+ if(!document.getElementById("garagePostsStyles")){
+  const style=el("style");style.id="garagePostsStyles";style.textContent=".garage-posts{color:inherit;min-width:0}.garage-posts form,.garage-posts article{display:flex;flex-wrap:wrap;gap:12px;padding:16px;margin:12px 0;border:1px solid #806b42;border-radius:14px;background:#202124;color:#f5f5f5}.garage-posts textarea{width:100%;min-height:90px;background:#17181a;color:#fff;border:1px solid #806b42;border-radius:10px;padding:12px;box-sizing:border-box}.garage-posts button,.garage-posts article a{background:#d6a445;color:#17181a;border:0;border-radius:9px;padding:10px 14px;font:inherit;font-weight:600;text-decoration:none;cursor:pointer}.garage-posts button:disabled{opacity:.5;cursor:wait}.garage-posts article h3,.garage-posts article p,.garage-posts form p{width:100%;margin:0;overflow-wrap:anywhere;white-space:pre-wrap}.garage-posts article img,.garage-posts article video{width:100%;max-height:560px;object-fit:contain;border-radius:10px;background:#111}.garage-posts [role=status]{overflow-wrap:anywhere}.garage-posts h2{color:#d6a445}";
+  document.head.append(style);
+ }
  root.replaceChildren(el("h2","Публікації"));
  const status=el("p");status.setAttribute("role","status");
  const feed=el("div");
@@ -59,7 +64,9 @@ window.mountGaragePosts = function(root, ownerId, isOwner) {
     const a=post.attachment;
     if(a?.type==="image" && /^data:image\/(jpeg|png|webp);base64,/i.test(a.data)){const img=el("img");img.src=a.data;img.alt="Фото публікації";img.style.maxWidth="100%";card.append(img);}
     if(a?.type==="video" && /^\/api\/media\/videos\/[a-zA-Z0-9-]+$/.test(a.data)){const video=el("video");video.src=a.data;video.controls=true;video.preload="metadata";video.style.maxWidth="100%";card.append(video);}
-    const link=el("a","Переглянути · лайки та коментарі");link.href="forum.html?topicId="+encodeURIComponent(post.id);card.append(link);
+    const likes=Array.isArray(post.like_user_ids)?post.like_user_ids.length:0;
+    const replies=Array.isArray(post.replies)?post.replies.length:0;
+    const link=el("a","♡ "+likes+" · Коментарі "+replies);link.href="forum.html?topicId="+encodeURIComponent(post.id);card.append(link);
     const share=el("button","Поділитися");share.type="button";
     share.onclick=async()=>{
      const url=new URL(link.href,location.href).href;
