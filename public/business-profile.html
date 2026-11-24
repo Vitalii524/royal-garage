@@ -129,7 +129,16 @@
             </div>
         </section>
 
-        <section id="businessOwnerPanel" class="business-owner-panel" hidden>
+        <style>
+#businessProfileTabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+#businessProfileTabs button{border:1px solid #a58a50;border-radius:12px;padding:12px 6px;background:transparent;color:inherit;font:inherit;font-weight:600;cursor:pointer}
+#businessProfileTabs button[aria-pressed="true"]{background:#ebd18a;color:#222}
+.business-page[data-profile-tab="posts"] #businessPageContent > .business-section{display:none!important}
+.business-page[data-profile-tab="posts"] > #businessXmlPanel,.business-page[data-profile-tab="posts"] > #editorialProposalPanel,.business-page[data-profile-tab="posts"] > #businessModerationNotices{display:none!important}
+.business-page[data-profile-tab="catalog"] > #garagePosts{display:none!important}
+</style>
+<div id="businessProfileTabs" role="group" aria-label="Розділи профілю"><button type="button" aria-pressed="true">Послуги</button><button type="button" aria-pressed="false">Публікації</button></div>
+<section id="businessOwnerPanel" class="business-owner-panel" hidden>
             <div class="business-owner-panel-head">
                 <div>
                     <span class="business-eyebrow">Керування</span>
@@ -660,6 +669,20 @@
 <script src="js/share.js?v=2"></script>
 <script src="js/editorial-proposals.js?v=1"></script>
 <script src="js/profile-posts.js?v=1"></script>
+<script>
+(function(){
+ const tabs=document.getElementById('businessProfileTabs');
+ const page=tabs.closest('main');
+ const [catalog,posts]=tabs.querySelectorAll('button');
+ const cars=document.getElementById('businessCarsSection');
+ const products=document.getElementById('businessProductsSection');
+ const updateLabel=()=>{const en=document.documentElement.lang==='en';catalog.textContent=!cars.hidden?(en?'Vehicles for sale':'Авто у продажу'):!products.hidden?(en?'Products':'Товари'):(en?'Services':'Послуги');posts.textContent=en?'Posts':'Публікації';};
+ function select(value){page.dataset.profileTab=value;catalog.setAttribute('aria-pressed',String(value==='catalog'));posts.setAttribute('aria-pressed',String(value==='posts'));}
+ catalog.addEventListener('click',()=>select('catalog'));posts.addEventListener('click',()=>select('posts'));
+ const observer=new MutationObserver(updateLabel);[cars,products].forEach(el=>observer.observe(el,{attributes:true,attributeFilter:['hidden']}));observer.observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
+ select('catalog');updateLabel();
+})();
+</script>
 <script src="js/business-profile.js?v=royal-auto-pages-20261124"></script>
 <script src="js/loader.js"></script>
 <script src="js/lang.js"></script>
