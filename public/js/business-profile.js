@@ -692,6 +692,10 @@
     async function loadBusinessCars(ownerId, isDealer) {
         const section = $("businessCarsSection");
         const status = $("businessCarsStatus");
+        if (String(ownerId) === ROYAL_AUTO_OWNER_ID) {
+            section.hidden = true;
+            return;
+        }
         section.hidden = !isDealer;
         try {
             const { listings } = await api(`/api/market/listings?ownerId=${encodeURIComponent(ownerId)}`);
