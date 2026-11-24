@@ -568,11 +568,12 @@
 
         $("businessTypeLabel").textContent = profile.businessTypeName || "СТО / автосервіс";
         $("businessName").textContent = profile.name || "Бізнес";
-        $("businessDescription").textContent = profile.description || "Опис ще не додано.";
+        const displayedDescription = String(profile.ownerId) === ROYAL_AUTO_OWNER_ID ? "Безкоштовне розміщення оголошень про продаж автомобілів через XML-імпорт. Автомайданчики та автосалони можуть розміщувати свої автомобілі на Royal Garage безкоштовно до 31 грудня 2027 року. Розширюйте аудиторію та залучайте нових покупців!" : profile.description;
+        $("businessDescription").textContent = displayedDescription || "Опис ще не додано.";
         const desc = $("businessDescription"), toggle = $("businessDescriptionToggle");
         desc.classList.add("business-description-clamped");
         toggle.textContent = "Читати більше ↓";
-        toggle.hidden = !profile.description || String(profile.description).length < 170;
+        toggle.hidden = !displayedDescription || String(displayedDescription).length < 170;
 
         const cityLine = [profile.city, profile.address].filter(Boolean).join(" · ");
         $("businessCityLine").textContent = cityLine ? `📍 ${cityLine}` : "";
@@ -620,7 +621,7 @@
         const hasText = (value) => Boolean(String(value || "").trim());
         const hasServices = Array.isArray(profile.services) && profile.services.length > 0;
         const hasPortfolio = Array.isArray(profile.portfolio) && profile.portfolio.length > 0;
-        const hasDescription = hasText(profile.description);
+        const hasDescription = hasText(displayedDescription);
         const hasAddress = hasText(profile.city) || hasText(profile.address);
         const schedule = normalizeSchedule(profile.workSchedule);
         const hasSchedule = DAYS.some(([day]) => schedule[day].enabled);
@@ -692,10 +693,6 @@
     async function loadBusinessCars(ownerId, isDealer) {
         const section = $("businessCarsSection");
         const status = $("businessCarsStatus");
-        if (String(ownerId) === ROYAL_AUTO_OWNER_ID) {
-            section.hidden = true;
-            return;
-        }
         section.hidden = !isDealer;
         try {
             const { listings } = await api(`/api/market/listings?ownerId=${encodeURIComponent(ownerId)}`);
