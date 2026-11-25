@@ -60,7 +60,7 @@ window.mountGaragePosts = function(root, ownerId, isOwner) {
    const posts=(data.topics||[]).filter(t=>String(t.user_id)===String(ownerId)).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
    if(!posts.length)feed.append(el("p","Публікацій ще немає."));
    for(const post of posts){
-    const card=el("article");card.append(el("h3",post.title),el("p",post.content));
+    const card=el("article");if(post.title && !String(post.content||"").startsWith(post.title))card.append(el("h3",post.title));card.append(el("p",post.content));
     const a=post.attachment;
     if(a?.type==="image" && /^data:image\/(jpeg|png|webp);base64,/i.test(a.data)){const img=el("img");img.src=a.data;img.alt="Фото публікації";img.style.maxWidth="100%";card.append(img);}
     if(a?.type==="video" && /^\/api\/media\/videos\/[a-zA-Z0-9-]+$/.test(a.data)){const video=el("video");video.src=a.data;video.controls=true;video.preload="metadata";video.style.maxWidth="100%";card.append(video);}
@@ -68,13 +68,17 @@ window.mountGaragePosts = function(root, ownerId, isOwner) {
     const replies=Array.isArray(post.replies)?post.replies.length:0;
     const link=el("a","♡ "+likes+" · Коментарі "+replies);link.href="forum.html?topicId="+encodeURIComponent(post.id);card.append(link);
     const share=el("button","Поділитися");share.type="button";
-    share.onclick=async()=>{
+    share.onclick=()=>{
      const url=new URL(link.href,location.href).href;
-     try{
-      if(navigator.share)await navigator.share({title:post.title,text:post.content,url});
-      else if(navigator.clipboard){await navigator.clipboard.writeText(url);status.textContent="Посилання скопійовано.";}
-      else window.prompt("Скопіюйте посилання",url);
-     }catch(error){if(error.name!=="AbortError")window.prompt("Скопіюйте посилання",url);}
+     const menu=el("div");menu.style.cssText="display:flex;flex-wrap:wrap;gap:8px;width:100%";
+     const enc=encodeURIComponent;
+     const add=(label,href)=>{const a=el("a",label);a.href=href;a.target="_blank";a.rel="noopener noreferrer";menu.append(a);};
+     add("Facebook — допис","https://www.facebook.com/sharer/sharer.php?u="+enc(url));
+     add("Threads — допис","https://www.threads.net/intent/post?text="+enc(post.content+" "+url));
+     add("X — допис","https://twitter.com/intent/tweet?text="+enc(post.content)+"&url="+enc(url));
+     const native=el("button","Інші застосунки");native.type="button";native.onclick=async()=>{try{if(navigator.share)await navigator.share({title:post.title,text:post.content,url});else window.prompt("Скопіюйте посилання",url);}catch(e){if(e.name!=="AbortError")status.textContent="Не вдалося поділитися.";}};menu.append(native);
+     const copy=el("button","Копіювати посилання");copy.type="button";copy.onclick=async()=>{try{await navigator.clipboard.writeText(url);status.textContent="Посилання скопійовано.";}catch(e){window.prompt("Скопіюйте посилання",url);}};menu.append(copy);
+     share.replaceWith(menu);
     };card.append(share);
     const endpoint="/api/forum/topics/"+encodeURIComponent(post.id);
     const action=(label,handler)=>{const b=el("button",label);b.type="button";b.onclick=async()=>{b.disabled=true;try{await handler();}catch(error){status.textContent=error.message;}finally{b.disabled=false;}};card.append(b);return b;};
