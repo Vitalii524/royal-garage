@@ -1,4 +1,5 @@
 "use strict";
+function fitActiveGallery(gallery){const update=()=>{if(!gallery.clientWidth)return;const slides=Array.from(gallery.children);const active=slides.reduce((best,node)=>Math.abs(node.offsetLeft-slides[0].offsetLeft-gallery.scrollLeft)<Math.abs(best.offsetLeft-slides[0].offsetLeft-gallery.scrollLeft)?node:best,slides[0]);if(!active)return;const h=active.getBoundingClientRect().height;if(h>0)gallery.style.height=Math.ceil(h)+"px";};gallery.addEventListener("scroll",update,{passive:true});gallery.addEventListener("load",update,true);gallery.addEventListener("loadedmetadata",update,true);if(typeof ResizeObserver!=="undefined"){const observer=new ResizeObserver(update);Array.from(gallery.children).forEach(node=>observer.observe(node));}requestAnimationFrame(update);}
 window.mountGaragePosts = function(root, ownerId, isOwner) {
  if (!root || !ownerId) return;
  const token = localStorage.getItem("royalGarageToken") || "";
@@ -79,15 +80,15 @@ window.mountGaragePosts = function(root, ownerId, isOwner) {
    if(!posts.length)feed.append(el("p","Публікацій ще немає."));
    for(const post of posts){
     const card=el("article");if(post.title && !String(post.content||"").startsWith(post.title))card.append(el("h3",post.title));card.append(el("p",post.content));
-    const gallery=el("div");gallery.style.cssText="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;width:100%;gap:8px";
+    const gallery=el("div");gallery.style.cssText="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;width:100%;gap:8px;align-items:flex-start;overflow-y:hidden;position:relative";
     const attachments=post.attachment?.items||[post.attachment];
     for(const a of attachments){
      let media;
      if(a?.type==="image" && /^data:image\/(jpeg|png|webp);base64,/i.test(a.data)){media=el("img");media.src=a.data;media.alt="Фото публікації";}
      if(a?.type==="video" && /^\/api\/media\/videos\/[a-zA-Z0-9-]+$/.test(a.data)){media=el("video");media.src=a.data;media.controls=true;media.preload="metadata";media.playsInline=true;}
-     if(media){media.style.cssText="flex:0 0 100%;min-width:0;scroll-snap-align:start";gallery.append(media);}
+     if(media){media.style.cssText="flex:0 0 100%;min-width:0;scroll-snap-align:start;height:auto;align-self:flex-start;display:block";gallery.append(media);}
     }
-    if(gallery.children.length){card.append(gallery);if(gallery.children.length>1){const prev=el("button","‹"),next=el("button","›");prev.type=next.type="button";prev.onclick=()=>gallery.scrollBy({left:-gallery.clientWidth,behavior:"smooth"});next.onclick=()=>gallery.scrollBy({left:gallery.clientWidth,behavior:"smooth"});const nav=el("div"),counter=el("span","1 / "+gallery.children.length);nav.className="post-gallery-nav";icon(prev,"Попереднє фото",shapes.left);icon(next,"Наступне фото",shapes.right);gallery.addEventListener("scroll",()=>{counter.textContent=Math.min(gallery.children.length,Math.round(gallery.scrollLeft/(gallery.clientWidth+8))+1)+" / "+gallery.children.length;},{passive:true});nav.append(prev,counter,next);card.append(nav);}}
+    if(gallery.children.length){card.append(gallery);fitActiveGallery(gallery);if(gallery.children.length>1){const prev=el("button","‹"),next=el("button","›");prev.type=next.type="button";prev.onclick=()=>gallery.scrollBy({left:-gallery.clientWidth,behavior:"smooth"});next.onclick=()=>gallery.scrollBy({left:gallery.clientWidth,behavior:"smooth"});const nav=el("div"),counter=el("span","1 / "+gallery.children.length);nav.className="post-gallery-nav";icon(prev,"Попереднє фото",shapes.left);icon(next,"Наступне фото",shapes.right);gallery.addEventListener("scroll",()=>{counter.textContent=Math.min(gallery.children.length,Math.round(gallery.scrollLeft/(gallery.clientWidth+8))+1)+" / "+gallery.children.length;},{passive:true});nav.append(prev,counter,next);card.append(nav);}}
     const likes=Array.isArray(post.like_user_ids)?post.like_user_ids.length:0;
     const replies=Array.isArray(post.replies)?post.replies.length:0;
     const link=el("a","♡ "+likes+" · Коментарі "+replies);link.href="forum.html?topicId="+encodeURIComponent(post.id);const toolbar=el("div");toolbar.className="post-tools";card.append(toolbar);icon(link,"Коментарі",shapes.comment,replies);toolbar.append(link);
