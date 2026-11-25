@@ -16829,6 +16829,19 @@ function normalizeForumTopicAttachment(value) {
         throw new Error("Некоректне фото теми.");
     }
 
+    if (Array.isArray(value.items)) {
+        if (!value.items.length || value.items.length > 20) throw new Error("Дозволено від 1 до 20 файлів.");
+        const items = value.items.map(item => {
+            if (!item || item.items) throw new Error("Некоректне вкладення.");
+            const clean = normalizeForumTopicAttachment(item);
+            if (!clean) throw new Error("Некоректне вкладення.");
+            if (clean.originalSize > (clean.type === "image" ? 10 : 20)*1024*1024) throw new Error("Файл надто великий.");
+            return clean;
+        });
+        if (items.reduce((n,item)=>n+item.data.length,0)>40_000_000) throw new Error("Загальний розмір вкладень надто великий.");
+        return {...items[0], items};
+    }
+
     const type = String(value.type || "").trim();
     const mimeType = String(value.mimeType || "").trim();
     const name = String(value.name || "photo.jpg").trim().slice(0, 180);
