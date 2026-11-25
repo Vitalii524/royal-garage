@@ -9,6 +9,26 @@ window.mountGaragePosts = function(root, ownerId, isOwner) {
   const style=el("style");style.id="garagePostsStyles";style.textContent=".garage-posts{color:inherit;min-width:0}.garage-posts form,.garage-posts article{display:flex;flex-wrap:wrap;gap:12px;padding:16px;margin:12px 0;border:1px solid #806b42;border-radius:14px;background:#202124;color:#f5f5f5}.garage-posts textarea{width:100%;min-height:90px;background:#17181a;color:#fff;border:1px solid #806b42;border-radius:10px;padding:12px;box-sizing:border-box}.garage-posts button,.garage-posts article a{background:#d6a445;color:#17181a;border:0;border-radius:9px;padding:10px 14px;font:inherit;font-weight:600;text-decoration:none;cursor:pointer}.garage-posts button:disabled{opacity:.5;cursor:wait}.garage-posts article h3,.garage-posts article p,.garage-posts form p{width:100%;margin:0;overflow-wrap:anywhere;white-space:pre-wrap}.garage-posts article img,.garage-posts article video{width:100%;max-height:560px;object-fit:contain;border-radius:10px;background:#111}.garage-posts [role=status]{overflow-wrap:anywhere}.garage-posts h2{color:#d6a445}";
   document.head.append(style);
  }
+ async function convert(file){
+    let attachment;
+    if(file.type.startsWith("video/")){
+     const probe=el("video"), probeUrl=URL.createObjectURL(file);
+     try{await new Promise((resolve,reject)=>{probe.onloadedmetadata=resolve;probe.onerror=()=>reject(Error("Не вдалося прочитати відео."));probe.preload="metadata";probe.src=probeUrl;});if(!Number.isFinite(probe.duration)||probe.duration>180)throw Error("Відео — до 3 хвилин.");}finally{probe.removeAttribute("src");probe.load();URL.revokeObjectURL(probeUrl);}
+     const data=await window.uploadGarageVideo(file);
+     attachment={type:"video",mimeType:file.type,name:file.name,data,originalSize:file.size};
+    }else if(file.type.startsWith("image/")){
+     const url=URL.createObjectURL(file);
+     try{
+      const img=new Image();img.src=url;await img.decode();
+      const scale=Math.min(1,1600/img.width,1600/img.height),canvas=el("canvas");
+      canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
+      canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);
+      attachment={type:"image",mimeType:"image/jpeg",name:file.name,data:canvas.toDataURL("image/jpeg",0.8),originalSize:file.size};
+     }finally{URL.revokeObjectURL(url);}
+    }else throw Error("Оберіть фото або відео.");
+
+ return attachment;
+ }
  root.replaceChildren(el("h2","Публікації"));
  const status=el("p");status.setAttribute("role","status");
  const feed=el("div");
@@ -35,20 +55,7 @@ window.mountGaragePosts = function(root, ownerId, isOwner) {
     for(const file of files){
     status.textContent="Обробка "+(items.length+1)+" / "+files.length;
     if(file.size>20*1024*1024)throw Error("Максимальний розмір — 20 МБ.");
-    let attachment;
-    if(file.type.startsWith("video/")){
-     const data=await window.uploadGarageVideo(file);
-     attachment={type:"video",mimeType:file.type,name:file.name,data,originalSize:file.size};
-    }else if(file.type.startsWith("image/")){
-     const url=URL.createObjectURL(file);
-     try{
-      const img=new Image();img.src=url;await img.decode();
-      const scale=Math.min(1,1600/img.width,1600/img.height),canvas=el("canvas");
-      canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
-      canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);
-      attachment={type:"image",mimeType:"image/jpeg",name:file.name,data:canvas.toDataURL("image/jpeg",0.8),originalSize:file.size};
-     }finally{URL.revokeObjectURL(url);}
-    }else throw Error("Оберіть фото або відео.");
+    const attachment=await convert(file);
     items.push(attachment);
     }
     const attachment={...items[0],items};
@@ -103,7 +110,16 @@ window.mountGaragePosts = function(root, ownerId, isOwner) {
     }
     for(const reply of (Array.isArray(post.replies)?post.replies:[])){const p=el("p",(reply.author_name||reply.authorName||"Користувач")+": "+(reply.content||reply.text||""));card.append(p);}
     if(isOwner && token){
-     action("Редагувати",async()=>{const content=window.prompt("Опис публікації",post.content);if(content===null)return;await request(endpoint,"PATCH",{title:post.title,category:post.category,content:content.trim()||"Публікація",attachment:post.attachment||null});});
+     action("Редагувати",async()=>{
+      if(card.querySelector("form"))return;
+      const form=el("form"),desc=el("textarea"),picker=el("input"),preview=el("div"),save=el("button","Зберегти"),cancel=el("button","Скасувати");
+      desc.value=post.content;desc.maxLength=2000;picker.type="file";picker.accept="image/*,video/*";picker.multiple=true;cancel.type="button";cancel.onclick=()=>form.remove();
+      let items=(post.attachment?.items||[post.attachment]).filter(Boolean).map(({items,...a})=>a);
+      const refresh=()=>{preview.replaceChildren();items.forEach((a,i)=>{const row=el("div"),b=el("button","Видалити "+(a.name||"файл"));b.type="button";b.onclick=()=>{items.splice(i,1);refresh();};if(a.type==="image"&&a.data){const img=el("img");img.src=a.data;img.style.cssText="width:80px;height:80px;object-fit:cover";row.append(img);}row.append(b);preview.append(row);});};
+      picker.onchange=async()=>{const files=Array.from(picker.files);if(items.length+files.length>20){status.textContent="Максимум 20 файлів.";return;}save.disabled=picker.disabled=cancel.disabled=true;try{const copies=await Promise.all(files.map(async f=>{if(f.size>(f.type.startsWith("image/")?10:20)*1024*1024)throw Error("Файл надто великий.");return new File([await f.arrayBuffer()],f.name,{type:f.type});}));for(const f of copies){items.push(await convert(f));refresh();}}catch(e){status.textContent=e.message;}finally{save.disabled=picker.disabled=cancel.disabled=false;picker.value="";}};
+      form.onsubmit=async e=>{e.preventDefault();if(save.disabled)return;save.disabled=picker.disabled=cancel.disabled=true;try{const content=desc.value.trim()||"Публікація";await request(endpoint,"PATCH",{title:content.slice(0,80),category:post.category,content,attachment:items.length?{...items[0],items}:null});}catch(e){status.textContent=e.message;save.disabled=picker.disabled=cancel.disabled=false;}};
+      form.append(desc,picker,preview,save,cancel);refresh();card.append(form);
+     });
      action("Видалити",async()=>{if(window.confirm("Видалити цю публікацію з профілю та форуму?"))await request(endpoint,"DELETE");});
     }
     feed.append(card);
