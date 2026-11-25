@@ -1691,6 +1691,19 @@ ${businessSchemaJson}
    SEO ТЕМ ФОРУМУ
    ========================= */
 
+app.get("/api/forum/topics/:id/preview-image", async (req,res) => {
+    try {
+        if (!UUID_PATTERN.test(req.params.id)) return res.sendStatus(404);
+        const result = await pool.query("SELECT attachment FROM forum_topics WHERE id=$1 AND category NOT LIKE 'club:%'", [req.params.id]);
+        const a = result.rows[0]?.attachment;
+        const photo = (a?.items || [a]).find(item => item?.type === "image" && /^data:image\/(jpeg|jpg|png|webp);base64,/i.test(item.data));
+        if (!photo) return res.sendStatus(404);
+        const match = /^data:(image\/(?:jpeg|jpg|png|webp));base64,([A-Za-z0-9+/=]+)$/i.exec(photo.data);
+        if (!match) return res.sendStatus(404);
+        res.set("Cache-Control","public, max-age=300").type(match[1]).send(Buffer.from(match[2],"base64"));
+    } catch(error) { res.sendStatus(500); }
+});
+
 app.get(
     "/forum.html",
     async (req, res) => {
@@ -1727,6 +1740,7 @@ app.get(
                         t.title,
                         t.category,
                         t.content,
+                        t.attachment,
                         t.created_at,
                         t.updated_at,
                         u.name AS author_name
@@ -1816,6 +1830,8 @@ app.get(
                     topic.id
                 )}`;
 
+            const previewImage = (topic.attachment?.items || [topic.attachment]).find(a => a?.type === "image" && /^data:image\/(jpeg|jpg|png|webp);base64,/i.test(a.data));
+            const previewUrl = previewImage && !topicCategory.startsWith("club:") ? "https://royalgarage.com.ua/api/forum/topics/" + encodeURIComponent(topic.id) + "/preview-image" : "";
             const forumPostingSchema = {
                 "@context":
                     "https://schema.org",
@@ -1862,6 +1878,10 @@ app.get(
                 }
             };
 
+            if (previewUrl) forumPostingSchema.image = previewUrl;
+            html = html.replace(/<meta[^>]+(?:property|name)=["'](?:og:image(?::[^"']+)?|twitter:(?:card|image|title|description))["'][^>]*>/gi, "");
+            const previewTags = (previewUrl ? '<meta property="og:image" content="' + escapeSeoHtml(previewUrl) + '"><meta name="twitter:image" content="' + escapeSeoHtml(previewUrl) + '">' : "") + '<meta name="twitter:card" content="' + (previewUrl ? "summary_large_image" : "summary") + '"><meta name="twitter:title" content="' + escapeSeoHtml(topicTitle) + '"><meta name="twitter:description" content="' + escapeSeoHtml(description) + '"><meta name="author" content="' + escapeSeoHtml(authorName) + '">';
+            html = html.replace("</head>", () => previewTags + "</head>");
             const forumPostingSchemaJson =
                 safeSeoJson(
                     forumPostingSchema
