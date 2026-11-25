@@ -153,3 +153,5 @@
  document.addEventListener('keydown', event => {
   if (event.key === 'Escape') document.querySelectorAll('details.burger-menu[open], details.post-menu[open]').forEach(menu => { menu.open = false; });
  });
+
+;document.addEventListener("click",event=>{document.querySelectorAll(".burger-menu[open]").forEach(menu=>{if(!menu.contains(event.target))menu.open=false;});},true);
