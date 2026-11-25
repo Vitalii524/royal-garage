@@ -16,20 +16,24 @@ window.mountGaragePosts = function(root, ownerId, isOwner) {
   const form=el("form"), description=el("textarea"), submit=el("button","Опублікувати");
   description.placeholder="Додайте опис (необов’язково)";description.maxLength=2000;
   form.append(description);
-  let file=null;
-  const selected=el("p");
+  let files=[];
+  const selected=el("div");selected.style.width="100%";
+  const refresh=()=>{selected.replaceChildren(el("p",files.length+" / 20"));files.forEach((f,i)=>{const b=el("button",f.name+" ×");b.type="button";b.onclick=()=>{files.splice(i,1);refresh();};selected.append(b);});};
   for(const [label,accept,capture] of [["Зняти фото","image/*",true],["Зняти відео","video/*",true],["З галереї","image/*,video/*",false]]){
-   const input=el("input");input.type="file";input.accept=accept;if(capture)input.setAttribute("capture","environment");input.hidden=true;
+   const input=el("input");input.type="file";input.accept=accept;input.multiple=!capture;if(capture)input.setAttribute("capture","environment");input.hidden=true;
    const button=el("button",label);button.type="button";button.onclick=()=>input.click();
-   input.onchange=()=>{if(input.files[0]){file=input.files[0];selected.textContent=file.name;}};
+   input.onchange=async()=>{const picked=Array.from(input.files);input.value="";if(files.length+picked.length>20){status.textContent="Максимум 20 файлів.";return;}submit.disabled=true;try{const snapshots=await Promise.all(picked.map(async f=>{if(f.size>(f.type.startsWith("image/")?10:20)*1024*1024)throw Error("Файл надто великий: "+f.name);return new File([await f.arrayBuffer()],f.name,{type:f.type});}));files.push(...snapshots);refresh();}catch(e){status.textContent=e.message;}finally{submit.disabled=false;}};
    form.append(button,input);
   }
   form.append(selected,submit);root.append(form);
   form.onsubmit=async event=>{
    event.preventDefault();if(submit.disabled)return;
-   if(!file){status.textContent="Оберіть фото або відео.";return;}
+   if(!files.length){status.textContent="Оберіть фото або відео.";return;}
    submit.disabled=true;
    try{
+    const items=[];
+    for(const file of files){
+    status.textContent="Обробка "+(items.length+1)+" / "+files.length;
     if(file.size>20*1024*1024)throw Error("Максимальний розмір — 20 МБ.");
     let attachment;
     if(file.type.startsWith("video/")){
@@ -45,10 +49,13 @@ window.mountGaragePosts = function(root, ownerId, isOwner) {
       attachment={type:"image",mimeType:"image/jpeg",name:file.name,data:canvas.toDataURL("image/jpeg",0.8),originalSize:file.size};
      }finally{URL.revokeObjectURL(url);}
     }else throw Error("Оберіть фото або відео.");
+    items.push(attachment);
+    }
+    const attachment={...items[0],items};
     const body=description.value.trim();
     const response=await fetch("/api/forum/topics",{method:"POST",headers,body:JSON.stringify({title:body.slice(0,80)||"Публікація",category:"Загальне",content:body||"Публікація",attachment})});
     const result=await response.json();if(!response.ok)throw Error(result.message||"Не вдалося опублікувати.");
-    form.reset();file=null;selected.textContent="";await load();status.textContent="Опубліковано.";
+    form.reset();files=[];refresh();await load();status.textContent="Опубліковано.";
    }catch(error){status.textContent=error.message;}finally{submit.disabled=false;}
   };
  }
@@ -61,9 +68,15 @@ window.mountGaragePosts = function(root, ownerId, isOwner) {
    if(!posts.length)feed.append(el("p","Публікацій ще немає."));
    for(const post of posts){
     const card=el("article");if(post.title && !String(post.content||"").startsWith(post.title))card.append(el("h3",post.title));card.append(el("p",post.content));
-    const a=post.attachment;
-    if(a?.type==="image" && /^data:image\/(jpeg|png|webp);base64,/i.test(a.data)){const img=el("img");img.src=a.data;img.alt="Фото публікації";img.style.maxWidth="100%";card.append(img);}
-    if(a?.type==="video" && /^\/api\/media\/videos\/[a-zA-Z0-9-]+$/.test(a.data)){const video=el("video");video.src=a.data;video.controls=true;video.preload="metadata";video.style.maxWidth="100%";card.append(video);}
+    const gallery=el("div");gallery.style.cssText="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;width:100%;gap:8px";
+    const attachments=post.attachment?.items||[post.attachment];
+    for(const a of attachments){
+     let media;
+     if(a?.type==="image" && /^data:image\/(jpeg|png|webp);base64,/i.test(a.data)){media=el("img");media.src=a.data;media.alt="Фото публікації";}
+     if(a?.type==="video" && /^\/api\/media\/videos\/[a-zA-Z0-9-]+$/.test(a.data)){media=el("video");media.src=a.data;media.controls=true;media.preload="metadata";media.playsInline=true;}
+     if(media){media.style.cssText="flex:0 0 100%;min-width:0;scroll-snap-align:start";gallery.append(media);}
+    }
+    if(gallery.children.length){card.append(gallery);if(gallery.children.length>1){const prev=el("button","‹"),next=el("button","›");prev.type=next.type="button";prev.onclick=()=>gallery.scrollBy({left:-gallery.clientWidth,behavior:"smooth"});next.onclick=()=>gallery.scrollBy({left:gallery.clientWidth,behavior:"smooth"});card.append(prev,el("span",gallery.children.length+" фото / відео"),next);}}
     const likes=Array.isArray(post.like_user_ids)?post.like_user_ids.length:0;
     const replies=Array.isArray(post.replies)?post.replies.length:0;
     const link=el("a","♡ "+likes+" · Коментарі "+replies);link.href="forum.html?topicId="+encodeURIComponent(post.id);card.append(link);
