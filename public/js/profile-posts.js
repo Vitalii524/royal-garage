@@ -133,3 +133,5 @@ window.mountGaragePosts = function(root, ownerId, isOwner) {
  }
  load();
 };
+
+;document.addEventListener("click",event=>{document.querySelectorAll(".garage-posts .post-menu[open]").forEach(menu=>{if(!menu.contains(event.target))menu.open=false;});},true);
