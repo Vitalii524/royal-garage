@@ -263,47 +263,47 @@ productPhotos
             catalogUploading = true;
             const save = productForm?.querySelector('[type="submit"]');
             if (save) save.disabled = true;
-            productPhotos.disabled = true;
+            const status = document.createElement("p");
+            status.setAttribute("role", "status");
+            productPhotos.parentElement.append(status);
+            // Snapshot every picker file before disabling the input or waiting for network.
+            const snapshots = files.map(file => {
+                const read = () => new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(reader.error);
+                    reader.onabort = () => reject(new Error("Читання перервано"));
+                    reader.readAsArrayBuffer(file);
+                });
+                return read().catch(() => file.arrayBuffer()).then(
+                    bytes => ({file: new File([bytes], file.name, {type: file.type, lastModified: file.lastModified})}),
+                    () => ({error: "Не вдалося прочитати " + file.name})
+                );
+            });
+            const failures = [];
             try {
-
-                for (
-                    const file
-                    of files
-                ) {
-
-                    const photo =
-                        await compressProductPhoto(
-                            file
-                        );
-
-
-                    selectedProductPhotos.push(
-                        photo
-                    );
+                for (let i = 0; i < snapshots.length; i++) {
+                    try {
+                        status.textContent = `Підготовка файлу ${i + 1} із ${files.length}…`;
+                        const result = await snapshots[i];
+                        if (result.error) throw new Error(result.error);
+                        const photo = await window.RGServiceGallery.upload(result.file, percent => {
+                            status.textContent = `Файл ${i + 1} із ${files.length}: ${percent}%`;
+                        });
+                        selectedProductPhotos.push(photo);
+                        renderPhotoPreview();
+                    } catch (error) {
+                        failures.push(files[i].name + ": " + error.message);
+                    }
                 }
-
-
-                renderPhotoPreview();
-
-
-            } catch (error) {
-
-                console.error(
-                    "RoyalAuto photo error:",
-                    error
-                );
-
-
-                alert(
-                    error.message || "Не вдалося завантажити файл."
-                );
+                status.textContent = failures.length
+                    ? "Не завантажено: " + failures.join("; ") + ". Виберіть ці файли повторно."
+                    : "Усі вибрані файли завантажено.";
+            } finally {
+                catalogUploading = false;
+                productPhotos.disabled = false;
+                if (save) save.disabled = false;
             }
-
-
-            renderPhotoPreview();
-            catalogUploading = false;
-            productPhotos.disabled = false;
-            if (save) save.disabled = false;
             productPhotos.value =
                 "";
         }
