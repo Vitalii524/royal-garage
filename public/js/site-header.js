@@ -143,3 +143,13 @@
   }
  });
 })();
+
+// Dismiss open navigation and publication menus when tapping outside.
+ document.addEventListener('pointerdown', event => {
+  document.querySelectorAll('details.burger-menu[open], details.post-menu[open]').forEach(menu => {
+   if (!menu.contains(event.target)) menu.open = false;
+  });
+ }, true);
+ document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') document.querySelectorAll('details.burger-menu[open], details.post-menu[open]').forEach(menu => { menu.open = false; });
+ });
