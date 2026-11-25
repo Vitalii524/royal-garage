@@ -709,22 +709,7 @@ function renderForumTopics() {
                 ${escapeForumHtml(topic.text)}
             </p>
 
-            ${
-                topic.attachment?.data
-                    ? `
-                        ${topic.attachment.type === "video" ? `<video controls playsinline preload="metadata" style="width:100%" src="${escapeForumHtml(topic.attachment.data)}"></video>` : `<img
-                            class="forum-topic-image"
-                            src="${escapeForumHtml(
-                                topic.attachment.data
-                            )}"
-                            alt="Фото до теми ${escapeForumHtml(
-                                topic.title
-                            )}"
-                            loading="lazy"
-                        >`}
-                    `
-                    : ""
-            }
+            ${renderTopicGallery(topic)}
 
             <div class="forum-topic-meta">
 
@@ -902,21 +887,7 @@ function openTopicView(topicId) {
             ${escapeForumHtml(topic.text)}
         </p>
 
-        ${
-            topic.attachment?.data
-                ? `
-                    ${topic.attachment.type === "video" ? `<video controls playsinline preload="metadata" style="width:100%" src="${escapeForumHtml(topic.attachment.data)}"></video>` : `<img
-                        class="forum-topic-image"
-                        src="${escapeForumHtml(
-                            topic.attachment.data
-                        )}"
-                        alt="Фото до теми ${escapeForumHtml(
-                            topic.title
-                        )}"
-                    >`}
-                `
-                : ""
-        }
+        ${renderTopicGallery(topic)}
 
         ${forumSocialActions(topic)}
         ${
@@ -2103,3 +2074,8 @@ async function forumEnablePush() {
     }catch(error){console.error('Forum push:',error);alert(error.message||'Помилка підключення Push.');}
 }
 document.getElementById('forumEnablePush')?.addEventListener('click',forumEnablePush);
+
+function renderTopicGallery(topic) {
+ const items=(topic.attachment?.items||[topic.attachment]).filter(a=>a?.data);
+ return '<div style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:8px;width:100%">'+items.map(a=>'<div style="flex:0 0 100%;min-width:0;scroll-snap-align:start">'+(a.type==="video"?'<video controls playsinline preload="metadata" style="width:100%" src="'+escapeForumHtml(a.data)+'"></video>':'<img class="forum-topic-image" style="width:100%" loading="lazy" src="'+escapeForumHtml(a.data)+'" alt="Фото публікації">')+'</div>').join("")+'</div>';
+}
