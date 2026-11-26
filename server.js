@@ -9760,6 +9760,26 @@ async function requireAdmin(req, res, next) {
     next();
 }
 
+// Read-only Instagram connectivity diagnostic; no media is stored or published.
+app.get("/api/admin/instagram/check", requireAuth, requireAdmin, async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    const token = process.env.INSTAGRAM_ACCESS_TOKEN;
+    if (!token) return res.status(503).json({ok:false, reason:"token_missing"});
+    try {
+        const url = new URL("https://graph.facebook.com/v24.0/17841421714894282/media");
+        url.searchParams.set("fields", "id,media_type");
+        url.searchParams.set("limit", "5");
+        const response = await fetch(url, {headers:{Authorization:"Bearer " + token}, signal:AbortSignal.timeout(10000)});
+        const data = await response.json();
+        if (!response.ok || !Array.isArray(data.data)) {
+            return res.status(502).json({ok:false, reason:"meta_rejected", code:Number(data.error?.code)||null, subcode:Number(data.error?.error_subcode)||null});
+        }
+        res.json({ok:true, account:"royalauto0077", sampleCount:data.data.length, mediaTypes:data.data.map(item=>item.media_type)});
+    } catch {
+        res.status(502).json({ok:false, reason:"request_failed"});
+    }
+});
+
 app.get("/api/admin/site-analytics", requireAuth, requireAdmin, async (req, res) => {
     res.set("Cache-Control", "no-store");
     try {
