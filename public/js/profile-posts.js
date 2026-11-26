@@ -1,6 +1,6 @@
 "use strict";
 function fitActiveGallery(gallery){const update=()=>{if(!gallery.clientWidth)return;const slides=Array.from(gallery.children);const active=slides.reduce((best,node)=>Math.abs(node.offsetLeft-slides[0].offsetLeft-gallery.scrollLeft)<Math.abs(best.offsetLeft-slides[0].offsetLeft-gallery.scrollLeft)?node:best,slides[0]);if(!active)return;const h=active.getBoundingClientRect().height;if(h>0)gallery.style.height=Math.ceil(h)+"px";};gallery.addEventListener("scroll",update,{passive:true});gallery.addEventListener("load",update,true);gallery.addEventListener("loadedmetadata",update,true);if(typeof ResizeObserver!=="undefined"){const observer=new ResizeObserver(update);Array.from(gallery.children).forEach(node=>observer.observe(node));}requestAnimationFrame(update);}
-window.mountGaragePosts = function(root, ownerId, isOwner) {
+window.mountGaragePosts = function(root, ownerId, isOwner, atelier = false) {
  if (!root || !ownerId) return;
  const token = localStorage.getItem("royalGarageToken") || "";
  const headers = {"Content-Type":"application/json", Authorization:"Bearer "+token};
@@ -65,7 +65,7 @@ window.mountGaragePosts = function(root, ownerId, isOwner) {
     }
     const attachment={...items[0],items};
     const body=description.value.trim();
-    const response=await fetch("/api/forum/topics",{method:"POST",headers,body:JSON.stringify({title:body.slice(0,80)||"Публікація",category:"Загальне",content:body||"Публікація",attachment})});
+    const response=await fetch("/api/forum/topics",{method:"POST",headers,body:JSON.stringify({title:body.slice(0,80)||"Публікація",category:atelier?"Royal Auto Atelier":"Загальне",content:body||"Публікація",attachment})});
     const result=await response.json();if(!response.ok)throw Error(result.message||"Не вдалося опублікувати.");
     form.reset();files=[];refresh();await load();status.textContent="Опубліковано.";
    }catch(error){status.textContent=error.message;}finally{submit.disabled=false;}
@@ -76,7 +76,7 @@ window.mountGaragePosts = function(root, ownerId, isOwner) {
   try{
    const response=await fetch("/api/forum/topics");if(!response.ok)throw Error("Не вдалося завантажити публікації.");
    const data=await response.json();feed.replaceChildren();
-   const posts=(data.topics||[]).filter(t=>String(t.user_id)===String(ownerId)).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+   const posts=(data.topics||[]).filter(t=>String(t.user_id)===String(ownerId) && (atelier ? t.category === 'Royal Auto Atelier' : t.category !== 'Royal Auto Atelier')).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
    if(!posts.length)feed.append(el("p","Публікацій ще немає."));
    for(const post of posts){
     const card=el("article");if(post.title && !String(post.content||"").startsWith(post.title))card.append(el("h3",post.title));card.append(el("p",post.content));
