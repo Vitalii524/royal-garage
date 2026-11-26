@@ -3,7 +3,7 @@
     const links = [
         ['forum.html#communityClubs', 'Клуби', 'Clubs'],
         ['index.html', 'Головна', 'Home'],
-        ['forum.html', 'Клуб', 'Forum'],
+        ['forum.html', 'Royal Garage Club', 'Royal Garage Club'],
         ['market.html', 'Авторинок', 'Marketplace'],
         ['products.html', 'Автотовари', 'Auto products'],
         ['businesses.html', 'Партнери', 'Partners'],
