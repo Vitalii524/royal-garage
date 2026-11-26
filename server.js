@@ -9780,6 +9780,51 @@ app.get("/api/admin/instagram/check", requireAuth, requireAdmin, async (req, res
     }
 });
 
+
+async function atelierInstagramGraph(id, fields, after) {
+ const token=process.env.INSTAGRAM_ACCESS_TOKEN;
+ if(!token) throw Error("Instagram не підключено.");
+ const url=new URL("https://graph.facebook.com/v24.0/"+id);
+ url.searchParams.set("fields",fields);url.searchParams.set("limit","25");
+ if(after)url.searchParams.set("after",after);
+ const response=await fetch(url,{headers:{Authorization:"Bearer "+token},signal:AbortSignal.timeout(15000)});
+ const data=await response.json();
+ if(!response.ok)throw Error("Instagram відхилив запит (код "+(Number(data.error?.code)||response.status)+").");
+ return data;
+}
+function requireAtelierOwner(req,res,next){if(req.user.userId!==ROYAL_AUTO_OWNER_ID)return res.status(403).json({message:"Доступ лише власнику ательє."});next();}
+const atelierInstagramFields="id,caption,media_type,media_url,thumbnail_url,children{id,media_type,media_url}";
+function atelierInstagramTopicId(id){const h=crypto.createHash("sha256").update("atelier-instagram:"+id).digest("hex");return h.slice(0,8)+"-"+h.slice(8,12)+"-4"+h.slice(13,16)+"-8"+h.slice(17,20)+"-"+h.slice(20,32);}
+app.get("/api/atelier/instagram",requireAuth,requireAtelierOwner,async(req,res)=>{
+ try{res.set("Cache-Control","no-store");const data=await atelierInstagramGraph("17841421714894282/media",atelierInstagramFields,String(req.query.after||"").slice(0,1000));const items=data.data||[];const existing=await pool.query("SELECT id FROM forum_topics WHERE id=ANY($1::uuid[])",[items.map(x=>atelierInstagramTopicId(x.id))]);const seen=new Set(existing.rows.map(x=>x.id));res.json({items:items.map(x=>({id:x.id,caption:x.caption||"",type:x.media_type,preview:x.thumbnail_url||x.media_url||x.children?.data?.[0]?.media_url,imported:seen.has(atelierInstagramTopicId(x.id))})),after:data.paging?.next?data.paging.cursors?.after:null});}catch(e){res.status(502).json({message:e.message});}
+});
+app.post("/api/atelier/instagram",requireAuth,requireAtelierOwner,async(req,res)=>{
+ const id=String(req.body?.id||"");if(!/^\d{5,30}$/.test(id))return res.status(400).json({message:"Некоректна публікація."});
+ let client;
+ try{
+ const topicId=atelierInstagramTopicId(id);
+ const media=await atelierInstagramGraph(id,atelierInstagramFields+",owner{id}");
+ if(String(media.owner?.id)!=="17841421714894282")return res.status(403).json({message:"Не вдалося підтвердити власника публікації."});
+ client=await pool.connect();await client.query("BEGIN");await client.query("SELECT pg_advisory_xact_lock(hashtext($1))",[topicId]);
+ if((await client.query("SELECT id FROM forum_topics WHERE id=$1",[topicId])).rowCount){await client.query("ROLLBACK");return res.json({imported:false,message:"Вже імпортовано."});}
+ const sources=media.media_type==="CAROUSEL_ALBUM"?media.children?.data:[media];if(!sources?.length||sources.length>20)throw Error("Непідтримувана карусель.");
+ const items=[];
+ for(const item of sources){
+ const url=new URL(item.media_url);if(url.protocol!=="https:"||!/(^|\.)(cdninstagram\.com|fbcdn\.net)$/.test(url.hostname))throw Error("Непідтримуване джерело медіа.");
+ const video=item.media_type==="VIDEO";const limit=video?20*1024*1024:5*1024*1024;
+ const response=await fetch(url,{redirect:"error",signal:AbortSignal.timeout(30000)});if(!response.ok)throw Error("Не вдалося завантажити медіа.");
+ const mime=String(response.headers.get("content-type")||"").split(";")[0];if(!(video?mime==="video/mp4":/^image\/(jpeg|png|webp)$/.test(mime)))throw Error("Непідтримуваний формат медіа.");
+ const chunks=[];let size=0;for await(const chunk of response.body){size+=chunk.length;if(size>limit)throw Error("Медіафайл надто великий.");chunks.push(Buffer.from(chunk));}
+ const buffer=Buffer.concat(chunks);if(!size)throw Error("Порожній медіафайл.");
+ const name="instagram-"+item.id;let data;
+ if(video){const vid=crypto.randomUUID();await client.query("INSERT INTO uploaded_videos (id,owner_id,mime_type,data,name) VALUES ($1,$2,$3,$4,$5)",[vid,ROYAL_AUTO_OWNER_ID,mime,buffer,name]);data="/api/media/videos/"+vid;}else data="data:"+mime+";base64,"+buffer.toString("base64");
+ items.push({type:video?"video":"image",mimeType:mime,name,data,originalSize:size});
+ }
+ const attachment=normalizeForumTopicAttachment({...items[0],items});const content=String(media.caption||"Публікація Instagram").slice(0,2000);
+ await client.query("INSERT INTO forum_topics (id,user_id,title,category,content,attachment) VALUES ($1,$2,$3,$4,$5,$6)",[topicId,ROYAL_AUTO_OWNER_ID,content.slice(0,80),"Royal Auto Atelier",content,attachment]);await client.query("COMMIT");res.json({imported:true});
+ }catch(e){if(client)await client.query("ROLLBACK").catch(()=>{});res.status(502).json({message:e.message});}finally{client?.release();}
+});
+
 app.get("/api/admin/site-analytics", requireAuth, requireAdmin, async (req, res) => {
     res.set("Cache-Control", "no-store");
     try {
