@@ -632,7 +632,7 @@
         show("businessAboutAddressCard", state.isOwner || hasAddress);
         show("businessAboutScheduleCard", state.isOwner || hasSchedule);
         show("businessAboutSection", state.isOwner || hasDescription || hasAddress || hasSchedule);
-        show("businessPortfolioSection", state.isOwner || hasPortfolio);
+        show("businessPortfolioSection", (String(profile.ownerId) !== ROYAL_AUTO_OWNER_ID || new URLSearchParams(location.search).get("view") === "atelier-portfolio") && (state.isOwner || hasPortfolio));
         show("businessBookingButton", !state.isOwner && profile.ownerId !== EDITORIAL_OWNER_ID && profile.acceptsServiceRequests === true);
 
         if (profile.ownerId) loadReviews(profile.ownerId);
@@ -739,7 +739,13 @@
             $("businessPageLoading").hidden = true;
             $("businessPageError").hidden = true;
             $("businessPageContent").hidden = false;
-            window.mountGaragePosts?.($("garagePosts"), data.profile.ownerId, state.isOwner);
+            if (String(data.profile.ownerId) === ROYAL_AUTO_OWNER_ID && new URLSearchParams(location.search).get("view") === "atelier-portfolio") {
+                const section = $("businessPortfolioSection");
+                const main = document.querySelector("main.business-page");
+                main.prepend(section);
+                for (const child of Array.from(main.children)) if (child !== section && !child.classList.contains("business-modal")) child.hidden = true;
+                const back = document.createElement("a"); back.href="handmade.html"; back.textContent="← Royal Auto Atelier"; section.prepend(back);
+            } else window.mountGaragePosts?.($("garagePosts"), data.profile.ownerId, state.isOwner);
         } catch (error) {
             console.error("Business profile load error:", error);
             setPageError(error.status === 404
