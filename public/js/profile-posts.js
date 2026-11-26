@@ -71,6 +71,14 @@ window.mountGaragePosts = function(root, ownerId, isOwner, atelier = false) {
    }catch(error){status.textContent=error.message;}finally{submit.disabled=false;}
   };
  }
+ if(atelier && isOwner && token){
+ const open=el("button","Імпорт з Instagram"), panel=el("div"), list=el("div"), more=el("button","Показати ще"), run=el("button","Імпортувати вибрані");panel.hidden=true;more.hidden=true;run.disabled=true;const selected=new Set();let cursor=null;
+ const requestIG=async(url,options={})=>{const response=await fetch(url,{...options,headers});const data=await response.json();if(!response.ok)throw Error(data.message||"Помилка Instagram.");return data;};
+ async function page(reset){open.disabled=more.disabled=true;try{if(reset){list.replaceChildren();selected.clear();cursor=null;run.disabled=true;}const data=await requestIG("/api/atelier/instagram"+(cursor?"?after="+encodeURIComponent(cursor):""));for(const item of data.items){const row=el("label");row.style.cssText="display:flex;gap:10px;align-items:center;padding:8px;border-bottom:1px solid #806b42";const check=el("input");check.type="checkbox";check.disabled=item.imported;check.onchange=()=>{if(check.checked)selected.add(item.id);else selected.delete(item.id);run.disabled=!selected.size;};row.append(check);if(item.preview){const img=el("img");img.src=item.preview;img.loading="lazy";img.style.cssText="width:76px;height:76px;object-fit:cover;border-radius:6px";row.append(img);}row.append(el("span",(item.imported?"Вже імпортовано · ":"")+(item.caption||item.type).slice(0,160)));list.append(row);}cursor=data.after;more.hidden=!cursor;status.textContent=data.items.length?"":"Публікацій немає.";}catch(e){status.textContent=e.message;}finally{open.disabled=more.disabled=false;}}
+ open.onclick=()=>{panel.hidden=!panel.hidden;if(!panel.hidden)page(true);};more.onclick=()=>page(false);
+ run.onclick=async()=>{run.disabled=open.disabled=more.disabled=true;const ids=[...selected];let count=0;const errors=[];for(const id of ids){try{status.textContent="Імпорт "+(count+errors.length+1)+" / "+ids.length;const result=await requestIG("/api/atelier/instagram",{method:"POST",body:JSON.stringify({id})});if(result.imported)count++;}catch(e){errors.push(e.message);}}await load();await page(true);status.textContent="Імпортовано: "+count+(errors.length?". Помилки: "+errors.join("; "):"");};
+ panel.append(list,more,run);root.append(open,panel);
+ }
  root.append(status,feed);
  async function load(){
   try{
