@@ -186,9 +186,7 @@ function createAuthModal() {
             Звичайний користувач
         </option>
 
-        ${isPartnerDirectory ? `<option value="business">
-            Бізнес
-        </option>` : ""}
+        <option value="business">Бізнес</option>
     </select>
 </label>
 ${isPartnerDirectory ? "" : '<p><a href="/businesses.html?register=business" style="display:block;padding:12px 14px;border:1px solid #d6a03a;border-radius:10px;background:#d6a03a;color:#191919;text-align:center;text-decoration:none;font-weight:700;line-height:1.4;white-space:normal">Зареєструвати бізнес у «Партнерах»</a></p>'}
@@ -352,6 +350,11 @@ accountTypeSelect
             const isBusiness =
                 accountTypeSelect.value ===
                 "business";
+
+            if (isBusiness && !isPartnerDirectory) {
+                location.href = "/businesses.html?register=business";
+                return;
+            }
 
             businessFields
                 ?.classList.toggle(
@@ -745,6 +748,11 @@ resendVerificationButton
         document.getElementById(
             "registerAccountType"
         )?.value || "user";
+
+    if (accountType === "business" && !isPartnerDirectory) {
+        location.href = "/businesses.html?register=business";
+        return;
+    }
 
     const businessContentType =
         document.querySelector(
