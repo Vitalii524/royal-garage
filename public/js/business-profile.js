@@ -640,12 +640,32 @@
         document.title = `${profile.name || "Бізнес"} | Royal Garage`;
     }
 
+
+    function mountProm(profile){
+        const section=$("businessProductsSection");
+        let panel=$("promImportPanel");
+        if(!state.isOwner||!["auto_shop","wholesale"].includes(profile.businessTypeCode)){if(panel)panel.remove();return;}
+        section.hidden=false;
+        if(panel)return;
+        panel=document.createElement("details");panel.id="promImportPanel";panel.className="business-section";
+        panel.innerHTML='<summary class="business-primary-button">Імпорт з Prom.ua</summary><form class="business-form"><label>Посилання на XML/YML<input type="url" required placeholder="https://..." maxlength="2048"></label><label><input type="checkbox" required> Маю дозвіл на імпорт цих товарів</label><button type="submit">Переглянути каталог</button></form><p role="status"></p><div data-results hidden><input type="search" placeholder="Пошук товарів"><label><input type="checkbox" data-all> Вибрати всі знайдені</label><div data-items style="max-height:420px;overflow:auto"></div><button type="button" data-import>Імпортувати вибрані</button></div>';
+        $("businessAddProductQuick").after(panel);
+        const form=panel.querySelector("form"),status=panel.querySelector("[role=status]"),results=panel.querySelector("[data-results]"),list=panel.querySelector("[data-items]"),search=panel.querySelector("input[type=search]"),all=panel.querySelector("[data-all]"),submit=panel.querySelector("[data-import]");let items=[],selected=new Set(),previewToken="";
+        const filtered=()=>items.filter(x=>(x.title+" "+x.category).toLowerCase().includes(search.value.toLowerCase()));
+        const count=()=>{submit.textContent="Імпортувати вибрані ("+selected.size+")";submit.disabled=!selected.size;all.checked=filtered().length>0&&filtered().every(x=>selected.has(x.id));};
+        const draw=()=>{list.replaceChildren();for(const x of filtered()){const row=document.createElement("label");row.style.cssText="display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid #555";const cb=document.createElement("input");cb.type="checkbox";cb.checked=selected.has(x.id);cb.onchange=()=>{if(cb.checked)selected.add(x.id);else selected.delete(x.id);count();};row.append(cb);if(x.photos[0]){const img=document.createElement("img");img.src=x.photos[0];img.loading="lazy";img.referrerPolicy="no-referrer";img.style.cssText="width:48px;height:48px;object-fit:cover";row.append(img);}const label=document.createElement("span");label.textContent=x.title+" — "+(x.price==null?"Ціна не вказана":x.price+" грн");row.append(label);list.append(row);}count();};
+        search.oninput=draw;all.onchange=()=>{for(const x of filtered()){if(all.checked)selected.add(x.id);else selected.delete(x.id);}draw();};
+        form.onsubmit=async e=>{e.preventDefault();const b=form.querySelector("button");b.disabled=true;results.hidden=true;status.textContent="Завантаження…";try{const data=await api("/api/business/prom/preview",{method:"POST",body:JSON.stringify({url:form.querySelector("input[type=url]").value})});items=data.items;previewToken=data.token;selected.clear();results.hidden=false;status.textContent="Знайдено товарів: "+items.length;draw();}catch(e){status.textContent=e.message;}finally{b.disabled=false;}};
+        submit.onclick=async()=>{submit.disabled=true;let done=0;try{const ids=[...selected];for(let i=0;i<ids.length;i+=500){const data=await api("/api/business/prom/import",{method:"POST",body:JSON.stringify({token:previewToken,ids:ids.slice(i,i+500)})});done+=data.count;status.textContent="Оброблено: "+done;}await loadProfile();selected.clear();draw();status.textContent="Імпортовано або оновлено: "+done;}catch(e){status.textContent="Оброблено "+done+". "+e.message;}finally{count();}};
+    }
+
     function renderProducts(profile) {
         const products = profile.products || [];
         const canEdit = state.isOwner && (products.length > 0 || ["products", "both"].includes(profile.businessContentType));
         $("businessProductsSection").hidden = !(products.length || canEdit);
         $("businessAddProductQuick").hidden = !canEdit;
         $("businessProductsGrid").replaceChildren(...products.map(product => itemCard(product, true)));
+        mountProm(profile);
     }
 
     function royalAutoListingCard(listing) {
