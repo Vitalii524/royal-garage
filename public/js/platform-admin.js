@@ -119,6 +119,7 @@
                 for (const [label, value] of [
                     ["Категорія", business.businessType || "Бізнес"],
                     ["Статус", businessStatus[business.status]],
+                    ["Телефон", `${business.phone || "Не вказано"} · ${business.phoneVerified ? "Підтверджено" : "Не підтверджено"}`],
                     ["Тариф", business.planName || "Не задано"],
                     ["Реєстрація", date(business.createdAt)],
                     ["Доступ", expiry],
@@ -145,7 +146,9 @@
                     logo.addEventListener("error", () => logo.remove());
                     heading.prepend(logo);
                 }
-                row.append(details, link, businessActions(business), businessComplaints(business), businessModeration(business));
+                row.append(details, link);
+                if (!business.phoneVerified && /^380\d{9}$/.test(business.phone || "") && business.status !== "disabled") row.append(businessPhoneVerification(business));
+                row.append(businessActions(business), businessComplaints(business), businessModeration(business));
                 result.append(row);
             }
         } catch (error) {
@@ -153,6 +156,47 @@
         } finally {
             if (requestId === businessRequestId) submit.disabled = previous.disabled = next.disabled = false;
         }
+    }
+
+    function businessPhoneVerification(business) {
+        const panel = document.createElement("details");
+        const summary = document.createElement("summary");
+        summary.textContent = "Підтвердити номер телефону вручну";
+        const form = document.createElement("form");
+        form.className = "royal-auto-admin-form";
+        const reason = document.createElement("input");
+        reason.required = true;
+        reason.maxLength = 500;
+        reason.placeholder = "Причина підтвердження";
+        reason.setAttribute("aria-label", reason.placeholder);
+        const submit = document.createElement("button");
+        submit.className = "upholstery-primary-button";
+        submit.textContent = "Підтвердити номер телефону вручну";
+        const feedback = document.createElement("p");
+        feedback.setAttribute("role", "status");
+        form.append(reason, submit, feedback);
+        panel.append(summary, form);
+        form.addEventListener("submit", async event => {
+            event.preventDefault();
+            if (submit.disabled || !reason.value.trim()) {
+                feedback.textContent = "Вкажіть причину підтвердження.";
+                return;
+            }
+            if (!window.confirm("Підтвердити номер " + business.phone + " для «" + business.name + "»?")) return;
+            submit.disabled = true;
+            try {
+                await adminApi("/api/admin/businesses/" + encodeURIComponent(business.id) + "/verify-phone", {
+                    method: "PATCH", body: { phone: business.phone, reason: reason.value.trim() }
+                });
+                await loadBusinesses(page);
+                status.textContent = "Телефон підтверджено. Дію збережено в журналі.";
+            } catch (error) {
+                feedback.textContent = error.message;
+            } finally {
+                submit.disabled = false;
+            }
+        });
+        return panel;
     }
 
     function businessActions(business) {
@@ -216,7 +260,7 @@
                 plan.required = true;
                 const entries = audit.entries.map(entry => {
                     const item = document.createElement("li");
-                    item.textContent = `${date(entry.createdAt)} · ${names[entry.action] || entry.action} · ${entry.adminId} · ${entry.reason}`;
+                    item.textContent = `${date(entry.createdAt)} · ${entry.action === "manual_phone_verification" ? "Ручне підтвердження телефону" : names[entry.action] || entry.action} · ${entry.adminId} · ${entry.reason}`;
                     return item;
                 });
                 history.replaceChildren(...entries);

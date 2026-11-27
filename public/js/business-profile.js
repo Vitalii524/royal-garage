@@ -259,7 +259,7 @@
         }
 
         const active = profile.profileStatus === "active";
-        $("businessProfileStatusText").textContent = active ? "Активний" : "Чернетка";
+        $("businessProfileStatusText").textContent = active ? "Активний" : "Очікує підтвердження";
         $("businessProfileStatusHint").textContent = profile.ownerId === EDITORIAL_OWNER_ID
             ? "Редакційний профіль поза комерційним каталогом."
             : active ? "Профіль опублікований у «Партнерах»."

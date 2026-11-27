@@ -10016,6 +10016,7 @@ app.get("/api/admin/businesses", requireAuth, requireBusinessAdministrator, asyn
             pool.query(
                 `WITH profiles AS (
                     SELECT bp.id, bp.owner_id AS "ownerId", bp.name, u.email,
+                           u.phone, u.phone_verified AS "phoneVerified",
                            bt.code AS "category", bt.name AS "businessType", bp.created_at AS "createdAt",
                            sp.name AS "planName", bp.subscription_expires_at AS "accessUntil", bp.moderation_until AS "moderationUntil",
                            bp.complimentary_subscription AS "complimentarySubscription",
@@ -10048,6 +10049,44 @@ app.get("/api/admin/businesses", requireAuth, requireBusinessAdministrator, asyn
     } catch (error) {
         console.error("Admin business directory:", error);
         res.status(500).json({ ok: false, message: "Не вдалося завантажити бізнес-профілі." });
+    }
+});
+
+app.patch("/api/admin/businesses/:id/verify-phone", requireAuth, requireBusinessAdministrator, async (req, res) => {
+    const reason = typeof req.body?.reason === "string" ? req.body.reason.trim() : "";
+    const phone = typeof req.body?.phone === "string" ? req.body.phone : "";
+    if (!UUID_PATTERN.test(req.params.id) || !reason || reason.length > 500 || !/^380\d{9}$/.test(phone)) {
+        return res.status(400).json({ ok: false, message: "Вкажіть чинний номер і причину підтвердження (до 500 символів)." });
+    }
+    try {
+        // One atomic statement: a failed audit insert also rolls back the verification.
+        // Lock both rows, and compare the number seen by the administrator to the current number.
+        const result = await pool.query(
+            `WITH previous AS (
+                SELECT bp.id AS business_id, u.id AS owner_id, u.phone, u.phone_verified
+                FROM business_profiles bp JOIN users u ON u.id = bp.owner_id
+                WHERE bp.id = $1 AND NOT bp.is_deleted AND NOT u.account_disabled
+                  AND u.account_type = 'business' AND u.phone = $4 AND NOT u.phone_verified
+                FOR UPDATE OF bp, u
+            ), updated AS (
+                UPDATE users u SET phone_verified = TRUE, updated_at = NOW()
+                FROM previous p WHERE u.id = p.owner_id AND u.phone = p.phone AND NOT u.phone_verified
+                RETURNING p.business_id, p.phone, p.phone_verified AS old_verified, u.phone_verified
+            )
+            INSERT INTO admin_business_audit (business_id, admin_id, action, reason, before_state, after_state)
+            SELECT business_id, $2, 'manual_phone_verification', $3,
+                   jsonb_build_object('phone', phone, 'phoneVerified', old_verified),
+                   jsonb_build_object('phone', phone, 'phoneVerified', phone_verified)
+            FROM updated RETURNING id`,
+            [req.params.id, req.user.userId, reason, phone]
+        );
+        if (!result.rows.length) {
+            return res.status(409).json({ ok: false, message: "Підтвердження недоступне: номер змінено, вже підтверджено або акаунт обмежено. Оновіть список." });
+        }
+        return res.json({ ok: true, phoneVerified: true, message: "Номер телефону підтверджено. Дію записано в журнал." });
+    } catch (error) {
+        console.error("Admin manual phone verification:", error);
+        return res.status(500).json({ ok: false, message: "Не вдалося підтвердити номер телефону." });
     }
 });
 
