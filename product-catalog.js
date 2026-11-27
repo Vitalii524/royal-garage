@@ -42,6 +42,7 @@ function installProductCatalog({app,pool,databaseReady}){
 }
 
 function parseProm(xml){
+ xml=xml.replace(/<!DOCTYPE\s+yml_catalog\s+SYSTEM\s+["']shops\.dtd["']\s*>/i,'');
  if(/<!\s*(DOCTYPE|ENTITY)/i.test(xml))throw Error('DTD не підтримується');
  const {SaxesParser}=require('saxes'),p=new SaxesParser(),items=[],categories=new Map(),stack=[];let offer=null,category=null;
  p.on('opentag',n=>{if(stack.length>30)throw Error('XML надто складний');stack.push({name:n.name,text:''});if(n.name==='offer')offer={id:String(n.attributes.id||''),available:n.attributes.available,photos:[]};if(n.name==='category'&&!offer)category=String(n.attributes.id||'');});
