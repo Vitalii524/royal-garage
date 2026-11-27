@@ -46,12 +46,17 @@ window.mountBusinessInstagram = function({root,tools,form,status,load,icon,el,he
         try{
             const data=await api("/status");
             connect.hidden=data.connected||!data.configured;disconnect.hidden=!data.connected;
-            if(data.connected){heading.textContent="Instagram · @"+data.username;await page(true);}
+            if(data.pending){
+                heading.textContent="Оберіть Instagram-акаунт";
+                const result=await api("/accounts");
+                for(const account of result.accounts){const choice=el("button","@"+account.username);choice.type="button";choice.onclick=async()=>{choice.disabled=true;try{await api("/select",{method:"POST",body:JSON.stringify({id:account.id})});await refresh();}catch(e){info.textContent=e.message;choice.disabled=false;}};list.append(choice);}
+                info.textContent="Виберіть акаунт для цього бізнес-профілю.";
+            }else if(data.connected){heading.textContent="Instagram · @"+data.username;await page(true);}
             else{heading.textContent="Імпорт з Instagram";info.textContent=data.configured?"Підключіть власний професійний акаунт Instagram.":"Підключення Instagram очікує налаштування Meta адміністратором.";}
         }catch(e){info.textContent=e.message;}
     }
     button.onclick=()=>{panel.hidden=!panel.hidden;if(!panel.hidden)refresh();};
-    connect.onclick=async()=>{connect.disabled=true;try{const data=await api("/connect",{method:"POST"});const url=new URL(data.url);if(url.origin!=="https://www.instagram.com")throw Error("Невірне посилання Instagram.");location.assign(url.href);}catch(e){info.textContent=e.message;}finally{connect.disabled=false;}};
+    connect.onclick=async()=>{connect.disabled=true;try{const data=await api("/connect",{method:"POST"});const url=new URL(data.url);if(url.origin!=="https://www.facebook.com"||url.pathname!=="/dialog/oauth")throw Error("Невірне посилання Instagram.");location.assign(url.href);}catch(e){info.textContent=e.message;}finally{connect.disabled=false;}};
     disconnect.onclick=async()=>{if(busy)return;disconnect.disabled=true;try{await api("/disconnect",{method:"POST"});await refresh();}catch(e){info.textContent=e.message;}finally{disconnect.disabled=false;}};
     more.onclick=()=>page(false).catch(e=>{info.textContent=e.message;});
     run.onclick=async()=>{if(busy||!selected.size)return;busy=true;run.disabled=more.disabled=disconnect.disabled=true;let done=0;const errors=[];const entries=[...selected];
@@ -61,5 +66,5 @@ window.mountBusinessInstagram = function({root,tools,form,status,load,icon,el,he
         }catch(e){info.textContent=e.message;}finally{busy=false;run.disabled=!selected.size;more.disabled=disconnect.disabled=false;}
     };
     const result=new URLSearchParams(location.search).get("instagram");
-    if(result){panel.hidden=false;refresh().then(()=>{if(result==="error")info.textContent="Не вдалося підключити Instagram. Перевірте дозвіл Meta та повторіть спробу.";});const url=new URL(location.href);url.searchParams.delete("instagram");history.replaceState(null,"",url.href);}
+    if(result){panel.hidden=false;refresh().then(()=>{if(result==="error")info.textContent="Не вдалося підключити Instagram. Перевірте дозвіл Meta та повторіть спробу.";if(result==="no_accounts")info.textContent="Meta не надала доступу до Instagram-акаунтів. Перевірте вибрані ресурси та дозволи.";});const url=new URL(location.href);url.searchParams.delete("instagram");history.replaceState(null,"",url.href);}
 };

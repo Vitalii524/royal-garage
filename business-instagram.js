@@ -3,6 +3,7 @@ const crypto = require("node:crypto");
 const ROOT = "/api/business/instagram";
 const COOKIE = "rg_business_instagram";
 const STATE = "rg_instagram_state";
+const PENDING = "rg_instagram_pending";
 const FIELDS = "id,caption,media_type,media_url,thumbnail_url,children{id,media_type,media_url}";
 const opts = { httpOnly:true, secure:true, sameSite:"lax", path:ROOT };
 function key(secret) {
@@ -41,15 +42,15 @@ async function jsonRequest(url, init={}) {
     return data;
 }
 async function graph(path, token, fields, after) {
-    const url=new URL("https://graph.instagram.com/v24.0/"+path);
+    const url=new URL("https://graph.facebook.com/v24.0/"+path);
     url.searchParams.set("fields",fields);
     if(after)url.searchParams.set("after",after);
     if(path.endsWith("/media"))url.searchParams.set("limit","25");
     return jsonRequest(url,{headers:{Authorization:"Bearer "+token}});
 }
 function installBusinessInstagram({app,pool,requireAuth,publicOrigin,normalizeAttachment}) {
-    const config=()=>({id:process.env.INSTAGRAM_APP_ID,secret:process.env.INSTAGRAM_APP_SECRET,key:process.env.JWT_SECRET});
-    const configured=()=>Boolean(config().id&&config().secret&&config().key);
+    const config=()=>({id:process.env.META_APP_ID||"1830896391125670",configId:process.env.META_LOGIN_CONFIG_ID||"2712311745891050",secret:process.env.META_APP_SECRET,key:process.env.JWT_SECRET});
+    const configured=()=>Boolean(config().id&&config().configId&&config().secret&&config().key);
     const redirectUri=publicOrigin+ROOT+"/callback";
     const returnPage=publicOrigin+"/business-profile.html";
     async function exists(owner) {
@@ -65,7 +66,31 @@ function installBusinessInstagram({app,pool,requireAuth,publicOrigin,normalizeAt
     }
     function connection(req) {
         const c=open(cookie(req,COOKIE),config().key);
-        return c?.kind==="connection" && c.owner===req.user.userId ? c : null;
+        return c?.kind==="connection" && c.provider==="unified" && c.owner===req.user.userId ? c : null;
+    }
+    function pending(req) {
+        const c=open(cookie(req,PENDING),config().key);
+        return c?.kind==="pending"&&c.owner===req.user.userId?c:null;
+    }
+    async function assigned(token) {
+        const accounts=new Map();let after;
+        for(let page=0;page<20;page++){
+            const data=await graph("me/assigned_instagram_accounts",token,"id,username",after);
+            if(!Array.isArray(data.data))throw Error("Не вдалося отримати список Instagram-акаунтів.");
+            for(const a of data.data){
+                const id=String(a.id||"");
+                if(/^\d{5,30}$/.test(id)&&a.username)accounts.set(id,{id,username:String(a.username).slice(0,100)});
+            }
+            if(!data.paging?.next)return [...accounts.values()];
+            const next=data.paging.cursors?.after;
+            if(!next||next===after)throw Error("Не вдалося отримати повний список акаунтів.");
+            after=next;
+        }
+        throw Error("Забагато підключених Instagram-акаунтів.");
+    }
+    function saveConnection(res,c,account) {
+        res.cookie(COOKIE,seal({kind:"connection",provider:"unified",owner:c.owner,account:account.id,username:account.username,token:c.token,exp:c.tokenExp},config().key),{...opts,maxAge:c.tokenExp-Date.now()});
+        res.clearCookie(PENDING,opts);
     }
     function connected(req,res,next) {
         const c=connection(req);
@@ -75,14 +100,14 @@ function installBusinessInstagram({app,pool,requireAuth,publicOrigin,normalizeAt
     }
     app.get(ROOT+"/status",requireAuth,business,(req,res)=>{
         const c=connection(req);
-        res.json({configured:configured(),connected:Boolean(c),username:c?.username||null});
+        res.json({configured:configured(),connected:Boolean(c),username:c?.username||null,pending:Boolean(pending(req))});
     });
     app.post(ROOT+"/connect",requireAuth,business,(req,res)=>{
         if(!configured()) return res.status(503).json({message:"Підключення Instagram очікує налаштування застосунку Meta адміністратором."});
         const nonce=crypto.randomBytes(32).toString("hex"), exp=Date.now()+10*60*1000;
         res.cookie(STATE,seal({kind:"state",owner:req.user.userId,nonce,exp},config().key),{...opts,maxAge:10*60*1000});
-        const url=new URL("https://www.instagram.com/oauth/authorize");
-        url.search=new URLSearchParams({client_id:config().id,redirect_uri:redirectUri,response_type:"code",scope:"instagram_business_basic",state:nonce,enable_fb_login:"0",force_authentication:"1"}).toString();
+        const url=new URL("https://www.facebook.com/dialog/oauth");
+        url.search=new URLSearchParams({client_id:config().id,config_id:config().configId,display:"popup",override_default_response_type:"true",redirect_uri:redirectUri,response_type:"code",state:nonce,prompt:"login"}).toString();
         res.json({url:url.toString()});
     });
     app.get(ROOT+"/callback",async(req,res)=>{
@@ -94,32 +119,42 @@ function installBusinessInstagram({app,pool,requireAuth,publicOrigin,normalizeAt
         if(!configured()||!s||s.kind!=="state"||typeof req.query.state!=="string"||req.query.state!==s.nonce||typeof req.query.code!=="string"||req.query.code.length>4000)return fail();
         try {
             if(!await exists(s.owner))return fail();
-            const codeData=await jsonRequest("https://api.instagram.com/oauth/access_token",{
-                method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},
-                body:new URLSearchParams({client_id:config().id,client_secret:config().secret,grant_type:"authorization_code",redirect_uri:redirectUri,code:req.query.code})
-            });
-            const short=codeData.access_token||codeData.data?.[0]?.access_token;
-            if(!short) return fail();
-            const url=new URL("https://graph.instagram.com/access_token");
-            url.search=new URLSearchParams({grant_type:"ig_exchange_token",client_secret:config().secret,access_token:short}).toString();
-            const long=await jsonRequest(url);
-            const token=long.access_token;
-            const ttl=Math.min(60*24*60*60,Number(long.expires_in)||3600)*1000;
-            if(typeof token!=="string"||token.length>2000||ttl<=0)return fail();
-            const me=await graph("me",token,"user_id,username");
-            const account=String(me.user_id||me.id||"");
-            if(!/^\d{5,30}$/.test(account)||!me.username)return fail();
-            res.cookie(COOKIE,seal({kind:"connection",owner:s.owner,account,username:String(me.username).slice(0,100),token,exp:Date.now()+ttl},config().key),{...opts,maxAge:ttl});
-            return res.redirect(returnPage+"?instagram=connected");
+            const url=new URL("https://graph.facebook.com/v24.0/oauth/access_token");
+            url.search=new URLSearchParams({client_id:config().id,client_secret:config().secret,redirect_uri:redirectUri,code:req.query.code}).toString();
+            const codeData=await jsonRequest(url);
+            const token=codeData.access_token;
+            if(typeof token!=="string"||token.length>2000)return fail();
+            // The integration may issue a non-expiring system-user token. Limit the local session regardless.
+            const seconds=Number(codeData.expires_in);
+            const ttl=Math.min(60*24*60*60,seconds>0?seconds:60*24*60*60)*1000;
+            const accounts=await assigned(token);
+            if(!accounts.length)return res.redirect(returnPage+"?instagram=no_accounts");
+            const c={owner:s.owner,token,tokenExp:Date.now()+ttl};
+            if(accounts.length===1){saveConnection(res,c,accounts[0]);return res.redirect(returnPage+"?instagram=connected");}
+            res.cookie(PENDING,seal({kind:"pending",...c,exp:Date.now()+10*60*1000},config().key),{...opts,maxAge:10*60*1000});
+            return res.redirect(returnPage+"?instagram=choose");
         } catch { return fail(); }
     });
+    app.get(ROOT+"/accounts",requireAuth,business,async(req,res)=>{
+        const c=pending(req);if(!c)return res.status(401).json({message:"Підключіть Instagram повторно."});
+        try{res.json({accounts:await assigned(c.token)});}catch(e){res.status(502).json({message:e.message});}
+    });
+    app.post(ROOT+"/select",requireAuth,business,async(req,res)=>{
+        const c=pending(req),id=String(req.body?.id||"");
+        if(!c||!/^\d{5,30}$/.test(id))return res.status(400).json({message:"Оберіть підключений Instagram-акаунт."});
+        try{
+            const account=(await assigned(c.token)).find(a=>a.id===id);
+            if(!account)return res.status(403).json({message:"Немає дозволу на цей Instagram-акаунт."});
+            saveConnection(res,c,account);res.json({ok:true});
+        }catch(e){res.status(502).json({message:e.message});}
+    });
     app.post(ROOT+"/disconnect",requireAuth,business,(req,res)=>{
-        res.clearCookie(COOKIE,opts);res.clearCookie(STATE,opts);res.json({ok:true});
+        res.clearCookie(COOKIE,opts);res.clearCookie(STATE,opts);res.clearCookie(PENDING,opts);res.json({ok:true});
     });
     app.get(ROOT+"/media",requireAuth,business,connected,async(req,res)=>{
         try {
             const c=req.instagram;
-            const data=await graph("me/media",c.token,FIELDS,String(req.query.after||"").slice(0,1000));
+            const data=await graph(c.account+"/media",c.token,FIELDS,String(req.query.after||"").slice(0,1000));
             const items=(data.data||[]).filter(x=>/^\d{5,30}$/.test(String(x.id))&&["IMAGE","VIDEO","CAROUSEL_ALBUM"].includes(x.media_type));
             const existing=await pool.query("SELECT id FROM forum_topics WHERE id=ANY($1::uuid[])",[items.map(x=>topicId(c.owner,c.account,x.id))]);
             const seen=new Set(existing.rows.map(x=>x.id));
