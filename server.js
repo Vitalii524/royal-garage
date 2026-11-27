@@ -9826,6 +9826,8 @@ app.post("/api/atelier/instagram",requireAuth,requireAtelierOwner,async(req,res)
  }catch(e){if(client)await client.query("ROLLBACK").catch(()=>{});res.status(502).json({message:e.message});}finally{client?.release();}
 });
 
+require("./business-instagram").installBusinessInstagram({app,pool,requireAuth,publicOrigin:PUBLIC_ORIGIN,normalizeAttachment:normalizeForumTopicAttachment});
+
 app.get("/api/admin/site-analytics", requireAuth, requireAdmin, async (req, res) => {
     res.set("Cache-Control", "no-store");
     try {

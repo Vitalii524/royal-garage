@@ -765,7 +765,7 @@
                 main.prepend(section);
                 for (const child of Array.from(main.children)) if (child !== section && !child.classList.contains("business-modal")) child.hidden = true;
                 const back = document.createElement("a"); back.href="handmade.html"; back.textContent="← Royal Auto Atelier"; back.style.cssText="color:#f2d28b;text-decoration:none;font-weight:600;display:inline-block;margin-bottom:12px"; section.prepend(back);
-            } else window.mountGaragePosts?.($("garagePosts"), data.profile.ownerId, state.isOwner);
+            } else window.mountGaragePosts?.($("garagePosts"), data.profile.ownerId, state.isOwner, false, true);
         } catch (error) {
             console.error("Business profile load error:", error);
             setPageError(error.status === 404

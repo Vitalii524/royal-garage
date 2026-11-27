@@ -1,6 +1,6 @@
 "use strict";
 function fitActiveGallery(gallery){const update=()=>{if(!gallery.clientWidth)return;const slides=Array.from(gallery.children);const active=slides.reduce((best,node)=>Math.abs(node.offsetLeft-slides[0].offsetLeft-gallery.scrollLeft)<Math.abs(best.offsetLeft-slides[0].offsetLeft-gallery.scrollLeft)?node:best,slides[0]);if(!active)return;const h=active.getBoundingClientRect().height;if(h>0)gallery.style.height=Math.ceil(h)+"px";};gallery.addEventListener("scroll",update,{passive:true});gallery.addEventListener("load",update,true);gallery.addEventListener("loadedmetadata",update,true);if(typeof ResizeObserver!=="undefined"){const observer=new ResizeObserver(update);Array.from(gallery.children).forEach(node=>observer.observe(node));}requestAnimationFrame(update);}
-window.mountGaragePosts = function(root, ownerId, isOwner, atelier = false) {
+window.mountGaragePosts = function(root, ownerId, isOwner, atelier = false, business = false) {
  if (!root || !ownerId) return;
  const token = localStorage.getItem("royalGarageToken") || "";
  const headers = {"Content-Type":"application/json", Authorization:"Bearer "+token};
@@ -50,6 +50,7 @@ window.mountGaragePosts = function(root, ownerId, isOwner, atelier = false) {
    input.onchange=async()=>{const picked=Array.from(input.files);input.value="";if(files.length+picked.length>20){status.textContent="Максимум 20 файлів.";return;}submit.disabled=true;try{const snapshots=await Promise.all(picked.map(async f=>{if(f.size>(f.type.startsWith("image/")?10:20)*1024*1024)throw Error("Файл надто великий: "+f.name);return new File([await f.arrayBuffer()],f.name,{type:f.type});}));files.push(...snapshots);refresh();}catch(e){status.textContent=e.message;}finally{submit.disabled=false;}};
    const shape=label==="Зняти фото"?"M3 6h4l2-3h6l2 3h4v14H3ZM16 13a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z":label==="Зняти відео"?"M3 5h13v14H3ZM16 9l5-3v12l-5-3":"M3 3h18v18H3ZM3 17l6-6 4 4 3-3 5 5M16 7h.01";icon(button,label,shape);tools.append(button,input);
   }
+  if(business && !atelier && window.mountBusinessInstagram) window.mountBusinessInstagram({root,tools,form,status,load,icon,el,headers});
   submit.type="submit";icon(submit,"Опублікувати",shapes.send,"Опублікувати");tools.append(submit);form.append(tools,selected);root.append(form);
   form.onsubmit=async event=>{
    event.preventDefault();if(submit.disabled)return;
