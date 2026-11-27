@@ -3880,6 +3880,7 @@ const mediaReady = installMedia({app,pool,requireAuth,requireCrmAccess,databaseR
 require("./catalog-media").installCatalogMedia({app,pool,requireAuth,databaseReady});
 require("./product-catalog").installProductCatalog({app,pool,databaseReady});
 require("./dealer-xml").installDealerXml({app,pool,requireAuth,requireAdmin,databaseReady,editorialOwnerId:EDITORIAL_OWNER_ID});
+require("./product-catalog").installProm({app,pool,requireAuth,databaseReady});
 
 app.post('/api/businesses/:ownerId/requests', async(req,res)=>{
     try {
